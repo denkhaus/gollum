@@ -13,7 +13,8 @@
       "mcp__plugin_beads_beads__update",
       "mcp__plugin_beads_beads__close",
       "mcp__plugin_beads_beads__show",
-      "mcp__plugin_beads_beads__create"
+      "mcp__plugin_beads_beads__create",
+      "Bash(gh pr view:*)"
     ],
     "deny": [],
     "ask": []

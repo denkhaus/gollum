@@ -11,13 +11,12 @@ import (
 )
 
 func TestFileStateManager_DetectChanges(t *testing.T) {
-	injector := setupTestInjector()
-	fsm, err := NewFileStateManager(injector)
-	require.NoError(t, err, "Failed to create FileStateManager")
-
-	tmpDir := t.TempDir()
-
 	t.Run("no changes when snapshots are identical", func(t *testing.T) {
+		injector := setupTestInjector()
+		fsm, err := NewFileStateManager(injector)
+		require.NoError(t, err, "Failed to create FileStateManager")
+
+		tmpDir := t.TempDir()
 		// Create a test file
 		testFile := filepath.Join(tmpDir, "test1.txt")
 		err = os.WriteFile(testFile, []byte("content"), 0644)
@@ -41,6 +40,11 @@ func TestFileStateManager_DetectChanges(t *testing.T) {
 	})
 
 	t.Run("detects file creation", func(t *testing.T) {
+		injector := setupTestInjector()
+		fsm, err := NewFileStateManager(injector)
+		require.NoError(t, err, "Failed to create FileStateManager")
+
+		tmpDir := t.TempDir()
 		// Get initial snapshot
 		beforeStats := fsm.GetAllStats()
 
@@ -66,6 +70,11 @@ func TestFileStateManager_DetectChanges(t *testing.T) {
 	})
 
 	t.Run("detects file modification", func(t *testing.T) {
+		injector := setupTestInjector()
+		fsm, err := NewFileStateManager(injector)
+		require.NoError(t, err, "Failed to create FileStateManager")
+
+		tmpDir := t.TempDir()
 		// Create a file
 		modFile := filepath.Join(tmpDir, "modified.txt")
 		err = os.WriteFile(modFile, []byte("original"), 0644)
@@ -96,6 +105,11 @@ func TestFileStateManager_DetectChanges(t *testing.T) {
 	})
 
 	t.Run("detects file deletion", func(t *testing.T) {
+		injector := setupTestInjector()
+		fsm, err := NewFileStateManager(injector)
+		require.NoError(t, err, "Failed to create FileStateManager")
+
+		tmpDir := t.TempDir()
 		// Create a file
 		delFile := filepath.Join(tmpDir, "deleted.txt")
 		err = os.WriteFile(delFile, []byte("to be deleted"), 0644)
@@ -134,6 +148,11 @@ func TestFileStateManager_DetectChanges(t *testing.T) {
 	})
 
 	t.Run("detects create and modify", func(t *testing.T) {
+		injector := setupTestInjector()
+		fsm, err := NewFileStateManager(injector)
+		require.NoError(t, err, "Failed to create FileStateManager")
+
+		tmpDir := t.TempDir()
 		// Create file2 first and add to stats
 		file2 := filepath.Join(tmpDir, "file2.txt")
 		err = os.WriteFile(file2, []byte("original"), 0644)
@@ -163,7 +182,7 @@ func TestFileStateManager_DetectChanges(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should have exactly 2 changes (file1 created, file2 modified)
-		assert.GreaterOrEqual(t, len(changes), 2, "expected at least two changes")
+		require.Len(t, changes, 2, "expected exactly two changes")
 
 		// Verify we have both create and modify operations
 		hasCreate := false

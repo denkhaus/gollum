@@ -658,6 +658,11 @@ func (fsm *fileStateManager) IsWatcherRunning() bool {
 	return fsm.watcherEnabled && fsm.watcher != nil
 }
 
+// GetWatcherDebounce returns the file watcher's debounce duration
+func (fsm *fileStateManager) GetWatcherDebounce() time.Duration {
+	return fsm.cfg.GetDebounceDuration()
+}
+
 // IsFileStaleForAgent checks if a file is stale for an agent (either not read or modified since last read)
 // Returns (true, nil) if the file is stale (agent must read it first before writing)
 // Returns (false, nil) if the file is fresh (agent has read it and it hasn't been modified)
@@ -814,11 +819,8 @@ func (fsm *fileStateManager) updateFileStats(path string) {
 // DetectChanges computes file changes between a previous snapshot and current state
 // This is typically used to track what files a bash command modified
 func (fsm *fileStateManager) DetectChanges(beforeStats map[string]*FileStats) ([]FileChange, error) {
-	// Get current state
+	// Get current state (already a safe copy with internal locking)
 	afterStats := fsm.GetAllStats()
-
-	fsm.mu.RLock()
-	defer fsm.mu.RUnlock()
 
 	var changes []FileChange
 

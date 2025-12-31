@@ -84,9 +84,10 @@ type BashConfig struct {
 	// When enabled, detected changes are logged and returned in the tool response
 	// This provides transparency about what files were modified by bash commands
 	TrackChanges bool `envconfig:"TRACK_CHANGES" default:"true"`
-	// DebounceMs is the time to wait after command execution for the file watcher to process events
-	// This allows the background watcher to update file stats before we detect changes
-	DebounceMs int `envconfig:"DEBOUNCE_MS" default:"50"` // milliseconds
+	// DebounceMs is deprecated and no longer used
+	// The watcher's debounce duration is now used directly via GetWatcherDebounce()
+	// This field is kept only for config file compatibility
+	DebounceMs int `envconfig:"DEBOUNCE_MS" default:"50"` // deprecated, unused
 }
 
 // ConfigService defines the configuration service interface

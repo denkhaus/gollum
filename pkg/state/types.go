@@ -177,6 +177,10 @@ type FileStateManager interface {
 	// IsWatcherRunning returns true if watcher is active
 	IsWatcherRunning() bool
 
+	// GetWatcherDebounce returns the file watcher's debounce duration
+	// This is the minimum time to wait after a file change before checking for updates
+	GetWatcherDebounce() time.Duration
+
 	// IsFileStaleForAgent checks if a file is stale for an agent (not read or modified since last read)
 	IsFileStaleForAgent(agentID uuid.UUID, path string) (bool, error)
 

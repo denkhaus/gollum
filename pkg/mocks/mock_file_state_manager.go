@@ -12,6 +12,7 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	state "github.com/denkhaus/gollum/pkg/state"
 	uuid "github.com/google/uuid"
@@ -159,6 +160,20 @@ func (m *MockFileStateManager) GetLock(path string) (*state.LockToken, error) {
 func (mr *MockFileStateManagerMockRecorder) GetLock(path any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLock", reflect.TypeOf((*MockFileStateManager)(nil).GetLock), path)
+}
+
+// GetWatcherDebounce mocks base method.
+func (m *MockFileStateManager) GetWatcherDebounce() time.Duration {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWatcherDebounce")
+	ret0, _ := ret[0].(time.Duration)
+	return ret0
+}
+
+// GetWatcherDebounce indicates an expected call of GetWatcherDebounce.
+func (mr *MockFileStateManagerMockRecorder) GetWatcherDebounce() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWatcherDebounce", reflect.TypeOf((*MockFileStateManager)(nil).GetWatcherDebounce))
 }
 
 // IsFileStaleForAgent mocks base method.

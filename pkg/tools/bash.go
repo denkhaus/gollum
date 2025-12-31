@@ -153,8 +153,9 @@ func (t *BashTool) Run(ctx context.Context, args map[string]any) (map[string]any
 
 	// Detect file changes AFTER command execution (if tracking enabled)
 	if t.bashCfg.TrackChanges {
-		// Wait for file watcher to process events (debounce)
-		time.Sleep(time.Duration(t.bashCfg.DebounceMs) * time.Millisecond)
+		// Wait for file watcher to process events (debounce + small safety margin)
+		watcherDebounce := t.fileState.GetWatcherDebounce()
+		time.Sleep(watcherDebounce + 50*time.Millisecond)
 
 		// Detect changes
 		changes, detectErr := t.fileState.DetectChanges(beforeStats)
