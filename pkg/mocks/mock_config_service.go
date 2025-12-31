@@ -68,6 +68,20 @@ func (mr *MockConfigServiceMockRecorder) GetAnthropicConfig() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAnthropicConfig", reflect.TypeOf((*MockConfigService)(nil).GetAnthropicConfig))
 }
 
+// GetBashConfig mocks base method.
+func (m *MockConfigService) GetBashConfig() *config.BashConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBashConfig")
+	ret0, _ := ret[0].(*config.BashConfig)
+	return ret0
+}
+
+// GetBashConfig indicates an expected call of GetBashConfig.
+func (mr *MockConfigServiceMockRecorder) GetBashConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBashConfig", reflect.TypeOf((*MockConfigService)(nil).GetBashConfig))
+}
+
 // GetFilesConfig mocks base method.
 func (m *MockConfigService) GetFilesConfig() *config.FilesConfig {
 	m.ctrl.T.Helper()

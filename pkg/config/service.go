@@ -78,6 +78,14 @@ type LoggingConfig struct {
 	SessionLogEnabled bool `envconfig:"SESSION_LOG_ENABLED" default:"true"`
 }
 
+// BashConfig defines configuration for the Bash tool's file change tracking
+type BashConfig struct {
+	// TrackChanges enables file change detection for bash commands
+	// When enabled, detected changes are logged and returned in the tool response
+	// This provides transparency about what files were modified by bash commands
+	TrackChanges bool `envconfig:"TRACK_CHANGES" default:"true"`
+}
+
 // ConfigService defines the configuration service interface
 type ConfigService interface {
 	GetLogLevel() string
@@ -88,6 +96,7 @@ type ConfigService interface {
 	GetAgentLimits() *AgentLimitsConfig
 	GetFilesConfig() *FilesConfig
 	GetLoggingConfig() *LoggingConfig
+	GetBashConfig() *BashConfig
 }
 
 // service implements the Service interface
@@ -98,6 +107,7 @@ type service struct {
 	AgentLimits AgentLimitsConfig `envconfig:"AGENT_LIMITS"`
 	Files       FilesConfig       `envconfig:"FILES"`
 	Logging     LoggingConfig     `envconfig:"LOGGING"`
+	Bash        BashConfig        `envconfig:"BASH"`
 	LogLevel    string            `envconfig:"LOG_LEVEL" default:"info"`
 	Development bool              `envconfig:"DEVELOPMENT" default:"false"`
 }
@@ -152,4 +162,8 @@ func (s *service) GetFilesConfig() *FilesConfig {
 
 func (s *service) GetLoggingConfig() *LoggingConfig {
 	return &s.Logging
+}
+
+func (s *service) GetBashConfig() *BashConfig {
+	return &s.Bash
 }

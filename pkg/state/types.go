@@ -2,6 +2,7 @@ package state
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"time"
 
@@ -68,6 +69,45 @@ type FileStatus struct {
 	LockedBy *string
 	LockMode *LockMode
 	LockedAt *time.Time
+}
+
+// ChangeOperation represents the type of file change detected
+type ChangeOperation int
+
+const (
+	// Created indicates a new file was created
+	Created ChangeOperation = iota
+	// Modified indicates an existing file was modified
+	Modified
+	// Deleted indicates a file was deleted
+	Deleted
+)
+
+// FileChange represents a detected file modification
+type FileChange struct {
+	Path        string          `json:"path"`          // File path that changed
+	Operation   ChangeOperation `json:"operation"`     // Type of change
+	OldChecksum string          `json:"-"`             // Checksum before change (empty if Created, omitted from JSON)
+	NewChecksum string          `json:"-"`             // Checksum after change (empty if Deleted, omitted from JSON)
+}
+
+// String returns a human-readable representation of the change operation
+func (o ChangeOperation) String() string {
+	switch o {
+	case Created:
+		return "created"
+	case Modified:
+		return "modified"
+	case Deleted:
+		return "deleted"
+	default:
+		return "unknown"
+	}
+}
+
+// MarshalJSON implements json.Marshaler to serialize ChangeOperation as a string
+func (o ChangeOperation) MarshalJSON() ([]byte, error) {
+	return json.Marshal(o.String())
 }
 
 // ScanOptions controls the Prime/Scan behavior
@@ -143,6 +183,14 @@ type FileStateManager interface {
 	// IsWatcherRunning returns true if watcher is active
 	IsWatcherRunning() bool
 
+	// GetWatcherDebounce returns the file watcher's debounce duration
+	// This is the minimum time to wait after a file change before checking for updates
+	GetWatcherDebounce() time.Duration
+
 	// IsFileStaleForAgent checks if a file is stale for an agent (not read or modified since last read)
 	IsFileStaleForAgent(agentID uuid.UUID, path string) (bool, error)
+
+	// DetectChanges computes file changes between a previous snapshot and current state
+	// Typically used to track what files a bash command modified
+	DetectChanges(beforeStats map[string]*FileStats) ([]FileChange, error)
 }

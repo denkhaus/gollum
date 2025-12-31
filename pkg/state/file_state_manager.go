@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -658,6 +659,11 @@ func (fsm *fileStateManager) IsWatcherRunning() bool {
 	return fsm.watcherEnabled && fsm.watcher != nil
 }
 
+// GetWatcherDebounce returns the file watcher's debounce duration
+func (fsm *fileStateManager) GetWatcherDebounce() time.Duration {
+	return fsm.cfg.GetDebounceDuration()
+}
+
 // IsFileStaleForAgent checks if a file is stale for an agent (either not read or modified since last read)
 // Returns (true, nil) if the file is stale (agent must read it first before writing)
 // Returns (false, nil) if the file is fresh (agent has read it and it hasn't been modified)
@@ -809,4 +815,59 @@ func (fsm *fileStateManager) updateFileStats(path string) {
 	fsm.mu.Unlock()
 
 	fsm.log.Debug("File stats updated", zap.String("path", path), zap.String("checksum", checksum))
+}
+
+// DetectChanges computes file changes between a previous snapshot and current state
+// This is typically used to track what files a bash command modified
+//
+// For modifications and deletions, this method actively checks files on disk rather
+// than relying on the async watcher's cache. This makes detection reliable even if
+// the watcher is slow or disabled. New file creation still uses the watcher's cache
+// to avoid expensive full-directory scans.
+func (fsm *fileStateManager) DetectChanges(beforeStats map[string]*FileStats) ([]FileChange, error) {
+	var changes []FileChange
+
+	// Check for modifications and deletions by actively checking files from the
+	// 'before' state. This is more reliable than depending on the async watcher.
+	for path, before := range beforeStats {
+		currentChecksum, err := fsm.calculateChecksum(path)
+		if err != nil {
+			// Check if the underlying error is file not found
+			if errors.Is(err, os.ErrNotExist) {
+				// File was deleted
+				changes = append(changes, FileChange{
+					Path:        path,
+					Operation:   Deleted,
+					OldChecksum: before.Checksum,
+				})
+				continue
+			}
+			return nil, err // Some other error
+		}
+
+		// File exists, check for modification
+		if before.Checksum != currentChecksum {
+			changes = append(changes, FileChange{
+				Path:        path,
+				Operation:   Modified,
+				OldChecksum: before.Checksum,
+				NewChecksum: currentChecksum,
+			})
+		}
+	}
+
+	// Check for creations using the watcher's current state to avoid a full scan
+	afterStats := fsm.GetAllStats()
+	for path, after := range afterStats {
+		if _, ok := beforeStats[path]; !ok {
+			// This path was not in beforeStats, so it's a new file
+			changes = append(changes, FileChange{
+				Path:        path,
+				Operation:   Created,
+				NewChecksum: after.Checksum,
+			})
+		}
+	}
+
+	return changes, nil
 }
