@@ -399,10 +399,18 @@ func TestHookContext_Clone(t *testing.T) {
 		assert.Equal(t, original.ToolName, cloned.ToolName)
 		assert.Equal(t, original.Data, cloned.Data)
 
-		// Modify cloned data
+		// Modify cloned data and verify it doesn't affect original
 		cloned.Data["key1"] = "modified"
-		assert.Equal(t, "value1", original.Data["key1"])
+		assert.Equal(t, "value1", original.Data["key1"], "Modifying a value in the cloned map should not affect the original map")
 		assert.Equal(t, "modified", cloned.Data["key1"])
+
+		// Verify shallow copy of reference types inside the map
+		original.Data["ref"] = []int{10}
+		clonedWithRef := original.Clone()
+		// Modify the content of the slice in the clone
+		clonedWithRef.Data["ref"].([]int)[0] = 20
+		// Since it's a shallow copy, modifying the slice content affects the original
+		assert.Equal(t, 20, original.Data["ref"].([]int)[0], "Modifying content of a reference type in clone's map should affect original (shallow copy)")
 	})
 
 	t.Run("handles nil HookContext", func(t *testing.T) {
