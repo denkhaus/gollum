@@ -9,24 +9,32 @@ package hooks
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/google/uuid"
 )
 
+// ErrDuplicateHook is returned when attempting to register a hook with a name that already exists.
+var ErrDuplicateHook = errors.New("hook with this name already registered")
+
 // HookPoint identifies where in the application lifecycle a hook should be triggered.
 type HookPoint string
 
 const (
-	// Session lifecycle hooks
+	// BeforeSessionStart is triggered before a session starts.
 	BeforeSessionStart HookPoint = "BeforeSessionStart"
-	AfterSessionEnd    HookPoint = "AfterSessionEnd"
+	// AfterSessionEnd is triggered after a session ends.
+	AfterSessionEnd HookPoint = "AfterSessionEnd"
 
-	// Agent lifecycle hooks
-	BeforeAgentSpawn  HookPoint = "BeforeAgentSpawn"
-	AfterAgentSpawn   HookPoint = "AfterAgentSpawn"
+	// BeforeAgentSpawn is triggered before an agent is spawned.
+	BeforeAgentSpawn HookPoint = "BeforeAgentSpawn"
+	// AfterAgentSpawn is triggered after an agent is spawned.
+	AfterAgentSpawn HookPoint = "AfterAgentSpawn"
+	// BeforeAgentRemove is triggered before an agent is removed.
 	BeforeAgentRemove HookPoint = "BeforeAgentRemove"
-	AfterAgentRemove  HookPoint = "AfterAgentRemove"
+	// AfterAgentRemove is triggered after an agent is removed.
+	AfterAgentRemove HookPoint = "AfterAgentRemove"
 )
 
 // String returns the string representation of the hook point.
@@ -105,14 +113,26 @@ type registration struct {
 // hookRegistry manages hooks for a specific HookPoint.
 type hookRegistry struct {
 	mu     sync.RWMutex
-	hooks  []*registration // Sorted by priority
+	hooks  []*registration     // Sorted by priority
+	names  map[string]struct{} // O(1) name lookup for duplicate detection
 	nextID int
 }
 
 // add registers a hook with the given metadata.
-func (r *hookRegistry) add(fn HookFunc, meta HookMetadata) int {
+// Returns an error if a hook with the same name already exists.
+func (r *hookRegistry) add(fn HookFunc, meta HookMetadata) (int, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	// Initialize names map if needed
+	if r.names == nil {
+		r.names = make(map[string]struct{})
+	}
+
+	// Check for duplicate name (O(1) lookup)
+	if _, exists := r.names[meta.Name]; exists {
+		return 0, ErrDuplicateHook
+	}
 
 	reg := &registration{
 		fn:       fn,
@@ -132,8 +152,11 @@ func (r *hookRegistry) add(fn HookFunc, meta HookMetadata) int {
 		r.hooks = append(r.hooks, reg)
 	}
 
+	// Add name to map
+	r.names[meta.Name] = struct{}{}
+
 	r.nextID++
-	return r.nextID - 1
+	return r.nextID - 1, nil
 }
 
 // remove removes a hook by name.
@@ -144,6 +167,8 @@ func (r *hookRegistry) remove(name string) bool {
 	for i, h := range r.hooks {
 		if h.metadata.Name == name {
 			r.hooks = append(r.hooks[:i], r.hooks[i+1:]...)
+			// Remove from names map
+			delete(r.names, name)
 			return true
 		}
 	}

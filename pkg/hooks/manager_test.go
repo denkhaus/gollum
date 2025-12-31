@@ -22,45 +22,59 @@ type mockLogger struct {
 	errorCalls [][]zap.Field
 }
 
-func (m *mockLogger) Debug(msg string, fields ...zap.Field) {
+func (m *mockLogger) Debug(_ string, fields ...zap.Field) {
 	m.debugCalls = append(m.debugCalls, fields)
 }
 
-func (m *mockLogger) Debugf(format string, args ...any) {}
+func (m *mockLogger) Debugf(_ string, _ ...any) {}
 
-func (m *mockLogger) Info(msg string, fields ...zap.Field) {
+func (m *mockLogger) Info(_ string, fields ...zap.Field) {
 	m.infoCalls = append(m.infoCalls, fields)
 }
 
-func (m *mockLogger) Infof(format string, args ...any) {}
+func (m *mockLogger) Infof(_ string, _ ...any) {}
 
-func (m *mockLogger) Warn(msg string, fields ...zap.Field) {
+func (m *mockLogger) Warn(_ string, fields ...zap.Field) {
 	m.warnCalls = append(m.warnCalls, fields)
 }
 
-func (m *mockLogger) Warnf(format string, args ...any) {}
+func (m *mockLogger) Warnf(_ string, _ ...any) {}
 
-func (m *mockLogger) Error(msg string, fields ...zap.Field) {
+func (m *mockLogger) Error(_ string, fields ...zap.Field) {
 	m.errorCalls = append(m.errorCalls, fields)
 }
 
-func (m *mockLogger) Errorf(format string, args ...any) {}
+func (m *mockLogger) Errorf(_ string, _ ...any) {}
 
-func (m *mockLogger) GetLogger() *zap.Logger                            { return nil }
-func (m *mockLogger) SetTUIWriter(writer io.Writer)                     {}
-func (m *mockLogger) ResetToStdout()                                    {}
-func (m *mockLogger) GetLogs(filter logger.LogFilter) []logger.LogEntry { return nil }
-func (m *mockLogger) GetLogStats() map[string]interface{}               { return nil }
+func (m *mockLogger) GetLogger() *zap.Logger                       { return nil }
+func (m *mockLogger) SetTUIWriter(_ io.Writer)                     {}
+func (m *mockLogger) ResetToStdout()                               {}
+func (m *mockLogger) GetLogs(_ logger.LogFilter) []logger.LogEntry { return nil }
+func (m *mockLogger) GetLogStats() map[string]interface{}          { return nil }
 
 var _ logger.LoggerService = (*mockLogger)(nil)
 
-// newTestHookManager creates a HookManager for testing
-func newTestHookManager() HookManager {
+// newTestHookManager creates a HookManager for testing with initialized registries.
+func newTestHookManager() *hookManagerImpl {
 	log := &mockLogger{}
-	return &hookManagerImpl{
+	hm := &hookManagerImpl{
 		log:        log,
 		registries: make(map[HookPoint]*hookRegistry),
 	}
+
+	// Initialize registries for all known hook points
+	for _, point := range []HookPoint{
+		BeforeSessionStart,
+		AfterSessionEnd,
+		BeforeAgentSpawn,
+		AfterAgentSpawn,
+		BeforeAgentRemove,
+		AfterAgentRemove,
+	} {
+		hm.registries[point] = &hookRegistry{}
+	}
+
+	return hm
 }
 
 // TestHookManager_RegisterHook tests hook registration
@@ -68,16 +82,7 @@ func TestHookManager_RegisterHook(t *testing.T) {
 	t.Run("successfully registers a hook", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		// Initialize registries (normally done in NewHookManager)
-		for _, point := range []HookPoint{
-			BeforeSessionStart, AfterSessionEnd,
-			BeforeAgentSpawn, AfterAgentSpawn,
-			BeforeAgentRemove, AfterAgentRemove,
-		} {
-			hm.(*hookManagerImpl).registries[point] = &hookRegistry{}
-		}
-
-		fn := func(ctx context.Context, hc *HookContext, next func() error) error {
+		fn := func(_ context.Context, _ *HookContext, next func() error) error {
 			return next()
 		}
 		meta := HookMetadata{
@@ -93,13 +98,6 @@ func TestHookManager_RegisterHook(t *testing.T) {
 
 	t.Run("rejects nil hook function", func(t *testing.T) {
 		hm := newTestHookManager()
-		for _, point := range []HookPoint{
-			BeforeSessionStart, AfterSessionEnd,
-			BeforeAgentSpawn, AfterAgentSpawn,
-			BeforeAgentRemove, AfterAgentRemove,
-		} {
-			hm.(*hookManagerImpl).registries[point] = &hookRegistry{}
-		}
 
 		meta := HookMetadata{
 			Name:       "test-hook",
@@ -115,15 +113,8 @@ func TestHookManager_RegisterHook(t *testing.T) {
 
 	t.Run("rejects empty hook name", func(t *testing.T) {
 		hm := newTestHookManager()
-		for _, point := range []HookPoint{
-			BeforeSessionStart, AfterSessionEnd,
-			BeforeAgentSpawn, AfterAgentSpawn,
-			BeforeAgentRemove, AfterAgentRemove,
-		} {
-			hm.(*hookManagerImpl).registries[point] = &hookRegistry{}
-		}
 
-		fn := func(ctx context.Context, hc *HookContext, next func() error) error {
+		fn := func(_ context.Context, _ *HookContext, next func() error) error {
 			return next()
 		}
 		meta := HookMetadata{
@@ -140,15 +131,8 @@ func TestHookManager_RegisterHook(t *testing.T) {
 
 	t.Run("rejects unknown hook point", func(t *testing.T) {
 		hm := newTestHookManager()
-		for _, point := range []HookPoint{
-			BeforeSessionStart, AfterSessionEnd,
-			BeforeAgentSpawn, AfterAgentSpawn,
-			BeforeAgentRemove, AfterAgentRemove,
-		} {
-			hm.(*hookManagerImpl).registries[point] = &hookRegistry{}
-		}
 
-		fn := func(ctx context.Context, hc *HookContext, next func() error) error {
+		fn := func(_ context.Context, _ *HookContext, next func() error) error {
 			return next()
 		}
 		meta := HookMetadata{
@@ -165,15 +149,8 @@ func TestHookManager_RegisterHook(t *testing.T) {
 
 	t.Run("rejects duplicate hook name", func(t *testing.T) {
 		hm := newTestHookManager()
-		for _, point := range []HookPoint{
-			BeforeSessionStart, AfterSessionEnd,
-			BeforeAgentSpawn, AfterAgentSpawn,
-			BeforeAgentRemove, AfterAgentRemove,
-		} {
-			hm.(*hookManagerImpl).registries[point] = &hookRegistry{}
-		}
 
-		fn := func(ctx context.Context, hc *HookContext, next func() error) error {
+		fn := func(_ context.Context, _ *HookContext, next func() error) error {
 			return next()
 		}
 		meta := HookMetadata{
@@ -196,15 +173,8 @@ func TestHookManager_RegisterHook(t *testing.T) {
 func TestHookManager_UnregisterHook(t *testing.T) {
 	t.Run("successfully unregisters a hook", func(t *testing.T) {
 		hm := newTestHookManager()
-		for _, point := range []HookPoint{
-			BeforeSessionStart, AfterSessionEnd,
-			BeforeAgentSpawn, AfterAgentSpawn,
-			BeforeAgentRemove, AfterAgentRemove,
-		} {
-			hm.(*hookManagerImpl).registries[point] = &hookRegistry{}
-		}
 
-		fn := func(ctx context.Context, hc *HookContext, next func() error) error {
+		fn := func(_ context.Context, _ *HookContext, next func() error) error {
 			return next()
 		}
 		meta := HookMetadata{
@@ -227,13 +197,6 @@ func TestHookManager_UnregisterHook(t *testing.T) {
 
 	t.Run("returns false for non-existent hook", func(t *testing.T) {
 		hm := newTestHookManager()
-		for _, point := range []HookPoint{
-			BeforeSessionStart, AfterSessionEnd,
-			BeforeAgentSpawn, AfterAgentSpawn,
-			BeforeAgentRemove, AfterAgentRemove,
-		} {
-			hm.(*hookManagerImpl).registries[point] = &hookRegistry{}
-		}
 
 		unregistered := hm.UnregisterHook("non-existent")
 		assert.False(t, unregistered)
@@ -244,38 +207,32 @@ func TestHookManager_UnregisterHook(t *testing.T) {
 func TestHookManager_TriggerHooks_PriorityOrdering(t *testing.T) {
 	t.Run("executes hooks in priority order (lowest first)", func(t *testing.T) {
 		hm := newTestHookManager()
-		for _, point := range []HookPoint{
-			BeforeSessionStart, AfterSessionEnd,
-			BeforeAgentSpawn, AfterAgentSpawn,
-			BeforeAgentRemove, AfterAgentRemove,
-		} {
-			hm.(*hookManagerImpl).registries[point] = &hookRegistry{}
-		}
 
 		executed := []string{}
-		fn1 := func(ctx context.Context, hc *HookContext, next func() error) error {
+		fnP0 := func(_ context.Context, _ *HookContext, next func() error) error {
 			executed = append(executed, "priority-0")
 			return next()
 		}
-		fn2 := func(ctx context.Context, hc *HookContext, next func() error) error {
-			executed = append(executed, "priority-10")
-			return next()
-		}
-		fn3 := func(ctx context.Context, hc *HookContext, next func() error) error {
+		fnP5 := func(_ context.Context, _ *HookContext, next func() error) error {
 			executed = append(executed, "priority-5")
 			return next()
 		}
+		fnP10 := func(_ context.Context, _ *HookContext, next func() error) error {
+			executed = append(executed, "priority-10")
+			return next()
+		}
 
-		// Register in reverse priority order
-		hm.RegisterHook(fn1, HookMetadata{Name: "h1", Point: BeforeSessionStart, Priority: 10, FatalError: false})
-		hm.RegisterHook(fn2, HookMetadata{Name: "h2", Point: BeforeSessionStart, Priority: 0, FatalError: false})
-		hm.RegisterHook(fn3, HookMetadata{Name: "h3", Point: BeforeSessionStart, Priority: 5, FatalError: false})
+		// Register in random order to test sorting
+		require.NoError(t, hm.RegisterHook(fnP10, HookMetadata{Name: "h_p10", Point: BeforeSessionStart, Priority: 10, FatalError: false}))
+		require.NoError(t, hm.RegisterHook(fnP0, HookMetadata{Name: "h_p0", Point: BeforeSessionStart, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterHook(fnP5, HookMetadata{Name: "h_p5", Point: BeforeSessionStart, Priority: 5, FatalError: false}))
 
 		result := hm.TriggerHooks(context.Background(), BeforeSessionStart, &HookContext{})
 
 		assert.False(t, result.Stopped)
 		assert.NoError(t, result.Error)
-		assert.Equal(t, []string{"priority-10", "priority-5", "priority-0"}, executed)
+		// Hooks should execute in priority order: 0, 5, 10
+		assert.Equal(t, []string{"priority-0", "priority-5", "priority-10"}, executed)
 	})
 }
 
@@ -283,31 +240,24 @@ func TestHookManager_TriggerHooks_PriorityOrdering(t *testing.T) {
 func TestHookManager_TriggerHooks_ErrorHandling(t *testing.T) {
 	t.Run("fatal error stops execution", func(t *testing.T) {
 		hm := newTestHookManager()
-		for _, point := range []HookPoint{
-			BeforeSessionStart, AfterSessionEnd,
-			BeforeAgentSpawn, AfterAgentSpawn,
-			BeforeAgentRemove, AfterAgentRemove,
-		} {
-			hm.(*hookManagerImpl).registries[point] = &hookRegistry{}
-		}
 
 		executed := []string{}
-		fn1 := func(ctx context.Context, hc *HookContext, next func() error) error {
+		fn1 := func(_ context.Context, _ *HookContext, next func() error) error {
 			executed = append(executed, "hook1")
 			return next()
 		}
-		fn2 := func(ctx context.Context, hc *HookContext, next func() error) error {
+		fn2 := func(_ context.Context, _ *HookContext, _ func() error) error {
 			executed = append(executed, "hook2")
 			return errors.New("fatal error")
 		}
-		fn3 := func(ctx context.Context, hc *HookContext, next func() error) error {
+		fn3 := func(_ context.Context, _ *HookContext, next func() error) error {
 			executed = append(executed, "hook3")
 			return next()
 		}
 
-		hm.RegisterHook(fn1, HookMetadata{Name: "h1", Point: BeforeSessionStart, Priority: 0, FatalError: false})
-		hm.RegisterHook(fn2, HookMetadata{Name: "h2", Point: BeforeSessionStart, Priority: 1, FatalError: true})
-		hm.RegisterHook(fn3, HookMetadata{Name: "h3", Point: BeforeSessionStart, Priority: 2, FatalError: false})
+		require.NoError(t, hm.RegisterHook(fn1, HookMetadata{Name: "h1", Point: BeforeSessionStart, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterHook(fn2, HookMetadata{Name: "h2", Point: BeforeSessionStart, Priority: 1, FatalError: true}))
+		require.NoError(t, hm.RegisterHook(fn3, HookMetadata{Name: "h3", Point: BeforeSessionStart, Priority: 2, FatalError: false}))
 
 		result := hm.TriggerHooks(context.Background(), BeforeSessionStart, &HookContext{})
 
@@ -318,31 +268,24 @@ func TestHookManager_TriggerHooks_ErrorHandling(t *testing.T) {
 
 	t.Run("non-fatal error continues execution", func(t *testing.T) {
 		hm := newTestHookManager()
-		for _, point := range []HookPoint{
-			BeforeSessionStart, AfterSessionEnd,
-			BeforeAgentSpawn, AfterAgentSpawn,
-			BeforeAgentRemove, AfterAgentRemove,
-		} {
-			hm.(*hookManagerImpl).registries[point] = &hookRegistry{}
-		}
 
 		executed := []string{}
-		fn1 := func(ctx context.Context, hc *HookContext, next func() error) error {
+		fn1 := func(_ context.Context, _ *HookContext, next func() error) error {
 			executed = append(executed, "hook1")
 			return next()
 		}
-		fn2 := func(ctx context.Context, hc *HookContext, next func() error) error {
+		fn2 := func(_ context.Context, _ *HookContext, _ func() error) error {
 			executed = append(executed, "hook2")
 			return errors.New("non-fatal error")
 		}
-		fn3 := func(ctx context.Context, hc *HookContext, next func() error) error {
+		fn3 := func(_ context.Context, _ *HookContext, next func() error) error {
 			executed = append(executed, "hook3")
 			return next()
 		}
 
-		hm.RegisterHook(fn1, HookMetadata{Name: "h1", Point: BeforeSessionStart, Priority: 0, FatalError: false})
-		hm.RegisterHook(fn2, HookMetadata{Name: "h2", Point: BeforeSessionStart, Priority: 1, FatalError: false})
-		hm.RegisterHook(fn3, HookMetadata{Name: "h3", Point: BeforeSessionStart, Priority: 2, FatalError: false})
+		require.NoError(t, hm.RegisterHook(fn1, HookMetadata{Name: "h1", Point: BeforeSessionStart, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterHook(fn2, HookMetadata{Name: "h2", Point: BeforeSessionStart, Priority: 1, FatalError: false}))
+		require.NoError(t, hm.RegisterHook(fn3, HookMetadata{Name: "h3", Point: BeforeSessionStart, Priority: 2, FatalError: false}))
 
 		result := hm.TriggerHooks(context.Background(), BeforeSessionStart, &HookContext{})
 
@@ -356,30 +299,23 @@ func TestHookManager_TriggerHooks_ErrorHandling(t *testing.T) {
 func TestHookManager_WithSessionHooks(t *testing.T) {
 	t.Run("successfully wraps work with session hooks", func(t *testing.T) {
 		hm := newTestHookManager()
-		for _, point := range []HookPoint{
-			BeforeSessionStart, AfterSessionEnd,
-			BeforeAgentSpawn, AfterAgentSpawn,
-			BeforeAgentRemove, AfterAgentRemove,
-		} {
-			hm.(*hookManagerImpl).registries[point] = &hookRegistry{}
-		}
 
 		executed := []string{}
-		beforeHook := func(ctx context.Context, hc *HookContext, next func() error) error {
+		beforeHook := func(_ context.Context, _ *HookContext, next func() error) error {
 			executed = append(executed, "before")
 			return next()
 		}
-		afterHook := func(ctx context.Context, hc *HookContext, next func() error) error {
+		afterHook := func(_ context.Context, _ *HookContext, next func() error) error {
 			executed = append(executed, "after")
 			return next()
 		}
 
-		hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeSessionStart, Priority: 0, FatalError: false})
-		hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterSessionEnd, Priority: 0, FatalError: false})
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeSessionStart, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterSessionEnd, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		workExecuted := false
-		err := hm.(*hookManagerImpl).WithSessionHooks(context.Background(), sessionID, func() error {
+		err := hm.WithSessionHooks(context.Background(), sessionID, func() error {
 			executed = append(executed, "work")
 			workExecuted = true
 			return nil
@@ -392,15 +328,8 @@ func TestHookManager_WithSessionHooks(t *testing.T) {
 
 	t.Run("rejects nil session ID", func(t *testing.T) {
 		hm := newTestHookManager()
-		for _, point := range []HookPoint{
-			BeforeSessionStart, AfterSessionEnd,
-			BeforeAgentSpawn, AfterAgentSpawn,
-			BeforeAgentRemove, AfterAgentRemove,
-		} {
-			hm.(*hookManagerImpl).registries[point] = &hookRegistry{}
-		}
 
-		err := hm.(*hookManagerImpl).WithSessionHooks(context.Background(), uuid.Nil, func() error {
+		err := hm.WithSessionHooks(context.Background(), uuid.Nil, func() error {
 			return nil
 		})
 
@@ -413,25 +342,18 @@ func TestHookManager_WithSessionHooks(t *testing.T) {
 func TestHookManager_WithAgentHooks(t *testing.T) {
 	t.Run("successfully triggers agent hooks", func(t *testing.T) {
 		hm := newTestHookManager()
-		for _, point := range []HookPoint{
-			BeforeSessionStart, AfterSessionEnd,
-			BeforeAgentSpawn, AfterAgentSpawn,
-			BeforeAgentRemove, AfterAgentRemove,
-		} {
-			hm.(*hookManagerImpl).registries[point] = &hookRegistry{}
-		}
 
 		executed := false
-		agentHook := func(ctx context.Context, hc *HookContext, next func() error) error {
+		agentHook := func(_ context.Context, _ *HookContext, next func() error) error {
 			executed = true
 			return next()
 		}
 
-		hm.RegisterHook(agentHook, HookMetadata{Name: "agent-hook", Point: BeforeAgentSpawn, Priority: 0, FatalError: false})
+		require.NoError(t, hm.RegisterHook(agentHook, HookMetadata{Name: "agent-hook", Point: BeforeAgentSpawn, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
-		err := hm.(*hookManagerImpl).WithAgentHooks(context.Background(), sessionID, agentID, BeforeAgentSpawn, func() error {
+		err := hm.WithAgentHooks(context.Background(), sessionID, agentID, BeforeAgentSpawn, func() error {
 			return nil
 		})
 
@@ -441,15 +363,8 @@ func TestHookManager_WithAgentHooks(t *testing.T) {
 
 	t.Run("rejects nil agent ID", func(t *testing.T) {
 		hm := newTestHookManager()
-		for _, point := range []HookPoint{
-			BeforeSessionStart, AfterSessionEnd,
-			BeforeAgentSpawn, AfterAgentSpawn,
-			BeforeAgentRemove, AfterAgentRemove,
-		} {
-			hm.(*hookManagerImpl).registries[point] = &hookRegistry{}
-		}
 
-		err := hm.(*hookManagerImpl).WithAgentHooks(context.Background(), uuid.New(), uuid.Nil, BeforeAgentSpawn, nil)
+		err := hm.WithAgentHooks(context.Background(), uuid.New(), uuid.Nil, BeforeAgentSpawn, nil)
 
 		require.Error(t, err)
 		assert.True(t, errs.IsType(err, errs.TypeValidation))
@@ -457,17 +372,10 @@ func TestHookManager_WithAgentHooks(t *testing.T) {
 
 	t.Run("rejects invalid agent hook point", func(t *testing.T) {
 		hm := newTestHookManager()
-		for _, point := range []HookPoint{
-			BeforeSessionStart, AfterSessionEnd,
-			BeforeAgentSpawn, AfterAgentSpawn,
-			BeforeAgentRemove, AfterAgentRemove,
-		} {
-			hm.(*hookManagerImpl).registries[point] = &hookRegistry{}
-		}
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
-		err := hm.(*hookManagerImpl).WithAgentHooks(context.Background(), sessionID, agentID, BeforeSessionStart, nil)
+		err := hm.WithAgentHooks(context.Background(), sessionID, agentID, BeforeSessionStart, nil)
 
 		require.Error(t, err)
 		assert.True(t, errs.IsType(err, errs.TypeValidation))

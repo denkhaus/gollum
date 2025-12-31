@@ -75,15 +75,16 @@ func (p *hookManagerImpl) RegisterHook(fn HookFunc, meta HookMetadata) error {
 		return errs.Validationf("unknown hook point: %s", meta.Point)
 	}
 
-	// Check for duplicate name
-	for _, h := range registry.get() {
-		if h.metadata.Name == meta.Name {
+	// add() performs atomic duplicate checking
+	id, err := registry.add(fn, meta)
+	if err != nil {
+		if err == ErrDuplicateHook {
 			return errs.Conflictf("hook with name '%s' already registered for point '%s'",
 				meta.Name, meta.Point)
 		}
+		return err
 	}
 
-	id := registry.add(fn, meta)
 	p.log.Debug("Hook registered",
 		zap.String("name", meta.Name),
 		zap.String("point", meta.Point.String()),
@@ -270,8 +271,10 @@ func (p *hookManagerImpl) WithAgentHooks(
 	}
 
 	// Validate hook point
-	if point != BeforeAgentSpawn && point != AfterAgentSpawn &&
-		point != BeforeAgentRemove && point != AfterAgentRemove {
+	switch point {
+	case BeforeAgentSpawn, AfterAgentSpawn, BeforeAgentRemove, AfterAgentRemove:
+		// valid agent hook points
+	default:
 		return errs.Validationf("invalid agent hook point: %s", point)
 	}
 
