@@ -163,6 +163,7 @@ func (t *BashTool) Run(ctx context.Context, args map[string]any) (map[string]any
 		changes, detectErr := t.fileState.DetectChanges(beforeStats)
 		if detectErr != nil {
 			t.logService.Warn("Failed to detect file changes", zap.Error(detectErr))
+			result["warning"] = fmt.Sprintf("Failed to detect file changes: %v", detectErr)
 		} else if len(changes) > 0 {
 			// Log detected changes
 			t.logService.Info("Bash command modified files",
