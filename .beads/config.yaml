@@ -22,11 +22,9 @@ issue-prefix: "gollum"
 # no-auto-import: false
 
 # Enable JSON output by default
-# json: false
-
+json: false
 # Default actor for audit trails (overridden by BD_ACTOR or --actor)
-# actor: ""
-
+actor: "denkhaus"
 # Path to database (overridden by BEADS_DB or --db)
 # db: ""
 
