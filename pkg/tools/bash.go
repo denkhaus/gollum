@@ -153,10 +153,9 @@ func (t *BashTool) Run(ctx context.Context, args map[string]any) (map[string]any
 
 	// Detect file changes AFTER command execution (if tracking enabled)
 	if t.bashCfg.TrackChanges {
-		// Wait for file watcher to process events.
-		// This is a best-effort attempt to allow fsnotify events to be processed
-		// after the command finishes. The watcher's debounce duration is used as
-		// the single source of truth for timing.
+		// Wait for file watcher to process new file creation events.
+		// This is only needed for detecting newly created files, since modifications
+		// and deletions are now actively verified by DetectChanges() itself.
 		watcherDebounce := t.fileState.GetWatcherDebounce()
 		time.Sleep(watcherDebounce)
 
