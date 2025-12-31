@@ -20,11 +20,11 @@ type HookPoint string
 const (
 	// Session lifecycle hooks
 	BeforeSessionStart HookPoint = "BeforeSessionStart"
-	AfterSessionEnd   HookPoint = "AfterSessionEnd"
+	AfterSessionEnd    HookPoint = "AfterSessionEnd"
 
 	// Agent lifecycle hooks
-	BeforeAgentSpawn HookPoint = "BeforeAgentSpawn"
-	AfterAgentSpawn  HookPoint = "AfterAgentSpawn"
+	BeforeAgentSpawn  HookPoint = "BeforeAgentSpawn"
+	AfterAgentSpawn   HookPoint = "AfterAgentSpawn"
 	BeforeAgentRemove HookPoint = "BeforeAgentRemove"
 	AfterAgentRemove  HookPoint = "AfterAgentRemove"
 )
@@ -61,8 +61,8 @@ func (hc *HookContext) Clone() *HookContext {
 
 // HookResult represents the result of a hook execution.
 type HookResult struct {
-	Stopped bool        // True if the hook chain was stopped
-	Error   error       // Error from hook execution (if any)
+	Stopped bool           // True if the hook chain was stopped
+	Error   error          // Error from hook execution (if any)
 	Data    map[string]any // Data returned by hooks
 }
 
