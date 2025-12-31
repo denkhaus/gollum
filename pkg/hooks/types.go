@@ -143,7 +143,10 @@ func (r *hookRegistry) add(fn HookFunc, meta HookMetadata) (int, error) {
 	inserted := false
 	for i, h := range r.hooks {
 		if meta.Priority < h.metadata.Priority {
-			r.hooks = append(r.hooks[:i], append([]*registration{reg}, r.hooks[i:]...)...)
+			// Efficient insertion: grow slice by one, shift elements, insert new element
+			r.hooks = append(r.hooks, nil)   // Grow slice by one
+			copy(r.hooks[i+1:], r.hooks[i:]) // Shift elements to the right
+			r.hooks[i] = reg                 // Insert new element at position i
 			inserted = true
 			break
 		}
