@@ -1,0 +1,272 @@
+package hooks
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/denkhaus/gollum/pkg/errs"
+	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/google/uuid"
+	"github.com/samber/do/v2"
+	"go.uber.org/zap"
+)
+
+// HookManager defines the interface for managing and triggering hooks.
+type HookManager interface {
+	// RegisterHook registers a hook function for a specific hook point.
+	RegisterHook(fn HookFunc, meta HookMetadata) error
+
+	// UnregisterHook removes a hook by name.
+	UnregisterHook(name string) bool
+
+	// TriggerHooks executes all registered hooks for a given hook point.
+	// Returns a HookResult indicating whether execution was stopped and any errors.
+	TriggerHooks(ctx context.Context, point HookPoint, hookCtx *HookContext) HookResult
+}
+
+// hookManagerImpl is the private implementation of HookManager.
+type hookManagerImpl struct {
+	log      logger.LoggerService
+	registries map[HookPoint]*hookRegistry
+}
+
+// Ensure hookManagerImpl implements HookManager.
+var _ HookManager = (*hookManagerImpl)(nil)
+
+// NewHookManager creates a new HookManager service.
+func NewHookManager(injector do.Injector) (HookManager, error) {
+	log := do.MustInvoke[logger.LoggerService](injector)
+
+	log.Debug("HookManager starting")
+
+	p := &hookManagerImpl{
+		log:      log,
+		registries: make(map[HookPoint]*hookRegistry),
+	}
+
+	// Initialize registries for all known hook points
+	for _, point := range []HookPoint{
+		BeforeSessionStart,
+		AfterSessionEnd,
+		BeforeAgentSpawn,
+		AfterAgentSpawn,
+		BeforeAgentRemove,
+		AfterAgentRemove,
+	} {
+		p.registries[point] = &hookRegistry{}
+	}
+
+	return p, nil
+}
+
+// RegisterHook registers a hook function for a specific hook point.
+func (p *hookManagerImpl) RegisterHook(fn HookFunc, meta HookMetadata) error {
+	if fn == nil {
+		return errs.Validation("hook function cannot be nil")
+	}
+
+	if meta.Name == "" {
+		return errs.Validation("hook name cannot be empty")
+	}
+
+	// Validate hook point
+	registry, exists := p.registries[meta.Point]
+	if !exists {
+		return errs.Validationf("unknown hook point: %s", meta.Point)
+	}
+
+	// Check for duplicate name
+	for _, h := range registry.get() {
+		if h.metadata.Name == meta.Name {
+			return errs.Conflictf("hook with name '%s' already registered for point '%s'",
+				meta.Name, meta.Point)
+		}
+	}
+
+	id := registry.add(fn, meta)
+	p.log.Debug("Hook registered",
+		zap.String("name", meta.Name),
+		zap.String("point", meta.Point.String()),
+		zap.Int("priority", meta.Priority),
+		zap.Int("id", id))
+
+	return nil
+}
+
+// UnregisterHook removes a hook by name.
+func (p *hookManagerImpl) UnregisterHook(name string) bool {
+	for point, registry := range p.registries {
+		if registry.remove(name) {
+			p.log.Debug("Hook unregistered",
+				zap.String("name", name),
+				zap.String("point", point.String()))
+			return true
+		}
+	}
+	return false
+}
+
+// TriggerHooks executes all registered hooks for a given hook point.
+//
+// Hooks are executed in priority order (lowest first). Each hook can:
+// - Modify the HookContext to pass data to subsequent hooks
+// - Call next() to continue the chain
+// - Return an error to stop execution (if FatalError=true)
+//
+// Returns a HookResult with:
+// - Stopped: true if a hook stopped execution
+// - Error: the error that caused the stop (if any)
+// - Data: accumulated data from all hooks
+func (p *hookManagerImpl) TriggerHooks(ctx context.Context, point HookPoint, hookCtx *HookContext) HookResult {
+	result := HookResult{
+		Stopped: false,
+		Error:   nil,
+		Data:    make(map[string]any),
+	}
+
+	// Initialize hookCtx if nil
+	if hookCtx == nil {
+		hookCtx = &HookContext{Data: make(map[string]any)}
+	}
+	if hookCtx.Data == nil {
+		hookCtx.Data = make(map[string]any)
+	}
+
+	// Get registry for this point
+	registry, exists := p.registries[point]
+	if !exists {
+		p.log.Warn("No hooks registered for point", zap.String("point", point.String()))
+		return result
+	}
+
+	// Get hooks in priority order
+	hooks := registry.get()
+	if len(hooks) == 0 {
+		return result
+	}
+
+	p.log.Debug("Triggering hooks",
+		zap.String("point", point.String()),
+		zap.Int("count", len(hooks)))
+
+	// Execute hooks in priority order
+	for i, reg := range hooks {
+		meta := reg.metadata
+		fn := reg.fn
+
+		// Create next function for this hook
+		index := i
+		next := func() error {
+			// If this is the last hook, next() does nothing
+			if index >= len(hooks)-1 {
+				return nil
+			}
+			return nil
+		}
+
+		// Execute the hook
+		err := fn(ctx, hookCtx, next)
+		if err != nil {
+			if meta.FatalError {
+				result.Stopped = true
+				result.Error = errs.Wrap(err, errs.TypeInternal,
+					fmt.Sprintf("hook '%s' at point '%s' failed", meta.Name, meta.Point))
+				p.log.Error("Hook execution failed (fatal)",
+					zap.String("name", meta.Name),
+					zap.String("point", meta.Point.String()),
+					zap.Error(err))
+				return result
+			}
+			// Non-fatal: log and continue
+			p.log.Warn("Hook execution failed (non-fatal, continuing)",
+				zap.String("name", meta.Name),
+				zap.String("point", meta.Point.String()),
+				zap.Error(err))
+		}
+
+		// Check if hook stopped by not calling next()
+		// In middleware pattern, if hook returns nil and didn't call next(),
+		// we assume it intentionally stopped
+		if err == nil && index < len(hooks)-1 {
+			// Hook completed without error, continue chain
+		}
+	}
+
+	// Accumulate data from hook context
+	for k, v := range hookCtx.Data {
+		result.Data[k] = v
+	}
+
+	return result
+}
+
+// WithSessionHooks wraps a function with session lifecycle hooks.
+func (p *hookManagerImpl) WithSessionHooks(
+	ctx context.Context,
+	sessionID uuid.UUID,
+	work func() error,
+) error {
+	if sessionID == uuid.Nil {
+		return errs.Validation("session ID cannot be nil")
+	}
+
+	// BeforeSessionStart hook
+	hookCtx := &HookContext{
+		SessionID: sessionID,
+		Data:      make(map[string]any),
+	}
+	result := p.TriggerHooks(ctx, BeforeSessionStart, hookCtx)
+	if result.Stopped {
+		return result.Error
+	}
+
+	// Execute the work
+	err := work()
+	if err != nil {
+		return err
+	}
+
+	// AfterSessionEnd hook
+	result = p.TriggerHooks(ctx, AfterSessionEnd, hookCtx)
+	if result.Stopped {
+		return result.Error
+	}
+
+	return nil
+}
+
+// WithAgentHooks wraps a function with agent lifecycle hooks.
+func (p *hookManagerImpl) WithAgentHooks(
+	ctx context.Context,
+	sessionID, agentID uuid.UUID,
+	point HookPoint,
+	work func() error,
+) error {
+	if agentID == uuid.Nil {
+		return errs.Validation("agent ID cannot be nil")
+	}
+
+	// Validate hook point
+	if point != BeforeAgentSpawn && point != AfterAgentSpawn &&
+		point != BeforeAgentRemove && point != AfterAgentRemove {
+		return errs.Validationf("invalid agent hook point: %s", point)
+	}
+
+	hookCtx := &HookContext{
+		SessionID: sessionID,
+		AgentID:   agentID,
+		Data:      make(map[string]any),
+	}
+
+	result := p.TriggerHooks(ctx, point, hookCtx)
+	if result.Stopped {
+		return result.Error
+	}
+
+	// Execute work if provided
+	if work != nil {
+		return work()
+	}
+
+	return nil
+}
