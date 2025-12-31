@@ -26,7 +26,7 @@ type HookManager interface {
 
 // hookManagerImpl is the private implementation of HookManager.
 type hookManagerImpl struct {
-	log      logger.LoggerService
+	log        logger.LoggerService
 	registries map[HookPoint]*hookRegistry
 }
 
@@ -40,7 +40,7 @@ func NewHookManager(injector do.Injector) (HookManager, error) {
 	log.Debug("HookManager starting")
 
 	p := &hookManagerImpl{
-		log:      log,
+		log:        log,
 		registries: make(map[HookPoint]*hookRegistry),
 	}
 
@@ -93,25 +93,28 @@ func (p *hookManagerImpl) RegisterHook(fn HookFunc, meta HookMetadata) error {
 	return nil
 }
 
-// UnregisterHook removes a hook by name.
+// UnregisterHook removes a hook by name from all hook points.
+// Returns true if at least one hook was removed.
 func (p *hookManagerImpl) UnregisterHook(name string) bool {
+	unregistered := false
 	for point, registry := range p.registries {
 		if registry.remove(name) {
 			p.log.Debug("Hook unregistered",
 				zap.String("name", name),
 				zap.String("point", point.String()))
-			return true
+			unregistered = true
 		}
 	}
-	return false
+	return unregistered
 }
 
 // TriggerHooks executes all registered hooks for a given hook point.
 //
 // Hooks are executed in priority order (lowest first). Each hook can:
 // - Modify the HookContext to pass data to subsequent hooks
-// - Call next() to continue the chain
+// - Call next() to continue the chain (and optionally wrap it for before/after logic)
 // - Return an error to stop execution (if FatalError=true)
+// - Not call next() to stop the chain at that point
 //
 // Returns a HookResult with:
 // - Stopped: true if a hook stopped execution
@@ -149,23 +152,31 @@ func (p *hookManagerImpl) TriggerHooks(ctx context.Context, point HookPoint, hoo
 		zap.String("point", point.String()),
 		zap.Int("count", len(hooks)))
 
-	// Execute hooks in priority order
-	for i, reg := range hooks {
-		meta := reg.metadata
-		fn := reg.fn
+	// Index-based dispatcher for middleware pattern
+	// This allows hooks to:
+	// 1. Wrap next() to run code before and after subsequent hooks
+	// 2. Stop the chain by not calling next()
+	index := -1
+	var next func() error
 
-		// Create next function for this hook
-		index := i
-		next := func() error {
-			// If this is the last hook, next() does nothing
-			if index >= len(hooks)-1 {
-				return nil
-			}
+	next = func() error {
+		// Check if chain was already stopped by a fatal error
+		if result.Stopped {
+			return result.Error
+		}
+
+		index++
+		if index >= len(hooks) {
+			// Reached the end of the chain
 			return nil
 		}
 
-		// Execute the hook
-		err := fn(ctx, hookCtx, next)
+		reg := hooks[index]
+		meta := reg.metadata
+
+		// Execute the current hook
+		err := reg.fn(ctx, hookCtx, next)
+
 		if err != nil {
 			if meta.FatalError {
 				result.Stopped = true
@@ -175,21 +186,33 @@ func (p *hookManagerImpl) TriggerHooks(ctx context.Context, point HookPoint, hoo
 					zap.String("name", meta.Name),
 					zap.String("point", meta.Point.String()),
 					zap.Error(err))
-				return result
+				// Stop execution by not calling next() and returning the error
+				return result.Error
 			}
-			// Non-fatal: log and continue
+			// Non-fatal: log and continue to the next hook in the chain
 			p.log.Warn("Hook execution failed (non-fatal, continuing)",
 				zap.String("name", meta.Name),
 				zap.String("point", meta.Point.String()),
 				zap.Error(err))
+			// Check if chain was stopped before continuing
+			if result.Stopped {
+				return result.Error
+			}
+			return next()
 		}
 
-		// Check if hook stopped by not calling next()
-		// In middleware pattern, if hook returns nil and didn't call next(),
-		// we assume it intentionally stopped
-		if err == nil && index < len(hooks)-1 {
-			// Hook completed without error, continue chain
-		}
+		// If the hook returned nil, the chain either continued via a call to next()
+		// or was intentionally stopped by the hook not calling next().
+		// The recursive nature of the calls handles this correctly.
+		return nil
+	}
+
+	_ = next()
+
+	// If the chain was stopped prematurely (a hook didn't call next),
+	// the index will not have reached the end.
+	if index < len(hooks)-1 && result.Error == nil {
+		result.Stopped = true
 	}
 
 	// Accumulate data from hook context

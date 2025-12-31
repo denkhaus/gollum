@@ -46,11 +46,11 @@ func (m *mockLogger) Error(msg string, fields ...zap.Field) {
 
 func (m *mockLogger) Errorf(format string, args ...any) {}
 
-func (m *mockLogger) GetLogger() *zap.Logger { return nil }
-func (m *mockLogger) SetTUIWriter(writer io.Writer) {}
-func (m *mockLogger) ResetToStdout() {}
+func (m *mockLogger) GetLogger() *zap.Logger                            { return nil }
+func (m *mockLogger) SetTUIWriter(writer io.Writer)                     {}
+func (m *mockLogger) ResetToStdout()                                    {}
 func (m *mockLogger) GetLogs(filter logger.LogFilter) []logger.LogEntry { return nil }
-func (m *mockLogger) GetLogStats() map[string]interface{} { return nil }
+func (m *mockLogger) GetLogStats() map[string]interface{}               { return nil }
 
 var _ logger.LoggerService = (*mockLogger)(nil)
 
