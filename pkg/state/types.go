@@ -2,6 +2,7 @@ package state
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"time"
 
@@ -84,10 +85,10 @@ const (
 
 // FileChange represents a detected file modification
 type FileChange struct {
-	Path        string          // File path that changed
-	Operation   ChangeOperation // Type of change
-	OldChecksum string          // Checksum before change (empty if Created)
-	NewChecksum string          // Checksum after change (empty if Deleted)
+	Path        string          `json:"path"`          // File path that changed
+	Operation   ChangeOperation `json:"operation"`     // Type of change
+	OldChecksum string          `json:"-"`             // Checksum before change (empty if Created, omitted from JSON)
+	NewChecksum string          `json:"-"`             // Checksum after change (empty if Deleted, omitted from JSON)
 }
 
 // String returns a human-readable representation of the change operation
@@ -102,6 +103,11 @@ func (o ChangeOperation) String() string {
 	default:
 		return "unknown"
 	}
+}
+
+// MarshalJSON implements json.Marshaler to serialize ChangeOperation as a string
+func (o ChangeOperation) MarshalJSON() ([]byte, error) {
+	return json.Marshal(o.String())
 }
 
 // ScanOptions controls the Prime/Scan behavior

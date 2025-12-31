@@ -170,8 +170,8 @@ func (t *BashTool) Run(ctx context.Context, args map[string]any) (map[string]any
 				zap.Int("count", len(changes)),
 				zap.String("command", command))
 
-			// Add changes to result
-			result["file_changes"] = formatFileChanges(changes)
+			// Add changes to result (FileChange now has json tags for proper serialization)
+			result["file_changes"] = changes
 
 			// Add warning if files were modified
 			result["warning"] = fmt.Sprintf("This bash command modified %d file(s). Consider using %s or %s for better file state tracking.",
@@ -180,16 +180,4 @@ func (t *BashTool) Run(ctx context.Context, args map[string]any) (map[string]any
 	}
 
 	return result, nil
-}
-
-// formatFileChanges converts FileChange slice to a readable format
-func formatFileChanges(changes []state.FileChange) []map[string]any {
-	result := make([]map[string]any, len(changes))
-	for i, change := range changes {
-		result[i] = map[string]any{
-			"path":      change.Path,
-			"operation": change.Operation.String(),
-		}
-	}
-	return result
 }
