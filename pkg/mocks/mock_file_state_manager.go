@@ -12,6 +12,7 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	state "github.com/denkhaus/gollum/pkg/state"
 	uuid "github.com/google/uuid"
@@ -55,6 +56,21 @@ func (m *MockFileStateManager) AcquireLock(ctx context.Context, path string, age
 func (mr *MockFileStateManagerMockRecorder) AcquireLock(ctx, path, agentID, mode any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AcquireLock", reflect.TypeOf((*MockFileStateManager)(nil).AcquireLock), ctx, path, agentID, mode)
+}
+
+// DetectChanges mocks base method.
+func (m *MockFileStateManager) DetectChanges(beforeStats map[string]*state.FileStats) ([]state.FileChange, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DetectChanges", beforeStats)
+	ret0, _ := ret[0].([]state.FileChange)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DetectChanges indicates an expected call of DetectChanges.
+func (mr *MockFileStateManagerMockRecorder) DetectChanges(beforeStats any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetectChanges", reflect.TypeOf((*MockFileStateManager)(nil).DetectChanges), beforeStats)
 }
 
 // DoWork mocks base method.
@@ -144,6 +160,20 @@ func (m *MockFileStateManager) GetLock(path string) (*state.LockToken, error) {
 func (mr *MockFileStateManagerMockRecorder) GetLock(path any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLock", reflect.TypeOf((*MockFileStateManager)(nil).GetLock), path)
+}
+
+// GetWatcherDebounce mocks base method.
+func (m *MockFileStateManager) GetWatcherDebounce() time.Duration {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWatcherDebounce")
+	ret0, _ := ret[0].(time.Duration)
+	return ret0
+}
+
+// GetWatcherDebounce indicates an expected call of GetWatcherDebounce.
+func (mr *MockFileStateManagerMockRecorder) GetWatcherDebounce() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWatcherDebounce", reflect.TypeOf((*MockFileStateManager)(nil).GetWatcherDebounce))
 }
 
 // IsFileStaleForAgent mocks base method.

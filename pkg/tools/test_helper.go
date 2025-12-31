@@ -5,6 +5,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/registry"
+	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"go.uber.org/mock/gomock"
@@ -19,6 +20,9 @@ func setupTestInjector() do.Injector {
 
 	// Register logger service
 	do.Provide(injector, logger.NewService)
+
+	// Register file state manager (needed by BashTool)
+	do.Provide(injector, state.NewFileStateManager)
 
 	// Register agent registry (needed for execution helper)
 	do.Provide(injector, registry.NewAgentRegistry)
