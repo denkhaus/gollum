@@ -1,0 +1,222 @@
+package tools
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/prompt"
+	"github.com/denkhaus/gollum/pkg/registry"
+	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/google/uuid"
+	"github.com/m-mizutani/gollem"
+	"github.com/samber/do/v2"
+)
+
+type (
+	// SpawnAgentTool creates new subagents with immediate task execution
+	SpawnAgentTool struct {
+		logService      logger.LoggerService
+		agentFactory    shared.AgentFactory
+		registry        registry.AgentRegistry
+		promptManager   prompt.PromptManager
+		executionHelper AgentExecutionHelper
+		configService   config.ConfigService
+		senderID        uuid.UUID
+	}
+
+	// SpawnAgentToolProvider creates SpawnAgentTool instances via DI
+	SpawnAgentToolProvider interface {
+		CreateTool(senderID uuid.UUID, agentFactory shared.AgentFactory) *SpawnAgentTool
+	}
+
+	spawnAgentToolProvider struct {
+		logService      logger.LoggerService
+		registry        registry.AgentRegistry
+		promptManager   prompt.PromptManager
+		executionHelper AgentExecutionHelper
+		configService   config.ConfigService
+	}
+)
+
+// NewSpawnAgentToolProvider creates a provider for SpawnAgent tools
+func NewSpawnAgentToolProvider(injector do.Injector) (SpawnAgentToolProvider, error) {
+	logService := do.MustInvoke[logger.LoggerService](injector)
+	registry := do.MustInvoke[registry.AgentRegistry](injector)
+	promptManager := do.MustInvoke[prompt.PromptManager](injector)
+	executionHelper := do.MustInvoke[AgentExecutionHelper](injector)
+	configService := do.MustInvoke[config.ConfigService](injector)
+
+	return &spawnAgentToolProvider{
+		logService:      logService,
+		registry:        registry,
+		promptManager:   promptManager,
+		executionHelper: executionHelper,
+		configService:   configService,
+	}, nil
+}
+
+// CreateSpawnAgentTool creates a new SpawnAgentTool for a specific sender
+func (p *spawnAgentToolProvider) CreateTool(senderID uuid.UUID, agentFactory shared.AgentFactory) *SpawnAgentTool {
+	return &SpawnAgentTool{
+		logService:      p.logService,
+		agentFactory:    agentFactory,
+		registry:        p.registry,
+		promptManager:   p.promptManager,
+		executionHelper: p.executionHelper,
+		configService:   p.configService,
+		senderID:        senderID,
+	}
+}
+
+// Spec returns the tool specification for SpawnAgentTool
+func (t *SpawnAgentTool) Spec() gollem.ToolSpec {
+	maxSubAgents := t.configService.GetAgentLimits().MaxSubAgentsPerParent
+
+	return gollem.ToolSpec{
+		Name: shared.ToolNameSpawnAgent,
+		// Description references ToolNameResumeAgent for cross-tool discoverability
+		Description: fmt.Sprintf(`Creates a new subagent with a task prompt and executes it immediately.
+			The agent preserves context and remains accessible for follow-up interactions via the %s tool.
+			Remove the agent when done using the %s tool. Maximum concurrent subagents: %d.`,
+			shared.ToolNameResumeAgent,
+			shared.ToolNameRemoveAgent,
+			maxSubAgents,
+		),
+		Parameters: map[string]*gollem.Parameter{
+			"role": {
+				Type:        gollem.TypeString,
+				Description: "Agent identity for UI/Logging (e.g., 'Code Reviewer', 'Git Specialist', 'Data Analyst')",
+			},
+			"description": {
+				Type:        gollem.TypeString,
+				Description: "Short task description (3-5 words) for identification (e.g., 'Refactoring registry.go')",
+			},
+			"prompt": {
+				Type:        gollem.TypeString,
+				Description: "Detailed task instructions for the agent to execute",
+			},
+			"run_in_background": {
+				Type:        gollem.TypeBoolean,
+				Description: fmt.Sprintf("If true, executes asynchronously. Use %s tool to retrieve results. If false or omitted, waits for completion and returns result directly.", shared.ToolNameAgentOutput),
+			},
+		},
+		Required: []string{"role", "description", "prompt"},
+	}
+}
+
+// Run executes the SpawnAgent tool to create and run subagents
+func (t *SpawnAgentTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+	// Validate required parameters
+	role, ok := args["role"].(string)
+	if !ok || role == "" {
+		return t.executionHelper.ErrorResponse("role is required and must be a non-empty string"), nil
+	}
+
+	description, ok := args["description"].(string)
+	if !ok || description == "" {
+		return t.executionHelper.ErrorResponse("description is required and must be a non-empty string"), nil
+	}
+
+	prompt, ok := args["prompt"].(string)
+	if !ok || prompt == "" {
+		return t.executionHelper.ErrorResponse("prompt is required and must be a non-empty string"), nil
+	}
+
+	// Check run_in_background parameter (defaults to false)
+	runInBackground := false
+	if bgVal, exists := args["run_in_background"]; exists {
+		if bgBool, ok := bgVal.(bool); ok {
+			runInBackground = bgBool
+		}
+	}
+
+	t.logService.Infof("Spawning subagent: role=%s description=%s background=%v", role, description, runInBackground)
+
+	// Get specialized subagent prompt from PromptManager (includes role, description, and tool names)
+	systemPrompt, err := t.promptManager.GetSubagentPrompt(role, description)
+	if err != nil {
+		t.logService.Errorf("Failed to get subagent prompt: %v", err)
+		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to get subagent prompt: %v", err)), nil
+	}
+
+	// Get parent agent to inherit LLM provider
+	parentAgent, hasParent := t.registry.GetAgent(t.senderID)
+	var llmProvider shared.LLMProvider
+	if hasParent {
+		llmProvider = parentAgent.GetConfig().LLMProvider
+		t.logService.Debugf("Inheriting LLM provider from parent agent %s", t.senderID)
+	} else {
+		llmProvider = shared.LLMProviderAnthropic // Default fallback
+		t.logService.Debugf("Using default LLM provider (no parent agent found)")
+	}
+
+	// Create subagent configuration
+	taskID := uuid.New()
+	subagentConfig := &shared.AgentConfig{
+		AllowCompaction: false, // Don't allow compaction in Sub-agents
+		ID:              taskID,
+		ParentID:        &t.senderID,
+		SystemPrompt:    systemPrompt,
+		Role:            role,
+		Description:     description,
+		LLMProvider:     llmProvider,
+		OutputMode:      shared.OutputModeSummary, // Sub-agents use summary mode
+	}
+
+	// Create the subagent using the factory (which now adds default tools)
+	subagent, err := t.agentFactory.CreateAgent(ctx, subagentConfig)
+	if err != nil {
+		t.logService.Errorf("Failed to create subagent: %v", err)
+		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to create subagent: %v", err)), nil
+	}
+
+	t.logService.Infof("Created subagent %s (role=%s)", subagent.GetID(), role)
+
+	// Create initial agent result
+	agentResult := shared.AgentResult{
+		AgentID:   subagent.GetID(),
+		Status:    shared.AgentStatusRunning,
+		Output:    map[string]any{},
+		StartedAt: time.Now().Unix(),
+	}
+	if err := t.registry.StoreAgentResult(agentResult); err != nil {
+		t.logService.Errorf("Failed to store agent result: %v", err)
+		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to store agent result: %v", err)), nil
+	}
+
+	// Execute based on mode
+	if runInBackground {
+		// Asynchronous execution - create cancellable context from request context
+		// This allows the background agent to be cancelled if the request is cancelled
+		bgCtx, cancel := context.WithCancel(ctx)
+
+		// Register agent with cancel function
+		if err := t.registry.Register(subagent, subagentConfig, cancel); err != nil {
+			t.logService.Errorf("Failed to register background agent: %v", err)
+			return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to register agent: %v", err)), nil
+		}
+
+		t.logService.Infof("Starting background agent %s", subagent.GetID())
+		go t.executionHelper.ExecuteInBackground(bgCtx, subagent, prompt)
+		return t.executionHelper.SuccessResponseAsync(subagent.GetID(), role, description), nil
+	}
+
+	// Synchronous execution - register without cancel function
+	if err := t.registry.Register(subagent, subagentConfig); err != nil {
+		t.logService.Errorf("Failed to register synchronous agent: %v", err)
+		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to register agent: %v", err)), nil
+	}
+
+	t.logService.Infof("Executing synchronous agent %s", subagent.GetID())
+	response, err := t.executionHelper.ExecuteSynchronously(ctx, subagent, prompt)
+	if err != nil {
+		t.logService.Errorf("Agent execution failed: %v", err)
+		return t.executionHelper.ErrorResponse(fmt.Sprintf("execution failed: %v", err)), nil
+	}
+
+	t.logService.Infof("Agent %s completed successfully", subagent.GetID())
+	return response, nil
+}

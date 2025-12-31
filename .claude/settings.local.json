@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__brain__update_memory",
+      "Bash(go test:*)",
+      "Bash(go generate:*)",
+      "Bash(bd:*)",
+      "mcp__brain__list_memories",
+      "Bash(go build:*)",
+      "Bash(go doc:*)",
+      "Bash(golangci-lint run:*)",
+      "Bash(go vet:*)",
+      "mcp__plugin_beads_beads__update",
+      "mcp__plugin_beads_beads__close",
+      "mcp__plugin_beads_beads__show",
+      "mcp__plugin_beads_beads__create"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,342 @@
+package tools
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/google/uuid"
+	"github.com/samber/do/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+)
+
+func TestResumeAgentToolSpec(t *testing.T) {
+	provider := &resumeAgentToolProvider{}
+	tool := provider.CreateTool(uuid.New())
+
+	spec := tool.Spec()
+
+	assert.Equal(t, shared.ToolNameResumeAgent, spec.Name)
+	assert.Contains(t, spec.Description, "new prompt")
+
+	// Check required parameters
+	assert.Equal(t, []string{"agent_id", "prompt"}, spec.Required)
+
+	// Check all parameters exist
+	require.Contains(t, spec.Parameters, "agent_id")
+	require.Contains(t, spec.Parameters, "prompt")
+	require.Contains(t, spec.Parameters, "run_in_background")
+
+	// run_in_background should not be required
+	param := spec.Parameters["run_in_background"]
+	assert.NotNil(t, param)
+}
+
+func TestResumeAgentToolValidation(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+
+	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+
+	// Set up default behavior for response helper methods
+	setupMockExecutionHelperWithDefaults(mockExecHelper)
+
+	tool := &ResumeAgentTool{
+		logService:      logService,
+		registry:        mockRegistry,
+		executionHelper: mockExecHelper,
+		senderID:        uuid.New(),
+	}
+
+	ctx := context.Background()
+
+	t.Run("Missing agent_id", func(t *testing.T) {
+		result, err := tool.Run(ctx, map[string]any{
+			"prompt": "do something",
+		})
+
+		require.NoError(t, err)
+		assert.False(t, result["success"].(bool))
+		assert.Contains(t, result["error"].(string), "agent_id is required")
+	})
+
+	t.Run("Empty agent_id", func(t *testing.T) {
+		result, err := tool.Run(ctx, map[string]any{
+			"agent_id": "",
+			"prompt":   "do something",
+		})
+
+		require.NoError(t, err)
+		assert.False(t, result["success"].(bool))
+		assert.Contains(t, result["error"].(string), "agent_id is required")
+	})
+
+	t.Run("Invalid agent_id format", func(t *testing.T) {
+		result, err := tool.Run(ctx, map[string]any{
+			"agent_id": "not-a-uuid",
+			"prompt":   "do something",
+		})
+
+		require.NoError(t, err)
+		assert.False(t, result["success"].(bool))
+		assert.Contains(t, result["error"].(string), "invalid agent_id format")
+	})
+
+	t.Run("Missing prompt", func(t *testing.T) {
+		result, err := tool.Run(ctx, map[string]any{
+			"agent_id": uuid.New().String(),
+		})
+
+		require.NoError(t, err)
+		assert.False(t, result["success"].(bool))
+		assert.Contains(t, result["error"].(string), "prompt is required")
+	})
+
+	t.Run("Empty prompt", func(t *testing.T) {
+		result, err := tool.Run(ctx, map[string]any{
+			"agent_id": uuid.New().String(),
+			"prompt":   "",
+		})
+
+		require.NoError(t, err)
+		assert.False(t, result["success"].(bool))
+		assert.Contains(t, result["error"].(string), "prompt is required")
+	})
+}
+
+func TestResumeAgentToolAgentNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+
+	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+
+	// Set up default behavior for response helper methods
+	setupMockExecutionHelperWithDefaults(mockExecHelper)
+
+	senderID := uuid.New()
+	agentID := uuid.New()
+
+	// Permission check: sender is direct parent
+	mockRegistry.EXPECT().IsDirectParent(senderID, agentID).Return(true)
+
+	// Mock agent not found
+	mockRegistry.EXPECT().GetAgent(agentID).Return(nil, false)
+
+	tool := &ResumeAgentTool{
+		logService:      logService,
+		registry:        mockRegistry,
+		executionHelper: mockExecHelper,
+		senderID:        senderID,
+	}
+
+	ctx := context.Background()
+	result, err := tool.Run(ctx, map[string]any{
+		"agent_id": agentID.String(),
+		"prompt":   "do something",
+	})
+
+	require.NoError(t, err)
+	assert.False(t, result["success"].(bool))
+	assert.Contains(t, result["error"].(string), "not found in registry")
+}
+
+func TestResumeAgentToolSynchronousExecution(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+
+	senderID := uuid.New()
+	agentID := uuid.New()
+
+	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockAgent := mocks.NewMockAgent(ctrl)
+
+	// Permission check: sender is direct parent
+	mockRegistry.EXPECT().IsDirectParent(senderID, agentID).Return(true)
+
+	// Mock agent exists
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
+		ID:          agentID,
+		LLMProvider: "test",
+		Role:        "Tester",
+		Description: "Test Agent",
+	}).AnyTimes()
+
+	mockRegistry.EXPECT().GetAgent(agentID).Return(mockAgent, true)
+
+	// Mock DeleteAgentResult call to clear previous result
+	mockRegistry.EXPECT().DeleteAgentResult(agentID).Return(nil)
+
+	// Mock execution helper call
+	expectedResponse := map[string]any{
+		"success":  true,
+		"agent_id": agentID.String(),
+		"response": "Task completed successfully",
+		"status":   "completed",
+		"message":  "Agent completed successfully",
+	}
+	mockExecHelper.EXPECT().ExecuteSynchronously(gomock.Any(), mockAgent, "Do something").Return(expectedResponse, nil)
+
+	tool := &ResumeAgentTool{
+		logService:      logService,
+		registry:        mockRegistry,
+		executionHelper: mockExecHelper,
+		senderID:        senderID,
+	}
+
+	ctx := context.Background()
+	result, err := tool.Run(ctx, map[string]any{
+		"agent_id": agentID.String(),
+		"prompt":   "Do something",
+	})
+
+	require.NoError(t, err)
+	assert.True(t, result["success"].(bool))
+	assert.Equal(t, "completed", result["status"].(string))
+	assert.Equal(t, "Task completed successfully", result["response"].(string))
+}
+
+func TestResumeAgentToolAsynchronousExecution(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+
+	senderID := uuid.New()
+	agentID := uuid.New()
+
+	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+
+	// Set up default behavior for response helper methods
+	setupMockExecutionHelperWithDefaults(mockExecHelper)
+
+	mockAgent := mocks.NewMockAgent(ctrl)
+
+	// Permission check: sender is direct parent
+	mockRegistry.EXPECT().IsDirectParent(senderID, agentID).Return(true)
+
+	// Mock agent exists
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
+		ID:          agentID,
+		LLMProvider: "test",
+		Role:        "Tester",
+		Description: "Test Agent",
+	}).AnyTimes()
+
+	mockRegistry.EXPECT().GetAgent(agentID).Return(mockAgent, true)
+
+	// Mock DeleteAgentResult call to clear previous result
+	mockRegistry.EXPECT().DeleteAgentResult(agentID).Return(nil)
+
+	// Mock SetCancelFunc call for background execution
+	mockRegistry.EXPECT().SetCancelFunc(agentID, gomock.Any()).Return(nil)
+
+	// Mock execution helper background call
+	mockExecHelper.EXPECT().ExecuteInBackground(gomock.Any(), mockAgent, "Do something async")
+
+	tool := &ResumeAgentTool{
+		logService:      logService,
+		registry:        mockRegistry,
+		executionHelper: mockExecHelper,
+		senderID:        senderID,
+	}
+
+	ctx := context.Background()
+	result, err := tool.Run(ctx, map[string]any{
+		"agent_id":          agentID.String(),
+		"prompt":            "Do something async",
+		"run_in_background": true,
+	})
+
+	require.NoError(t, err)
+	assert.True(t, result["success"].(bool))
+	assert.Equal(t, "running", result["status"].(string))
+	assert.Equal(t, agentID.String(), result["agent_id"].(string))
+	assert.Equal(t, "Tester", result["role"].(string))
+	assert.Equal(t, "Test Agent", result["description"].(string))
+
+	// Wait for async execution to complete
+	time.Sleep(100 * time.Millisecond)
+}
+
+func TestResumeAgentToolProvider_CreateTool(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+
+	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+
+	provider := &resumeAgentToolProvider{
+		logService: logService,
+		registry:   mockRegistry,
+	}
+
+	senderID := uuid.New()
+	tool := provider.CreateTool(senderID)
+
+	require.NotNil(t, tool)
+	assert.Equal(t, senderID, tool.senderID)
+	assert.Equal(t, mockRegistry, tool.registry)
+	assert.Equal(t, logService, tool.logService)
+}
+
+// TestResumeAgentTool_PermissionDenied tests permission check when caller is not direct parent
+func TestResumeAgentTool_PermissionDenied(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+
+	// Set up default behavior for response helper methods
+	setupMockExecutionHelperWithDefaults(mockExecHelper)
+
+	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	senderID := uuid.New()
+	agentID := uuid.New()
+
+	// Permission check: sender is NOT direct parent
+	mockRegistry.EXPECT().IsDirectParent(senderID, agentID).Return(false)
+
+	tool := &ResumeAgentTool{
+		logService:      logService,
+		registry:        mockRegistry,
+		executionHelper: mockExecHelper,
+		senderID:        senderID,
+	}
+
+	ctx := context.Background()
+	result, err := tool.Run(ctx, map[string]any{
+		"agent_id": agentID.String(),
+		"prompt":   "do something",
+	})
+
+	require.NoError(t, err)
+	assert.False(t, result["success"].(bool))
+	assert.Contains(t, result["error"].(string), "permission denied")
+	assert.Contains(t, result["error"].(string), "direct subagents")
+	assert.Contains(t, result["error"].(string), "not your direct child")
+}
