@@ -70,6 +70,40 @@ type FileStatus struct {
 	LockedAt *time.Time
 }
 
+// ChangeOperation represents the type of file change detected
+type ChangeOperation int
+
+const (
+	// Created indicates a new file was created
+	Created ChangeOperation = iota
+	// Modified indicates an existing file was modified
+	Modified
+	// Deleted indicates a file was deleted
+	Deleted
+)
+
+// FileChange represents a detected file modification
+type FileChange struct {
+	Path        string          // File path that changed
+	Operation   ChangeOperation // Type of change
+	OldChecksum string          // Checksum before change (empty if Created)
+	NewChecksum string          // Checksum after change (empty if Deleted)
+}
+
+// String returns a human-readable representation of the change operation
+func (o ChangeOperation) String() string {
+	switch o {
+	case Created:
+		return "created"
+	case Modified:
+		return "modified"
+	case Deleted:
+		return "deleted"
+	default:
+		return "unknown"
+	}
+}
+
 // ScanOptions controls the Prime/Scan behavior
 type ScanOptions struct {
 	RootDir       string   // Directory to scan (default: current working dir)
@@ -145,4 +179,8 @@ type FileStateManager interface {
 
 	// IsFileStaleForAgent checks if a file is stale for an agent (not read or modified since last read)
 	IsFileStaleForAgent(agentID uuid.UUID, path string) (bool, error)
+
+	// DetectChanges computes file changes between a previous snapshot and current state
+	// Typically used to track what files a bash command modified
+	DetectChanges(beforeStats map[string]*FileStats) ([]FileChange, error)
 }

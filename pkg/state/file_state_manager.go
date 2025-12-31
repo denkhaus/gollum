@@ -810,3 +810,56 @@ func (fsm *fileStateManager) updateFileStats(path string) {
 
 	fsm.log.Debug("File stats updated", zap.String("path", path), zap.String("checksum", checksum))
 }
+
+// DetectChanges computes file changes between a previous snapshot and current state
+// This is typically used to track what files a bash command modified
+func (fsm *fileStateManager) DetectChanges(beforeStats map[string]*FileStats) ([]FileChange, error) {
+	// Get current state
+	afterStats := fsm.GetAllStats()
+
+	fsm.mu.RLock()
+	defer fsm.mu.RUnlock()
+
+	var changes []FileChange
+
+	// Collect all paths from both snapshots
+	allPaths := make(map[string]bool)
+	for path := range beforeStats {
+		allPaths[path] = true
+	}
+	for path := range afterStats {
+		allPaths[path] = true
+	}
+
+	// Compare each path
+	for path := range allPaths {
+		before := beforeStats[path]
+		after := afterStats[path]
+
+		if before == nil {
+			// File was created
+			changes = append(changes, FileChange{
+				Path:        path,
+				Operation:   Created,
+				NewChecksum: after.Checksum,
+			})
+		} else if after == nil {
+			// File was deleted
+			changes = append(changes, FileChange{
+				Path:        path,
+				Operation:   Deleted,
+				OldChecksum: before.Checksum,
+			})
+		} else if before.Checksum != after.Checksum {
+			// File was modified
+			changes = append(changes, FileChange{
+				Path:        path,
+				Operation:   Modified,
+				OldChecksum: before.Checksum,
+				NewChecksum: after.Checksum,
+			})
+		}
+	}
+
+	return changes, nil
+}

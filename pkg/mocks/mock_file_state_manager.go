@@ -57,6 +57,21 @@ func (mr *MockFileStateManagerMockRecorder) AcquireLock(ctx, path, agentID, mode
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AcquireLock", reflect.TypeOf((*MockFileStateManager)(nil).AcquireLock), ctx, path, agentID, mode)
 }
 
+// DetectChanges mocks base method.
+func (m *MockFileStateManager) DetectChanges(beforeStats map[string]*state.FileStats) ([]state.FileChange, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DetectChanges", beforeStats)
+	ret0, _ := ret[0].([]state.FileChange)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DetectChanges indicates an expected call of DetectChanges.
+func (mr *MockFileStateManagerMockRecorder) DetectChanges(beforeStats any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetectChanges", reflect.TypeOf((*MockFileStateManager)(nil).DetectChanges), beforeStats)
+}
+
 // DoWork mocks base method.
 func (m *MockFileStateManager) DoWork(ctx context.Context, path string, agentID uuid.UUID, mode state.LockMode, work state.WorkFunc) (any, error) {
 	m.ctrl.T.Helper()

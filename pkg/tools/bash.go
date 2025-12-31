@@ -8,11 +8,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
+	"go.uber.org/zap"
 )
 
 type (
@@ -20,6 +23,8 @@ type (
 	BashTool struct {
 		logService logger.LoggerService
 		agentID    uuid.UUID
+		bashCfg    *config.BashConfig
+		fileState  state.FileStateManager
 	}
 
 	// BashToolProvider creates BashTool instances via DI
@@ -29,13 +34,22 @@ type (
 
 	bashToolProvider struct {
 		logService logger.LoggerService
+		bashCfg    *config.BashConfig
+		fileState  state.FileStateManager
 	}
 )
 
 // NewBashToolProvider creates a provider for Bash tools
 func NewBashToolProvider(injector do.Injector) (BashToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	return &bashToolProvider{logService: logService}, nil
+	cfgService := do.MustInvoke[config.ConfigService](injector)
+	fileState := do.MustInvoke[state.FileStateManager](injector)
+	bashCfg := cfgService.GetBashConfig()
+	return &bashToolProvider{
+		logService: logService,
+		bashCfg:    bashCfg,
+		fileState:  fileState,
+	}, nil
 }
 
 // CreateBashTool creates a new BashTool with agent ID
@@ -43,6 +57,8 @@ func (p *bashToolProvider) CreateTool(agentID uuid.UUID) *BashTool {
 	return &BashTool{
 		logService: p.logService,
 		agentID:    agentID,
+		bashCfg:    p.bashCfg,
+		fileState:  p.fileState,
 	}
 }
 
@@ -73,6 +89,12 @@ func (t *BashTool) Run(ctx context.Context, args map[string]any) (map[string]any
 			"success": false,
 			"error":   "command is required and must be a non-empty string",
 		}, nil
+	}
+
+	// Snapshot file state BEFORE command execution (if tracking enabled)
+	var beforeStats map[string]*state.FileStats
+	if t.bashCfg.TrackChanges {
+		beforeStats = t.fileState.GetAllStats()
 	}
 
 	// Get timeout, default to 30 seconds, max 120
@@ -129,5 +151,41 @@ func (t *BashTool) Run(ctx context.Context, args map[string]any) (map[string]any
 	result["success"] = true
 	result["exit_code"] = 0
 
+	// Detect file changes AFTER command execution (if tracking enabled)
+	if t.bashCfg.TrackChanges {
+		// Wait for file watcher to process events (debounce)
+		time.Sleep(time.Duration(t.bashCfg.DebounceMs) * time.Millisecond)
+
+		// Detect changes
+		changes, detectErr := t.fileState.DetectChanges(beforeStats)
+		if detectErr != nil {
+			t.logService.Warn("Failed to detect file changes", zap.Error(detectErr))
+		} else if len(changes) > 0 {
+			// Log detected changes
+			t.logService.Info("Bash command modified files",
+				zap.Int("count", len(changes)),
+				zap.String("command", command))
+
+			// Add changes to result
+			result["file_changes"] = formatFileChanges(changes)
+
+			// Add warning if files were modified
+			result["warning"] = fmt.Sprintf("This bash command modified %d file(s). Consider using %s or %s for better file state tracking.",
+				len(changes), shared.ToolNameWriteFile, shared.ToolNameEdit)
+		}
+	}
+
 	return result, nil
+}
+
+// formatFileChanges converts FileChange slice to a readable format
+func formatFileChanges(changes []state.FileChange) []map[string]any {
+	result := make([]map[string]any, len(changes))
+	for i, change := range changes {
+		result[i] = map[string]any{
+			"path":      change.Path,
+			"operation": change.Operation.String(),
+		}
+	}
+	return result
 }
