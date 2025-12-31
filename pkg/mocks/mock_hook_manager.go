@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 
 	hooks "github.com/denkhaus/gollum/pkg/hooks"
+	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -81,4 +82,32 @@ func (m *MockHookManager) UnregisterHook(name string) bool {
 func (mr *MockHookManagerMockRecorder) UnregisterHook(name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnregisterHook", reflect.TypeOf((*MockHookManager)(nil).UnregisterHook), name)
+}
+
+// WithAgentHooks mocks base method.
+func (m *MockHookManager) WithAgentHooks(ctx context.Context, sessionID, agentID uuid.UUID, point hooks.HookPoint, work func() error) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WithAgentHooks", ctx, sessionID, agentID, point, work)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WithAgentHooks indicates an expected call of WithAgentHooks.
+func (mr *MockHookManagerMockRecorder) WithAgentHooks(ctx, sessionID, agentID, point, work any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithAgentHooks", reflect.TypeOf((*MockHookManager)(nil).WithAgentHooks), ctx, sessionID, agentID, point, work)
+}
+
+// WithSessionHooks mocks base method.
+func (m *MockHookManager) WithSessionHooks(ctx context.Context, sessionID uuid.UUID, work func() error) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WithSessionHooks", ctx, sessionID, work)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WithSessionHooks indicates an expected call of WithSessionHooks.
+func (mr *MockHookManagerMockRecorder) WithSessionHooks(ctx, sessionID, work any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithSessionHooks", reflect.TypeOf((*MockHookManager)(nil).WithSessionHooks), ctx, sessionID, work)
 }

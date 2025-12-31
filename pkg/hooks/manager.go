@@ -22,6 +22,21 @@ type HookManager interface {
 	// TriggerHooks executes all registered hooks for a given hook point.
 	// Returns a HookResult indicating whether execution was stopped and any errors.
 	TriggerHooks(ctx context.Context, point HookPoint, hookCtx *HookContext) HookResult
+
+	// WithSessionHooks wraps a function with session lifecycle hooks.
+	WithSessionHooks(
+		ctx context.Context,
+		sessionID uuid.UUID,
+		work func() error,
+	) error
+
+	// WithAgentHooks wraps a function with agent lifecycle hooks.
+	WithAgentHooks(
+		ctx context.Context,
+		sessionID, agentID uuid.UUID,
+		point HookPoint,
+		work func() error,
+	) error
 }
 
 // hookManagerImpl is the private implementation of HookManager.
@@ -195,10 +210,6 @@ func (p *hookManagerImpl) TriggerHooks(ctx context.Context, point HookPoint, hoo
 				zap.String("name", meta.Name),
 				zap.String("point", meta.Point.String()),
 				zap.Error(err))
-			// Check if chain was stopped before continuing
-			if result.Stopped {
-				return result.Error
-			}
 			return next()
 		}
 
