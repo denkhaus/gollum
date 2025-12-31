@@ -832,8 +832,8 @@ func (fsm *fileStateManager) DetectChanges(beforeStats map[string]*FileStats) ([
 	for path, before := range beforeStats {
 		currentChecksum, err := fsm.calculateChecksum(path)
 		if err != nil {
-			// Check if the underlying error is file not found (unwrap our error wrapper)
-			if os.IsNotExist(errors.Unwrap(err)) {
+			// Check if the underlying error is file not found
+			if errors.Is(err, os.ErrNotExist) {
 				// File was deleted
 				changes = append(changes, FileChange{
 					Path:        path,

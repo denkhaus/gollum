@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -124,43 +123,16 @@ func TestFileStateManager_DetectChanges(t *testing.T) {
 		err = os.Remove(delFile)
 		require.NoError(t, err)
 
-		// If watcher is running, poll for deletion detection with timeout
-		if fsm.IsWatcherRunning() {
-			// Poll for up to 2 seconds, checking every 10ms
-			timeout := time.After(2 * time.Second)
-			ticker := time.NewTicker(10 * time.Millisecond)
-			defer ticker.Stop()
+		// DetectChanges actively checks for file existence, so we don't need to poll.
+		changes, err := fsm.DetectChanges(beforeStats)
+		require.NoError(t, err)
 
-			var changes []FileChange
-			detected := false
-
-		poll:
-			for {
-				select {
-				case <-timeout:
-					// Timeout - watcher may not be watching this temp dir
-					t.Log("Watcher timeout: file may be outside watched directory")
-					break poll
-				case <-ticker.C:
-					changes, err = fsm.DetectChanges(beforeStats)
-					require.NoError(t, err)
-					if len(changes) > 0 {
-						detected = true
-						break poll
-					}
-				}
-			}
-
-			if detected {
-				// Should have one deleted file
-				require.Len(t, changes, 1, "expected exactly one change")
-				assert.Equal(t, delFile, changes[0].Path)
-				assert.Equal(t, Deleted, changes[0].Operation)
-				assert.NotEmpty(t, changes[0].OldChecksum, "old checksum should not be empty for deleted files")
-				assert.Empty(t, changes[0].NewChecksum, "new checksum should be empty for deleted files")
-			}
-			// If not detected, the file may be outside the watcher's root directory - acceptable
-		}
+		// Should have one deleted file
+		require.Len(t, changes, 1, "expected exactly one change")
+		assert.Equal(t, delFile, changes[0].Path)
+		assert.Equal(t, Deleted, changes[0].Operation)
+		assert.NotEmpty(t, changes[0].OldChecksum, "old checksum should not be empty for deleted files")
+		assert.Empty(t, changes[0].NewChecksum, "new checksum should be empty for deleted files")
 	})
 
 	t.Run("detects create and modify", func(t *testing.T) {
