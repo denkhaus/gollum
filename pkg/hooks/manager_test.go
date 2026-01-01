@@ -16,6 +16,7 @@ import (
 
 const (
 	testFilePath        = "/test/file.txt"
+	testContent         = "content"
 	testModifiedContent = "modified"
 )
 
@@ -847,7 +848,7 @@ func TestHookManager_WithFileReadHooks(t *testing.T) {
 		workExecuted := false
 		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, func() (string, error) {
 			workExecuted = true
-			return "content", nil
+			return testContent, nil
 		})
 
 		require.NoError(t, err)
@@ -894,7 +895,7 @@ func TestHookManager_WithFileReadHooks(t *testing.T) {
 		agentID := uuid.New()
 
 		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, "", func() (string, error) {
-			return "content", nil
+			return testContent, nil
 		})
 
 		require.Error(t, err)
@@ -910,7 +911,7 @@ func TestHookManager_WithFileReadHooks(t *testing.T) {
 		suspiciousPath := "/test/../etc/passwd"
 
 		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, suspiciousPath, func() (string, error) {
-			return "content", nil
+			return testContent, nil
 		})
 
 		require.Error(t, err)
@@ -977,13 +978,13 @@ func TestHookManager_WithFileReadHooks(t *testing.T) {
 
 		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, func() (string, error) {
 			executed = append(executed, "work")
-			return "content", nil
+			return testContent, nil
 		})
 
 		require.NoError(t, err)
 		// Non-fatal error logs and continues to work
 		assert.Equal(t, []string{"before", "before-error", "work"}, executed)
-		assert.Equal(t, "content", content)
+		assert.Equal(t, testContent, content)
 	})
 }
 
