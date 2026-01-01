@@ -14,35 +14,24 @@ import (
 	"go.uber.org/zap"
 )
 
-// mockLogger is a simple mock logger for testing
-type mockLogger struct {
-	debugCalls [][]zap.Field
-	infoCalls  [][]zap.Field
-	warnCalls  [][]zap.Field
-	errorCalls [][]zap.Field
-}
+// mockLogger is a simple mock logger for testing.
+// Note: Using local mock instead of pkg/mocks to avoid import cycle:
+// pkg/hooks → pkg/mocks → pkg/hooks (from mock_hook_manager.go)
+type mockLogger struct{}
 
-func (m *mockLogger) Debug(_ string, fields ...zap.Field) {
-	m.debugCalls = append(m.debugCalls, fields)
-}
+func (m *mockLogger) Debug(_ string, fields ...zap.Field) {}
 
 func (m *mockLogger) Debugf(_ string, _ ...any) {}
 
-func (m *mockLogger) Info(_ string, fields ...zap.Field) {
-	m.infoCalls = append(m.infoCalls, fields)
-}
+func (m *mockLogger) Info(_ string, fields ...zap.Field) {}
 
 func (m *mockLogger) Infof(_ string, _ ...any) {}
 
-func (m *mockLogger) Warn(_ string, fields ...zap.Field) {
-	m.warnCalls = append(m.warnCalls, fields)
-}
+func (m *mockLogger) Warn(_ string, fields ...zap.Field) {}
 
 func (m *mockLogger) Warnf(_ string, _ ...any) {}
 
-func (m *mockLogger) Error(_ string, fields ...zap.Field) {
-	m.errorCalls = append(m.errorCalls, fields)
-}
+func (m *mockLogger) Error(_ string, fields ...zap.Field) {}
 
 func (m *mockLogger) Errorf(_ string, _ ...any) {}
 
@@ -60,6 +49,7 @@ func newTestHookManager() *hookManagerImpl {
 	hm := &hookManagerImpl{
 		log:        log,
 		registries: make(map[HookPoint]*hookRegistry),
+		names:      make(map[string]struct{}),
 	}
 
 	// Initialize registries for all known hook points
@@ -166,6 +156,36 @@ func TestHookManager_RegisterHook(t *testing.T) {
 		err = hm.RegisterHook(fn, meta)
 		require.Error(t, err)
 		assert.True(t, errs.IsType(err, errs.TypeConflict))
+	})
+
+	t.Run("rejects duplicate hook name across different hook points", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		fn := func(_ context.Context, _ *HookContext, next func() error) error {
+			return next()
+		}
+
+		// Register hook for BeforeSessionStart
+		meta1 := HookMetadata{
+			Name:       "global-hook",
+			Point:      BeforeSessionStart,
+			Priority:   0,
+			FatalError: false,
+		}
+		err := hm.RegisterHook(fn, meta1)
+		require.NoError(t, err)
+
+		// Try to register hook with same name for AfterSessionEnd - should fail
+		meta2 := HookMetadata{
+			Name:       "global-hook",
+			Point:      AfterSessionEnd,
+			Priority:   0,
+			FatalError: false,
+		}
+		err = hm.RegisterHook(fn, meta2)
+		require.Error(t, err)
+		assert.True(t, errs.IsType(err, errs.TypeConflict))
+		assert.Contains(t, err.Error(), "already registered globally")
 	})
 }
 
@@ -324,6 +344,34 @@ func TestHookManager_WithSessionHooks(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, workExecuted)
 		assert.Equal(t, []string{"before", "work", "after"}, executed)
+	})
+
+	t.Run("after hook runs even when work fails", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		executed := []string{}
+		beforeHook := func(_ context.Context, _ *HookContext, next func() error) error {
+			executed = append(executed, "before")
+			return next()
+		}
+		afterHook := func(_ context.Context, _ *HookContext, next func() error) error {
+			executed = append(executed, "after")
+			return next()
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeSessionStart, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterSessionEnd, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		workErr := errors.New("work failed")
+		err := hm.WithSessionHooks(context.Background(), sessionID, func() error {
+			executed = append(executed, "work")
+			return workErr
+		})
+
+		require.Error(t, err)
+		assert.Equal(t, workErr, err, "work error should be returned")
+		assert.Equal(t, []string{"before", "work", "after"}, executed, "after hook should run even when work fails")
 	})
 
 	t.Run("rejects nil session ID", func(t *testing.T) {
