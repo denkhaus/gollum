@@ -98,6 +98,49 @@ func (mr *MockHookManagerMockRecorder) WithAgentHooks(ctx, sessionID, agentID, p
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithAgentHooks", reflect.TypeOf((*MockHookManager)(nil).WithAgentHooks), ctx, sessionID, agentID, point, work)
 }
 
+// WithFileHooks mocks base method.
+func (m *MockHookManager) WithFileHooks(ctx context.Context, sessionID, agentID uuid.UUID, point hooks.HookPoint, filePath string, work func() error) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WithFileHooks", ctx, sessionID, agentID, point, filePath, work)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WithFileHooks indicates an expected call of WithFileHooks.
+func (mr *MockHookManagerMockRecorder) WithFileHooks(ctx, sessionID, agentID, point, filePath, work any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithFileHooks", reflect.TypeOf((*MockHookManager)(nil).WithFileHooks), ctx, sessionID, agentID, point, filePath, work)
+}
+
+// WithFileReadHooks mocks base method.
+func (m *MockHookManager) WithFileReadHooks(ctx context.Context, sessionID, agentID uuid.UUID, filePath string, work func() (string, error)) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WithFileReadHooks", ctx, sessionID, agentID, filePath, work)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WithFileReadHooks indicates an expected call of WithFileReadHooks.
+func (mr *MockHookManagerMockRecorder) WithFileReadHooks(ctx, sessionID, agentID, filePath, work any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithFileReadHooks", reflect.TypeOf((*MockHookManager)(nil).WithFileReadHooks), ctx, sessionID, agentID, filePath, work)
+}
+
+// WithFileWriteHooks mocks base method.
+func (m *MockHookManager) WithFileWriteHooks(ctx context.Context, sessionID, agentID uuid.UUID, filePath, content string, work func(string) error) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WithFileWriteHooks", ctx, sessionID, agentID, filePath, content, work)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WithFileWriteHooks indicates an expected call of WithFileWriteHooks.
+func (mr *MockHookManagerMockRecorder) WithFileWriteHooks(ctx, sessionID, agentID, filePath, content, work any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithFileWriteHooks", reflect.TypeOf((*MockHookManager)(nil).WithFileWriteHooks), ctx, sessionID, agentID, filePath, content, work)
+}
+
 // WithSessionHooks mocks base method.
 func (m *MockHookManager) WithSessionHooks(ctx context.Context, sessionID uuid.UUID, work func() error) error {
 	m.ctrl.T.Helper()
