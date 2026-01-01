@@ -435,7 +435,7 @@ func TestHookManager_WithAgentHooks(t *testing.T) {
 
 // TestHookContext_Clone tests HookContext cloning
 func TestHookContext_Clone(t *testing.T) {
-	t.Run("creates a shallow copy of HookContext", func(t *testing.T) {
+	t.Run("creates a deep copy of HookContext maps", func(t *testing.T) {
 		original := &HookContext{
 			SessionID: uuid.New(),
 			AgentID:   uuid.New(),
@@ -547,8 +547,9 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		args := map[string]any{"input": "original"}
 
 		result, err := hm.WithToolHooks(context.Background(), sessionID, agentID, "test-tool", args, func() (map[string]any, error) {
-			// Work should see modified args (but we can't pass them directly here)
-			// In real usage, the work function would access the modified args
+			// Note: Work function does NOT receive modified args from hooks due to design.
+			// Hooks can validate/block but cannot modify what work() receives.
+			// The work function closes over the original 'args' parameter.
 			return map[string]any{"output": "success"}, nil
 		})
 
