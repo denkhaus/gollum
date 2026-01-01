@@ -190,6 +190,14 @@ func (p *hookManagerImpl) TriggerHooks(ctx context.Context, point HookPoint, hoo
 		hookCtx.Data = make(map[string]any)
 	}
 
+	// Initialize tool-related fields for tool hook points (defensive)
+	if point == BeforeToolExecution && hookCtx.ToolArgs == nil {
+		hookCtx.ToolArgs = make(map[string]any)
+	}
+	if point == AfterToolExecution && hookCtx.ToolResult == nil {
+		hookCtx.ToolResult = make(map[string]any)
+	}
+
 	// Get registry for this point
 	registry, exists := p.registries[point]
 	if !exists {
@@ -371,8 +379,12 @@ func (p *hookManagerImpl) WithToolHooks(
 	args map[string]any,
 	work func() (map[string]any, error),
 ) (map[string]any, error) {
+	// Validate inputs immediately (fail fast)
 	if toolName == "" {
 		return nil, errs.Validation("tool name cannot be empty")
+	}
+	if work == nil {
+		return nil, errs.Validation("work function cannot be nil")
 	}
 
 	// Make a copy of args to avoid modifying the original
@@ -400,23 +412,19 @@ func (p *hookManagerImpl) WithToolHooks(
 		if hookCtx.ToolResult != nil {
 			return hookCtx.ToolResult, nil
 		}
-		return map[string]any{"blocked": true}, nil
+		return make(map[string]any), nil
 	}
 
 	// Get potentially modified args from hook context
 	argsCopy = hookCtx.ToolArgs
 	if argsCopy == nil {
+		p.log.Warn("BeforeToolExecution hook set ToolArgs to nil, using empty map",
+			zap.String("tool", toolName))
 		argsCopy = make(map[string]any)
 	}
 
-	// Create a work wrapper that uses the modified args
-	workFunc := work
-	if workFunc == nil {
-		return nil, errs.Validation("work function cannot be nil")
-	}
-
 	// Execute the tool work
-	toolResult, workErr := workFunc()
+	toolResult, workErr := work()
 
 	// Check if BeforeToolExecution hooks set a modified result
 	if hookCtx.ToolResult != nil {
@@ -447,10 +455,6 @@ func (p *hookManagerImpl) WithToolHooks(
 	}
 
 	// AfterToolExecution hook
-	if toolResult == nil {
-		toolResult = make(map[string]any)
-	}
-
 	hookCtx.ToolResult = toolResult
 	hookCtx.ToolError = nil
 
@@ -464,5 +468,9 @@ func (p *hookManagerImpl) WithToolHooks(
 		return hookCtx.ToolResult, nil
 	}
 
+	// toolResult should never be nil here, but handle defensively
+	if toolResult == nil {
+		toolResult = make(map[string]any)
+	}
 	return toolResult, nil
 }
