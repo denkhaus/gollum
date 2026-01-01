@@ -63,20 +63,36 @@ type HookContext struct {
 	Data      map[string]any
 }
 
-// Clone creates a shallow copy of the HookContext.
+// Clone creates a deep copy of the HookContext.
 func (hc *HookContext) Clone() *HookContext {
 	if hc == nil {
 		return &HookContext{Data: make(map[string]any)}
 	}
 	cpy := &HookContext{
-		SessionID:  hc.SessionID,
-		AgentID:    hc.AgentID,
-		ToolName:   hc.ToolName,
-		ToolArgs:   hc.ToolArgs,
-		ToolResult: hc.ToolResult,
-		ToolError:  hc.ToolError,
-		Data:       make(map[string]any, len(hc.Data)),
+		SessionID: hc.SessionID,
+		AgentID:   hc.AgentID,
+		ToolName:  hc.ToolName,
+		ToolError: hc.ToolError,
+		Data:      make(map[string]any, len(hc.Data)),
 	}
+
+	// Deep copy ToolArgs
+	if hc.ToolArgs != nil {
+		cpy.ToolArgs = make(map[string]any, len(hc.ToolArgs))
+		for k, v := range hc.ToolArgs {
+			cpy.ToolArgs[k] = v
+		}
+	}
+
+	// Deep copy ToolResult
+	if hc.ToolResult != nil {
+		cpy.ToolResult = make(map[string]any, len(hc.ToolResult))
+		for k, v := range hc.ToolResult {
+			cpy.ToolResult[k] = v
+		}
+	}
+
+	// Deep copy Data
 	for k, v := range hc.Data {
 		cpy.Data[k] = v
 	}
