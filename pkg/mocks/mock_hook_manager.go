@@ -98,6 +98,20 @@ func (mr *MockHookManagerMockRecorder) WithAgentHooks(ctx, sessionID, agentID, p
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithAgentHooks", reflect.TypeOf((*MockHookManager)(nil).WithAgentHooks), ctx, sessionID, agentID, point, work)
 }
 
+// WithFileHooks mocks base method.
+func (m *MockHookManager) WithFileHooks(ctx context.Context, sessionID, agentID uuid.UUID, point hooks.HookPoint, filePath string, work func() error) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WithFileHooks", ctx, sessionID, agentID, point, filePath, work)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WithFileHooks indicates an expected call of WithFileHooks.
+func (mr *MockHookManagerMockRecorder) WithFileHooks(ctx, sessionID, agentID, point, filePath, work any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithFileHooks", reflect.TypeOf((*MockHookManager)(nil).WithFileHooks), ctx, sessionID, agentID, point, filePath, work)
+}
+
 // WithSessionHooks mocks base method.
 func (m *MockHookManager) WithSessionHooks(ctx context.Context, sessionID uuid.UUID, work func() error) error {
 	m.ctrl.T.Helper()
