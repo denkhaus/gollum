@@ -3,6 +3,7 @@ package hooks
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/denkhaus/gollum/pkg/errs"
 	"github.com/denkhaus/gollum/pkg/logger"
@@ -43,6 +44,8 @@ type HookManager interface {
 type hookManagerImpl struct {
 	log        logger.LoggerService
 	registries map[HookPoint]*hookRegistry
+	names      map[string]struct{} // Global name registry for uniqueness across all hook points
+	mu         sync.RWMutex        // Protects the names map
 }
 
 // Ensure hookManagerImpl implements HookManager.
@@ -57,6 +60,7 @@ func NewHookManager(injector do.Injector) (HookManager, error) {
 	p := &hookManagerImpl{
 		log:        log,
 		registries: make(map[HookPoint]*hookRegistry),
+		names:      make(map[string]struct{}),
 	}
 
 	// Initialize registries for all known hook points
@@ -90,15 +94,27 @@ func (p *hookManagerImpl) RegisterHook(fn HookFunc, meta HookMetadata) error {
 		return errs.Validationf("unknown hook point: %s", meta.Point)
 	}
 
-	// add() performs atomic duplicate checking
+	// Check for global name uniqueness
+	p.mu.Lock()
+	if _, exists := p.names[meta.Name]; exists {
+		p.mu.Unlock()
+		return errs.Conflictf("hook with name '%s' is already registered globally", meta.Name)
+	}
+
+	// add() performs atomic duplicate checking within the point-specific registry
 	id, err := registry.add(fn, meta)
 	if err != nil {
+		p.mu.Unlock()
 		if err == ErrDuplicateHook {
 			return errs.Conflictf("hook with name '%s' already registered for point '%s'",
 				meta.Name, meta.Point)
 		}
 		return err
 	}
+
+	// Add to global names map
+	p.names[meta.Name] = struct{}{}
+	p.mu.Unlock()
 
 	p.log.Debug("Hook registered",
 		zap.String("name", meta.Name),
@@ -119,7 +135,15 @@ func (p *hookManagerImpl) UnregisterHook(name string) bool {
 				zap.String("name", name),
 				zap.String("point", point.String()))
 			unregistered = true
+			// Only remove from global names once
+			break
 		}
+	}
+	// Remove from global names map if hook was found and removed
+	if unregistered {
+		p.mu.Lock()
+		delete(p.names, name)
+		p.mu.Unlock()
 	}
 	return unregistered
 }
@@ -256,18 +280,22 @@ func (p *hookManagerImpl) WithSessionHooks(
 	}
 
 	// Execute the work
-	err := work()
-	if err != nil {
-		return err
-	}
+	workErr := work()
 
 	// AfterSessionEnd hook
+	// Always trigger AfterSessionEnd, even if work failed, to ensure cleanup runs.
 	result = p.TriggerHooks(ctx, AfterSessionEnd, hookCtx)
-	if result.Stopped {
+
+	// If a fatal 'after' hook failed, its error takes precedence.
+	if result.Error != nil {
+		if workErr != nil {
+			p.log.Error("The original work function also returned an error, which is being superseded by the AfterSessionEnd hook error", zap.Error(workErr))
+		}
 		return result.Error
 	}
 
-	return nil
+	// Otherwise, return the error from the original work function (if any).
+	return workErr
 }
 
 // WithAgentHooks wraps a function with agent lifecycle hooks.
