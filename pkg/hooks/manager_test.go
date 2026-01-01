@@ -14,6 +14,14 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	testFilePath        = "/test/file.txt"
+	testSuspiciousPath  = "/test/../etc/passwd"
+	testContent         = "content"
+	testModifiedContent = "modified"
+	testOriginalContent = "original content"
+)
+
 // mockLogger is a simple mock logger for testing.
 // Note: Using local mock instead of pkg/mocks to avoid import cycle:
 // pkg/hooks → pkg/mocks → pkg/hooks (from mock_hook_manager.go)
@@ -31,7 +39,7 @@ func (m *mockLogger) Warn(_ string, _ ...zap.Field) {}
 
 func (m *mockLogger) Warnf(_ string, _ ...any) {}
 
-func (m *mockLogger) Error(_ string, fields ...zap.Field) {}
+func (m *mockLogger) Error(_ string, _ ...zap.Field) {}
 
 func (m *mockLogger) Errorf(_ string, _ ...any) {}
 
@@ -63,6 +71,14 @@ func newTestHookManager() *hookManagerImpl {
 		BeforeToolExecution,
 		AfterToolExecution,
 		OnToolError,
+		BeforeFileRead,
+		AfterFileRead,
+		BeforeFileWrite,
+		AfterFileWrite,
+		BeforeFileDelete,
+		AfterFileDelete,
+		BeforeFileModify,
+		AfterFileModify,
 	} {
 		hm.registries[point] = &hookRegistry{}
 	}
@@ -451,9 +467,9 @@ func TestHookContext_Clone(t *testing.T) {
 		assert.Equal(t, original.Data, cloned.Data)
 
 		// Modify cloned data and verify it doesn't affect original
-		cloned.Data["key1"] = "modified"
+		cloned.Data["key1"] = testModifiedContent
 		assert.Equal(t, "value1", original.Data["key1"], "Modifying a value in the cloned map should not affect the original map")
-		assert.Equal(t, "modified", cloned.Data["key1"])
+		assert.Equal(t, testModifiedContent, cloned.Data["key1"])
 
 		// Verify shallow copy of reference types inside the map
 		original.Data["ref"] = []int{10}
@@ -487,6 +503,14 @@ func TestHookPoint_String(t *testing.T) {
 		{"BeforeToolExecution", BeforeToolExecution, "BeforeToolExecution"},
 		{"AfterToolExecution", AfterToolExecution, "AfterToolExecution"},
 		{"OnToolError", OnToolError, "OnToolError"},
+		{"BeforeFileRead", BeforeFileRead, "BeforeFileRead"},
+		{"AfterFileRead", AfterFileRead, "AfterFileRead"},
+		{"BeforeFileWrite", BeforeFileWrite, "BeforeFileWrite"},
+		{"AfterFileWrite", AfterFileWrite, "AfterFileWrite"},
+		{"BeforeFileDelete", BeforeFileDelete, "BeforeFileDelete"},
+		{"AfterFileDelete", AfterFileDelete, "AfterFileDelete"},
+		{"BeforeFileModify", BeforeFileModify, "BeforeFileModify"},
+		{"AfterFileModify", AfterFileModify, "AfterFileModify"},
 	}
 
 	for _, tt := range tests {
@@ -536,7 +560,7 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 
 		beforeHook := func(_ context.Context, hc *HookContext, next func() error) error {
 			// Modify args
-			hc.ToolArgs["input"] = "modified"
+			hc.ToolArgs["input"] = testModifiedContent
 			return next()
 		}
 
@@ -562,7 +586,7 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 
 		afterHook := func(_ context.Context, hc *HookContext, next func() error) error {
 			// Modify result
-			hc.ToolResult["output"] = "modified"
+			hc.ToolResult["output"] = testModifiedContent
 			return next()
 		}
 
@@ -577,7 +601,7 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		})
 
 		require.NoError(t, err)
-		assert.Equal(t, map[string]any{"output": "modified"}, result)
+		assert.Equal(t, map[string]any{"output": testModifiedContent}, result)
 	})
 
 	t.Run("before hook can block execution", func(t *testing.T) {
@@ -746,5 +770,750 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, map[string]any{"output": "success"}, result)
+	})
+}
+
+// TestHookManager_WithFileReadHooks tests file read hooks with content return
+func TestHookManager_WithFileReadHooks(t *testing.T) {
+	t.Run("successfully executes file read with before and after hooks", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		executed := []string{}
+		beforeHook := func(_ context.Context, hc *HookContext, next func() error) error {
+			executed = append(executed, "before")
+			assert.Equal(t, testFilePath, hc.FilePath)
+			return next()
+		}
+		afterHook := func(_ context.Context, hc *HookContext, next func() error) error {
+			executed = append(executed, "after")
+			assert.Equal(t, testFilePath, hc.FilePath)
+			return next()
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileRead, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileRead, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, func() (string, error) {
+			executed = append(executed, "work")
+			return testOriginalContent, nil
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, testOriginalContent, content)
+		assert.Equal(t, []string{"before", "work", "after"}, executed)
+	})
+
+	t.Run("after hook can modify file content", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		afterHook := func(_ context.Context, hc *HookContext, next func() error) error {
+			// Modify file content
+			hc.FileContent = "modified by hook"
+			return next()
+		}
+
+		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileRead, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, func() (string, error) {
+			return testOriginalContent, nil
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, "modified by hook", content, "after hook should modify the returned content")
+		assert.NotEqual(t, testOriginalContent, content, "content should be different from original")
+	})
+
+	t.Run("before hook can block file read", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		beforeHook := func(_ context.Context, _ *HookContext, _ func() error) error {
+			// Don't call next() to block execution
+			return nil
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileRead, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		workExecuted := false
+		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, func() (string, error) {
+			workExecuted = true
+			return testContent, nil
+		})
+
+		require.NoError(t, err)
+		assert.False(t, workExecuted, "work should not be executed when blocked by hook")
+		assert.Equal(t, "", content)
+	})
+
+	t.Run("after hook runs even when work fails", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		executed := []string{}
+		beforeHook := func(_ context.Context, _ *HookContext, next func() error) error {
+			executed = append(executed, "before")
+			return next()
+		}
+		afterHook := func(_ context.Context, _ *HookContext, next func() error) error {
+			executed = append(executed, "after")
+			return next()
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileRead, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileRead, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+		workErr := errors.New("read failed")
+
+		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, func() (string, error) {
+			executed = append(executed, "work")
+			return "", workErr
+		})
+
+		require.Error(t, err)
+		assert.Equal(t, workErr, err, "work error should be returned")
+		assert.Equal(t, []string{"before", "work", "after"}, executed, "after hook should run even when work fails")
+		assert.Equal(t, "", content)
+	})
+
+	t.Run("rejects empty file path", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+
+		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, "", func() (string, error) {
+			return testContent, nil
+		})
+
+		require.Error(t, err)
+		assert.True(t, errs.IsType(err, errs.TypeValidation))
+		assert.Equal(t, "", content)
+	})
+
+	t.Run("rejects suspicious file path with path traversal", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+
+		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, testSuspiciousPath, func() (string, error) {
+			return testContent, nil
+		})
+
+		require.Error(t, err)
+		assert.True(t, errs.IsType(err, errs.TypeValidation))
+		assert.Contains(t, err.Error(), "suspicious elements")
+		assert.Equal(t, "", content)
+	})
+
+	t.Run("rejects nil work function", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, nil)
+
+		require.Error(t, err)
+		assert.True(t, errs.IsType(err, errs.TypeValidation))
+		assert.Equal(t, "", content)
+	})
+
+	t.Run("fatal error in after hook takes precedence over work error", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		afterHook := func(_ context.Context, _ *HookContext, _ func() error) error {
+			return errors.New("fatal after error")
+		}
+
+		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileRead, Priority: 0, FatalError: true}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+		workErr := errors.New("work failed")
+
+		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, func() (string, error) {
+			return "", workErr
+		})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "fatal after error")
+		assert.NotContains(t, err.Error(), "work failed")
+		assert.Equal(t, "", content)
+	})
+
+	t.Run("non-fatal error in before hook continues execution", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		executed := []string{}
+		beforeHook := func(_ context.Context, _ *HookContext, next func() error) error {
+			executed = append(executed, "before")
+			// Call next() then return non-fatal error
+			_ = next()
+			executed = append(executed, "before-error")
+			return errors.New("non-fatal error")
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileRead, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, func() (string, error) {
+			executed = append(executed, "work")
+			return testContent, nil
+		})
+
+		require.NoError(t, err)
+		// Non-fatal error logs and continues to work
+		assert.Equal(t, []string{"before", "before-error", "work"}, executed)
+		assert.Equal(t, testContent, content)
+	})
+
+	t.Run("after hook can modify content to empty string", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		afterHook := func(_ context.Context, hc *HookContext, next func() error) error {
+			// Clear content (e.g., redact sensitive file)
+			hc.FileContent = ""
+			return next()
+		}
+
+		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "redact", Point: AfterFileRead, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+		originalContent := "SENSITIVE DATA"
+
+		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, func() (string, error) {
+			return originalContent, nil
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, "", content, "hook should be able to clear content to empty string")
+		assert.NotEqual(t, originalContent, content, "content should be different from original")
+	})
+}
+
+// TestHookManager_WithFileWriteHooks tests file write hooks with content modification
+func TestHookManager_WithFileWriteHooks(t *testing.T) {
+	t.Run("successfully executes file write with before and after hooks", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		executed := []string{}
+		beforeHook := func(_ context.Context, hc *HookContext, next func() error) error {
+			executed = append(executed, "before")
+			assert.Equal(t, testFilePath, hc.FilePath)
+			return next()
+		}
+		afterHook := func(_ context.Context, hc *HookContext, next func() error) error {
+			executed = append(executed, "after")
+			assert.Equal(t, testFilePath, hc.FilePath)
+			return next()
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileWrite, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		var writtenContent string
+		err := hm.WithFileWriteHooks(context.Background(), sessionID, agentID, filePath, testOriginalContent, func(content string) error {
+			executed = append(executed, "work")
+			writtenContent = content
+			return nil
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, testOriginalContent, writtenContent)
+		assert.Equal(t, []string{"before", "work", "after"}, executed)
+	})
+
+	t.Run("before hook can modify file content", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		beforeHook := func(_ context.Context, hc *HookContext, next func() error) error {
+			// Modify file content
+			hc.FileContent = "modified by hook"
+			return next()
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		var writtenContent string
+		err := hm.WithFileWriteHooks(context.Background(), sessionID, agentID, filePath, testOriginalContent, func(content string) error {
+			writtenContent = content
+			return nil
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, "modified by hook", writtenContent, "before hook should modify the content passed to work")
+		assert.NotEqual(t, testOriginalContent, writtenContent, "content should be different from original")
+	})
+
+	t.Run("before hook can modify content to empty string", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		beforeHook := func(_ context.Context, hc *HookContext, next func() error) error {
+			// Clear content (e.g., redact sensitive data before write)
+			hc.FileContent = ""
+			return next()
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "redact", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		var writtenContent string
+		err := hm.WithFileWriteHooks(context.Background(), sessionID, agentID, filePath, "SENSITIVE DATA", func(content string) error {
+			writtenContent = content
+			return nil
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, "", writtenContent, "hook should be able to clear content to empty string")
+		assert.NotEqual(t, "SENSITIVE DATA", writtenContent, "content should be different from original")
+	})
+
+	t.Run("before hook can block file write", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		beforeHook := func(_ context.Context, _ *HookContext, _ func() error) error {
+			// Don't call next() to block execution
+			return nil
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		workExecuted := false
+		err := hm.WithFileWriteHooks(context.Background(), sessionID, agentID, filePath, testContent, func(_ string) error {
+			workExecuted = true
+			return nil
+		})
+
+		require.NoError(t, err)
+		assert.False(t, workExecuted, "work should not be executed when blocked by hook")
+	})
+
+	t.Run("before hook can block with error", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		beforeHook := func(_ context.Context, _ *HookContext, _ func() error) error {
+			return errors.New("access denied")
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: true}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		workExecuted := false
+		err := hm.WithFileWriteHooks(context.Background(), sessionID, agentID, filePath, testContent, func(_ string) error {
+			workExecuted = true
+			return nil
+		})
+
+		require.Error(t, err)
+		assert.False(t, workExecuted)
+		assert.Contains(t, err.Error(), "access denied")
+	})
+
+	t.Run("after hook runs even when work fails", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		executed := []string{}
+		beforeHook := func(_ context.Context, _ *HookContext, next func() error) error {
+			executed = append(executed, "before")
+			return next()
+		}
+		afterHook := func(_ context.Context, _ *HookContext, next func() error) error {
+			executed = append(executed, "after")
+			return next()
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileWrite, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+		workErr := errors.New("write failed")
+
+		err := hm.WithFileWriteHooks(context.Background(), sessionID, agentID, filePath, testContent, func(_ string) error {
+			executed = append(executed, "work")
+			return workErr
+		})
+
+		require.Error(t, err)
+		assert.Equal(t, workErr, err, "work error should be returned")
+		assert.Equal(t, []string{"before", "work", "after"}, executed, "after hook should run even when work fails")
+	})
+
+	t.Run("rejects empty file path", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+
+		err := hm.WithFileWriteHooks(context.Background(), sessionID, agentID, "", testContent, func(_ string) error {
+			return nil
+		})
+
+		require.Error(t, err)
+		assert.True(t, errs.IsType(err, errs.TypeValidation))
+	})
+
+	t.Run("rejects suspicious file path with path traversal", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+
+		err := hm.WithFileWriteHooks(context.Background(), sessionID, agentID, testSuspiciousPath, testContent, func(_ string) error {
+			return nil
+		})
+
+		require.Error(t, err)
+		assert.True(t, errs.IsType(err, errs.TypeValidation))
+		assert.Contains(t, err.Error(), "suspicious elements")
+	})
+
+	t.Run("rejects nil work function", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		err := hm.WithFileWriteHooks(context.Background(), sessionID, agentID, filePath, testContent, nil)
+
+		require.Error(t, err)
+		assert.True(t, errs.IsType(err, errs.TypeValidation))
+	})
+
+	t.Run("fatal error in after hook takes precedence over work error", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		afterHook := func(_ context.Context, _ *HookContext, _ func() error) error {
+			return errors.New("fatal after error")
+		}
+
+		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileWrite, Priority: 0, FatalError: true}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+		workErr := errors.New("work failed")
+
+		err := hm.WithFileWriteHooks(context.Background(), sessionID, agentID, filePath, testContent, func(_ string) error {
+			return workErr
+		})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "fatal after error")
+		assert.NotContains(t, err.Error(), "work failed")
+	})
+
+	t.Run("non-fatal error in before hook continues execution", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		executed := []string{}
+		beforeHook := func(_ context.Context, _ *HookContext, next func() error) error {
+			executed = append(executed, "before")
+			// Call next() then return non-fatal error
+			_ = next()
+			executed = append(executed, "before-error")
+			return errors.New("non-fatal error")
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		err := hm.WithFileWriteHooks(context.Background(), sessionID, agentID, filePath, testContent, func(_ string) error {
+			executed = append(executed, "work")
+			return nil
+		})
+
+		require.NoError(t, err)
+		// Non-fatal error logs and continues to work
+		assert.Equal(t, []string{"before", "before-error", "work"}, executed)
+	})
+}
+
+// TestHookManager_WithFileHooks tests file hook wrapping
+func TestHookManager_WithFileHooks(t *testing.T) {
+	t.Run("successfully executes file operation with before and after hooks", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		executed := []string{}
+		beforeHook := func(_ context.Context, hc *HookContext, next func() error) error {
+			executed = append(executed, "before")
+			assert.Equal(t, testFilePath, hc.FilePath)
+			return next()
+		}
+		afterHook := func(_ context.Context, hc *HookContext, next func() error) error {
+			executed = append(executed, "after")
+			assert.Equal(t, testFilePath, hc.FilePath)
+			return next()
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileWrite, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileWrite, filePath, func() error {
+			executed = append(executed, "work")
+			return nil
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, []string{"before", "work", "after"}, executed)
+	})
+
+	t.Run("before hook can block file operation", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		beforeHook := func(_ context.Context, _ *HookContext, _ func() error) error {
+			// Don't call next() to block execution
+			return nil
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileDelete, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		workExecuted := false
+		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileDelete, filePath, func() error {
+			workExecuted = true
+			return nil
+		})
+
+		require.NoError(t, err)
+		assert.False(t, workExecuted, "work should not be executed when blocked by hook")
+	})
+
+	t.Run("before hook can block with error", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		beforeHook := func(_ context.Context, _ *HookContext, _ func() error) error {
+			return errors.New("access denied")
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: true}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		workExecuted := false
+		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileWrite, filePath, func() error {
+			workExecuted = true
+			return nil
+		})
+
+		require.Error(t, err)
+		assert.False(t, workExecuted)
+		assert.Contains(t, err.Error(), "access denied")
+	})
+
+	t.Run("after hook runs even when work fails", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		executed := []string{}
+		beforeHook := func(_ context.Context, _ *HookContext, next func() error) error {
+			executed = append(executed, "before")
+			return next()
+		}
+		afterHook := func(_ context.Context, _ *HookContext, next func() error) error {
+			executed = append(executed, "after")
+			return next()
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileRead, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileRead, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+		workErr := errors.New("read failed")
+
+		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileRead, filePath, func() error {
+			executed = append(executed, "work")
+			return workErr
+		})
+
+		require.Error(t, err)
+		assert.Equal(t, workErr, err, "work error should be returned")
+		assert.Equal(t, []string{"before", "work", "after"}, executed, "after hook should run even when work fails")
+	})
+
+	t.Run("rejects empty file path", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+
+		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileWrite, "", func() error {
+			return nil
+		})
+
+		require.Error(t, err)
+		assert.True(t, errs.IsType(err, errs.TypeValidation))
+	})
+
+	t.Run("rejects suspicious file path with path traversal", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+
+		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileWrite, testSuspiciousPath, func() error {
+			return nil
+		})
+
+		require.Error(t, err)
+		assert.True(t, errs.IsType(err, errs.TypeValidation))
+		assert.Contains(t, err.Error(), "suspicious elements")
+	})
+
+	t.Run("rejects nil work function", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileWrite, filePath, nil)
+
+		require.Error(t, err)
+		assert.True(t, errs.IsType(err, errs.TypeValidation))
+	})
+
+	t.Run("rejects invalid file hook point", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeToolExecution, filePath, func() error {
+			return nil
+		})
+
+		require.Error(t, err)
+		assert.True(t, errs.IsType(err, errs.TypeValidation))
+	})
+
+	t.Run("fatal error in after hook takes precedence over work error", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		afterHook := func(_ context.Context, _ *HookContext, _ func() error) error {
+			return errors.New("fatal after error")
+		}
+
+		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileWrite, Priority: 0, FatalError: true}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+		workErr := errors.New("work failed")
+
+		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileWrite, filePath, func() error {
+			return workErr
+		})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "fatal after error")
+		assert.NotContains(t, err.Error(), "work failed")
+	})
+
+	t.Run("file modify hooks receive old and new content", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		beforeHook := func(_ context.Context, hc *HookContext, next func() error) error {
+			// Set old/new content for the hook to use
+			hc.OldContent = "old content"
+			hc.NewContent = "new content"
+			return next()
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileModify, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileModify, filePath, func() error {
+			return nil
+		})
+
+		require.NoError(t, err)
+	})
+
+	t.Run("non-fatal error in before hook continues execution", func(t *testing.T) {
+		hm := newTestHookManager()
+
+		executed := []string{}
+		beforeHook := func(_ context.Context, _ *HookContext, next func() error) error {
+			executed = append(executed, "before")
+			// Call next() then return non-fatal error
+			_ = next()
+			executed = append(executed, "before-error")
+			return errors.New("non-fatal error")
+		}
+
+		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
+
+		sessionID := uuid.New()
+		agentID := uuid.New()
+		filePath := testFilePath
+
+		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileWrite, filePath, func() error {
+			executed = append(executed, "work")
+			return nil
+		})
+
+		require.NoError(t, err)
+		// Non-fatal error logs and continues to work
+		// No after hooks registered, so only before and work execute
+		assert.Equal(t, []string{"before", "before-error", "work"}, executed)
 	})
 }

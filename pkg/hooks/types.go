@@ -45,6 +45,37 @@ const (
 	// OnToolError is triggered when a tool execution fails.
 	// Hooks can recover from errors or return fallback responses.
 	OnToolError HookPoint = "OnToolError"
+
+	// BeforeFileRead is triggered before a file is read.
+	// Use case: Validate permissions, check file existence, implement caching.
+	// Hooks can block the read operation by not calling next().
+	BeforeFileRead HookPoint = "BeforeFileRead"
+	// AfterFileRead is triggered after a file is successfully read.
+	// Use case: Update access statistics, transform content, implement logging.
+	// NOTE: Content modification via HookContext.FileContent requires use of
+	// WithFileReadHooks to return modified content to caller.
+	AfterFileRead HookPoint = "AfterFileRead"
+	// BeforeFileWrite is triggered before a file is written.
+	// Use case: Validate locks, check disk space, transform content, compute checksums.
+	// Set HookContext.FileContent before work() to modify what gets written.
+	BeforeFileWrite HookPoint = "BeforeFileWrite"
+	// AfterFileWrite is triggered after a file is successfully written.
+	// Use case: Update file state, invalidate caches, send notifications, audit logging.
+	AfterFileWrite HookPoint = "AfterFileWrite"
+	// BeforeFileDelete is triggered before a file is deleted.
+	// Use case: Validate permissions, check dependencies, implement recycle bin.
+	// Hooks can block the delete operation by not calling next().
+	BeforeFileDelete HookPoint = "BeforeFileDelete"
+	// AfterFileDelete is triggered after a file is successfully deleted.
+	// Use case: Cleanup related state, update indexes, log deletion.
+	AfterFileDelete HookPoint = "AfterFileDelete"
+	// BeforeFileModify is triggered before a file is modified (edit operation).
+	// Use case: Validate locks, capture old content, check file format.
+	// Set HookContext.OldContent and HookContext.NewContent for tracking.
+	BeforeFileModify HookPoint = "BeforeFileModify"
+	// AfterFileModify is triggered after a file is successfully modified.
+	// Use case: Track changes, update file state, trigger notifications.
+	AfterFileModify HookPoint = "AfterFileModify"
 )
 
 // String returns the string representation of the hook point.
@@ -54,13 +85,20 @@ func (h HookPoint) String() string {
 
 // HookContext carries contextual information for hook execution.
 type HookContext struct {
-	SessionID uuid.UUID // Optional: session identifier
-	AgentID   uuid.UUID // Optional: agent identifier
-	ToolName  string    // Optional: tool name for tool hooks
-	ToolArgs  map[string]any   // Optional: tool arguments for BeforeToolExecution
-	ToolResult map[string]any  // Optional: tool result for AfterToolExecution
-	ToolError error           // Optional: tool error for OnToolError
-	Data      map[string]any
+	SessionID  uuid.UUID      // Optional: session identifier
+	AgentID    uuid.UUID      // Optional: agent identifier
+	ToolName   string         // Optional: tool name for tool hooks
+	ToolArgs   map[string]any // Optional: tool arguments for BeforeToolExecution
+	ToolResult map[string]any // Optional: tool result for AfterToolExecution
+	ToolError  error          // Optional: tool error for OnToolError
+
+	// File-related fields for file state hooks
+	FilePath    string // Optional: file path for file hooks
+	FileContent string // Optional: file content (hooks can modify before write)
+	OldContent  string // Optional: old file content for modify operations
+	NewContent  string // Optional: new file content for modify operations
+
+	Data map[string]any
 }
 
 // Clone creates a deep copy of the HookContext.
@@ -69,11 +107,15 @@ func (hc *HookContext) Clone() *HookContext {
 		return &HookContext{Data: make(map[string]any)}
 	}
 	cpy := &HookContext{
-		SessionID: hc.SessionID,
-		AgentID:   hc.AgentID,
-		ToolName:  hc.ToolName,
-		ToolError: hc.ToolError,
-		Data:      make(map[string]any, len(hc.Data)),
+		SessionID:   hc.SessionID,
+		AgentID:     hc.AgentID,
+		ToolName:    hc.ToolName,
+		ToolError:   hc.ToolError,
+		FilePath:    hc.FilePath,
+		FileContent: hc.FileContent,
+		OldContent:  hc.OldContent,
+		NewContent:  hc.NewContent,
+		Data:        make(map[string]any, len(hc.Data)),
 	}
 
 	// Deep copy ToolArgs
