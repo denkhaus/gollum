@@ -47,28 +47,34 @@ const (
 	OnToolError HookPoint = "OnToolError"
 
 	// BeforeFileRead is triggered before a file is read.
+	// Use case: Validate permissions, check file existence, implement caching.
 	// Hooks can block the read operation by not calling next().
 	BeforeFileRead HookPoint = "BeforeFileRead"
 	// AfterFileRead is triggered after a file is successfully read.
-	// Hooks can modify the content before returning to the caller.
+	// Use case: Update access statistics, transform content, implement logging.
+	// NOTE: Content modification via HookContext.FileContent requires use of
+	// WithFileReadHooks to return modified content to caller.
 	AfterFileRead HookPoint = "AfterFileRead"
 	// BeforeFileWrite is triggered before a file is written.
-	// Hooks can modify content via HookContext.FileContent or block execution.
+	// Use case: Validate locks, check disk space, transform content, compute checksums.
+	// Set HookContext.FileContent before work() to modify what gets written.
 	BeforeFileWrite HookPoint = "BeforeFileWrite"
 	// AfterFileWrite is triggered after a file is successfully written.
-	// Hooks can log/audit the write operation.
+	// Use case: Update file state, invalidate caches, send notifications, audit logging.
 	AfterFileWrite HookPoint = "AfterFileWrite"
 	// BeforeFileDelete is triggered before a file is deleted.
+	// Use case: Validate permissions, check dependencies, implement recycle bin.
 	// Hooks can block the delete operation by not calling next().
 	BeforeFileDelete HookPoint = "BeforeFileDelete"
 	// AfterFileDelete is triggered after a file is successfully deleted.
-	// Hooks can log/audit the delete operation.
+	// Use case: Cleanup related state, update indexes, log deletion.
 	AfterFileDelete HookPoint = "AfterFileDelete"
 	// BeforeFileModify is triggered before a file is modified (edit operation).
-	// Hooks can modify oldContent/newContent via HookContext or block execution.
+	// Use case: Validate locks, capture old content, check file format.
+	// Set HookContext.OldContent and HookContext.NewContent for tracking.
 	BeforeFileModify HookPoint = "BeforeFileModify"
 	// AfterFileModify is triggered after a file is successfully modified.
-	// Hooks can log/audit the modification and track changes.
+	// Use case: Track changes, update file state, trigger notifications.
 	AfterFileModify HookPoint = "AfterFileModify"
 )
 
