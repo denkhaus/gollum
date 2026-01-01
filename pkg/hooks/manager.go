@@ -3,6 +3,7 @@ package hooks
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"sync"
 
 	"github.com/denkhaus/gollum/pkg/errs"
@@ -51,10 +52,34 @@ type HookManager interface {
 		work func() (map[string]any, error),
 	) (map[string]any, error)
 
+	// WithFileReadHooks wraps a file read operation with hooks.
+	// Returns the file content, potentially modified by AfterFileRead hooks.
+	//
+	// Hook execution flow:
+	// 1. BeforeFileRead hooks run - can validate and block reads
+	// 2. File read work executes
+	// 3. AfterFileRead hooks run - can transform content before returning
+	//
+	// The returned content is the final content after any modifications by AfterFileRead hooks.
+	WithFileReadHooks(
+		ctx context.Context,
+		sessionID, agentID uuid.UUID,
+		filePath string,
+		work func() (string, error),
+	) (string, error)
+
 	// WithFileHooks wraps a function with file operation hooks.
 	// BeforeFileRead/BeforeFileWrite/BeforeFileDelete/BeforeFileModify hooks can block execution.
 	// AfterFileRead/AfterFileWrite/AfterFileDelete/AfterFileModify hooks can log/audit operations.
-	// Hooks can modify FileContent before write operations.
+	//
+	// IMPORTANT: For file read operations that need content modification, use WithFileReadHooks instead.
+	// This method cannot return modified content to the caller - hooks can log/audit only.
+	//
+	// The point parameter can be ANY of the 8 file hook points (BeforeFileRead, AfterFileRead,
+	// BeforeFileWrite, AfterFileWrite, BeforeFileDelete, AfterFileDelete, BeforeFileModify,
+	// AfterFileModify). The method will automatically determine the appropriate before/after
+	// hook pair to execute. For example, passing either BeforeFileRead or AfterFileRead will
+	// result in both BeforeFileRead and AfterFileRead hooks being executed in sequence.
 	WithFileHooks(
 		ctx context.Context,
 		sessionID, agentID uuid.UUID,
@@ -494,6 +519,79 @@ func (p *hookManagerImpl) WithToolHooks(
 	return toolResult, nil
 }
 
+// WithFileReadHooks wraps a file read operation with hooks.
+// Returns the file content, potentially modified by AfterFileRead hooks.
+//
+// Hook execution flow:
+// 1. BeforeFileRead hooks run - can validate and block reads
+// 2. File read work executes - returns content
+// 3. AfterFileRead hooks run - can transform content via HookContext.FileContent
+//
+// The returned content is the final content after any modifications by AfterFileRead hooks.
+func (p *hookManagerImpl) WithFileReadHooks(
+	ctx context.Context,
+	sessionID, agentID uuid.UUID,
+	filePath string,
+	work func() (string, error),
+) (string, error) {
+	// Validate inputs immediately (fail fast)
+	if filePath == "" {
+		return "", errs.Validation("file path cannot be empty")
+	}
+	// Basic path sanitization check
+	cleanPath := filepath.Clean(filePath)
+	if cleanPath != filePath {
+		return "", errs.Validationf("file path contains suspicious elements: %s", filePath)
+	}
+	if work == nil {
+		return "", errs.Validation("work function cannot be nil")
+	}
+
+	// BeforeFileRead hook
+	hookCtx := &HookContext{
+		SessionID: sessionID,
+		AgentID:   agentID,
+		FilePath:  filePath,
+		Data:      make(map[string]any),
+	}
+
+	result := p.TriggerHooks(ctx, BeforeFileRead, hookCtx)
+	if result.Stopped {
+		// Hook blocked execution
+		if result.Error != nil {
+			return "", result.Error
+		}
+		// Hook stopped without error - blocked successfully
+		return "", nil
+	}
+
+	// Execute the file read work - returns content
+	content, workErr := work()
+
+	// Store content in context for after hooks
+	hookCtx.FileContent = content
+
+	// AfterFileRead hook runs even when work fails
+	// Hooks can modify FileContent to transform what's returned
+	result = p.TriggerHooks(ctx, AfterFileRead, hookCtx)
+
+	// If a fatal 'after' hook failed, its error takes precedence
+	if result.Error != nil {
+		if workErr != nil {
+			p.log.Error("The original work function also returned an error, which is being superseded by the AfterFileRead hook error",
+				zap.String("file_path", filePath),
+				zap.Error(workErr))
+		}
+		return "", result.Error
+	}
+
+	// Return the potentially modified content from hooks
+	if hookCtx.FileContent != "" {
+		return hookCtx.FileContent, workErr
+	}
+	return content, workErr
+}
+
 // WithFileHooks wraps a function with file operation hooks.
 //
 // The workflow depends on the hook point:
@@ -501,7 +599,7 @@ func (p *hookManagerImpl) WithToolHooks(
 // For Read operations (BeforeFileRead/AfterFileRead):
 // 1. BeforeFileRead hooks run - can block by not calling next()
 // 2. File read work executes
-// 3. AfterFileRead hooks run - can modify FileContent
+// 3. AfterFileRead hooks run - can log/audit (cannot return modified content)
 //
 // For Write operations (BeforeFileWrite/AfterFileWrite):
 // 1. BeforeFileWrite hooks run with FileContent in HookContext
@@ -533,6 +631,11 @@ func (p *hookManagerImpl) WithFileHooks(
 	// Validate inputs immediately (fail fast)
 	if filePath == "" {
 		return errs.Validation("file path cannot be empty")
+	}
+	// Basic path sanitization check
+	cleanPath := filepath.Clean(filePath)
+	if cleanPath != filePath {
+		return errs.Validationf("file path contains suspicious elements: %s", filePath)
 	}
 	if work == nil {
 		return errs.Validation("work function cannot be nil")
