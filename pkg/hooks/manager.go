@@ -585,11 +585,8 @@ func (p *hookManagerImpl) WithFileReadHooks(
 		return "", result.Error
 	}
 
-	// Return the potentially modified content from hooks
-	if hookCtx.FileContent != "" {
-		return hookCtx.FileContent, workErr
-	}
-	return content, workErr
+	// Always return hookCtx.FileContent (hooks may have modified it, possibly to empty string)
+	return hookCtx.FileContent, workErr
 }
 
 // WithFileHooks wraps a function with file operation hooks.
