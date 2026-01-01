@@ -68,6 +68,22 @@ type HookManager interface {
 		work func() (string, error),
 	) (string, error)
 
+	// WithFileWriteHooks wraps a file write operation with hooks.
+	// BeforeFileWrite hooks can transform the content before writing.
+	// AfterFileWrite hooks can log/audit the write operation.
+	//
+	// Hook execution flow:
+	// 1. BeforeFileWrite hooks run - can transform content via HookContext.FileContent
+	// 2. File write work executes - receives the final content after hook transformations
+	// 3. AfterFileWrite hooks run - can log/audit
+	WithFileWriteHooks(
+		ctx context.Context,
+		sessionID, agentID uuid.UUID,
+		filePath string,
+		content string,
+		work func(string) error,
+	) error
+
 	// WithFileHooks wraps a function with file operation hooks.
 	// BeforeFileRead/BeforeFileWrite/BeforeFileDelete/BeforeFileModify hooks can block execution.
 	// AfterFileRead/AfterFileWrite/AfterFileDelete/AfterFileModify hooks can log/audit operations.
@@ -587,6 +603,75 @@ func (p *hookManagerImpl) WithFileReadHooks(
 
 	// Always return hookCtx.FileContent (hooks may have modified it, possibly to empty string)
 	return hookCtx.FileContent, workErr
+}
+
+// WithFileWriteHooks wraps a file write operation with hooks.
+// BeforeFileWrite hooks can transform the content before writing.
+// AfterFileWrite hooks can log/audit the write operation.
+//
+// Hook execution flow:
+// 1. BeforeFileWrite hooks run - can transform content via HookContext.FileContent
+// 2. File write work executes - receives the final content after hook transformations
+// 3. AfterFileWrite hooks run - can log/audit
+func (p *hookManagerImpl) WithFileWriteHooks(
+	ctx context.Context,
+	sessionID, agentID uuid.UUID,
+	filePath string,
+	content string,
+	work func(string) error,
+) error {
+	// Validate inputs immediately (fail fast)
+	if filePath == "" {
+		return errs.Validation("file path cannot be empty")
+	}
+	// Basic path sanitization check
+	cleanPath := filepath.Clean(filePath)
+	if cleanPath != filePath {
+		return errs.Validationf("file path contains suspicious elements: %s", filePath)
+	}
+	if work == nil {
+		return errs.Validation("work function cannot be nil")
+	}
+
+	// BeforeFileWrite hook
+	hookCtx := &HookContext{
+		SessionID:   sessionID,
+		AgentID:     agentID,
+		FilePath:    filePath,
+		FileContent: content, // Initial content
+		Data:        make(map[string]any),
+	}
+
+	result := p.TriggerHooks(ctx, BeforeFileWrite, hookCtx)
+	if result.Stopped {
+		// Hook blocked execution
+		if result.Error != nil {
+			return result.Error
+		}
+		// Hook stopped without error - blocked successfully
+		return nil
+	}
+
+	// Execute work with potentially modified content
+	finalContent := hookCtx.FileContent
+	workErr := work(finalContent)
+
+	// AfterFileWrite hook (always runs, even if work failed)
+	// Note: Hooks can access FileContent via hookCtx
+	result = p.TriggerHooks(ctx, AfterFileWrite, hookCtx)
+
+	// If a fatal 'after' hook failed, its error takes precedence
+	if result.Error != nil {
+		if workErr != nil {
+			p.log.Error("The original work function also returned an error, which is being superseded by the AfterFileWrite hook error",
+				zap.String("file_path", filePath),
+				zap.Error(workErr))
+		}
+		return result.Error
+	}
+
+	// Otherwise, return the error from the original work function (if any)
+	return workErr
 }
 
 // WithFileHooks wraps a function with file operation hooks.
