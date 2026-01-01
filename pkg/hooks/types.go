@@ -35,6 +35,16 @@ const (
 	BeforeAgentRemove HookPoint = "BeforeAgentRemove"
 	// AfterAgentRemove is triggered after an agent is removed.
 	AfterAgentRemove HookPoint = "AfterAgentRemove"
+
+	// BeforeToolExecution is triggered before a tool runs.
+	// Hooks can modify args or block execution by not calling next().
+	BeforeToolExecution HookPoint = "BeforeToolExecution"
+	// AfterToolExecution is triggered after a tool completes successfully.
+	// Hooks can modify the result before returning to the caller.
+	AfterToolExecution HookPoint = "AfterToolExecution"
+	// OnToolError is triggered when a tool execution fails.
+	// Hooks can recover from errors or return fallback responses.
+	OnToolError HookPoint = "OnToolError"
 )
 
 // String returns the string representation of the hook point.
@@ -47,6 +57,9 @@ type HookContext struct {
 	SessionID uuid.UUID // Optional: session identifier
 	AgentID   uuid.UUID // Optional: agent identifier
 	ToolName  string    // Optional: tool name for tool hooks
+	ToolArgs  map[string]any   // Optional: tool arguments for BeforeToolExecution
+	ToolResult map[string]any  // Optional: tool result for AfterToolExecution
+	ToolError error           // Optional: tool error for OnToolError
 	Data      map[string]any
 }
 
@@ -56,10 +69,13 @@ func (hc *HookContext) Clone() *HookContext {
 		return &HookContext{Data: make(map[string]any)}
 	}
 	cpy := &HookContext{
-		SessionID: hc.SessionID,
-		AgentID:   hc.AgentID,
-		ToolName:  hc.ToolName,
-		Data:      make(map[string]any, len(hc.Data)),
+		SessionID:  hc.SessionID,
+		AgentID:    hc.AgentID,
+		ToolName:   hc.ToolName,
+		ToolArgs:   hc.ToolArgs,
+		ToolResult: hc.ToolResult,
+		ToolError:  hc.ToolError,
+		Data:       make(map[string]any, len(hc.Data)),
 	}
 	for k, v := range hc.Data {
 		cpy.Data[k] = v

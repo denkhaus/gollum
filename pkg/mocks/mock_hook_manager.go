@@ -111,3 +111,18 @@ func (mr *MockHookManagerMockRecorder) WithSessionHooks(ctx, sessionID, work any
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithSessionHooks", reflect.TypeOf((*MockHookManager)(nil).WithSessionHooks), ctx, sessionID, work)
 }
+
+// WithToolHooks mocks base method.
+func (m *MockHookManager) WithToolHooks(ctx context.Context, sessionID, agentID uuid.UUID, toolName string, args map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WithToolHooks", ctx, sessionID, agentID, toolName, args, work)
+	ret0, _ := ret[0].(map[string]any)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WithToolHooks indicates an expected call of WithToolHooks.
+func (mr *MockHookManagerMockRecorder) WithToolHooks(ctx, sessionID, agentID, toolName, args, work any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithToolHooks", reflect.TypeOf((*MockHookManager)(nil).WithToolHooks), ctx, sessionID, agentID, toolName, args, work)
+}
