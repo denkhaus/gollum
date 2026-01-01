@@ -19,15 +19,15 @@ import (
 // pkg/hooks → pkg/mocks → pkg/hooks (from mock_hook_manager.go)
 type mockLogger struct{}
 
-func (m *mockLogger) Debug(_ string, fields ...zap.Field) {}
+func (m *mockLogger) Debug(_ string, _ ...zap.Field) {}
 
 func (m *mockLogger) Debugf(_ string, _ ...any) {}
 
-func (m *mockLogger) Info(_ string, fields ...zap.Field) {}
+func (m *mockLogger) Info(_ string, _ ...zap.Field) {}
 
 func (m *mockLogger) Infof(_ string, _ ...any) {}
 
-func (m *mockLogger) Warn(_ string, fields ...zap.Field) {}
+func (m *mockLogger) Warn(_ string, _ ...zap.Field) {}
 
 func (m *mockLogger) Warnf(_ string, _ ...any) {}
 
@@ -728,8 +728,8 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		hm := newTestHookManager()
 
 		beforeHook := func(_ context.Context, _ *HookContext, next func() error) error {
-			// Return error but call next first
-			next()
+			// Return error but call next first - next() should succeed
+			require.NoError(t, next())
 			return errors.New("non-fatal error")
 		}
 
@@ -747,4 +747,3 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		assert.Equal(t, map[string]any{"output": "success"}, result)
 	})
 }
-

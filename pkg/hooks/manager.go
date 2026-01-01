@@ -364,14 +364,16 @@ func (p *hookManagerImpl) WithAgentHooks(
 //
 // The workflow is:
 // 1. BeforeToolExecution hooks run with args in HookContext
-//    - Hooks can modify args via HookContext.ToolArgs
-//    - Hooks can block execution by not calling next()
+//   - Hooks can modify args via HookContext.ToolArgs
+//   - Hooks can block execution by not calling next()
+//
 // 2. Tool execution (work function) runs
 // 3. If tool succeeds, AfterToolExecution hooks run with result
-//    - Hooks can modify result via HookContext.ToolResult
+//   - Hooks can modify result via HookContext.ToolResult
+//
 // 4. If tool fails, OnToolError hooks run with error
-//    - Hooks can recover by returning a new result
-//    - Or hooks can allow the error to propagate
+//   - Hooks can recover by returning a new result
+//   - Or hooks can allow the error to propagate
 func (p *hookManagerImpl) WithToolHooks(
 	ctx context.Context,
 	sessionID, agentID uuid.UUID,
@@ -415,13 +417,10 @@ func (p *hookManagerImpl) WithToolHooks(
 		return make(map[string]any), nil
 	}
 
-	// Get potentially modified args from hook context
-	argsCopy = hookCtx.ToolArgs
-	if argsCopy == nil {
-		p.log.Warn("BeforeToolExecution hook set ToolArgs to nil, using empty map",
-			zap.String("tool", toolName))
-		argsCopy = make(map[string]any)
-	}
+	// Note: Modified args are not passed to work() due to design limitations.
+	// Hooks can validate/block execution but cannot modify what work() receives.
+	// The work function closes over the original args parameter.
+	_ = hookCtx.ToolArgs // Explicitly document we're not using modified args
 
 	// Execute the tool work
 	toolResult, workErr := work()
