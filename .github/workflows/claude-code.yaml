@@ -96,18 +96,22 @@ jobs:
         run: |
           echo "🔍 Extracting prompt from GitHub event..."
 
+          # Save event to JSON file for safe parsing
+          echo '${{ toJSON(github.event) }}' > /tmp/event.json
+
+          # Extract data based on event type
           case "${{ github.event_name }}" in
             "issue_comment")
-              PROMPT_TEXT="${{ github.event.comment.body }}"
-              ISSUE_NUMBER="${{ github.event.issue.number }}"
+              PROMPT_TEXT=$(jq -r '.comment.body // ""' /tmp/event.json)
+              ISSUE_NUMBER=$(jq -r '.issue.number' /tmp/event.json)
               ;;
             "issues")
-              PROMPT_TEXT="${{ github.event.issue.body }}"
-              ISSUE_NUMBER="${{ github.event.issue.number }}"
+              PROMPT_TEXT=$(jq -r '.issue.body // ""' /tmp/event.json)
+              ISSUE_NUMBER=$(jq -r '.issue.number' /tmp/event.json)
               ;;
             "pull_request")
-              PROMPT_TEXT="${{ github.event.pull_request.body }}"
-              ISSUE_NUMBER="${{ github.event.pull_request.number }}"
+              PROMPT_TEXT=$(jq -r '.pull_request.body // ""' /tmp/event.json)
+              ISSUE_NUMBER=$(jq -r '.pull_request.number' /tmp/event.json)
               ;;
           esac
 
