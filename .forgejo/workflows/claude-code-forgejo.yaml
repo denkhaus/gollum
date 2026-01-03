@@ -75,7 +75,7 @@ jobs:
         env:
           GITHUB_EVENT_PATH: ${{ github.event_path }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
-        run: mage github:extract-prompt
+        run: mage github:extractprompt
 
       - name: Run Claude Code Base Action
         id: claude
