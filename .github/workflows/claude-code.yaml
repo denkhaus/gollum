@@ -71,6 +71,8 @@ jobs:
 
       - name: Extract prompt from event
         id: extract_prompt
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "Extracting prompt from GitHub event..."
 
