@@ -16,7 +16,7 @@ jobs:
       (github.event_name == 'pull_request' && contains(github.event.pull_request.body, '@claude'))
     runs-on: ubuntu-latest
     container:
-      image: golang:1.25-alpine
+      image: denkhaus/golang-claude-action:latest
     permissions:
       contents: write
       pull-requests: write
@@ -27,24 +27,6 @@ jobs:
       TZ: Europe/Berlin
 
     steps:
-      - name: Install dependencies
-        run: |
-          # Install timezone data and set Europe/Berlin
-          apk add --no-cache tzdata curl jq git
-          ln -sf /usr/share/zoneinfo/Europe/Berlin /etc/localtime
-          echo "Europe/Berlin" > /etc/timezone
-
-          # Install golangci-lint for linting (version 2.6.1)
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /usr/local/bin v2.6.1
-
-          # Install mockgen for generating mocks
-          go install go.uber.org/mock/mockgen@latest
-
-          echo "Dependencies installed successfully"
-          go version
-          git --version
-          golangci-lint --version || echo "golangci-lint not available"
-
       - name: Add eyes reaction to indicate processing started
         uses: actions/github-script@v7
         with:
