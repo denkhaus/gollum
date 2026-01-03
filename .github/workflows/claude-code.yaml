@@ -27,47 +27,18 @@ jobs:
       TZ: Europe/Berlin
 
     steps:
-      - name: Add eyes reaction to indicate processing started
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            console.log('Adding eyes reaction to indicate processing started...');
-
-            try {
-              if (context.eventName === 'issue_comment') {
-                await github.rest.reactions.createForIssueComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: context.payload.comment.id,
-                  content: 'eyes'
-                });
-                console.log('Added eyes reaction to comment');
-              } else if (context.eventName === 'issues') {
-                await github.rest.reactions.createForIssue({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.payload.issue.number,
-                  content: 'eyes'
-                });
-                console.log('Added eyes reaction to issue');
-              } else if (context.eventName === 'pull_request') {
-                await github.rest.reactions.createForIssue({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.payload.pull_request.number,
-                  content: 'eyes'
-                });
-                console.log('Added eyes reaction to pull request');
-              }
-            } catch (error) {
-              console.log('Failed to add reaction:', error.message);
-            }
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Add eyes reaction to indicate processing started
+        working-directory: /opt
+        env:
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mage github:addstartreaction
 
       - name: Extract prompt from event
         id: extract_prompt
@@ -85,7 +56,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt_file: ${{ steps.extract_prompt.outputs.prompt_file }}
-          settings: '{"allowedTools": ["Bash", "Edit", "Read", "Write", "Grep", "Glob"], "allowedBashCommands": ["go build", "go test", "go fmt", "gofmt", "go vet", "go mod tidy", "go generate", "golangci-lint run", "mockgen"]}'
+          settings: '{"allowedTools": ["Bash", "Edit", "Read", "Write", "Grep", "Glob"], "allowedBashCommands": ["go build", "go test", "go fmt", "gofmt", "go vet", "go mod tidy", "go generate", "golangci-lint run", "mockgen", "find", "staticcheck"]}'
           claude_args: "--model claude-sonnet-4-20250514"
 
       - name: Create Pull Request if changes were made
@@ -94,42 +65,15 @@ jobs:
         env:
           GITHUB_WORKSPACE: ${{ github.workspace }}
           ISSUE_NUMBER: ${{ steps.extract_prompt.outputs.issue_number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: mage github:createpr
 
       - name: Add completion reaction
         if: always()
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            let status = "${{ steps.claude.outcome }}";
-            let reactionContent = status === 'success' ? '+1' : '-1';
-
-            // Add completion reaction
-            try {
-              if (context.eventName === 'issue_comment') {
-                await github.rest.reactions.createForIssueComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: context.payload.comment.id,
-                  content: reactionContent
-                });
-              } else if (context.eventName === 'issues') {
-                await github.rest.reactions.createForIssue({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.payload.issue.number,
-                  content: reactionContent
-                });
-              } else if (context.eventName === 'pull_request') {
-                await github.rest.reactions.createForIssue({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.payload.pull_request.number,
-                  content: reactionContent
-                });
-              }
-              console.log(`Added ${reactionContent} reaction for completion`);
-            } catch (error) {
-              console.log('Failed to add completion reaction:', error.message);
-            }
+        working-directory: /opt
+        env:
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mage github:addendreaction ${{ steps.claude.outcome == 'success' }}
