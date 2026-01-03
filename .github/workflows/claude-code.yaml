@@ -72,53 +72,9 @@ jobs:
       - name: Extract prompt from event
         id: extract_prompt
         env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          echo "Extracting prompt from GitHub event..."
-
-          # Save event to JSON file
-          echo '${{ toJSON(github.event) }}' > /tmp/event.json
-
-          # Get event type and number
-          EVENT_TYPE="${{ github.event_name }}"
-          ISSUE_NUMBER=$(jq -r '.issue.number // .pull_request.number' /tmp/event.json)
-
-          if [ "$EVENT_TYPE" = "issue_comment" ]; then
-            COMMENT_BODY=$(jq -r '.comment.body // ""' /tmp/event.json)
-            echo "Loading issue #$ISSUE_NUMBER context..."
-            ISSUE_JSON=$(gh issue view "$ISSUE_NUMBER" --repo "$GH_REPO" --json title,body --jq '.')
-            ISSUE_TITLE=$(echo "$ISSUE_JSON" | jq -r '.title')
-            ISSUE_BODY=$(echo "$ISSUE_JSON" | jq -r '.body')
-
-            # Build prompt with full context
-            PROMPT_TEXT="## Issue: $ISSUE_TITLE\n\n### Issue Description\n$ISSUE_BODY\n\n### Latest Comment\n$COMMENT_BODY"
-          elif [ "$EVENT_TYPE" = "issues" ]; then
-            ISSUE_TITLE=$(jq -r '.issue.title' /tmp/event.json)
-            ISSUE_BODY=$(jq -r '.issue.body // ""' /tmp/event.json)
-            PROMPT_TEXT="## Issue: $ISSUE_TITLE\n\n### Issue Description\n$ISSUE_BODY"
-          else
-            PR_TITLE=$(jq -r '.pull_request.title' /tmp/event.json)
-            PR_BODY=$(jq -r '.pull_request.body // ""' /tmp/event.json)
-            PROMPT_TEXT="## Pull Request: $PR_TITLE\n\n### PR Description\n$PR_BODY"
-          fi
-
-          # Remove @claude and extract actual prompt
-          CLEAN_PROMPT=$(echo -e "$PROMPT_TEXT" | sed 's/@claude//g' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
-
-          # Set default message for empty prompt
-          if [ -z "$CLEAN_PROMPT" ]; then
-            CLEAN_PROMPT="Hello! How can I help you? Please analyze this project and let me know your suggestions."
-          fi
-
-          # Create prompt file
-          mkdir -p /tmp/claude-prompts
-          echo "$CLEAN_PROMPT" > /tmp/claude-prompts/prompt.txt
-
-          echo "Extracted prompt:"
-          echo "$CLEAN_PROMPT"
-          echo "prompt_file=/tmp/claude-prompts/prompt.txt" >> $GITHUB_OUTPUT
-          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: mage github:extract-prompt
 
       - name: Run Claude Code Base Action
         id: claude
