@@ -140,9 +140,12 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt_file: ${{ steps.extract_prompt.outputs.prompt_file }}
-          allowed_tools: "Bash(go build),Bash(go test),Bash(go fmt),Bash(gofmt),Bash(go vet),Bash(go mod tidy),Bash(go generate),Bash(golangci-lint run),Bash(mockgen),Edit,Read,Write,Grep,Glob"
-          model: "claude-sonnet-4-20250514"
-          timeout_minutes: 30
+          settings: |
+            {
+              "allowedTools": ["Bash", "Edit", "Read", "Write", "Grep", "Glob"],
+              "allowedBashCommands": ["go build", "go test", "go fmt", "gofmt", "go vet", "go mod tidy", "go generate", "golangci-lint run", "mockgen"]
+            }
+          claude_args: "--model claude-sonnet-4-20250514"
 
       - name: Create Pull Request if changes were made
         if: success()
