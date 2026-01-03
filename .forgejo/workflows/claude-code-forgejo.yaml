@@ -40,7 +40,7 @@ jobs:
           # Install mockgen for generating mocks
           go install go.uber.org/mock/mockgen@latest
 
-          echo "✅ Dependencies installed successfully"
+          echo "Dependencies installed successfully"
           go version
           git --version
           golangci-lint --version || echo "golangci-lint not available"
@@ -48,42 +48,38 @@ jobs:
       - name: Add eyes reaction to indicate processing started
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.FORGEJO_TOKEN }} # Prefer custom token
+          github-token: ${{ secrets.FORGEJO_TOKEN }}
           script: |
-            console.log('👀 Adding eyes reaction to indicate processing started...');
+            console.log('Adding eyes reaction to indicate processing started...');
 
             try {
               if (context.eventName === 'issue_comment') {
-                // Add reaction to comment
                 await github.rest.reactions.createForIssueComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   comment_id: context.payload.comment.id,
                   content: 'eyes'
                 });
-                console.log('✅ Added eyes reaction to comment');
+                console.log('Added eyes reaction to comment');
               } else if (context.eventName === 'issues') {
-                // Add reaction to issue
                 await github.rest.reactions.createForIssue({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: context.payload.issue.number,
                   content: 'eyes'
                 });
-                console.log('✅ Added eyes reaction to issue');
+                console.log('Added eyes reaction to issue');
               } else if (context.eventName === 'pull_request') {
-                // Add reaction to pull request
                 await github.rest.reactions.createForIssue({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: context.payload.pull_request.number,
                   content: 'eyes'
                 });
-                console.log('✅ Added eyes reaction to pull request');
+                console.log('Added eyes reaction to pull request');
               }
             } catch (error) {
-              console.log('⚠️ Failed to add reaction:', error.message);
-              // Continue workflow even if reaction addition fails
+              console.log('Failed to add reaction:', error.message);
             }
 
       - name: Checkout repository
@@ -94,26 +90,33 @@ jobs:
       - name: Extract prompt from event
         id: extract_prompt
         run: |
-          echo "🔍 Extracting prompt from GitHub event..."
+          echo "Extracting prompt from GitHub event..."
 
-          # Save event to JSON file for safe parsing
+          # Save event to JSON file
           echo '${{ toJSON(github.event) }}' > /tmp/event.json
 
-          # Extract data based on event type
-          case "${{ github.event_name }}" in
-            "issue_comment")
-              PROMPT_TEXT=$(jq -r '.comment.body // ""' /tmp/event.json)
-              ISSUE_NUMBER=$(jq -r '.issue.number' /tmp/event.json)
-              ;;
-            "issues")
-              PROMPT_TEXT=$(jq -r '.issue.body // ""' /tmp/event.json)
-              ISSUE_NUMBER=$(jq -r '.issue.number' /tmp/event.json)
-              ;;
-            "pull_request")
-              PROMPT_TEXT=$(jq -r '.pull_request.body // ""' /tmp/event.json)
-              ISSUE_NUMBER=$(jq -r '.pull_request.number' /tmp/event.json)
-              ;;
-          esac
+          # Get event type and number
+          EVENT_TYPE="${{ github.event_name }}"
+          ISSUE_NUMBER=$(jq -r '.issue.number // .pull_request.number' /tmp/event.json)
+
+          if [ "$EVENT_TYPE" = "issue_comment" ]; then
+            COMMENT_BODY=$(jq -r '.comment.body // ""' /tmp/event.json)
+            echo "Loading issue #$ISSUE_NUMBER context..."
+            ISSUE_JSON=$(gh issue view "$ISSUE_NUMBER" --json title,body --jq '.')
+            ISSUE_TITLE=$(echo "$ISSUE_JSON" | jq -r '.title')
+            ISSUE_BODY=$(echo "$ISSUE_JSON" | jq -r '.body')
+
+            # Build prompt with full context
+            printf -v PROMPT_TEXT '## Issue: %s\n\n### Issue Description\n%s\n\n### Latest Comment\n%s' "$ISSUE_TITLE" "$ISSUE_BODY" "$COMMENT_BODY"
+          elif [ "$EVENT_TYPE" = "issues" ]; then
+            ISSUE_TITLE=$(jq -r '.issue.title' /tmp/event.json)
+            ISSUE_BODY=$(jq -r '.issue.body // ""' /tmp/event.json)
+            printf -v PROMPT_TEXT '## Issue: %s\n\n### Issue Description\n%s' "$ISSUE_TITLE" "$ISSUE_BODY"
+          else
+            PR_TITLE=$(jq -r '.pull_request.title' /tmp/event.json)
+            PR_BODY=$(jq -r '.pull_request.body // ""' /tmp/event.json)
+            printf -v PROMPT_TEXT '## Pull Request: %s\n\n### PR Description\n%s' "$PR_TITLE" "$PR_BODY"
+          fi
 
           # Remove @claude and extract actual prompt
           CLEAN_PROMPT=$(echo "$PROMPT_TEXT" | sed 's/@claude//g' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
@@ -127,7 +130,7 @@ jobs:
           mkdir -p /tmp/claude-prompts
           echo "$CLEAN_PROMPT" > /tmp/claude-prompts/prompt.txt
 
-          echo "📝 Extracted prompt:"
+          echo "Extracted prompt:"
           echo "$CLEAN_PROMPT"
           echo "prompt_file=/tmp/claude-prompts/prompt.txt" >> $GITHUB_OUTPUT
           echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
@@ -140,11 +143,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt_file: ${{ steps.extract_prompt.outputs.prompt_file }}
-          settings: |
-            {
-              "allowedTools": ["Bash", "Edit", "Read", "Write", "Grep", "Glob"],
-              "allowedBashCommands": ["go build", "go test", "go fmt", "gofmt", "go vet", "go mod tidy", "go generate", "golangci-lint run", "mockgen"]
-            }
+          settings: '{"allowedTools": ["Bash", "Edit", "Read", "Write", "Grep", "Glob"], "allowedBashCommands": ["go build", "go test", "go fmt", "gofmt", "go vet", "go mod tidy", "go generate", "golangci-lint run", "mockgen"]}'
           claude_args: "--model claude-sonnet-4-20250514"
 
       - name: Create Pull Request if changes were made
@@ -183,7 +182,7 @@ jobs:
               const hasChanges = execSync('git status --porcelain', { encoding: 'utf8' }).trim();
 
               if (!hasChanges) {
-                console.log('📝 No changes detected, posting result without PR');
+                console.log('No changes detected, posting result without PR');
 
                 // Post normal comment if no changes
                 const issueNumber = ${{ steps.extract_prompt.outputs.issue_number }};
@@ -191,19 +190,19 @@ jobs:
                   issue_number: issueNumber,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  body: `## 🤖 Response from Claude Bot\n\n${claudeResult}\n\n---\n*🤖 Claude Assistant | Execution time: ${new Date().toLocaleString('de-DE', {timeZone: 'Europe/Berlin'})}*`
+                  body: `## Response from Claude Bot\n\n${claudeResult}\n\n---\n*Claude Assistant | Execution time: ${new Date().toLocaleString('de-DE', {timeZone: 'Europe/Berlin'})}*`
                 });
                 return;
               }
 
-              console.log('📋 Changes detected:');
+              console.log('Changes detected:');
               console.log(hasChanges);
 
               // Generate branch name (with timestamp)
               const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
               const branchName = `claude/auto-update-${timestamp}`;
 
-              console.log(`🌿 Creating branch: ${branchName}`);
+              console.log(`Creating branch: ${branchName}`);
 
               // Create and checkout new branch
               execSync(`git checkout -b ${branchName}`);
@@ -212,27 +211,27 @@ jobs:
               execSync('git add .');
 
               // Commit (using Claude's response)
-              const commitMessage = `🤖 Claude Assistant: ${claudeResult}`;
+              const commitMessage = `Claude Assistant: ${claudeResult}`;
 
               execSync(`git commit -m "${commitMessage}"`);
-              console.log('📦 Changes committed');
+              console.log('Changes committed');
 
               // Push branch to remote
               execSync(`git push origin ${branchName}`);
-              console.log('🚀 Branch pushed to remote');
+              console.log('Branch pushed to remote');
 
               // Create pull request
               const { data: pr } = await github.rest.pulls.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                title: `🤖 Automatic Update by Claude Assistant`,
+                title: `Automatic Update by Claude Assistant`,
                 head: branchName,
                 base: 'main',
-                body: `## 🤖 Automatic Update by Claude Assistant\n\n${claudeResult}\n\n### Changes\n\`\`\`\n${hasChanges}\n\`\`\`\n\n---\n*This pull request was automatically generated by Claude Assistant*`
+                body: `## Automatic Update by Claude Assistant\n\n${claudeResult}\n\n### Changes\n\`\`\`\n${hasChanges}\n\`\`\`\n\n---\n*This pull request was automatically generated by Claude Assistant*`
               });
 
-              console.log(`✅ Pull Request created: #${pr.number}`);
-              console.log(`📍 URL: ${pr.html_url}`);
+              console.log(`Pull Request created: #${pr.number}`);
+              console.log(`URL: ${pr.html_url}`);
 
               // Post PR link to original issue/comment
               const issueNumber = ${{ steps.extract_prompt.outputs.issue_number }};
@@ -240,21 +239,21 @@ jobs:
                 issue_number: issueNumber,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: `🎉 **Changes Complete!**\n\n${claudeResult}\n\n**Pull request created:** #${pr.number}\n\n👉 [View Pull Request](${pr.html_url})\n\n---\n*🤖 Claude Assistant | Execution time: ${new Date().toLocaleString('de-DE', {timeZone: 'Europe/Berlin'})}*`
+                body: `**Changes Complete!**\n\n${claudeResult}\n\n**Pull request created:** #${pr.number}\n\n[View Pull Request](${pr.html_url})\n\n---\n*Claude Assistant | Execution time: ${new Date().toLocaleString('de-DE', {timeZone: 'Europe/Berlin'})}*`
               });
 
             } catch (error) {
-              console.error('❌ Error creating pull request:', error.message);
+              console.error('Error creating pull request:', error.message);
 
               // Post normal response on error
-              const response = `${claudeResult}\n\n⚠️ Failed to automatically create pull request: ${error.message}`;
+              const response = `${claudeResult}\n\nFailed to automatically create pull request: ${error.message}`;
 
               const issueNumber = ${{ steps.extract_prompt.outputs.issue_number }};
               await github.rest.issues.createComment({
                 issue_number: issueNumber,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: `## 🤖 Response from Claude Bot\n\n${response}\n\n---\n*🤖 Claude Assistant | Execution time: ${new Date().toLocaleString('de-DE', {timeZone: 'Europe/Berlin'})}*`
+                body: `## Response from Claude Bot\n\n${response}\n\n---\n*Claude Assistant | Execution time: ${new Date().toLocaleString('de-DE', {timeZone: 'Europe/Berlin'})}*`
               });
             }
 
@@ -291,7 +290,7 @@ jobs:
                   content: reactionContent
                 });
               }
-              console.log(`✅ Added ${reactionContent} reaction for completion`);
+              console.log(`Added ${reactionContent} reaction for completion`);
             } catch (error) {
-              console.log('⚠️ Failed to add completion reaction:', error.message);
+              console.log('Failed to add completion reaction:', error.message);
             }
