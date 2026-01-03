@@ -33,9 +33,13 @@ RUN curl -L "https://github.com/cli/cli/releases/download/${GH_VERSION}/gh_${GH_
     rm -rf /tmp/gh.tar.gz /tmp/gh_${GH_VERSION#v}_linux_amd64
 
 # Install Bun (needed for claude-code-base-action)
-RUN curl -fsSL https://bun.sh/install | bash && \
-    mv /root/.bun/bin/bun /usr/local/bin/ && \
-    rm -rf /root/.bun
+# Install directly to /github/home/.bun/bin where the action expects it
+RUN mkdir -p /github/home/.bun/bin && \
+    curl -fsSL https://bun.sh/install | BUN_INSTALL=/github/home/.bun bash && \
+    /github/home/.bun/bin/bun --version && \
+    # Also symlink to /usr/local/bin for general use
+    ln -sf /github/home/.bun/bin/bun /usr/local/bin/bun && \
+    ln -sf /github/home/.bun/bin/bun /usr/local/bin/bunx
 
 # Install golangci-lint
 RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | \
@@ -46,14 +50,7 @@ RUN go install go.uber.org/mock/mockgen@latest
 
 # Set environment variables
 ENV TZ=Europe/Berlin
-ENV PATH=/go/bin:/usr/local/go/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin
-
-# Create /github/home directory for GitHub Actions compatibility
-# and symlink bun so claude-code-base-action can find it
-RUN mkdir -p /github/home/.bun/bin && \
-    ln -sf /usr/local/bin/bun /github/home/.bun/bin/bun && \
-    ln -sf /usr/local/bin/node /github/home/.bun/bin/node && \
-    ln -sf /usr/local/bin/npm /github/home/.bun/bin/npm
+ENV PATH=/go/bin:/usr/local/go/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin:/github/home/.bun/bin
 
 # Verify installations
 RUN echo "Verifying installations..." && \
