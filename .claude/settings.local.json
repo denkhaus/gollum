@@ -44,7 +44,8 @@
       "mcp__onedev__setWorkingDir",
       "mcp__forgejo__create_issue",
       "mcp__forgejo__add_issue_labels",
-      "mcp__forgejo__create_issue_comment"
+      "mcp__forgejo__create_issue_comment",
+      "Bash(gh run list:*)"
     ],
     "deny": [],
     "ask": []

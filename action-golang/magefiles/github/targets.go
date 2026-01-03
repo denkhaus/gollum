@@ -206,6 +206,8 @@ func WriteGitHubOutput(promptFile string, issueNumber int) error {
 		if _, err := fmt.Fprintf(f, "issue_number=%d\n", issueNumber); err != nil {
 			return err
 		}
+	} else {
+		print.Warning("Issue number is 0 or negative, skipping issue_number output. This may indicate a parsing problem.")
 	}
 
 	return nil
@@ -258,16 +260,62 @@ func ExtractPrompt() error {
 	return nil
 }
 
+// CreatePR creates a pull request from current changes
+// This is the main entry point for automated PR creation
+func CreatePR() error {
+	// Get working directory (default to current)
+	workingDir := os.Getenv("GITHUB_WORKSPACE")
+	if workingDir == "" {
+		workingDir = "."
+	}
+
+	// Get issue number from environment or prompt file
+	issueNumberStr := os.Getenv("ISSUE_NUMBER")
+	var issueNumber int
+	if issueNumberStr != "" {
+		fmt.Sscanf(issueNumberStr, "%d", &issueNumber)
+	} else {
+		// Try to read from prompt file
+		promptFile := os.Getenv("PROMPT_FILE")
+		if promptFile == "" {
+			promptFile = "/tmp/claude-prompts/prompt.txt"
+		}
+		// Extract issue number from file path or content if needed
+		// For now, default to 0 (no issue)
+		issueNumber = 0
+	}
+
+	// Get Claude's result
+	result, err := GetClaudeResult()
+	if err != nil {
+		return fmt.Errorf("failed to get Claude result: %w", err)
+	}
+
+	// Create PR manager
+	manager, err := NewPRManager(workingDir)
+	if err != nil {
+		return fmt.Errorf("failed to create PR manager: %w", err)
+	}
+
+	// Create PR from changes
+	if err := manager.CreatePRFromChanges(issueNumber, result); err != nil {
+		return fmt.Errorf("failed to create PR: %w", err)
+	}
+
+	return nil
+}
+
 // List lists all available github targets
 func List() {
 	print.Plain("")
 	print.Printf(helpers.ColorBlue, "GitHub Targets - Mage Help")
 	print.Plain("")
-	print.Printf(helpers.ColorGreen, "  mage github:extract-prompt - Extract prompt from GitHub event")
+	print.Printf(helpers.ColorGreen, "  mage github:extractprompt - Extract prompt from GitHub event")
+	print.Printf(helpers.ColorGreen, "  mage github:createpr      - Create pull request from changes")
 	print.Printf(helpers.ColorGreen, "  mage github:list          - Show this help message")
 	print.Plain("")
 	print.Plain("Testing locally:")
 	print.Plain("  1. Save event JSON to /tmp/event.json")
-	print.Plain("  2. Run: mage github:extract-prompt")
+	print.Plain("  2. Run: mage github:extractprompt")
 	print.Plain("")
 }
