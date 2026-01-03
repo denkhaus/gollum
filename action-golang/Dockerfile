@@ -48,6 +48,13 @@ RUN go install go.uber.org/mock/mockgen@latest
 ENV TZ=Europe/Berlin
 ENV PATH=/go/bin:/usr/local/go/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin
 
+# Create /github/home directory for GitHub Actions compatibility
+# and symlink bun so claude-code-base-action can find it
+RUN mkdir -p /github/home/.bun/bin && \
+    ln -sf /usr/local/bin/bun /github/home/.bun/bin/bun && \
+    ln -sf /usr/local/bin/node /github/home/.bun/bin/node && \
+    ln -sf /usr/local/bin/npm /github/home/.bun/bin/npm
+
 # Verify installations
 RUN echo "Verifying installations..." && \
     go version && \
