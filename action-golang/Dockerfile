@@ -1,11 +1,14 @@
 # Custom Go Image for Claude Code GitHub/Forgejo Actions
 # Based on golang:1.25-alpine with pre-installed development tools
+# Includes Node.js and Bun for claude-code-base-action compatibility
 
 FROM golang:1.25-alpine
 
 # Build arguments for versioning
 ARG GOLANGCI_LINT_VERSION=v2.6.1
 ARG GH_VERSION=v2.60.0
+ARG NODE_VERSION=22
+ARG BUN_VERSION=1.1.38
 
 # Install system dependencies and tools
 RUN apk add --no-cache \
@@ -14,6 +17,9 @@ RUN apk add --no-cache \
     jq \
     git \
     ca-certificates \
+    bash \
+    nodejs \
+    npm \
     && rm -rf /var/cache/apk/*
 
 # Set timezone to Europe/Berlin
@@ -25,6 +31,11 @@ RUN curl -L "https://github.com/cli/cli/releases/download/${GH_VERSION}/gh_${GH_
     tar -xzf /tmp/gh.tar.gz -C /tmp && \
     mv /tmp/gh_${GH_VERSION#v}_linux_amd64/bin/gh /usr/local/bin/ && \
     rm -rf /tmp/gh.tar.gz /tmp/gh_${GH_VERSION#v}_linux_amd64
+
+# Install Bun (needed for claude-code-base-action)
+RUN curl -fsSL https://bun.sh/install | bash && \
+    mv /root/.bun/bin/bun /usr/local/bin/ && \
+    rm -rf /root/.bun
 
 # Install golangci-lint
 RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | \
@@ -40,6 +51,9 @@ ENV PATH=/go/bin:/usr/local/go/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr
 # Verify installations
 RUN echo "Verifying installations..." && \
     go version && \
+    node --version && \
+    npm --version && \
+    bun --version && \
     git --version && \
     gh --version && \
     golangci-lint --version && \
