@@ -39,7 +39,12 @@
       "mcp__onedev__getPullRequestComments",
       "mcp__onedev__getPullRequestCodeComments",
       "mcp__onedev__getBuildLog",
-      "mcp__onedev__checkBuildSpec"
+      "mcp__onedev__checkBuildSpec",
+      "mcp__onedev__addIssueComment",
+      "mcp__onedev__setWorkingDir",
+      "mcp__forgejo__create_issue",
+      "mcp__forgejo__add_issue_labels",
+      "mcp__forgejo__create_issue_comment"
     ],
     "deny": [],
     "ask": []
