@@ -71,6 +71,7 @@ jobs:
 
       - name: Extract prompt from event
         id: extract_prompt
+        working-directory: /opt
         env:
           GITHUB_EVENT_PATH: ${{ github.event_path }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
