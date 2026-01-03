@@ -15,11 +15,17 @@ func (GitHub) ExtractPrompt() error {
 	return github.ExtractPrompt()
 }
 
+// CreatePR creates a pull request from current changes
+func (GitHub) CreatePR() error {
+	return github.CreatePR()
+}
+
 // List lists all available github targets
 func (GitHub) List() {
 	github.List()
 	print := helpers.NewPrinter()
 	print.Printf(helpers.ColorBlue, "\nUsage:")
-	print.Printf(helpers.ColorGreen, "  mage github:extract-prompt")
+	print.Printf(helpers.ColorGreen, "  mage github:extractprompt")
+	print.Printf(helpers.ColorGreen, "  mage github:createpr")
 	print.Printf(helpers.ColorGreen, "  mage github:list")
 }
