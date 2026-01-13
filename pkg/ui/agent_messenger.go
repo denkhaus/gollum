@@ -13,18 +13,6 @@ import (
 
 var (
 	// Styles for different message types
-	agentFromStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#00D9FF")). // Cyan
-			Bold(true).
-			Width(12).
-			Align(lipgloss.Right)
-
-	agentToStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FF6B35")). // Orange
-			Bold(true).
-			Width(12).
-			Align(lipgloss.Left)
-
 	messageTypeStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#9B59B6")). // Purple
 			Bold(true).
