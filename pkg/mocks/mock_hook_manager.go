@@ -141,6 +141,21 @@ func (mr *MockHookManagerMockRecorder) WithFileWriteHooks(ctx, sessionID, agentI
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithFileWriteHooks", reflect.TypeOf((*MockHookManager)(nil).WithFileWriteHooks), ctx, sessionID, agentID, filePath, content, work)
 }
 
+// WithLLMHooks mocks base method.
+func (m *MockHookManager) WithLLMHooks(ctx context.Context, sessionID, agentID uuid.UUID, prompt, model string, work func(string) (string, error)) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WithLLMHooks", ctx, sessionID, agentID, prompt, model, work)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WithLLMHooks indicates an expected call of WithLLMHooks.
+func (mr *MockHookManagerMockRecorder) WithLLMHooks(ctx, sessionID, agentID, prompt, model, work any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithLLMHooks", reflect.TypeOf((*MockHookManager)(nil).WithLLMHooks), ctx, sessionID, agentID, prompt, model, work)
+}
+
 // WithSessionHooks mocks base method.
 func (m *MockHookManager) WithSessionHooks(ctx context.Context, sessionID uuid.UUID, work func() error) error {
 	m.ctrl.T.Helper()
