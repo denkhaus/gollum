@@ -76,6 +76,19 @@ const (
 	// AfterFileModify is triggered after a file is successfully modified.
 	// Use case: Track changes, update file state, trigger notifications.
 	AfterFileModify HookPoint = "AfterFileModify"
+
+	// BeforeLLMRequest is triggered before calling the LLM API.
+	// Use case: Modify prompt, inject system messages, validate input, implement rate limiting.
+	// Hooks can modify LLMInput or block the request by not calling next().
+	BeforeLLMRequest HookPoint = "BeforeLLMRequest"
+	// AfterLLMResponse is triggered after a successful LLM response.
+	// Use case: Modify response, log interactions, implement caching, filter content.
+	// Hooks can modify LLMResponse to change what's returned to the caller.
+	AfterLLMResponse HookPoint = "AfterLLMResponse"
+	// OnLLMError is triggered when an LLM call fails.
+	// Use case: Implement retry logic, fallback to alternative models, log errors.
+	// Hooks can recover by setting LLMResponse or allow error to propagate.
+	OnLLMError HookPoint = "OnLLMError"
 )
 
 // String returns the string representation of the hook point.
@@ -98,6 +111,13 @@ type HookContext struct {
 	OldContent  string // Optional: old file content for modify operations
 	NewContent  string // Optional: new file content for modify operations
 
+	// LLM-related fields for LLM hooks
+	LLMInput    string         // Optional: LLM input prompt for BeforeLLMRequest
+	LLMResponse string         // Optional: LLM response text for AfterLLMResponse
+	LLMModel    string         // Optional: LLM model identifier (e.g., "claude-3-5-sonnet")
+	LLMError    error          // Optional: LLM error for OnLLMError
+	LLMOptions  map[string]any // Optional: Additional LLM options/parameters
+
 	Data map[string]any
 }
 
@@ -115,6 +135,10 @@ func (hc *HookContext) Clone() *HookContext {
 		FileContent: hc.FileContent,
 		OldContent:  hc.OldContent,
 		NewContent:  hc.NewContent,
+		LLMInput:    hc.LLMInput,
+		LLMResponse: hc.LLMResponse,
+		LLMModel:    hc.LLMModel,
+		LLMError:    hc.LLMError,
 		Data:        make(map[string]any, len(hc.Data)),
 	}
 
@@ -131,6 +155,14 @@ func (hc *HookContext) Clone() *HookContext {
 		cpy.ToolResult = make(map[string]any, len(hc.ToolResult))
 		for k, v := range hc.ToolResult {
 			cpy.ToolResult[k] = v
+		}
+	}
+
+	// Deep copy LLMOptions
+	if hc.LLMOptions != nil {
+		cpy.LLMOptions = make(map[string]any, len(hc.LLMOptions))
+		for k, v := range hc.LLMOptions {
+			cpy.LLMOptions[k] = v
 		}
 	}
 
