@@ -110,6 +110,20 @@ func (mr *MockConfigServiceMockRecorder) GetGeminiConfig() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGeminiConfig", reflect.TypeOf((*MockConfigService)(nil).GetGeminiConfig))
 }
 
+// GetHooksConfig mocks base method.
+func (m *MockConfigService) GetHooksConfig() *config.HooksConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHooksConfig")
+	ret0, _ := ret[0].(*config.HooksConfig)
+	return ret0
+}
+
+// GetHooksConfig indicates an expected call of GetHooksConfig.
+func (mr *MockConfigServiceMockRecorder) GetHooksConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHooksConfig", reflect.TypeOf((*MockConfigService)(nil).GetHooksConfig))
+}
+
 // GetLogLevel mocks base method.
 func (m *MockConfigService) GetLogLevel() string {
 	m.ctrl.T.Helper()

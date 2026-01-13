@@ -86,6 +86,31 @@ type BashConfig struct {
 	TrackChanges bool `envconfig:"TRACK_CHANGES" default:"true"`
 }
 
+// HooksConfig defines configuration for built-in hooks system
+type HooksConfig struct {
+	// Logging enables the LoggingHook that logs all hook events
+	LoggingEnabled bool `envconfig:"LOGGING_ENABLED" default:"true"`
+	// LoggingLevel controls the log level for LoggingHook (debug, info, warn, error)
+	LoggingLevel string `envconfig:"LOGGING_LEVEL" default:"info"`
+	// SecurityMode controls SecurityHook strictness (strict, lenient)
+	// strict: blocks potentially dangerous operations, lenient: only logs warnings
+	SecurityMode string `envconfig:"SECURITY_MODE" default:"lenient"`
+	// MetricsEnabled enables the MetricsHook for Prometheus-compatible metrics
+	MetricsEnabled bool `envconfig:"METRICS_ENABLED" default:"false"`
+	// AuditEnabled enables the AuditHook for append-only audit trail
+	AuditEnabled bool `envconfig:"AUDIT_ENABLED" default:"false"`
+}
+
+// GetSecurityMode returns the security mode with validation
+func (c *HooksConfig) GetSecurityMode() string {
+	switch c.SecurityMode {
+	case "strict", "lenient":
+		return c.SecurityMode
+	default:
+		return "lenient"
+	}
+}
+
 // ConfigService defines the configuration service interface
 type ConfigService interface {
 	GetLogLevel() string
@@ -97,6 +122,7 @@ type ConfigService interface {
 	GetFilesConfig() *FilesConfig
 	GetLoggingConfig() *LoggingConfig
 	GetBashConfig() *BashConfig
+	GetHooksConfig() *HooksConfig
 }
 
 // service implements the Service interface
@@ -108,6 +134,7 @@ type service struct {
 	Files       FilesConfig       `envconfig:"FILES"`
 	Logging     LoggingConfig     `envconfig:"LOGGING"`
 	Bash        BashConfig        `envconfig:"BASH"`
+	Hooks       HooksConfig       `envconfig:"HOOKS"`
 	LogLevel    string            `envconfig:"LOG_LEVEL" default:"info"`
 	Development bool              `envconfig:"DEVELOPMENT" default:"false"`
 }
@@ -166,4 +193,8 @@ func (s *service) GetLoggingConfig() *LoggingConfig {
 
 func (s *service) GetBashConfig() *BashConfig {
 	return &s.Bash
+}
+
+func (s *service) GetHooksConfig() *HooksConfig {
+	return &s.Hooks
 }
