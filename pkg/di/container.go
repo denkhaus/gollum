@@ -6,6 +6,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/agents"
 	"github.com/denkhaus/gollum/pkg/app"
+	"github.com/denkhaus/gollum/pkg/builtin"
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/llm"
@@ -47,6 +48,9 @@ func (c *Container) RegisterServices(_ context.Context) do.Injector {
 
 	// Register HookManager
 	do.Provide(c.injector, hooks.NewHookManager)
+
+	// Register built-in hooks (must come after HookManager)
+	do.Provide(c.injector, builtin.NewBuiltinHooksProvider)
 
 	// Register agent registry before agent provider (agent provider depends on it)
 	do.Provide(c.injector, registry.NewAgentRegistry)
