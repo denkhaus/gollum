@@ -23,9 +23,11 @@ func TestEditToolSpec(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
 	tool := &EditTool{
-		fsm:     mockFSM,
-		agentID: uuid.New(),
+		fsm:         mockFSM,
+		hookManager: mockHookManager,
+		agentID:     uuid.New(),
 	}
 
 	spec := tool.Spec()
@@ -55,14 +57,19 @@ func TestEditToolValidation(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
 
 	agentID := uuid.New()
 	tool := &EditTool{
-		logService: logService,
-		fsm:        mockFSM,
-		agentID:    agentID,
+		logService:  logService,
+		fsm:         mockFSM,
+		hookManager: mockHookManager,
+		agentID:     agentID,
 	}
+
+	// Set up mock hookManager to pass through calls (no hooks registered)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	ctx := context.Background()
 
@@ -168,15 +175,18 @@ func TestEditToolFileNotRead(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	agentID := uuid.New()
 	testFile := "/tmp/test_edit.txt"
 	absPath, _ := filepath.Abs(testFile)
 
 	tool := &EditTool{
-		logService: logService,
-		fsm:        mockFSM,
-		agentID:    agentID,
+		logService:  logService,
+		fsm:         mockFSM,
+		agentID:     agentID,
+		hookManager: mockHookManager,
 	}
 
 	ctx := context.Background()
@@ -204,15 +214,18 @@ func TestEditToolStaleFile(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	agentID := uuid.New()
 	testFile := "/tmp/test_edit.txt"
 	absPath, _ := filepath.Abs(testFile)
 
 	tool := &EditTool{
-		logService: logService,
-		fsm:        mockFSM,
-		agentID:    agentID,
+		logService:  logService,
+		fsm:         mockFSM,
+		agentID:     agentID,
+		hookManager: mockHookManager,
 	}
 
 	ctx := context.Background()
@@ -245,6 +258,8 @@ func TestEditToolBasicOperation(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	agentID := uuid.New()
 
@@ -259,9 +274,10 @@ func TestEditToolBasicOperation(t *testing.T) {
 	require.NoError(t, err)
 
 	tool := &EditTool{
-		logService: logService,
-		fsm:        mockFSM,
-		agentID:    agentID,
+		logService:  logService,
+		fsm:         mockFSM,
+		agentID:     agentID,
+		hookManager: mockHookManager,
 	}
 
 	ctx := context.Background()
@@ -333,6 +349,8 @@ func TestEditToolStringNotFound(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	agentID := uuid.New()
 
@@ -346,9 +364,10 @@ func TestEditToolStringNotFound(t *testing.T) {
 	require.NoError(t, err)
 
 	tool := &EditTool{
-		logService: logService,
-		fsm:        mockFSM,
-		agentID:    agentID,
+		logService:  logService,
+		fsm:         mockFSM,
+		agentID:     agentID,
+		hookManager: mockHookManager,
 	}
 
 	ctx := context.Background()
@@ -398,6 +417,8 @@ func TestEditToolMultipleOccurrences(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	agentID := uuid.New()
 
@@ -411,9 +432,10 @@ func TestEditToolMultipleOccurrences(t *testing.T) {
 	require.NoError(t, err)
 
 	tool := &EditTool{
-		logService: logService,
-		fsm:        mockFSM,
-		agentID:    agentID,
+		logService:  logService,
+		fsm:         mockFSM,
+		agentID:     agentID,
+		hookManager: mockHookManager,
 	}
 
 	ctx := context.Background()
@@ -465,6 +487,8 @@ func TestEditToolReplaceAll(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	agentID := uuid.New()
 
@@ -478,9 +502,10 @@ func TestEditToolReplaceAll(t *testing.T) {
 	require.NoError(t, err)
 
 	tool := &EditTool{
-		logService: logService,
-		fsm:        mockFSM,
-		agentID:    agentID,
+		logService:  logService,
+		fsm:         mockFSM,
+		agentID:     agentID,
+		hookManager: mockHookManager,
 	}
 
 	ctx := context.Background()
@@ -563,9 +588,11 @@ func TestEditToolSpecIsConstant(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
 	tool := &EditTool{
-		fsm:     mockFSM,
-		agentID: uuid.New(),
+		fsm:         mockFSM,
+		hookManager: mockHookManager,
+		agentID:     uuid.New(),
 	}
 
 	spec1 := tool.Spec()

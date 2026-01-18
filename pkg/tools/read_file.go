@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/denkhaus/gollum/pkg/errs"
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/state"
@@ -20,9 +21,10 @@ import (
 type (
 	// ReadFileTool reads file contents with shared locking and automatic stats tracking
 	ReadFileTool struct {
-		logService logger.LoggerService
-		fsm        state.FileStateManager
-		agentID    uuid.UUID
+		logService  logger.LoggerService
+		fsm         state.FileStateManager
+		hookManager hooks.HookManager
+		agentID     uuid.UUID
 	}
 
 	// ReadFileToolProvider creates ReadFileTool instances via DI
@@ -31,8 +33,9 @@ type (
 	}
 
 	readFileToolProvider struct {
-		logService logger.LoggerService
-		fsm        state.FileStateManager
+		logService  logger.LoggerService
+		fsm         state.FileStateManager
+		hookManager hooks.HookManager
 	}
 )
 
@@ -40,16 +43,18 @@ type (
 func NewReadFileToolProvider(injector do.Injector) (ReadFileToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	fsm := do.MustInvoke[state.FileStateManager](injector)
+	hookManager := do.MustInvoke[hooks.HookManager](injector)
 
-	return &readFileToolProvider{logService: logService, fsm: fsm}, nil
+	return &readFileToolProvider{logService: logService, fsm: fsm, hookManager: hookManager}, nil
 }
 
 // CreateReadFileTool creates a new ReadFileTool with agent ID
 func (p *readFileToolProvider) CreateTool(agentID uuid.UUID) *ReadFileTool {
 	return &ReadFileTool{
-		logService: p.logService,
-		fsm:        p.fsm,
-		agentID:    agentID,
+		logService:  p.logService,
+		fsm:         p.fsm,
+		hookManager: p.hookManager,
+		agentID:     agentID,
 	}
 }
 
@@ -78,6 +83,14 @@ func (t *ReadFileTool) Spec() gollem.ToolSpec {
 
 // Run executes the ReadFile tool to read file contents
 func (t *ReadFileTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameReadFile, args,
+		func() (map[string]any, error) {
+			return t.runFileRead(ctx, args)
+		})
+}
+
+// runFileRead implements the core file read logic
+func (t *ReadFileTool) runFileRead(ctx context.Context, args map[string]any) (map[string]any, error) {
 	path, ok := args["file_path"].(string)
 	if !ok || path == "" {
 		t.logService.Debug("Read file failed: invalid file_path parameter",
@@ -134,45 +147,63 @@ func (t *ReadFileTool) Run(ctx context.Context, args map[string]any) (map[string
 		TrackRead: true, // Track that this agent read this file (for automatic race condition detection on write)
 	},
 		func(_ context.Context, token *state.LockToken) (any, error) {
-			// Check if file exists
-			_, err := os.Stat(path)
-			if err != nil {
-				if os.IsNotExist(err) {
-					t.logService.Debug("File not found",
-						zap.String("agent_id", t.agentID.String()),
-						zap.String("file_path", path),
-					)
+			// Wrap the file read with file read hooks
+			content, err := t.hookManager.WithFileReadHooks(ctx, uuid.Nil, t.agentID, path,
+				func() (string, error) {
+					// Check if file exists
+					_, err := os.Stat(path)
+					if err != nil {
+						if os.IsNotExist(err) {
+							t.logService.Debug("File not found",
+								zap.String("agent_id", t.agentID.String()),
+								zap.String("file_path", path),
+							)
+							return "", nil // Return empty content, will be handled below
+						}
+						t.logService.Error("Failed to stat file",
+							zap.String("agent_id", t.agentID.String()),
+							zap.String("file_path", path),
+							zap.Error(err),
+						)
+						return "", errs.Wrap(err, errs.TypeInternal, "failed to stat file").
+							WithContext("agent_id", t.agentID).
+							WithContext("file_path", path)
+					}
+
+					// Read entire file
+					contentBytes, err := os.ReadFile(path)
+					if err != nil {
+						t.logService.Error("Failed to read file",
+							zap.String("agent_id", t.agentID.String()),
+							zap.String("file_path", path),
+							zap.Error(err),
+						)
+						return "", errs.Wrap(err, errs.TypeInternal, "failed to read file").
+							WithContext("agent_id", t.agentID).
+							WithContext("file_path", path)
+					}
+
+					return string(contentBytes), nil
+				})
+
+			// Handle file not found case (content is empty string)
+			if content == "" && err == nil {
+				// Check if file actually doesn't exist
+				if _, statErr := os.Stat(path); statErr != nil && os.IsNotExist(statErr) {
 					return map[string]any{
 						"success": false,
 						"error":   "file not found",
 						"path":    path,
 					}, nil
 				}
-				t.logService.Error("Failed to stat file",
-					zap.String("agent_id", t.agentID.String()),
-					zap.String("file_path", path),
-					zap.Error(err),
-				)
-				return nil, errs.Wrap(err, errs.TypeInternal, "failed to stat file").
-					WithContext("agent_id", t.agentID).
-					WithContext("file_path", path)
 			}
 
-			// Read entire file
-			contentBytes, err := os.ReadFile(path)
 			if err != nil {
-				t.logService.Error("Failed to read file",
-					zap.String("agent_id", t.agentID.String()),
-					zap.String("file_path", path),
-					zap.Error(err),
-				)
-				return nil, errs.Wrap(err, errs.TypeInternal, "failed to read file").
-					WithContext("agent_id", t.agentID).
-					WithContext("file_path", path)
+				return nil, err
 			}
 
 			// Split into lines
-			allLines := strings.Split(string(contentBytes), "\n")
+			allLines := strings.Split(content, "\n")
 
 			// Validate offset
 			if offset > len(allLines) {
@@ -198,9 +229,9 @@ func (t *ReadFileTool) Run(ctx context.Context, args map[string]any) (map[string
 			selectedLines := allLines[offset-1 : endLine]
 
 			// Join with newlines and add trailing newline if original had it
-			content := strings.Join(selectedLines, "\n")
-			if len(contentBytes) > 0 && contentBytes[len(contentBytes)-1] == '\n' {
-				content += "\n"
+			processedContent := strings.Join(selectedLines, "\n")
+			if len(content) > 0 && content[len(content)-1] == '\n' {
+				processedContent += "\n"
 			}
 
 			// Get/update file stats
@@ -218,7 +249,7 @@ func (t *ReadFileTool) Run(ctx context.Context, args map[string]any) (map[string
 			// Build response
 			response := map[string]any{
 				"success":   true,
-				"content":   content,
+				"content":   processedContent,
 				"offset":    offset,
 				"limit":     limit,
 				"locked_by": token.AgentID,

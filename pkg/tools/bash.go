@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/state"
@@ -21,10 +22,11 @@ import (
 type (
 	// BashTool executes bash commands
 	BashTool struct {
-		logService logger.LoggerService
-		agentID    uuid.UUID
-		bashCfg    *config.BashConfig
-		fileState  state.FileStateManager
+		logService  logger.LoggerService
+		agentID     uuid.UUID
+		bashCfg     *config.BashConfig
+		fileState   state.FileStateManager
+		hookManager hooks.HookManager
 	}
 
 	// BashToolProvider creates BashTool instances via DI
@@ -33,9 +35,10 @@ type (
 	}
 
 	bashToolProvider struct {
-		logService logger.LoggerService
-		bashCfg    *config.BashConfig
-		fileState  state.FileStateManager
+		logService  logger.LoggerService
+		bashCfg     *config.BashConfig
+		fileState   state.FileStateManager
+		hookManager hooks.HookManager
 	}
 )
 
@@ -44,21 +47,24 @@ func NewBashToolProvider(injector do.Injector) (BashToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	cfgService := do.MustInvoke[config.ConfigService](injector)
 	fileState := do.MustInvoke[state.FileStateManager](injector)
+	hookManager := do.MustInvoke[hooks.HookManager](injector)
 	bashCfg := cfgService.GetBashConfig()
 	return &bashToolProvider{
-		logService: logService,
-		bashCfg:    bashCfg,
-		fileState:  fileState,
+		logService:  logService,
+		bashCfg:     bashCfg,
+		fileState:   fileState,
+		hookManager: hookManager,
 	}, nil
 }
 
 // CreateBashTool creates a new BashTool with agent ID
 func (p *bashToolProvider) CreateTool(agentID uuid.UUID) *BashTool {
 	return &BashTool{
-		logService: p.logService,
-		agentID:    agentID,
-		bashCfg:    p.bashCfg,
-		fileState:  p.fileState,
+		logService:  p.logService,
+		agentID:     agentID,
+		bashCfg:     p.bashCfg,
+		fileState:   p.fileState,
+		hookManager: p.hookManager,
 	}
 }
 
@@ -83,6 +89,14 @@ func (t *BashTool) Spec() gollem.ToolSpec {
 
 // Run executes the Bash tool to run shell commands
 func (t *BashTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameBash, args,
+		func() (map[string]any, error) {
+			return t.runBashCommand(ctx, args)
+		})
+}
+
+// runBashCommand implements the core bash command logic
+func (t *BashTool) runBashCommand(ctx context.Context, args map[string]any) (map[string]any, error) {
 	command, ok := args["command"].(string)
 	if !ok || command == "" {
 		return map[string]any{
