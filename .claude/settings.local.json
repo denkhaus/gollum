@@ -49,7 +49,18 @@
       "Skill(forgejo-workflow)",
       "mcp__forgejo__get_my_user_info",
       "mcp__forgejo__list_my_repos",
-      "mcp__forgejo__issue_state_change"
+      "mcp__forgejo__issue_state_change",
+      "mcp__forgejo__list_repo_labels",
+      "mcp__forgejo__create_label",
+      "mcp__forgejo__list_repo_issues",
+      "mcp__forgejo__list_repo_pull_requests",
+      "mcp__forgejo__list_issue_dependencies",
+      "mcp__forgejo__get_issue_by_index",
+      "mcp__forgejo__replace_issue_labels",
+      "Bash(grep:*)",
+      "mcp__forgejo__create_pull_request",
+      "mcp__forgejo__list_issue_comments",
+      "mcp__forgejo__get_pull_request_by_index"
     ],
     "deny": [],
     "ask": []
