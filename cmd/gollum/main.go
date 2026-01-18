@@ -23,11 +23,7 @@ func startup(startupCtx context.Context) error {
 	container := di.NewContainer()
 	injector := container.RegisterServices(ctx)
 	defer func() {
-		if err := container.Shutdown(); err != nil {
-			if err.Error() != "" {
-				log.Printf("warning: container shutdown error: %v", err)
-			}
-		}
+		container.Shutdown()
 	}()
 
 	// Handle graceful shutdown for SIGTERM (Ctrl-C is handled in raw mode by stdinReader)
