@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/errs"
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/state"
@@ -21,9 +22,10 @@ import (
 type (
 	// WriteFileTool writes content to files with automatic locking and checksum verification
 	WriteFileTool struct {
-		logService logger.LoggerService
-		fsm        state.FileStateManager
-		agentID    uuid.UUID
+		logService  logger.LoggerService
+		fsm         state.FileStateManager
+		hookManager hooks.HookManager
+		agentID     uuid.UUID
 	}
 
 	// WriteFileToolProvider creates WriteFileTool instances via DI
@@ -32,8 +34,9 @@ type (
 	}
 
 	writeFileToolProvider struct {
-		logService logger.LoggerService
-		fsm        state.FileStateManager
+		logService  logger.LoggerService
+		fsm         state.FileStateManager
+		hookManager hooks.HookManager
 	}
 )
 
@@ -41,16 +44,18 @@ type (
 func NewWriteFileToolProvider(injector do.Injector) (WriteFileToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	fsm := do.MustInvoke[state.FileStateManager](injector)
+	hookManager := do.MustInvoke[hooks.HookManager](injector)
 
-	return &writeFileToolProvider{logService: logService, fsm: fsm}, nil
+	return &writeFileToolProvider{logService: logService, fsm: fsm, hookManager: hookManager}, nil
 }
 
 // CreateWriteFileTool creates a new WriteFileTool with injected dependencies and agent ID
 func (p *writeFileToolProvider) CreateTool(agentID uuid.UUID) *WriteFileTool {
 	return &WriteFileTool{
-		logService: p.logService,
-		fsm:        p.fsm,
-		agentID:    agentID,
+		logService:  p.logService,
+		fsm:         p.fsm,
+		hookManager: p.hookManager,
+		agentID:     agentID,
 	}
 }
 
@@ -79,6 +84,14 @@ func (t *WriteFileTool) Spec() gollem.ToolSpec {
 
 // Run executes the WriteFile tool to write content to files
 func (t *WriteFileTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameWriteFile, args,
+		func() (map[string]any, error) {
+			return t.runFileWrite(ctx, args)
+		})
+}
+
+// runFileWrite implements the core file write logic
+func (t *WriteFileTool) runFileWrite(ctx context.Context, args map[string]any) (map[string]any, error) {
 	path, ok := args["file_path"].(string)
 	if !ok || path == "" {
 		t.logService.Debug("Write file failed: invalid file_path parameter",
@@ -188,19 +201,50 @@ func (t *WriteFileTool) Run(ctx context.Context, args map[string]any) (map[strin
 			UpdateStatsAfter: true, // Immediately update stats after write
 		},
 		func(_ context.Context, token *state.LockToken) (any, error) {
-			// Write the file
-			if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-				t.logService.Error("Failed to write file",
-					zap.String("agent_id", t.agentID.String()),
-					zap.String("file_path", path),
-					zap.Error(err),
-				)
-				return nil, errs.Wrap(err, errs.TypeInternal, "failed to write file").
-					WithContext("agent_id", t.agentID).
-					WithContext("file_path", path)
+			// Wrap the actual file write with file write hooks
+			err := t.hookManager.WithFileWriteHooks(ctx, uuid.Nil, t.agentID, path, content,
+				func(finalContent string) error {
+					// Write the file
+					if err := os.WriteFile(path, []byte(finalContent), 0o644); err != nil {
+						t.logService.Error("Failed to write file",
+							zap.String("agent_id", t.agentID.String()),
+							zap.String("file_path", path),
+							zap.Error(err),
+						)
+						return errs.Wrap(err, errs.TypeInternal, "failed to write file").
+							WithContext("agent_id", t.agentID).
+							WithContext("file_path", path)
+					}
+
+					// Get updated stats (updated by DoWorkWithOptions)
+					stats, err := t.fsm.GetFileStats(path)
+					if err != nil {
+						t.logService.Warn("Failed to get file stats after write",
+							zap.String("agent_id", t.agentID.String()),
+							zap.String("file_path", path),
+							zap.Error(err),
+						)
+						return errs.Wrap(err, errs.TypeInternal, "failed to get file stats").
+							WithContext("agent_id", t.agentID).
+							WithContext("file_path", path)
+					}
+
+					t.logService.Info("File written successfully",
+						zap.String("agent_id", t.agentID.String()),
+						zap.String("file_path", path),
+						zap.Int64("size", stats.Size),
+						zap.String("checksum", stats.Checksum),
+						zap.String("modified_time", stats.ModifiedTime.Format(time.RFC3339)),
+					)
+
+					return nil
+				})
+
+			if err != nil {
+				return nil, err
 			}
 
-			// Get updated stats (updated by DoWorkWithOptions)
+			// Get stats for the result
 			stats, err := t.fsm.GetFileStats(path)
 			if err != nil {
 				t.logService.Warn("Failed to get file stats after write",
@@ -212,14 +256,6 @@ func (t *WriteFileTool) Run(ctx context.Context, args map[string]any) (map[strin
 					WithContext("agent_id", t.agentID).
 					WithContext("file_path", path)
 			}
-
-			t.logService.Info("File written successfully",
-				zap.String("agent_id", t.agentID.String()),
-				zap.String("file_path", path),
-				zap.Int64("size", stats.Size),
-				zap.String("checksum", stats.Checksum),
-				zap.String("modified_time", stats.ModifiedTime.Format(time.RFC3339)),
-			)
 
 			return map[string]any{
 				"success":   true,

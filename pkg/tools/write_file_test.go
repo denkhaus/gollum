@@ -8,12 +8,17 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
+	"go.uber.org/mock/gomock"
 )
 
 func TestWriteFileTool_Spec(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	fsm, err := state.NewFileStateManager(injector)
@@ -21,7 +26,10 @@ func TestWriteFileTool_Spec(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	tool := &WriteFileTool{logService: logService, fsm: fsm}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &WriteFileTool{logService: logService, fsm: fsm, hookManager: mockHookManager}
 
 	spec := tool.Spec()
 
@@ -51,6 +59,9 @@ func TestWriteFileTool_Spec(t *testing.T) {
 }
 
 func TestWriteFileTool_Run_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	fsm, err := state.NewFileStateManager(injector)
@@ -58,7 +69,10 @@ func TestWriteFileTool_Run_Success(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	tool := &WriteFileTool{logService: logService, fsm: fsm}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &WriteFileTool{logService: logService, fsm: fsm, hookManager: mockHookManager}
 
 	// Create a temporary directory
 	tmpDir := t.TempDir()
@@ -104,6 +118,9 @@ func TestWriteFileTool_Run_Success(t *testing.T) {
 }
 
 func TestWriteFileTool_Run_InvalidInput(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	fsm, err := state.NewFileStateManager(injector)
@@ -111,7 +128,10 @@ func TestWriteFileTool_Run_InvalidInput(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	tool := &WriteFileTool{logService: logService, fsm: fsm}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &WriteFileTool{logService: logService, fsm: fsm, hookManager: mockHookManager}
 
 	tests := []struct {
 		name          string
@@ -177,6 +197,9 @@ func TestWriteFileTool_Run_InvalidInput(t *testing.T) {
 }
 
 func TestWriteFileTool_Run_CreateDirectories(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	fsm, err := state.NewFileStateManager(injector)
@@ -184,7 +207,10 @@ func TestWriteFileTool_Run_CreateDirectories(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	tool := &WriteFileTool{logService: logService, fsm: fsm}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &WriteFileTool{logService: logService, fsm: fsm, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 	testPath := filepath.Join(tmpDir, "subdir", "nested", "test.txt")
@@ -222,6 +248,9 @@ func TestWriteFileTool_Run_CreateDirectories(t *testing.T) {
 }
 
 func TestWriteFileTool_Run_CreateDirectoriesFalse(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	fsm, err := state.NewFileStateManager(injector)
@@ -229,7 +258,10 @@ func TestWriteFileTool_Run_CreateDirectoriesFalse(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	tool := &WriteFileTool{logService: logService, fsm: fsm}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &WriteFileTool{logService: logService, fsm: fsm, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 	testPath := filepath.Join(tmpDir, "nonexistent", "test.txt")
@@ -262,6 +294,9 @@ func TestWriteFileTool_Run_CreateDirectoriesFalse(t *testing.T) {
 }
 
 func TestWriteFileTool_Run_OverwriteExisting(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	fsm, err := state.NewFileStateManager(injector)
@@ -269,8 +304,11 @@ func TestWriteFileTool_Run_OverwriteExisting(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	agentID := uuid.New()
-	tool := &WriteFileTool{logService: logService, fsm: fsm, agentID: agentID}
+	tool := &WriteFileTool{logService: logService, fsm: fsm, agentID: agentID, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 	testPath := filepath.Join(tmpDir, "test.txt")
@@ -334,6 +372,9 @@ func TestWriteFileTool_Run_OverwriteExisting(t *testing.T) {
 }
 
 func TestWriteFileTool_Run_AutomaticRaceConditionDetection(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	fsm, err := state.NewFileStateManager(injector)
@@ -341,10 +382,13 @@ func TestWriteFileTool_Run_AutomaticRaceConditionDetection(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	// Create tools for the same agent
 	testAgentID := state.TestAgent1
-	writeTool := &WriteFileTool{logService: logService, fsm: fsm, agentID: testAgentID}
-	readTool := &ReadFileTool{logService: logService, fsm: fsm, agentID: testAgentID}
+	writeTool := &WriteFileTool{logService: logService, fsm: fsm, agentID: testAgentID, hookManager: mockHookManager}
+	readTool := &ReadFileTool{logService: logService, fsm: fsm, agentID: testAgentID, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 	testPath := filepath.Join(tmpDir, "test.txt")
@@ -405,6 +449,9 @@ func TestWriteFileTool_Run_AutomaticRaceConditionDetection(t *testing.T) {
 }
 
 func TestWriteFileTool_Run_WriteCode(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	fsm, err := state.NewFileStateManager(injector)
@@ -412,7 +459,10 @@ func TestWriteFileTool_Run_WriteCode(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	tool := &WriteFileTool{logService: logService, fsm: fsm}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &WriteFileTool{logService: logService, fsm: fsm, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 	testPath := filepath.Join(tmpDir, "main.go")
@@ -452,6 +502,9 @@ func main() {
 }
 
 func TestWriteFileTool_Run_EmptyContent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	fsm, err := state.NewFileStateManager(injector)
@@ -459,7 +512,10 @@ func TestWriteFileTool_Run_EmptyContent(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	tool := &WriteFileTool{logService: logService, fsm: fsm}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &WriteFileTool{logService: logService, fsm: fsm, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 	testPath := filepath.Join(tmpDir, "empty.txt")
@@ -490,6 +546,9 @@ func TestWriteFileTool_Run_EmptyContent(t *testing.T) {
 }
 
 func TestWriteFileTool_Run_MultiLineContent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	fsm, err := state.NewFileStateManager(injector)
@@ -497,7 +556,10 @@ func TestWriteFileTool_Run_MultiLineContent(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	tool := &WriteFileTool{logService: logService, fsm: fsm}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &WriteFileTool{logService: logService, fsm: fsm, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 	testPath := filepath.Join(tmpDir, "multiline.txt")

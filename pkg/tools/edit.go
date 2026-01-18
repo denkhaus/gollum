@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/denkhaus/gollum/pkg/errs"
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/state"
@@ -20,9 +21,10 @@ import (
 type (
 	// EditTool performs exact string replacements in files
 	EditTool struct {
-		logService logger.LoggerService
-		fsm        state.FileStateManager
-		agentID    uuid.UUID
+		logService  logger.LoggerService
+		fsm         state.FileStateManager
+		hookManager hooks.HookManager
+		agentID     uuid.UUID
 	}
 
 	// EditToolProvider creates EditTool instances via DI
@@ -31,8 +33,9 @@ type (
 	}
 
 	editToolProvider struct {
-		logService logger.LoggerService
-		fsm        state.FileStateManager
+		logService  logger.LoggerService
+		fsm         state.FileStateManager
+		hookManager hooks.HookManager
 	}
 )
 
@@ -43,19 +46,22 @@ func NewEditToolProvider(injector do.Injector) (EditToolProvider, error) {
 	if err != nil {
 		return nil, errs.Wrap(err, errs.TypeInternal, "failed to invoke FileStateManager")
 	}
+	hookManager := do.MustInvoke[hooks.HookManager](injector)
 
 	return &editToolProvider{
-		logService: logService,
-		fsm:        fsm,
+		logService:  logService,
+		fsm:         fsm,
+		hookManager: hookManager,
 	}, nil
 }
 
 // CreateTool creates a new EditTool with agent ID
 func (p *editToolProvider) CreateTool(agentID uuid.UUID) *EditTool {
 	return &EditTool{
-		logService: p.logService,
-		fsm:        p.fsm,
-		agentID:    agentID,
+		logService:  p.logService,
+		fsm:         p.fsm,
+		hookManager: p.hookManager,
+		agentID:     agentID,
 	}
 }
 
@@ -88,6 +94,14 @@ func (t *EditTool) Spec() gollem.ToolSpec {
 
 // Run executes the Edit tool to perform string replacements in files
 func (t *EditTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameEdit, args,
+		func() (map[string]any, error) {
+			return t.runEdit(ctx, args)
+		})
+}
+
+// runEdit implements the core edit logic
+func (t *EditTool) runEdit(ctx context.Context, args map[string]any) (map[string]any, error) {
 	filePath, ok := args["file_path"].(string)
 	if !ok || filePath == "" {
 		t.logService.Error("Edit operation failed: file_path is required and must be a non-empty string",
@@ -256,15 +270,24 @@ func (t *EditTool) Run(ctx context.Context, args map[string]any) (map[string]any
 				zap.Int("old_size", len(contentStr)),
 				zap.Int("new_size", len(newContent)))
 
-			// Write the modified content back
-			if err := os.WriteFile(filePath, []byte(newContent), 0o644); err != nil {
-				t.logService.Error("Failed to write modified file",
-					zap.String("agent_id", t.agentID.String()),
-					zap.String("file_path", filePath),
-					zap.Error(err))
-				return nil, errs.Wrap(err, errs.TypeInternal, "failed to write file").
-					WithContext("agent_id", t.agentID).
-					WithContext("file_path", filePath)
+			// Wrap the file write with file write hooks (edit is a write operation)
+			err = t.hookManager.WithFileWriteHooks(ctx, uuid.Nil, t.agentID, filePath, newContent,
+				func(finalContent string) error {
+					// Write the modified content back
+					if err := os.WriteFile(filePath, []byte(finalContent), 0o644); err != nil {
+						t.logService.Error("Failed to write modified file",
+							zap.String("agent_id", t.agentID.String()),
+							zap.String("file_path", filePath),
+							zap.Error(err))
+						return errs.Wrap(err, errs.TypeInternal, "failed to write file").
+							WithContext("agent_id", t.agentID).
+							WithContext("file_path", filePath)
+					}
+					return nil
+				})
+
+			if err != nil {
+				return nil, err
 			}
 
 			// Get updated stats
