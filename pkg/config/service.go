@@ -125,8 +125,8 @@ type ConfigService interface {
 	GetHooksConfig() *HooksConfig
 }
 
-// service implements the Service interface
-type service struct {
+// serviceImpl implements the ConfigService interface
+type serviceImpl struct {
 	Anthropic   AnthropicConfig   `envconfig:"ANTHROPIC"`
 	Gemini      GeminiConfig      `envconfig:"GEMINI"`
 	OpenAI      OpenAIConfig      `envconfig:"OPENAI"`
@@ -141,7 +141,7 @@ type service struct {
 
 // NewService creates a new configuration service
 func NewService(_ do.Injector) (ConfigService, error) {
-	var s service
+	var s serviceImpl
 	err := envconfig.Process("GOLLUM", &s)
 	if err != nil {
 		return nil, err
@@ -159,42 +159,42 @@ func NewService(_ do.Injector) (ConfigService, error) {
 }
 
 // Implement Service interface methods
-func (s *service) GetLogLevel() string {
+func (s *serviceImpl) GetLogLevel() string {
 	return s.LogLevel
 }
 
-func (s *service) IsDevMode() bool {
+func (s *serviceImpl) IsDevMode() bool {
 	return s.Development
 }
 
-func (s *service) GetGeminiConfig() *GeminiConfig {
+func (s *serviceImpl) GetGeminiConfig() *GeminiConfig {
 	return &s.Gemini
 }
 
-func (s *service) GetAnthropicConfig() *AnthropicConfig {
+func (s *serviceImpl) GetAnthropicConfig() *AnthropicConfig {
 	return &s.Anthropic
 }
 
-func (s *service) GetOpenAIConfig() *OpenAIConfig {
+func (s *serviceImpl) GetOpenAIConfig() *OpenAIConfig {
 	return &s.OpenAI
 }
 
-func (s *service) GetAgentLimits() *AgentLimitsConfig {
+func (s *serviceImpl) GetAgentLimits() *AgentLimitsConfig {
 	return &s.AgentLimits
 }
 
-func (s *service) GetFilesConfig() *FilesConfig {
+func (s *serviceImpl) GetFilesConfig() *FilesConfig {
 	return &s.Files
 }
 
-func (s *service) GetLoggingConfig() *LoggingConfig {
+func (s *serviceImpl) GetLoggingConfig() *LoggingConfig {
 	return &s.Logging
 }
 
-func (s *service) GetBashConfig() *BashConfig {
+func (s *serviceImpl) GetBashConfig() *BashConfig {
 	return &s.Bash
 }
 
-func (s *service) GetHooksConfig() *HooksConfig {
+func (s *serviceImpl) GetHooksConfig() *HooksConfig {
 	return &s.Hooks
 }
