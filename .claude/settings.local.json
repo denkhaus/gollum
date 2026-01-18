@@ -45,7 +45,11 @@
       "mcp__forgejo__create_issue",
       "mcp__forgejo__add_issue_labels",
       "mcp__forgejo__create_issue_comment",
-      "Bash(gh run list:*)"
+      "Bash(gh run list:*)",
+      "Skill(forgejo-workflow)",
+      "mcp__forgejo__get_my_user_info",
+      "mcp__forgejo__list_my_repos",
+      "mcp__forgejo__issue_state_change"
     ],
     "deny": [],
     "ask": []
