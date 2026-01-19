@@ -1,10 +1,16 @@
 {
   "folders": [
     {
+      "name": "gollum",
       "path": ".",
     },
     {
-      "path": "~/dev/dendron",
+      "name": "dendron",
+      "path": "/home/denkhaus/dev/dendron",
+    },
+    {
+      "name": "claude-settings",
+      "path": "/home/denkhaus/.claude/",
     },
   ],
   "settings": {},
