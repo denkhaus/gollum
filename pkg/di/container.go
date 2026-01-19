@@ -20,81 +20,92 @@ import (
 	"github.com/samber/do/v2"
 )
 
-// Container holds all dependency injection providers
-type Container struct {
+// Container defines the dependency injection container interface
+type Container interface {
+	GetInjector() do.Injector
+	RegisterServices(ctx context.Context) do.Injector
+	Shutdown()
+}
+
+// containerImpl implements the Container interface
+// IMPORTANT: Implementation is private (containerImpl, not Container)
+type containerImpl struct {
 	injector do.Injector
 }
 
+// Ensure containerImpl implements Container at compile time
+var _ Container = (*containerImpl)(nil)
+
 // NewContainer creates a new dependency injection container
-func NewContainer() *Container {
-	return &Container{
+func NewContainer() Container {
+	return &containerImpl{
 		injector: do.New(),
 	}
 }
 
 // GetInjector returns the underlying injector
-func (c *Container) GetInjector() do.Injector {
-	return c.injector
+func (p *containerImpl) GetInjector() do.Injector {
+	return p.injector
 }
 
 // RegisterServices registers all services in the dependency injection container
-func (c *Container) RegisterServices(_ context.Context) do.Injector {
+func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	// Register config service first (other services depend on it)
-	do.Provide(c.injector, config.NewService)
+	do.Provide(p.injector, config.NewService)
 
 	// Register logger service
-	do.Provide(c.injector, logger.NewService)
-	do.Provide(c.injector, llm.NewClientProvider)
+	do.Provide(p.injector, logger.NewService)
+	do.Provide(p.injector, llm.NewClientProvider)
 
 	// Register HookManager
-	do.Provide(c.injector, hooks.NewHookManager)
+	do.Provide(p.injector, hooks.NewHookManager)
 
 	// Register built-in hooks (must come after HookManager)
-	do.Provide(c.injector, builtin.NewBuiltinHooksProvider)
+	do.Provide(p.injector, builtin.NewBuiltinHooksProvider)
 
 	// Register agent registry before agent provider (agent provider depends on it)
-	do.Provide(c.injector, registry.NewAgentRegistry)
+	do.Provide(p.injector, registry.NewAgentRegistry)
 
 	// Register UI components
-	do.Provide(c.injector, ui.NewAgentMessenger)
+	do.Provide(p.injector, ui.NewAgentMessenger)
 
 	// Register middleware providers
-	do.Provide(c.injector, middleware.NewDisplayMiddlewareProvider)
-	do.Provide(c.injector, middleware.NewSummaryMiddlewareProvider)
+	do.Provide(p.injector, middleware.NewDisplayMiddlewareProvider)
+	do.Provide(p.injector, middleware.NewSummaryMiddlewareProvider)
 
 	// Register FileStateManager
-	do.Provide(c.injector, state.NewFileStateManager)
+	do.Provide(p.injector, state.NewFileStateManager)
 
 	// Register agent factory
-	do.Provide(c.injector, agents.NewAgentFactory)
+	do.Provide(p.injector, agents.NewAgentFactory)
 
 	// Register agent execution helper
-	do.Provide(c.injector, tools.NewAgentExecutionHelper)
+	do.Provide(p.injector, tools.NewAgentExecutionHelper)
 
 	// Register tool providers
-	do.Provide(c.injector, tools.NewSpawnAgentToolProvider)
-	do.Provide(c.injector, tools.NewAgentOutputToolProvider)
-	do.Provide(c.injector, tools.NewRemoveAgentToolProvider)
-	do.Provide(c.injector, tools.NewResumeAgentToolProvider)
-	do.Provide(c.injector, tools.NewListAgentsToolProvider)
-	do.Provide(c.injector, tools.NewCurrentTimeToolProvider)
-	do.Provide(c.injector, tools.NewBashToolProvider)
-	do.Provide(c.injector, tools.NewWriteFileToolProvider)
-	do.Provide(c.injector, tools.NewReadFileToolProvider)
-	do.Provide(c.injector, tools.NewGlobToolProvider)
-	do.Provide(c.injector, tools.NewGrepToolProvider)
-	do.Provide(c.injector, tools.NewEditToolProvider)
-	do.Provide(c.injector, tools.NewSessionLogsToolProvider)
+	do.Provide(p.injector, tools.NewSpawnAgentToolProvider)
+	do.Provide(p.injector, tools.NewAgentOutputToolProvider)
+	do.Provide(p.injector, tools.NewRemoveAgentToolProvider)
+	do.Provide(p.injector, tools.NewResumeAgentToolProvider)
+	do.Provide(p.injector, tools.NewListAgentsToolProvider)
+	do.Provide(p.injector, tools.NewCurrentTimeToolProvider)
+	do.Provide(p.injector, tools.NewBashToolProvider)
+	do.Provide(p.injector, tools.NewWriteFileToolProvider)
+	do.Provide(p.injector, tools.NewReadFileToolProvider)
+	do.Provide(p.injector, tools.NewGlobToolProvider)
+	do.Provide(p.injector, tools.NewGrepToolProvider)
+	do.Provide(p.injector, tools.NewEditToolProvider)
+	do.Provide(p.injector, tools.NewSessionLogsToolProvider)
 
-	do.Provide(c.injector, prompt.NewPromptManager)
+	do.Provide(p.injector, prompt.NewPromptManager)
 
 	// Register application service (must be last, depends on all other services)
-	do.Provide(c.injector, app.NewService)
+	do.Provide(p.injector, app.NewService)
 
-	return c.injector
+	return p.injector
 }
 
 // Shutdown gracefully shuts down the container
-func (c *Container) Shutdown() error {
-	return do.Shutdown[any](c.injector)
+func (p *containerImpl) Shutdown() {
+	_ = do.Shutdown[any](p.injector)
 }
