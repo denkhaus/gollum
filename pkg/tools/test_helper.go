@@ -1,7 +1,10 @@
 package tools
 
 import (
+	"context"
+
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/registry"
@@ -21,6 +24,9 @@ func setupTestInjector() do.Injector {
 	// Register logger service
 	do.Provide(injector, logger.NewService)
 
+	// Register HookManager (needed by tool providers)
+	do.Provide(injector, hooks.NewHookManager)
+
 	// Register file state manager (needed by BashTool)
 	do.Provide(injector, state.NewFileStateManager)
 
@@ -37,6 +43,67 @@ func setupTestInjector() do.Injector {
 	do.Provide(injector, NewGrepToolProvider)
 
 	return injector
+}
+
+// setupMockHookManagerPassThrough configures a mock HookManager to pass through all calls
+// This is useful for tests that don't need to verify hook behavior
+func setupMockHookManagerPassThrough(mockHookManager *mocks.MockHookManager) {
+	// WithToolHooks - pass through to work function
+	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ string, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+			return work()
+		}).AnyTimes()
+
+	// WithFileReadHooks - pass through to work function
+	mockHookManager.EXPECT().WithFileReadHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ string, work func() (string, error)) (string, error) {
+			return work()
+		}).AnyTimes()
+
+	// WithFileWriteHooks - pass through to work function
+	mockHookManager.EXPECT().WithFileWriteHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ string, content string, work func(string) error) error {
+			return work(content)
+		}).AnyTimes()
+
+	// WithAgentHooks - pass through to work function
+	mockHookManager.EXPECT().WithAgentHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _, _, _ uuid.UUID, _ hooks.HookPoint, work func() error) error {
+			if work != nil {
+				return work()
+			}
+			return nil
+		}).AnyTimes()
+
+	// WithSessionHooks - pass through to work function
+	mockHookManager.EXPECT().WithSessionHooks(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ uuid.UUID, work func() error) error {
+			return work()
+		}).AnyTimes()
+
+	// WithFileHooks - pass through to work function
+	mockHookManager.EXPECT().WithFileHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ hooks.HookPoint, _ string, work func() error) error {
+			return work()
+		}).AnyTimes()
+
+	// WithLLMHooks - pass through to work function
+	mockHookManager.EXPECT().WithLLMHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ string, input string, work func(string) (string, error)) (string, error) {
+			return work(input)
+		}).AnyTimes()
+
+	// RegisterHook - return success (hooks not stored in mock)
+	mockHookManager.EXPECT().RegisterHook(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	// UnregisterHook - return false (hook not found in mock)
+	mockHookManager.EXPECT().UnregisterHook(gomock.Any()).Return(false).AnyTimes()
+
+	// TriggerHooks - return empty result (no hooks to trigger)
+	mockHookManager.EXPECT().TriggerHooks(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func() hooks.HookResult {
+			return hooks.HookResult{Stopped: false, Error: nil, Data: make(map[string]any)}
+		}).AnyTimes()
 }
 
 // setupMockExecutionHelperWithDefaults configures a mock AgentExecutionHelper with default behavior
