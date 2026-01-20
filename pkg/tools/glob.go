@@ -179,7 +179,7 @@ func recursiveGlob(logService logger.LoggerService, agentID uuid.UUID, root, pat
 	// In a production system, you'd want to use a more efficient algorithm
 	basePattern := filepath.Join(root, segments[0])
 
-	walkFn := func(path string, _, err error) error {
+	walkFn := func(path string, _ os.FileInfo, err error) error { //nolint:unparam
 		if err != nil {
 			logService.Debugf("[Agent %s] Skipping path during walk: %s (error: %v)", agentID, path, err)
 			return nil // Continue on error
