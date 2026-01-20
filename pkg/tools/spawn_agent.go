@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/registry"
@@ -24,6 +25,7 @@ type (
 		promptManager   prompt.PromptManager
 		executionHelper AgentExecutionHelper
 		configService   config.ConfigService
+		hookManager     hooks.HookManager
 		senderID        uuid.UUID
 	}
 
@@ -38,6 +40,7 @@ type (
 		promptManager   prompt.PromptManager
 		executionHelper AgentExecutionHelper
 		configService   config.ConfigService
+		hookManager     hooks.HookManager
 	}
 )
 
@@ -48,6 +51,7 @@ func NewSpawnAgentToolProvider(injector do.Injector) (SpawnAgentToolProvider, er
 	promptManager := do.MustInvoke[prompt.PromptManager](injector)
 	executionHelper := do.MustInvoke[AgentExecutionHelper](injector)
 	configService := do.MustInvoke[config.ConfigService](injector)
+	hookManager := do.MustInvoke[hooks.HookManager](injector)
 
 	return &spawnAgentToolProvider{
 		logService:      logService,
@@ -55,6 +59,7 @@ func NewSpawnAgentToolProvider(injector do.Injector) (SpawnAgentToolProvider, er
 		promptManager:   promptManager,
 		executionHelper: executionHelper,
 		configService:   configService,
+		hookManager:     hookManager,
 	}, nil
 }
 
@@ -67,6 +72,7 @@ func (p *spawnAgentToolProvider) CreateTool(senderID uuid.UUID, agentFactory sha
 		promptManager:   p.promptManager,
 		executionHelper: p.executionHelper,
 		configService:   p.configService,
+		hookManager:     p.hookManager,
 		senderID:        senderID,
 	}
 }
@@ -109,6 +115,14 @@ func (t *SpawnAgentTool) Spec() gollem.ToolSpec {
 
 // Run executes the SpawnAgent tool to create and run subagents
 func (t *SpawnAgentTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.senderID, shared.ToolNameSpawnAgent, args,
+		func() (map[string]any, error) {
+			return t.runSpawnAgent(ctx, args)
+		})
+}
+
+// runSpawnAgent implements the core SpawnAgent logic
+func (t *SpawnAgentTool) runSpawnAgent(ctx context.Context, args map[string]any) (map[string]any, error) {
 	// Validate required parameters
 	role, ok := args["role"].(string)
 	if !ok || role == "" {

@@ -36,8 +36,12 @@ func TestSpawnAgentToolSpec(t *testing.T) {
 		MaxTotalAgents:        50,
 	})
 
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	provider := &spawnAgentToolProvider{
 		configService: mockConfigService,
+		hookManager:   mockHookManager,
 	}
 	tool := provider.CreateTool(uuid.New(), nil) // nil factory is OK for Spec() test
 
@@ -76,6 +80,8 @@ func TestSpawnAgentToolValidation(t *testing.T) {
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
@@ -87,6 +93,7 @@ func TestSpawnAgentToolValidation(t *testing.T) {
 		promptManager:   mockPromptMgr,
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        uuid.New(),
 	}
 
@@ -154,6 +161,8 @@ func TestSpawnAgentToolSynchronousExecution(t *testing.T) {
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Mock agent
 	mockAgent := mocks.NewMockAgent(ctrl)
@@ -172,6 +181,7 @@ func TestSpawnAgentToolSynchronousExecution(t *testing.T) {
 		promptManager:   mockPromptMgr,
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        senderID,
 	}
 
@@ -228,6 +238,8 @@ func TestSpawnAgentToolAsynchronousExecution(t *testing.T) {
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
@@ -247,6 +259,7 @@ func TestSpawnAgentToolAsynchronousExecution(t *testing.T) {
 		promptManager:   mockPromptMgr,
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        senderID,
 	}
 
@@ -302,6 +315,8 @@ func TestSpawnAgentToolExecutionError(t *testing.T) {
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
@@ -320,6 +335,7 @@ func TestSpawnAgentToolExecutionError(t *testing.T) {
 		promptManager:   mockPromptMgr,
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        senderID,
 	}
 
@@ -362,6 +378,8 @@ func TestSpawnAgentToolInheritsLLMProvider(t *testing.T) {
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	mockParentAgent := mocks.NewMockAgent(ctrl)
 	mockParentAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
@@ -383,6 +401,7 @@ func TestSpawnAgentToolInheritsLLMProvider(t *testing.T) {
 		promptManager:   mockPromptMgr,
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        senderID,
 	}
 
@@ -432,6 +451,7 @@ func TestSpawnAgentToolProvider_CreateTool(t *testing.T) {
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
 
 	provider := &spawnAgentToolProvider{
 		logService:      logService,
@@ -439,6 +459,7 @@ func TestSpawnAgentToolProvider_CreateTool(t *testing.T) {
 		promptManager:   mockPromptMgr,
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 	}
 
 	senderID := uuid.New()
@@ -451,4 +472,5 @@ func TestSpawnAgentToolProvider_CreateTool(t *testing.T) {
 	assert.Equal(t, mockPromptMgr, tool.promptManager)
 	assert.Equal(t, mockExecHelper, tool.executionHelper)
 	assert.Equal(t, logService, tool.logService)
+	assert.Equal(t, mockHookManager, tool.hookManager)
 }
