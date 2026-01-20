@@ -26,6 +26,8 @@ func TestSpawnAgentTool_Run_AgentFactoryError_LimitExceeded(t *testing.T) {
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
@@ -48,6 +50,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_LimitExceeded(t *testing.T) {
 		promptManager:   mockPromptMgr,
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        senderID,
 	}
 
@@ -76,6 +79,8 @@ func TestSpawnAgentTool_Run_AgentFactoryError_SubAgentLimitExceeded(t *testing.T
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
@@ -98,6 +103,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_SubAgentLimitExceeded(t *testing.T
 		promptManager:   mockPromptMgr,
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        senderID,
 	}
 
@@ -126,6 +132,8 @@ func TestSpawnAgentTool_Run_AgentFactoryError_GenericError(t *testing.T) {
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
@@ -148,6 +156,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_GenericError(t *testing.T) {
 		promptManager:   mockPromptMgr,
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        senderID,
 	}
 
