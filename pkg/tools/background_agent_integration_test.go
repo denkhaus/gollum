@@ -37,6 +37,9 @@ func TestBackgroundAgent_SyncExecution(t *testing.T) {
 	// Setup mocks
 	mockFactory := mocks.NewMockAgentFactory(ctrl)
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+	mockConfigService := setupMockConfigService(ctrl)
 
 	// Use real execution helper for integration tests
 	execHelper := do.MustInvoke[AgentExecutionHelper](injector)
@@ -61,6 +64,8 @@ func TestBackgroundAgent_SyncExecution(t *testing.T) {
 		registry:        agentRegistry,
 		promptManager:   mockPromptMgr,
 		executionHelper: execHelper,
+		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        senderID,
 	}
 
@@ -130,6 +135,9 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 	// Setup mocks
 	mockFactory := mocks.NewMockAgentFactory(ctrl)
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+	mockConfigService := setupMockConfigService(ctrl)
 
 	// Use real execution helper for integration tests
 	execHelper := do.MustInvoke[AgentExecutionHelper](injector)
@@ -155,6 +163,8 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 		registry:        agentRegistry,
 		promptManager:   mockPromptMgr,
 		executionHelper: execHelper,
+		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        senderID,
 	}
 
@@ -227,6 +237,9 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 	// Setup mocks
 	mockFactory := mocks.NewMockAgentFactory(ctrl)
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+	mockConfigService := setupMockConfigService(ctrl)
 
 	// Use real execution helper for integration tests
 	execHelper := do.MustInvoke[AgentExecutionHelper](injector)
@@ -252,6 +265,8 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 		registry:        agentRegistry,
 		promptManager:   mockPromptMgr,
 		executionHelper: execHelper,
+		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        senderID,
 	}
 
@@ -328,6 +343,9 @@ func TestBackgroundAgent_SyncExecutionError(t *testing.T) {
 	// Setup mocks
 	mockFactory := mocks.NewMockAgentFactory(ctrl)
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+	mockConfigService := setupMockConfigService(ctrl)
 
 	// Use real execution helper for integration tests
 	execHelper := do.MustInvoke[AgentExecutionHelper](injector)
@@ -353,6 +371,8 @@ func TestBackgroundAgent_SyncExecutionError(t *testing.T) {
 		registry:        agentRegistry,
 		promptManager:   mockPromptMgr,
 		executionHelper: execHelper,
+		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        senderID,
 	}
 
@@ -402,6 +422,9 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 	// Setup mocks
 	mockFactory := mocks.NewMockAgentFactory(ctrl)
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+	mockConfigService := setupMockConfigService(ctrl)
 
 	// Use real execution helper for integration tests
 	execHelper := do.MustInvoke[AgentExecutionHelper](injector)
@@ -427,6 +450,8 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 		registry:        agentRegistry,
 		promptManager:   mockPromptMgr,
 		executionHelper: execHelper,
+		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        senderID,
 	}
 
@@ -491,6 +516,9 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 	// Setup mocks
 	mockFactory := mocks.NewMockAgentFactory(ctrl)
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+	mockConfigService := setupMockConfigService(ctrl)
 
 	// Use real execution helper for integration tests
 	execHelper := do.MustInvoke[AgentExecutionHelper](injector)
@@ -504,6 +532,8 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 		registry:        agentRegistry,
 		promptManager:   mockPromptMgr,
 		executionHelper: execHelper,
+		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        senderID,
 	}
 
@@ -608,6 +638,9 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 	// Setup mocks
 	mockFactory := mocks.NewMockAgentFactory(ctrl)
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+	mockConfigService := setupMockConfigService(ctrl)
 
 	// Use real execution helper for integration tests
 	execHelper := do.MustInvoke[AgentExecutionHelper](injector)
@@ -633,6 +666,8 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 		registry:        agentRegistry,
 		promptManager:   mockPromptMgr,
 		executionHelper: execHelper,
+		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        senderID,
 	}
 
@@ -708,7 +743,12 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 
 	mockFactory := mocks.NewMockAgentFactory(ctrl)
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockConfigService := mocks.NewMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
 	execHelper := do.MustInvoke[AgentExecutionHelper](injector)
+
+	// Setup mock hook manager to pass-through hooks
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
 	var spawnedAgentID uuid.UUID
@@ -730,6 +770,8 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 		registry:        agentRegistry,
 		promptManager:   mockPromptMgr,
 		executionHelper: execHelper,
+		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        senderID,
 	}
 
@@ -837,7 +879,12 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 
 	mockFactory := mocks.NewMockAgentFactory(ctrl)
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockConfigService := mocks.NewMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
 	execHelper := do.MustInvoke[AgentExecutionHelper](injector)
+
+	// Setup mock hook manager to pass-through hooks
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	rootID := uuid.New()
 	var childID uuid.UUID
@@ -888,6 +935,8 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 		registry:        agentRegistry,
 		promptManager:   mockPromptMgr,
 		executionHelper: execHelper,
+		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        rootID,
 	}
 
@@ -923,6 +972,8 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 		registry:        agentRegistry,
 		promptManager:   mockPromptMgr,
 		executionHelper: execHelper,
+		configService:   mockConfigService,
+		hookManager:     mockHookManager,
 		senderID:        childID,
 	}
 
