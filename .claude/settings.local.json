@@ -39,7 +39,11 @@
       "mcp__forgejo__list_issue_comments",
       "mcp__forgejo__get_pull_request_by_index",
       "mcp__forgejo__update_issue",
-      "Bash(gofmt:*)"
+      "Bash(gofmt:*)",
+      "mcp__forgejo__delete_issue_label",
+      "mcp__forgejo__list_blocked_issues",
+      "Bash(git remote get-url:*)",
+      "mcp__forgejo__list_branches"
     ],
     "deny": [],
     "ask": []
