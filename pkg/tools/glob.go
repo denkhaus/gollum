@@ -1,3 +1,6 @@
+// Package tools provides tool implementations for the Gollum agent system.
+// This includes file operations (ReadFile, WriteFile, Edit), search tools (Grep, Glob),
+// agent management (SpawnAgent, RemoveAgent, ResumeAgent), and utility tools (CurrentTime).
 package tools
 
 import (
@@ -7,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/denkhaus/gollum/pkg/errs"
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -17,8 +21,9 @@ import (
 type (
 	// GlobTool finds file paths matching glob patterns
 	GlobTool struct {
-		logService logger.LoggerService
-		agentID    uuid.UUID
+		logService  logger.LoggerService
+		hookManager hooks.HookManager
+		agentID     uuid.UUID
 	}
 
 	// GlobToolProvider creates GlobTool instances via DI
@@ -27,21 +32,27 @@ type (
 	}
 
 	globToolProvider struct {
-		logService logger.LoggerService
+		logService  logger.LoggerService
+		hookManager hooks.HookManager
 	}
 )
 
 // NewGlobToolProvider creates a provider for Glob tools
 func NewGlobToolProvider(injector do.Injector) (GlobToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	return &globToolProvider{logService: logService}, nil
+	hookManager := do.MustInvoke[hooks.HookManager](injector)
+	return &globToolProvider{
+		logService:  logService,
+		hookManager: hookManager,
+	}, nil
 }
 
 // CreateTool creates a new GlobTool with agent ID
 func (p *globToolProvider) CreateTool(agentID uuid.UUID) *GlobTool {
 	return &GlobTool{
-		logService: p.logService,
-		agentID:    agentID,
+		logService:  p.logService,
+		hookManager: p.hookManager,
+		agentID:     agentID,
 	}
 }
 
@@ -65,7 +76,15 @@ func (t *GlobTool) Spec() gollem.ToolSpec {
 }
 
 // Run executes the Glob tool to find files matching a pattern
-func (t *GlobTool) Run(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *GlobTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameGlob, args,
+		func() (map[string]any, error) {
+			return t.runGlob(ctx, args)
+		})
+}
+
+// runGlob implements the core Glob logic
+func (t *GlobTool) runGlob(_ context.Context, args map[string]any) (map[string]any, error) {
 	pattern, ok := args["pattern"].(string)
 	if !ok || pattern == "" {
 		t.logService.Errorf("[Agent %s] Glob pattern validation failed: pattern is required and must be non-empty", t.agentID)
@@ -160,7 +179,7 @@ func recursiveGlob(logService logger.LoggerService, agentID uuid.UUID, root, pat
 	// In a production system, you'd want to use a more efficient algorithm
 	basePattern := filepath.Join(root, segments[0])
 
-	walkFn := func(path string, _ any, err error) error {
+	walkFn := func(path string, _, err error) error {
 		if err != nil {
 			logService.Debugf("[Agent %s] Skipping path during walk: %s (error: %v)", agentID, path, err)
 			return nil // Continue on error

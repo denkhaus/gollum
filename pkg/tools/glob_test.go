@@ -7,16 +7,24 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
+	"go.uber.org/mock/gomock"
 )
 
 func TestGlobTool_Run_SimplePattern(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GlobTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -57,9 +65,15 @@ func TestGlobTool_Run_SimplePattern(t *testing.T) {
 }
 
 func TestGlobTool_Run_NoMatches(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GlobTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -97,9 +111,15 @@ func TestGlobTool_Run_NoMatches(t *testing.T) {
 }
 
 func TestGlobTool_Run_MissingPattern(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GlobTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"path": "/some/path",
@@ -120,9 +140,15 @@ func TestGlobTool_Run_MissingPattern(t *testing.T) {
 }
 
 func TestGlobTool_Run_EmptyPattern(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GlobTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"pattern": "",
@@ -139,9 +165,15 @@ func TestGlobTool_Run_EmptyPattern(t *testing.T) {
 }
 
 func TestGlobTool_Run_NonStringPattern(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GlobTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"pattern": 12345,
@@ -158,9 +190,15 @@ func TestGlobTool_Run_NonStringPattern(t *testing.T) {
 }
 
 func TestGlobTool_Run_DefaultPath(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GlobTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
 
 	// Change to temp directory for this test
 	originalDir, _ := os.Getwd()
@@ -193,9 +231,15 @@ func TestGlobTool_Run_DefaultPath(t *testing.T) {
 }
 
 func TestGlobTool_Run_NestedPath(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GlobTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -230,9 +274,15 @@ func TestGlobTool_Run_NestedPath(t *testing.T) {
 }
 
 func TestGlobTool_Run_SubdirectoryPattern(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GlobTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -282,9 +332,15 @@ func TestGlobTool_Run_SubdirectoryPattern(t *testing.T) {
 }
 
 func TestGlobTool_Run_AllFilesPattern(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GlobTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -471,10 +527,14 @@ func TestSplitDoubleStar(t *testing.T) {
 }
 
 func TestGlobToolProvider_CreateTool(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
 
-	provider := &globToolProvider{logService: logService}
+	provider := &globToolProvider{logService: logService, hookManager: mockHookManager}
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
 	tool := provider.CreateTool(testUUID)
@@ -485,6 +545,10 @@ func TestGlobToolProvider_CreateTool(t *testing.T) {
 
 	if tool.logService == nil {
 		t.Error("Expected tool to have logService")
+	}
+
+	if tool.hookManager == nil {
+		t.Error("Expected tool to have hookManager")
 	}
 
 	if tool.agentID != testUUID {
