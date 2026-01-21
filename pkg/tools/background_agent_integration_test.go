@@ -844,9 +844,10 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 
 	// Step 4: Remove the agent
 	removeTool := &RemoveAgentTool{
-		logService: logService,
-		registry:   agentRegistry,
-		senderID:   senderID,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    agentRegistry,
+		senderID:    senderID,
 	}
 
 	removeResult, err := removeTool.Run(ctx, map[string]any{
