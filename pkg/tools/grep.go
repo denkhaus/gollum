@@ -1,3 +1,6 @@
+// Package tools provides tool implementations for the Gollum agent system.
+// This includes file operations (ReadFile, WriteFile, Edit), search tools (Grep, Glob),
+// agent management (SpawnAgent, RemoveAgent, ResumeAgent), and utility tools (CurrentTime).
 package tools
 
 import (
@@ -10,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/denkhaus/gollum/pkg/errs"
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -21,8 +25,9 @@ import (
 type (
 	// GrepTool searches file contents with regex patterns
 	GrepTool struct {
-		logService logger.LoggerService
-		agentID    uuid.UUID
+		logService  logger.LoggerService
+		hookManager hooks.HookManager
+		agentID     uuid.UUID
 	}
 
 	// GrepToolProvider creates GrepTool instances via DI
@@ -31,21 +36,27 @@ type (
 	}
 
 	grepToolProvider struct {
-		logService logger.LoggerService
+		logService  logger.LoggerService
+		hookManager hooks.HookManager
 	}
 )
 
 // NewGrepToolProvider creates a provider for Grep tools
 func NewGrepToolProvider(injector do.Injector) (GrepToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	return &grepToolProvider{logService: logService}, nil
+	hookManager := do.MustInvoke[hooks.HookManager](injector)
+	return &grepToolProvider{
+		logService:  logService,
+		hookManager: hookManager,
+	}, nil
 }
 
 // CreateTool creates a new GrepTool with agent ID
 func (p *grepToolProvider) CreateTool(agentID uuid.UUID) *GrepTool {
 	return &GrepTool{
-		logService: p.logService,
-		agentID:    agentID,
+		logService:  p.logService,
+		hookManager: p.hookManager,
+		agentID:     agentID,
 	}
 }
 
@@ -105,7 +116,15 @@ func (t *GrepTool) Spec() gollem.ToolSpec {
 }
 
 // Run executes the Grep tool to search file contents
-func (t *GrepTool) Run(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *GrepTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameGrep, args,
+		func() (map[string]any, error) {
+			return t.runGrep(ctx, args)
+		})
+}
+
+// runGrep implements the core Grep logic
+func (t *GrepTool) runGrep(ctx context.Context, args map[string]any) (map[string]any, error) {
 	pattern, ok := args["pattern"].(string)
 	if !ok || pattern == "" {
 		t.logService.Error("Grep operation failed: pattern is required and must be a non-empty string",
@@ -234,11 +253,11 @@ func (t *GrepTool) Run(_ context.Context, args map[string]any) (map[string]any, 
 	var result map[string]any
 	switch outputMode {
 	case "content":
-		result, err = t.grepContent(searchPath, regex, globPattern, contextBefore, contextAfter, headLimit, showLineNumbers)
+		result, err = t.grepContent(ctx, searchPath, regex, globPattern, contextBefore, contextAfter, headLimit, showLineNumbers)
 	case "files_with_matches":
-		result, err = t.grepFiles(searchPath, regex, globPattern, headLimit)
+		result, err = t.grepFiles(ctx, searchPath, regex, globPattern, headLimit)
 	case "count":
-		result, err = t.grepCount(searchPath, regex, globPattern, headLimit)
+		result, err = t.grepCount(ctx, searchPath, regex, globPattern, headLimit)
 	default:
 		err = nil
 		result = map[string]any{
@@ -277,7 +296,7 @@ func (t *GrepTool) Run(_ context.Context, args map[string]any) (map[string]any, 
 }
 
 // grepContent returns matching lines with context
-func (t *GrepTool) grepContent(searchPath string, regex *regexp.Regexp, globPattern string, contextBefore, contextAfter, headLimit int, showLineNumbers bool) (map[string]any, error) {
+func (t *GrepTool) grepContent(ctx context.Context, searchPath string, regex *regexp.Regexp, globPattern string, contextBefore, contextAfter, headLimit int, showLineNumbers bool) (map[string]any, error) {
 	results := []map[string]any{}
 	totalMatches := 0
 	filesScanned := 0
@@ -309,7 +328,7 @@ func (t *GrepTool) grepContent(searchPath string, regex *regexp.Regexp, globPatt
 		filesScanned++
 
 		// Search file
-		matches, err := t.searchFile(path, regex, contextBefore, contextAfter, showLineNumbers)
+		matches, err := t.searchFile(ctx, path, regex, contextBefore, contextAfter, showLineNumbers)
 		if err != nil {
 			t.logService.Debug("Error searching file",
 				zap.String("agent_id", t.agentID.String()),
@@ -365,7 +384,7 @@ func (t *GrepTool) grepContent(searchPath string, regex *regexp.Regexp, globPatt
 }
 
 // grepFiles returns list of files with matches
-func (t *GrepTool) grepFiles(searchPath string, regex *regexp.Regexp, globPattern string, headLimit int) (map[string]any, error) {
+func (t *GrepTool) grepFiles(_ context.Context, searchPath string, regex *regexp.Regexp, globPattern string, headLimit int) (map[string]any, error) {
 	matchingFiles := []string{}
 	filesScanned := 0
 
@@ -441,7 +460,7 @@ func (t *GrepTool) grepFiles(searchPath string, regex *regexp.Regexp, globPatter
 }
 
 // grepCount returns match counts per file
-func (t *GrepTool) grepCount(searchPath string, regex *regexp.Regexp, globPattern string, headLimit int) (map[string]any, error) {
+func (t *GrepTool) grepCount(_ context.Context, searchPath string, regex *regexp.Regexp, globPattern string, headLimit int) (map[string]any, error) {
 	counts := map[string]int{}
 	filesScanned := 0
 
@@ -517,27 +536,44 @@ func (t *GrepTool) grepCount(searchPath string, regex *regexp.Regexp, globPatter
 }
 
 // searchFile searches a single file and returns matches with context
-func (t *GrepTool) searchFile(path string, regex *regexp.Regexp, contextBefore, contextAfter int, showLineNumbers bool) ([]map[string]any, error) {
-	file, err := os.Open(path)
+func (t *GrepTool) searchFile(ctx context.Context, path string, regex *regexp.Regexp, contextBefore, contextAfter int, showLineNumbers bool) ([]map[string]any, error) {
+	// Wrap the file read operation with file read hooks
+	content, err := t.hookManager.WithFileReadHooks(ctx, uuid.Nil, t.agentID, path,
+		func() (string, error) {
+			file, err := os.Open(path)
+			if err != nil {
+				return "", err
+			}
+			defer func() {
+				if err := file.Close(); err != nil {
+					t.logService.Debug("Error closing file",
+						zap.String("agent_id", t.agentID.String()),
+						zap.String("path", path),
+						zap.Error(err))
+				}
+			}()
+
+			var lines []string
+			scanner := bufio.NewScanner(file)
+			for scanner.Scan() {
+				lines = append(lines, scanner.Text())
+			}
+
+			if err := scanner.Err(); err != nil {
+				return "", err
+			}
+
+			// Return content as newline-separated string
+			return strings.Join(lines, "\n"), nil
+		})
+
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			t.logService.Debug("Error closing file",
-				zap.String("agent_id", t.agentID.String()),
-				zap.String("path", path),
-				zap.Error(err))
-		}
-	}()
 
+	// Split content back into lines for processing
+	lines := strings.Split(content, "\n")
 	var matches []map[string]any
-
-	scanner := bufio.NewScanner(file)
-	var lines []string
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
 
 	for i, line := range lines {
 		if regex.MatchString(line) {

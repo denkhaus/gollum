@@ -7,16 +7,24 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
+	"go.uber.org/mock/gomock"
 )
 
 func TestGrepTool_Run_ContentMode_Simple(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GrepTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -52,9 +60,15 @@ func TestGrepTool_Run_ContentMode_Simple(t *testing.T) {
 }
 
 func TestGrepTool_Run_ContentMode_NoMatches(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GrepTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -85,9 +99,15 @@ func TestGrepTool_Run_ContentMode_NoMatches(t *testing.T) {
 }
 
 func TestGrepTool_Run_MissingPattern(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GrepTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"path": "/some/path",
@@ -108,9 +128,15 @@ func TestGrepTool_Run_MissingPattern(t *testing.T) {
 }
 
 func TestGrepTool_Run_EmptyPattern(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GrepTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"pattern": "",
@@ -127,9 +153,15 @@ func TestGrepTool_Run_EmptyPattern(t *testing.T) {
 }
 
 func TestGrepTool_Run_FilesWithMatches(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GrepTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -166,9 +198,15 @@ func TestGrepTool_Run_FilesWithMatches(t *testing.T) {
 }
 
 func TestGrepTool_Run_CountMode(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GrepTool{logService: logService}
+	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -220,9 +258,15 @@ func TestGrepTool_Run_CountMode(t *testing.T) {
 }
 
 func TestGrepTool_Run_CaseInsensitive(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GrepTool{logService: logService}
+	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -250,9 +294,15 @@ func TestGrepTool_Run_CaseInsensitive(t *testing.T) {
 }
 
 func TestGrepTool_Run_WithGlobPattern(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GrepTool{logService: logService}
+	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -285,9 +335,15 @@ func TestGrepTool_Run_WithGlobPattern(t *testing.T) {
 }
 
 func TestGrepTool_Run_WithHeadLimit(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GrepTool{logService: logService}
+	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -316,9 +372,15 @@ func TestGrepTool_Run_WithHeadLimit(t *testing.T) {
 }
 
 func TestGrepTool_Run_WithLineNumbers(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GrepTool{logService: logService}
+	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -352,9 +414,15 @@ func TestGrepTool_Run_WithLineNumbers(t *testing.T) {
 }
 
 func TestGrepTool_Run_WithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GrepTool{logService: logService}
+	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -389,9 +457,15 @@ func TestGrepTool_Run_WithContext(t *testing.T) {
 }
 
 func TestGrepTool_Run_InvalidOutputMode(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GrepTool{logService: logService}
+	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"pattern":     "test",
@@ -413,9 +487,15 @@ func TestGrepTool_Run_InvalidOutputMode(t *testing.T) {
 }
 
 func TestGrepTool_Run_InvalidRegex(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GrepTool{logService: logService}
+	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"pattern": "[invalid",
@@ -436,7 +516,13 @@ func TestGrepTool_Run_InvalidRegex(t *testing.T) {
 }
 
 func TestGrepTool_Spec(t *testing.T) {
-	tool := &GrepTool{}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GrepTool{hookManager: mockHookManager}
 
 	spec := tool.Spec()
 
