@@ -41,6 +41,8 @@ func TestRemoveAgentTool_Run_Success(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
 	targetID := uuid.New()
@@ -64,9 +66,10 @@ func TestRemoveAgentTool_Run_Success(t *testing.T) {
 	childAgent.EXPECT().GetID().Return(childID).AnyTimes()
 
 	tool := &RemoveAgentTool{
-		logService: logService,
-		registry:   mockRegistry,
-		senderID:   senderID,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	args := map[string]any{
@@ -90,14 +93,17 @@ func TestRemoveAgentTool_Run_InvalidAgentID(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
 
 	tool := &RemoveAgentTool{
-		logService: logService,
-		registry:   mockRegistry,
-		senderID:   senderID,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	args := map[string]any{
@@ -118,6 +124,8 @@ func TestRemoveAgentTool_Run_AgentNotFound(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
 	targetID := uuid.New()
@@ -126,9 +134,10 @@ func TestRemoveAgentTool_Run_AgentNotFound(t *testing.T) {
 	mockRegistry.EXPECT().GetAgent(targetID).Return(nil, false)
 
 	tool := &RemoveAgentTool{
-		logService: logService,
-		registry:   mockRegistry,
-		senderID:   senderID,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	args := map[string]any{
@@ -149,14 +158,17 @@ func TestRemoveAgentTool_Run_SelfRemoval(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
 
 	tool := &RemoveAgentTool{
-		logService: logService,
-		registry:   mockRegistry,
-		senderID:   senderID,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	args := map[string]any{
@@ -177,6 +189,8 @@ func TestRemoveAgentTool_Run_PermissionDenied(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
 	targetID := uuid.New()
@@ -195,9 +209,10 @@ func TestRemoveAgentTool_Run_PermissionDenied(t *testing.T) {
 	targetAgent.EXPECT().GetID().Return(targetID).AnyTimes() // May be called multiple times
 
 	tool := &RemoveAgentTool{
-		logService: logService,
-		registry:   mockRegistry,
-		senderID:   senderID,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	args := map[string]any{
@@ -218,6 +233,8 @@ func TestRemoveAgentTool_Run_HasChildrenNoForce(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
 	targetID := uuid.New()
@@ -238,9 +255,10 @@ func TestRemoveAgentTool_Run_HasChildrenNoForce(t *testing.T) {
 	// childAgent.GetID() is not called since we only count children when force=false
 
 	tool := &RemoveAgentTool{
-		logService: logService,
-		registry:   mockRegistry,
-		senderID:   senderID,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	args := map[string]any{
@@ -264,6 +282,8 @@ func TestRemoveAgentTool_Run_CleanupError(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
 	targetID := uuid.New()
@@ -284,9 +304,10 @@ func TestRemoveAgentTool_Run_CleanupError(t *testing.T) {
 	targetAgent.EXPECT().GetID().Return(targetID).AnyTimes() // May be called multiple times
 
 	tool := &RemoveAgentTool{
-		logService: logService,
-		registry:   mockRegistry,
-		senderID:   senderID,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	args := map[string]any{
@@ -308,12 +329,14 @@ func TestRemoveAgentToolProvider(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
-	// Test provider creation with mock registry
+	// Test provider creation with mock registry and hook manager
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
 
 	provider := &removeAgentToolProvider{
-		logService: logService,
-		registry:   mockRegistry,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
 	}
 
 	// Test tool creation
@@ -323,4 +346,5 @@ func TestRemoveAgentToolProvider(t *testing.T) {
 	assert.Equal(t, senderID, tool.senderID)
 	assert.Equal(t, mockRegistry, tool.registry)
 	assert.Equal(t, logService, tool.logService)
+	assert.Equal(t, mockHookManager, tool.hookManager)
 }
