@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -15,9 +16,10 @@ import (
 type (
 	// RemoveAgentTool removes agents and all their subagents recursively
 	RemoveAgentTool struct {
-		logService logger.LoggerService
-		registry   registry.AgentRegistry
-		senderID   uuid.UUID
+		logService  logger.LoggerService
+		hookManager hooks.HookManager
+		registry    registry.AgentRegistry
+		senderID    uuid.UUID
 	}
 
 	// RemoveAgentToolProvider creates RemoveAgentTool instances via DI
@@ -26,28 +28,32 @@ type (
 	}
 
 	removeAgentToolProvider struct {
-		logService logger.LoggerService
-		registry   registry.AgentRegistry
+		logService  logger.LoggerService
+		hookManager hooks.HookManager
+		registry    registry.AgentRegistry
 	}
 )
 
 // NewRemoveAgentToolProvider creates a provider for RemoveAgent tools
 func NewRemoveAgentToolProvider(injector do.Injector) (RemoveAgentToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
+	hookManager := do.MustInvoke[hooks.HookManager](injector)
 	registry := do.MustInvoke[registry.AgentRegistry](injector)
 
 	return &removeAgentToolProvider{
-		logService: logService,
-		registry:   registry,
+		logService:  logService,
+		hookManager: hookManager,
+		registry:    registry,
 	}, nil
 }
 
 // CreateRemoveAgentTool creates a new RemoveAgentTool for a specific sender
 func (p *removeAgentToolProvider) CreateTool(senderID uuid.UUID) *RemoveAgentTool {
 	return &RemoveAgentTool{
-		logService: p.logService,
-		registry:   p.registry,
-		senderID:   senderID,
+		logService:  p.logService,
+		hookManager: p.hookManager,
+		registry:    p.registry,
+		senderID:    senderID,
 	}
 }
 
@@ -71,7 +77,15 @@ func (t *RemoveAgentTool) Spec() gollem.ToolSpec {
 }
 
 // Run executes the RemoveAgent tool to remove agents
-func (t *RemoveAgentTool) Run(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *RemoveAgentTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.senderID, shared.ToolNameRemoveAgent, args,
+		func() (map[string]any, error) {
+			return t.runRemoveAgent(ctx, args)
+		})
+}
+
+// runRemoveAgent implements the core RemoveAgent logic
+func (t *RemoveAgentTool) runRemoveAgent(_ context.Context, args map[string]any) (map[string]any, error) {
 	agentIDStr, ok := args["agent_id"].(string)
 	if !ok {
 		t.logService.Debugf("RemoveAgent: invalid agent_id type from sender %s", t.senderID)
