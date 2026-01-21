@@ -98,7 +98,7 @@ func (t *ResumeAgentTool) Run(ctx context.Context, args map[string]any) (map[str
 }
 
 // runResumeAgent implements the core ResumeAgent logic
-func (t *ResumeAgentTool) runResumeAgent(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *ResumeAgentTool) runResumeAgent(ctx context.Context, args map[string]any) (map[string]any, error) {
 	// Validate required parameters
 	agentIDStr, ok := args["agent_id"].(string)
 	if !ok || agentIDStr == "" {
@@ -158,7 +158,7 @@ func (t *ResumeAgentTool) runResumeAgent(_ context.Context, args map[string]any)
 	if runInBackground {
 		// Asynchronous execution - create cancellable context from request context
 		// This allows the background agent to be cancelled if the request is cancelled
-		bgCtx, cancel := context.WithCancel(context.Background())
+		bgCtx, cancel := context.WithCancel(ctx)
 
 		// Store cancel function in registry for this agent
 		if err := t.registry.SetCancelFunc(agentID, cancel); err != nil {
@@ -173,7 +173,7 @@ func (t *ResumeAgentTool) runResumeAgent(_ context.Context, args map[string]any)
 
 	// Synchronous execution
 	t.logService.Infof("Executing agent %s synchronously", agentID)
-	response, err := t.executionHelper.ExecuteSynchronously(context.Background(), agent, prompt)
+	response, err := t.executionHelper.ExecuteSynchronously(ctx, agent, prompt)
 	if err != nil {
 		t.logService.Errorf("Agent execution failed: %v", err)
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("execution failed: %v", err)), nil
