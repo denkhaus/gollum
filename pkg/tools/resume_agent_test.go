@@ -46,12 +46,15 @@ func TestResumeAgentToolValidation(t *testing.T) {
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
 	tool := &ResumeAgentTool{
 		logService:      logService,
+		hookManager:     mockHookManager,
 		registry:        mockRegistry,
 		executionHelper: mockExecHelper,
 		senderID:        uuid.New(),
@@ -122,6 +125,8 @@ func TestResumeAgentToolAgentNotFound(t *testing.T) {
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
@@ -137,6 +142,7 @@ func TestResumeAgentToolAgentNotFound(t *testing.T) {
 
 	tool := &ResumeAgentTool{
 		logService:      logService,
+		hookManager:     mockHookManager,
 		registry:        mockRegistry,
 		executionHelper: mockExecHelper,
 		senderID:        senderID,
@@ -165,6 +171,9 @@ func TestResumeAgentToolSynchronousExecution(t *testing.T) {
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	mockAgent := mocks.NewMockAgent(ctrl)
 
 	// Permission check: sender is direct parent
@@ -196,6 +205,7 @@ func TestResumeAgentToolSynchronousExecution(t *testing.T) {
 
 	tool := &ResumeAgentTool{
 		logService:      logService,
+		hookManager:     mockHookManager,
 		registry:        mockRegistry,
 		executionHelper: mockExecHelper,
 		senderID:        senderID,
@@ -225,6 +235,8 @@ func TestResumeAgentToolAsynchronousExecution(t *testing.T) {
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
@@ -256,6 +268,7 @@ func TestResumeAgentToolAsynchronousExecution(t *testing.T) {
 
 	tool := &ResumeAgentTool{
 		logService:      logService,
+		hookManager:     mockHookManager,
 		registry:        mockRegistry,
 		executionHelper: mockExecHelper,
 		senderID:        senderID,
@@ -287,10 +300,12 @@ func TestResumeAgentToolProvider_CreateTool(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
 
 	provider := &resumeAgentToolProvider{
-		logService: logService,
-		registry:   mockRegistry,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
 	}
 
 	senderID := uuid.New()
@@ -300,6 +315,7 @@ func TestResumeAgentToolProvider_CreateTool(t *testing.T) {
 	assert.Equal(t, senderID, tool.senderID)
 	assert.Equal(t, mockRegistry, tool.registry)
 	assert.Equal(t, logService, tool.logService)
+	assert.Equal(t, mockHookManager, tool.hookManager)
 }
 
 // TestResumeAgentTool_PermissionDenied tests permission check when caller is not direct parent
@@ -310,6 +326,8 @@ func TestResumeAgentTool_PermissionDenied(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
@@ -323,6 +341,7 @@ func TestResumeAgentTool_PermissionDenied(t *testing.T) {
 
 	tool := &ResumeAgentTool{
 		logService:      logService,
+		hookManager:     mockHookManager,
 		registry:        mockRegistry,
 		executionHelper: mockExecHelper,
 		senderID:        senderID,

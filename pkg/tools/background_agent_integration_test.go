@@ -807,6 +807,7 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 	// Step 2: Resume the agent with a new task
 	resumeTool := &ResumeAgentTool{
 		logService:      logService,
+		hookManager:     mockHookManager,
 		registry:        agentRegistry,
 		executionHelper: execHelper,
 		senderID:        senderID,
