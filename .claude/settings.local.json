@@ -43,7 +43,9 @@
       "mcp__forgejo__delete_issue_label",
       "mcp__forgejo__list_blocked_issues",
       "Bash(git remote get-url:*)",
-      "mcp__forgejo__list_branches"
+      "mcp__forgejo__list_branches",
+      "Bash(ls:*)",
+      "Bash(go tool cover:*)"
     ],
     "deny": [],
     "ask": []
