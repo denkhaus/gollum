@@ -119,11 +119,20 @@ func TestGlobTool_Run_DefaultPath(t *testing.T) {
 	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
 
 	// Change to temp directory for this test
-	originalDir, _ := os.Getwd()
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get working directory: %v", err)
+	}
 	tmpDir := t.TempDir()
-	defer os.Chdir(originalDir)
+	defer func() {
+		if err := os.Chdir(originalDir); err != nil {
+			t.Fatalf("failed to restore working directory: %v", err)
+		}
+	}()
 
-	os.Chdir(tmpDir)
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to change to temp directory: %v", err)
+	}
 
 	// Create test files
 	if err := os.WriteFile("test.go", []byte("test"), 0644); err != nil {

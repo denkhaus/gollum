@@ -40,7 +40,7 @@ func TestNewDisplayMiddlewareProvider(t *testing.T) {
 
 	// Test creating middleware
 	agentID := uuid.New()
-	agentRole := "TestAgent"
+	agentRole := testAgentRole
 
 	middlewareInstance := provider.CreateDisplayMiddleware(agentID, agentRole)
 
@@ -69,7 +69,7 @@ func TestDisplayMiddleware_ContentBlockMiddleware(t *testing.T) {
 	}
 
 	agentID := uuid.New()
-	agentRole := "TestAgent"
+	agentRole := testAgentRole
 	dm := provider.CreateDisplayMiddleware(agentID, agentRole)
 
 	// Setup mock expectations
@@ -110,7 +110,7 @@ func TestDisplayMiddleware_ContentBlockMiddleware_EmptyText(t *testing.T) {
 		t.Fatalf("NewDisplayMiddlewareProvider failed: %v", err)
 	}
 
-	dm := provider.CreateDisplayMiddleware(uuid.New(), "TestAgent")
+	dm := provider.CreateDisplayMiddleware(uuid.New(), testAgentRole)
 
 	// Don't expect any calls since text is empty
 	// Create content block handler with empty text
@@ -149,7 +149,7 @@ func TestDisplayMiddleware_ContentBlockMiddleware_MultipleTexts(t *testing.T) {
 	}
 
 	agentID := uuid.New()
-	agentRole := "TestAgent"
+	agentRole := testAgentRole
 	dm := provider.CreateDisplayMiddleware(agentID, agentRole)
 
 	// Setup mock expectations for multiple texts
@@ -193,12 +193,12 @@ func TestDisplayMiddleware_ToolMiddleware(t *testing.T) {
 	}
 
 	agentID := uuid.New()
-	agentRole := "TestAgent"
+	agentRole := testAgentRole
 	dm := provider.CreateDisplayMiddleware(agentID, agentRole)
 
 	// Create a mock next handler
 	nextCalled := false
-	nextHandler := func(_ context.Context, req *gollem.ToolExecRequest) (*gollem.ToolExecResponse, error) {
+	nextHandler := func(_ context.Context, _ *gollem.ToolExecRequest) (*gollem.ToolExecResponse, error) {
 		nextCalled = true
 		return &gollem.ToolExecResponse{
 			Result: map[string]any{"status": "success"},
@@ -241,10 +241,10 @@ func TestDisplayMiddleware_ToolMiddleware_NoResult(t *testing.T) {
 		t.Fatalf("NewDisplayMiddlewareProvider failed: %v", err)
 	}
 
-	dm := provider.CreateDisplayMiddleware(uuid.New(), "TestAgent")
+	dm := provider.CreateDisplayMiddleware(uuid.New(), testAgentRole)
 
 	// Create a mock next handler
-	nextHandler := func(_ context.Context, req *gollem.ToolExecRequest) (*gollem.ToolExecResponse, error) {
+	nextHandler := func(_ context.Context, _ *gollem.ToolExecRequest) (*gollem.ToolExecResponse, error) {
 		return &gollem.ToolExecResponse{
 			Result: nil,
 		}, nil
@@ -276,7 +276,7 @@ func TestDisplayMiddleware_DisplayWelcome(t *testing.T) {
 		t.Fatalf("NewDisplayMiddlewareProvider failed: %v", err)
 	}
 
-	dm := provider.CreateDisplayMiddleware(uuid.New(), "TestAgent")
+	dm := provider.CreateDisplayMiddleware(uuid.New(), testAgentRole)
 
 	// Setup mock expectation
 	mockMessenger.EXPECT().DisplayWelcome().Times(1)
@@ -304,7 +304,7 @@ func TestDisplayMiddleware_DisplaySystemInfo(t *testing.T) {
 		t.Fatalf("NewDisplayMiddlewareProvider failed: %v", err)
 	}
 
-	dm := provider.CreateDisplayMiddleware(uuid.New(), "TestAgent")
+	dm := provider.CreateDisplayMiddleware(uuid.New(), testAgentRole)
 
 	// Setup mock expectation
 	testMessage := "System info test message"
@@ -333,10 +333,10 @@ func TestDisplayMiddleware_ToolMiddleware_NextHandlerError(t *testing.T) {
 		t.Fatalf("NewDisplayMiddlewareProvider failed: %v", err)
 	}
 
-	dm := provider.CreateDisplayMiddleware(uuid.New(), "TestAgent")
+	dm := provider.CreateDisplayMiddleware(uuid.New(), testAgentRole)
 
 	// Create a mock next handler that returns an error
-	nextHandler := func(_ context.Context, req *gollem.ToolExecRequest) (*gollem.ToolExecResponse, error) {
+	nextHandler := func(_ context.Context, _ *gollem.ToolExecRequest) (*gollem.ToolExecResponse, error) {
 		return nil, fmt.Errorf("handler error")
 	}
 

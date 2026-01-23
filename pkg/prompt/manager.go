@@ -18,6 +18,7 @@ type (
 	promptManager struct{}
 
 	// PromptManager provides prompt rendering services for agents.
+	//revive:disable-next-line:exported
 	PromptManager interface {
 		GetCompacterPrompt(data any) (string, error)
 		GetSystemPrompt() (string, error)

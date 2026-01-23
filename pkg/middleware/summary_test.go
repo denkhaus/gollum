@@ -14,6 +14,10 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+const (
+	testAgentRole = "TestAgent"
+)
+
 // TestNewSummaryMiddlewareProvider tests the provider creation via DI
 func TestNewSummaryMiddlewareProvider(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -39,7 +43,7 @@ func TestNewSummaryMiddlewareProvider(t *testing.T) {
 
 	// Test creating middleware
 	agentID := uuid.New()
-	agentRole := "TestAgent"
+	agentRole := testAgentRole
 
 	middlewareInstance := provider.CreateSummaryMiddleware(agentID, agentRole)
 
@@ -67,7 +71,7 @@ func TestSummaryMiddleware_ToolMiddleware(t *testing.T) {
 		t.Fatalf("NewSummaryMiddlewareProvider failed: %v", err)
 	}
 
-	sm := provider.CreateSummaryMiddleware(uuid.New(), "TestAgent")
+	sm := provider.CreateSummaryMiddleware(uuid.New(), testAgentRole)
 
 	// Create a mock next handler
 	nextCalled := false
@@ -110,7 +114,7 @@ func TestSummaryMiddleware_ContentBlockMiddleware(t *testing.T) {
 		t.Fatalf("NewSummaryMiddlewareProvider failed: %v", err)
 	}
 
-	sm := provider.CreateSummaryMiddleware(uuid.New(), "TestAgent")
+	sm := provider.CreateSummaryMiddleware(uuid.New(), testAgentRole)
 
 	// Create content block handler
 	nextHandler := func(_ context.Context, _ *gollem.ContentRequest) (*gollem.ContentResponse, error) {
@@ -147,7 +151,7 @@ func TestSummaryMiddleware_FlushAndReset(t *testing.T) {
 		t.Fatalf("NewSummaryMiddlewareProvider failed: %v", err)
 	}
 
-	sm := provider.CreateSummaryMiddleware(uuid.New(), "TestAgent")
+	sm := provider.CreateSummaryMiddleware(uuid.New(), testAgentRole)
 
 	// Note: We can't directly test Flush/Reset since the buffer is private
 	// and there's no way to write to it without using the ContentBlockMiddleware
@@ -178,7 +182,7 @@ func TestSummaryMiddleware_DisplayWelcome(t *testing.T) {
 		t.Fatalf("NewSummaryMiddlewareProvider failed: %v", err)
 	}
 
-	sm := provider.CreateSummaryMiddleware(uuid.New(), "TestAgent")
+	sm := provider.CreateSummaryMiddleware(uuid.New(), testAgentRole)
 
 	// NO mock expectations - summary mode suppresses welcome
 
@@ -205,7 +209,7 @@ func TestSummaryMiddleware_DisplaySystemInfo(t *testing.T) {
 		t.Fatalf("NewSummaryMiddlewareProvider failed: %v", err)
 	}
 
-	sm := provider.CreateSummaryMiddleware(uuid.New(), "TestAgent")
+	sm := provider.CreateSummaryMiddleware(uuid.New(), testAgentRole)
 
 	// NO mock expectations - summary mode suppresses system info
 

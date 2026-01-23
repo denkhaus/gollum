@@ -13,6 +13,8 @@ import (
 )
 
 // LoggerService defines the logger service interface
+//
+//revive:disable-next-line:exported
 type LoggerService interface {
 	Info(msg string, fields ...zap.Field)
 	Infof(template string, args ...any)
@@ -33,11 +35,11 @@ type LoggerService interface {
 
 // service implements the Service interface
 type service struct {
-	logger      *zap.Logger
-	atomicLevel zap.AtomicLevel
-	config      zap.Config
+	logger         *zap.Logger
+	atomicLevel    zap.AtomicLevel
+	config         zap.Config
 	originalLogger *zap.Logger
-	logBuffer    *logBuffer
+	logBuffer      *logBuffer
 }
 
 // NewService creates a new logger service
@@ -177,7 +179,7 @@ func (s *service) SetTUIWriter(writer io.Writer) {
 	}
 
 	tuiEncoder := zapcore.NewConsoleEncoder(encoderConfig)
-	tuiWriteSyncer := zapcore.AddSync(io.Writer(writer))
+	tuiWriteSyncer := zapcore.AddSync(writer)
 	tuiCore := zapcore.NewCore(tuiEncoder, tuiWriteSyncer, s.atomicLevel.Level())
 
 	// Replace the logger with one that only writes to TUI

@@ -153,7 +153,9 @@ func (p *applicationServiceImpl) runInteractiveLoop(ctx context.Context, agent s
 
 		select {
 		case <-ctx.Done():
-			fmt.Fprintln(os.Stdout, "\n👋 Goodbye!")
+			if _, err := fmt.Fprintln(os.Stdout, "\n👋 Goodbye!"); err != nil {
+				p.logService.Debugf("failed to write goodbye message: %v", err)
+			}
 			return ctx.Err()
 
 		case <-shutdownCh:
@@ -232,7 +234,9 @@ func (p *applicationServiceImpl) stdinReader(inputCh chan<- string, cancelCh cha
 			switch ch {
 			case 3: // Ctrl-C (ASCII 3)
 				// Trigger graceful shutdown
-				fmt.Fprintln(os.Stdout, "^C")
+				if _, err := fmt.Fprintln(os.Stdout, "^C"); err != nil {
+					p.logService.Debugf("failed to write ctrl-c message: %v", err)
+				}
 				close(inputCh)
 				select {
 				case shutdownCh <- struct{}{}:
@@ -243,7 +247,9 @@ func (p *applicationServiceImpl) stdinReader(inputCh chan<- string, cancelCh cha
 			case 27: // Escape key
 				// Cancel current inference if active
 				if p.currentCancel != nil {
-					fmt.Fprintln(os.Stdout, "\n⚠️  Inference canceled by user")
+					if _, err := fmt.Fprintln(os.Stdout, "\n⚠️  Inference canceled by user"); err != nil {
+						p.logService.Debugf("failed to write cancel message: %v", err)
+					}
 					p.currentCancel()
 					p.currentCancel = nil
 				}
@@ -254,11 +260,15 @@ func (p *applicationServiceImpl) stdinReader(inputCh chan<- string, cancelCh cha
 				}
 				lineBuf = nil // Clear any pending input
 				// Redraw prompt
-				fmt.Fprint(os.Stdout, "> ")
+				if _, err := fmt.Fprint(os.Stdout, "> "); err != nil {
+					p.logService.Debugf("failed to write prompt: %v", err)
+				}
 
 			case 13: // Enter/Return key ( carriage return)
 				// Move to next line
-				fmt.Fprint(os.Stdout, "\n")
+				if _, err := fmt.Fprint(os.Stdout, "\n"); err != nil {
+					p.logService.Debugf("failed to write newline: %v", err)
+				}
 				// Send complete line to input channel
 				inputCh <- string(lineBuf)
 				lineBuf = nil
@@ -268,7 +278,9 @@ func (p *applicationServiceImpl) stdinReader(inputCh chan<- string, cancelCh cha
 				if len(lineBuf) > 0 {
 					lineBuf = lineBuf[:len(lineBuf)-1]
 					// Erase character from screen (backspace, space, backspace)
-					fmt.Fprint(os.Stdout, "\b \b")
+					if _, err := fmt.Fprint(os.Stdout, "\b \b"); err != nil {
+						p.logService.Debugf("failed to write backspace: %v", err)
+					}
 				}
 
 			default:
@@ -277,7 +289,9 @@ func (p *applicationServiceImpl) stdinReader(inputCh chan<- string, cancelCh cha
 				if ch >= 32 && ch <= 126 {
 					lineBuf = append(lineBuf, ch)
 					// Echo character to screen
-					fmt.Fprintf(os.Stdout, "%c", ch)
+					if _, err := fmt.Fprintf(os.Stdout, "%c", ch); err != nil {
+						p.logService.Debugf("failed to write character: %v", err)
+					}
 				}
 			}
 		}
@@ -293,7 +307,11 @@ func (p *applicationServiceImpl) stdinReader(inputCh chan<- string, cancelCh cha
 // Cleanup restores terminal state when the application exits
 func (p *applicationServiceImpl) Cleanup() {
 	if p.oldState != nil {
-		term.Restore(int(os.Stdin.Fd()), p.oldState)
-		fmt.Fprintln(os.Stdout) // Ensure we end on a new line
+		if err := term.Restore(int(os.Stdin.Fd()), p.oldState); err != nil {
+			p.logService.Debugf("failed to restore terminal state: %v", err)
+		}
+		if _, err := fmt.Fprintln(os.Stdout); err != nil {
+			p.logService.Debugf("failed to write newline: %v", err)
+		}
 	}
 }

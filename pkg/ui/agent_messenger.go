@@ -3,6 +3,7 @@ package ui
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -53,7 +54,7 @@ type (
 var _ AgentMessenger = (*agentMessengerImpl)(nil)
 
 // NewAgentMessenger creates a new agent messenger for dependency injection.
-func NewAgentMessenger(injector do.Injector) (AgentMessenger, error) {
+func NewAgentMessenger(_ do.Injector) (AgentMessenger, error) {
 	return &agentMessengerImpl{}, nil
 }
 
@@ -86,7 +87,10 @@ func (p *agentMessengerImpl) DisplayAgentMessage(agentID uuid.UUID, agentRole, m
 	)
 
 	// Print with spacing
-	fmt.Printf("\n%s\n\n", fullMessage)
+	if _, err := fmt.Fprint(os.Stdout, "\n"+fullMessage+"\n\n"); err != nil {
+		// Ignore write errors to stdout in UI code
+		_ = err
+	}
 }
 
 // DisplayUserMessage shows a user's input message
@@ -107,7 +111,10 @@ func (p *agentMessengerImpl) DisplayUserMessage(message string) {
 		borderStyle.Render(message),
 	)
 
-	fmt.Printf("\n%s\n\n", fullMessage)
+	if _, err := fmt.Fprint(os.Stdout, "\n"+fullMessage+"\n\n"); err != nil {
+		// Ignore write errors to stdout in UI code
+		_ = err
+	}
 }
 
 // DisplaySystemInfo shows system-level information
@@ -123,7 +130,10 @@ func (p *agentMessengerImpl) DisplaySystemInfo(message string) {
 		borderStyle.Render(message),
 	)
 
-	fmt.Printf("\n%s\n\n", fullMessage)
+	if _, err := fmt.Fprint(os.Stdout, "\n"+fullMessage+"\n\n"); err != nil {
+		// Ignore write errors to stdout in UI code
+		_ = err
+	}
 }
 
 // shortenAgentName creates a short display name for agents
@@ -174,8 +184,14 @@ func (p *agentMessengerImpl) DisplayWelcome() {
 		Background(lipgloss.Color("#1E1E1E"))
 
 	welcome := welcomeStyle.Render("🚀 Gollum Agent System - Interactive Mode")
-	fmt.Printf("\n%s\n\n", welcome)
-	fmt.Printf("%s\n", lipgloss.NewStyle().
+	if _, err := fmt.Fprint(os.Stdout, "\n"+welcome+"\n\n"); err != nil {
+		// Ignore write errors to stdout in UI code
+		_ = err
+	}
+	if _, err := fmt.Fprint(os.Stdout, lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#7F8C8D")).
-		Render("Type 'quit' to exit • Agent communication will be displayed below\n"))
+		Render("Type 'quit' to exit • Agent communication will be displayed below\n")); err != nil {
+		// Ignore write errors to stdout in UI code
+		_ = err
+	}
 }
