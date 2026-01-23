@@ -99,8 +99,9 @@ func TestBackgroundAgent_SyncExecution(t *testing.T) {
 
 	// Create agent output tool for result retrieval
 	outputTool := &AgentOutputTool{
-		registry: agentRegistry,
-		senderID: senderID,
+		registry:    agentRegistry,
+		senderID:    senderID,
+		hookManager: mockHookManager,
 	}
 
 	// Test AgentOutputTool in non-blocking mode

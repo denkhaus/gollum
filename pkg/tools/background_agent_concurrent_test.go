@@ -110,8 +110,9 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 
 	// Create agent output tool
 	outputTool := &AgentOutputTool{
-		registry: agentRegistry,
-		senderID: senderID,
+		registry:    agentRegistry,
+		senderID:    senderID,
+		hookManager: mockHookManager,
 	}
 
 	// Wait for all agents to complete
@@ -278,8 +279,9 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 
 	// Verify permission checks: root can access child but not grandchild directly
 	outputTool := &AgentOutputTool{
-		registry: agentRegistry,
-		senderID: rootID,
+		registry:    agentRegistry,
+		senderID:    rootID,
+		hookManager: mockHookManager,
 	}
 
 	// Root can get child's output (direct parent)

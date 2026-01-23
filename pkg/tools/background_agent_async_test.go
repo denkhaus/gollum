@@ -85,8 +85,9 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 
 	// Create agent output tool for result retrieval
 	outputTool := &AgentOutputTool{
-		registry: agentRegistry,
-		senderID: senderID,
+		registry:    agentRegistry,
+		senderID:    senderID,
+		hookManager: mockHookManager,
 	}
 
 	// Execute spawn agent in background
@@ -201,8 +202,9 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 
 	// Create agent output tool
 	outputTool := &AgentOutputTool{
-		registry: agentRegistry,
-		senderID: senderID,
+		registry:    agentRegistry,
+		senderID:    senderID,
+		hookManager: mockHookManager,
 	}
 
 	// Wait with short timeout - should timeout before completion
@@ -288,8 +290,9 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 
 	// Create agent output tool
 	outputTool := &AgentOutputTool{
-		registry: agentRegistry,
-		senderID: senderID,
+		registry:    agentRegistry,
+		senderID:    senderID,
+		hookManager: mockHookManager,
 	}
 
 	// Spawn agent in background
@@ -386,8 +389,9 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 
 	// Create agent output tool
 	outputTool := &AgentOutputTool{
-		registry: agentRegistry,
-		senderID: senderID,
+		registry:    agentRegistry,
+		senderID:    senderID,
+		hookManager: mockHookManager,
 	}
 
 	// Spawn agent in background
