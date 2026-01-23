@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -15,9 +16,10 @@ import (
 type (
 	// ListAgentsTool lists all subagents of the current agent with their IDs and roles
 	ListAgentsTool struct {
-		logService logger.LoggerService
-		registry   registry.AgentRegistry
-		senderID   uuid.UUID
+		logService  logger.LoggerService
+		hookManager hooks.HookManager
+		registry    registry.AgentRegistry
+		senderID    uuid.UUID
 	}
 
 	// ListAgentsToolProvider creates ListAgentsTool instances via DI
@@ -26,28 +28,32 @@ type (
 	}
 
 	listAgentsToolProvider struct {
-		logService logger.LoggerService
-		registry   registry.AgentRegistry
+		logService  logger.LoggerService
+		hookManager hooks.HookManager
+		registry    registry.AgentRegistry
 	}
 )
 
 // NewListAgentsToolProvider creates a provider for ListAgents tools
 func NewListAgentsToolProvider(injector do.Injector) (ListAgentsToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
+	hookManager := do.MustInvoke[hooks.HookManager](injector)
 	registry := do.MustInvoke[registry.AgentRegistry](injector)
 
 	return &listAgentsToolProvider{
-		logService: logService,
-		registry:   registry,
+		logService:  logService,
+		hookManager: hookManager,
+		registry:    registry,
 	}, nil
 }
 
 // CreateListAgentsTool creates a new ListAgentsTool for a specific sender
 func (p *listAgentsToolProvider) CreateTool(senderID uuid.UUID) *ListAgentsTool {
 	return &ListAgentsTool{
-		logService: p.logService,
-		registry:   p.registry,
-		senderID:   senderID,
+		logService:  p.logService,
+		hookManager: p.hookManager,
+		registry:    p.registry,
+		senderID:    senderID,
 	}
 }
 
@@ -98,7 +104,15 @@ type descendantInfo struct {
 }
 
 // Run executes the ListAgents tool to list all related agents
-func (t *ListAgentsTool) Run(_ context.Context, params map[string]any) (map[string]any, error) {
+func (t *ListAgentsTool) Run(ctx context.Context, params map[string]any) (map[string]any, error) {
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.senderID, shared.ToolNameListAgents, params,
+		func() (map[string]any, error) {
+			return t.runListAgents(ctx, params)
+		})
+}
+
+// runListAgents implements the core ListAgents logic
+func (t *ListAgentsTool) runListAgents(_ context.Context, params map[string]any) (map[string]any, error) {
 	// Parse flags
 	recursive := false
 	tree := false

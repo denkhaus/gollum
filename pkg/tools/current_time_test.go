@@ -6,16 +6,24 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
+	"go.uber.org/mock/gomock"
 )
 
 func TestCurrentTimeTool_Run_DefaultTimezone(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &CurrentTimeTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &CurrentTimeTool{logService: logService, hookManager: mockHookManager}
 
 	result, err := tool.Run(context.Background(), map[string]any{})
 	if err != nil {
@@ -49,9 +57,15 @@ func TestCurrentTimeTool_Run_DefaultTimezone(t *testing.T) {
 }
 
 func TestCurrentTimeTool_Run_UTC(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &CurrentTimeTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &CurrentTimeTool{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"timezone": "UTC",
@@ -78,9 +92,15 @@ func TestCurrentTimeTool_Run_UTC(t *testing.T) {
 }
 
 func TestCurrentTimeTool_Run_AmericaNewYork(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &CurrentTimeTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &CurrentTimeTool{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"timezone": "America/New_York",
@@ -114,9 +134,15 @@ func TestCurrentTimeTool_Run_AmericaNewYork(t *testing.T) {
 }
 
 func TestCurrentTimeTool_Run_EuropeBerlin(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &CurrentTimeTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &CurrentTimeTool{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"timezone": "Europe/Berlin",
@@ -143,9 +169,15 @@ func TestCurrentTimeTool_Run_EuropeBerlin(t *testing.T) {
 }
 
 func TestCurrentTimeTool_Run_InvalidTimezone(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &CurrentTimeTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &CurrentTimeTool{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"timezone": "Invalid/Timezone",
@@ -173,9 +205,15 @@ func TestCurrentTimeTool_Run_InvalidTimezone(t *testing.T) {
 }
 
 func TestCurrentTimeTool_Run_EmptyTimezone(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &CurrentTimeTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &CurrentTimeTool{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"timezone": "",
@@ -193,9 +231,15 @@ func TestCurrentTimeTool_Run_EmptyTimezone(t *testing.T) {
 }
 
 func TestCurrentTimeTool_Run_NonStringTimezone(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &CurrentTimeTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &CurrentTimeTool{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"timezone": 12345,
@@ -214,9 +258,15 @@ func TestCurrentTimeTool_Run_NonStringTimezone(t *testing.T) {
 }
 
 func TestCurrentTimeTool_Run_AsiaTokyo(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &CurrentTimeTool{logService: logService}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &CurrentTimeTool{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"timezone": "Asia/Tokyo",
@@ -281,8 +331,9 @@ func TestCurrentTimeTool_Spec(t *testing.T) {
 func TestCurrentTimeToolProvider_CreateTool(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
+	mockHookManager := mocks.NewMockHookManager(nil) // nil ctrl since we're not setting expectations
 
-	provider := &currentTimeToolProvider{logService: logService}
+	provider := &currentTimeToolProvider{logService: logService, hookManager: mockHookManager}
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
 	tool := provider.CreateTool(testUUID)
