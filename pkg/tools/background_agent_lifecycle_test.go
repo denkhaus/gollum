@@ -114,8 +114,9 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 
 	// Step 3: Get output from the agent
 	outputTool := &AgentOutputTool{
-		registry: agentRegistry,
-		senderID: senderID,
+		registry:    agentRegistry,
+		senderID:    senderID,
+		hookManager: mockHookManager,
 	}
 
 	outputResult, err := outputTool.Run(ctx, map[string]any{
