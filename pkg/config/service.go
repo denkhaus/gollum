@@ -112,6 +112,8 @@ func (c *HooksConfig) GetSecurityMode() string {
 }
 
 // ConfigService defines the configuration service interface
+//
+//revive:disable-next-line:exported
 type ConfigService interface {
 	GetLogLevel() string
 	IsDevMode() bool

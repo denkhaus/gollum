@@ -20,21 +20,21 @@ type LogEntry struct {
 
 // LogFilter defines filtering options for retrieving log entries.
 type LogFilter struct {
-	Level    string    // Filter by log level (debug, info, warn, error)
-	AgentID  uuid.UUID // Filter by specific agent ID
-	Since    time.Time // Filter entries after this timestamp
-	Count    int       // Maximum number of entries to return (0 = all)
-	Reverse  bool      // If true, return entries in reverse chronological order
+	Level   string    // Filter by log level (debug, info, warn, error)
+	AgentID uuid.UUID // Filter by specific agent ID
+	Since   time.Time // Filter entries after this timestamp
+	Count   int       // Maximum number of entries to return (0 = all)
+	Reverse bool      // If true, return entries in reverse chronological order
 }
 
 // logBuffer implements a thread-safe circular buffer for log entries.
 type logBuffer struct {
- entries    []LogEntry
- maxSize    int
- mutex      sync.RWMutex
- headIndex  int
- count      int
- enabled    bool
+	entries   []LogEntry
+	maxSize   int
+	mutex     sync.RWMutex
+	headIndex int
+	count     int
+	enabled   bool
 }
 
 // newLogBuffer creates a new circular buffer for log entries.

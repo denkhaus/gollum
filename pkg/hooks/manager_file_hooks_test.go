@@ -27,8 +27,12 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 			return next()
 		}
 
-		hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false})
-		hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileWrite, Priority: 0, FatalError: false})
+		if err := hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}); err != nil {
+			t.Fatalf("failed to register before hook: %v", err)
+		}
+		if err := hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileWrite, Priority: 0, FatalError: false}); err != nil {
+			t.Fatalf("failed to register after hook: %v", err)
+		}
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -51,7 +55,9 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 			return nil
 		}
 
-		hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileDelete, Priority: 0, FatalError: false})
+		if err := hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileDelete, Priority: 0, FatalError: false}); err != nil {
+			t.Fatalf("failed to register before hook: %v", err)
+		}
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -74,7 +80,9 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 			return errors.New("access denied")
 		}
 
-		hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: true})
+		if err := hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: true}); err != nil {
+			t.Fatalf("failed to register before hook: %v", err)
+		}
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -104,8 +112,12 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 			return next()
 		}
 
-		hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileRead, Priority: 0, FatalError: false})
-		hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileRead, Priority: 0, FatalError: false})
+		if err := hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileRead, Priority: 0, FatalError: false}); err != nil {
+			t.Fatalf("failed to register before hook: %v", err)
+		}
+		if err := hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileRead, Priority: 0, FatalError: false}); err != nil {
+			t.Fatalf("failed to register after hook: %v", err)
+		}
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -186,7 +198,9 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 			return errors.New("fatal after error")
 		}
 
-		hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileWrite, Priority: 0, FatalError: true})
+		if err := hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileWrite, Priority: 0, FatalError: true}); err != nil {
+			t.Fatalf("failed to register after hook: %v", err)
+		}
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -212,7 +226,9 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 			return next()
 		}
 
-		hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileModify, Priority: 0, FatalError: false})
+		if err := hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileModify, Priority: 0, FatalError: false}); err != nil {
+			t.Fatalf("failed to register before hook: %v", err)
+		}
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -237,7 +253,9 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 			return errors.New("non-fatal error")
 		}
 
-		hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false})
+		if err := hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}); err != nil {
+			t.Fatalf("failed to register before hook: %v", err)
+		}
 
 		sessionID := uuid.New()
 		agentID := uuid.New()

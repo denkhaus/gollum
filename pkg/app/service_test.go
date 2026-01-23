@@ -48,7 +48,7 @@ func TestExecuteAgentInput_Cancellation(t *testing.T) {
 		agent := &mockAgent{
 			id:     uuid.New(),
 			config: &shared.AgentConfig{},
-			execute: func(ctx context.Context, input ...gollem.Input) (*gollem.ExecuteResponse, error) {
+			execute: func(_ context.Context, _ ...gollem.Input) (*gollem.ExecuteResponse, error) {
 				executed = true
 				return &gollem.ExecuteResponse{Texts: []string{"response"}}, nil
 			},
@@ -84,7 +84,7 @@ func TestExecuteAgentInput_Cancellation(t *testing.T) {
 		agent := &mockAgent{
 			id:     uuid.New(),
 			config: &shared.AgentConfig{},
-			execute: func(ctx context.Context, input ...gollem.Input) (*gollem.ExecuteResponse, error) {
+			execute: func(ctx context.Context, _ ...gollem.Input) (*gollem.ExecuteResponse, error) {
 				executed = true
 				// Wait for cancellation
 				<-ctx.Done()
@@ -102,8 +102,8 @@ func TestExecuteAgentInput_Cancellation(t *testing.T) {
 		}()
 
 		// Wait for execution to start
-		for !executed {
-			// Small sleep to avoid busy waiting
+		for !executed { //nolint:staticcheck,revive // Intentional busy wait for testing race conditions
+			// Busy wait - this is intentional as we're testing race conditions
 		}
 
 		// Trigger cancellation via currentCancel
@@ -146,7 +146,7 @@ func TestExecuteAgentInput_ContextIsolation(t *testing.T) {
 	agent := &mockAgent{
 		id:     uuid.New(),
 		config: &shared.AgentConfig{},
-		execute: func(ctx context.Context, input ...gollem.Input) (*gollem.ExecuteResponse, error) {
+		execute: func(ctx context.Context, _ ...gollem.Input) (*gollem.ExecuteResponse, error) {
 			// Verify request context is different from global
 			if ctx == globalCtx {
 				t.Error("request context is the same as global context, should be isolated")
@@ -177,7 +177,7 @@ func TestExecuteAgentInput_MultipleExecutions(t *testing.T) {
 	agent := &mockAgent{
 		id:     uuid.New(),
 		config: &shared.AgentConfig{},
-		execute: func(ctx context.Context, input ...gollem.Input) (*gollem.ExecuteResponse, error) {
+		execute: func(_ context.Context, _ ...gollem.Input) (*gollem.ExecuteResponse, error) {
 			executionCount++
 			return &gollem.ExecuteResponse{Texts: []string{"response"}}, nil
 		},

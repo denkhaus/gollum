@@ -40,10 +40,8 @@ func TestGlobTool_Spec(t *testing.T) {
 	// Check path parameter
 	if pathParam, exists := spec.Parameters["path"]; !exists {
 		t.Error("Missing 'path' parameter in spec")
-	} else {
-		if pathParam.Type != gollem.TypeString {
-			t.Errorf("Expected 'path' parameter type to be String, got %v", pathParam.Type)
-		}
+	} else if pathParam.Type != gollem.TypeString {
+		t.Errorf("Expected 'path' parameter type to be String, got %v", pathParam.Type)
 	}
 
 	// Check required parameters
