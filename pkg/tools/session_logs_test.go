@@ -246,7 +246,7 @@ func TestSessionLogsTool_Run_InvalidMode(t *testing.T) {
 	tool := &SessionLogsTool{
 		logService:  mockLoggerService,
 		hookManager: mockHookManager,
-		agentID:    uuid.New(),
+		agentID:     uuid.New(),
 	}
 
 	_, err := tool.Run(context.Background(), map[string]any{
@@ -268,7 +268,7 @@ func TestSessionLogsTool_Run_SinceModeWithoutSince(t *testing.T) {
 	tool := &SessionLogsTool{
 		logService:  mockLoggerService,
 		hookManager: mockHookManager,
-		agentID:    uuid.New(),
+		agentID:     uuid.New(),
 	}
 
 	_, err := tool.Run(context.Background(), map[string]any{
@@ -290,7 +290,7 @@ func TestSessionLogsTool_Run_InvalidDateTime(t *testing.T) {
 	tool := &SessionLogsTool{
 		logService:  mockLoggerService,
 		hookManager: mockHookManager,
-		agentID:    uuid.New(),
+		agentID:     uuid.New(),
 	}
 
 	_, err := tool.Run(context.Background(), map[string]any{
@@ -313,7 +313,7 @@ func TestSessionLogsTool_Run_InvalidAgentID(t *testing.T) {
 	tool := &SessionLogsTool{
 		logService:  mockLoggerService,
 		hookManager: mockHookManager,
-		agentID:    uuid.New(),
+		agentID:     uuid.New(),
 	}
 
 	_, err := tool.Run(context.Background(), map[string]any{
@@ -338,7 +338,7 @@ func TestSessionLogsTool_Run_EmptyLogBuffer(t *testing.T) {
 	tool := &SessionLogsTool{
 		logService:  mockLoggerService,
 		hookManager: mockHookManager,
-		agentID:    uuid.New(),
+		agentID:     uuid.New(),
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -400,7 +400,7 @@ func TestSessionLogsTool_Spec(t *testing.T) {
 	tool := &SessionLogsTool{
 		logService:  mockLoggerService,
 		hookManager: mockHookManager,
-		agentID:    uuid.New(),
+		agentID:     uuid.New(),
 	}
 
 	spec := tool.Spec()
@@ -565,7 +565,7 @@ func TestSessionLogsTool_InvalidCount(t *testing.T) {
 	tool := &SessionLogsTool{
 		logService:  mockLoggerService,
 		hookManager: mockHookManager,
-		agentID:    uuid.New(),
+		agentID:     uuid.New(),
 	}
 
 	_, err := tool.Run(context.Background(), map[string]any{
@@ -588,7 +588,7 @@ func TestSessionLogsTool_ZeroCount(t *testing.T) {
 	tool := &SessionLogsTool{
 		logService:  mockLoggerService,
 		hookManager: mockHookManager,
-		agentID:    uuid.New(),
+		agentID:     uuid.New(),
 	}
 
 	_, err := tool.Run(context.Background(), map[string]any{
