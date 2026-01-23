@@ -1,0 +1,90 @@
+package tools
+
+import (
+	"context"
+	"testing"
+
+	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/samber/do/v2"
+	"go.uber.org/mock/gomock"
+)
+
+func TestGlobTool_Run_MissingPattern(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
+
+	args := map[string]any{
+		"path": "/some/path",
+	}
+
+	result, err := tool.Run(context.Background(), args)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	if success, ok := result["success"].(bool); ok && success {
+		t.Error("Expected success=false when pattern is missing")
+	}
+
+	if result["error"] != "pattern is required and must be a non-empty string" {
+		t.Errorf("Expected specific error message, got: %v", result["error"])
+	}
+}
+
+func TestGlobTool_Run_EmptyPattern(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
+
+	args := map[string]any{
+		"pattern": "",
+	}
+
+	result, err := tool.Run(context.Background(), args)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	if success, ok := result["success"].(bool); ok && success {
+		t.Error("Expected success=false when pattern is empty")
+	}
+}
+
+func TestGlobTool_Run_NonStringPattern(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
+
+	args := map[string]any{
+		"pattern": 12345,
+	}
+
+	result, err := tool.Run(context.Background(), args)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	if success, ok := result["success"].(bool); ok && success {
+		t.Error("Expected success=false when pattern is not a string")
+	}
+}
