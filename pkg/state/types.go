@@ -85,10 +85,10 @@ const (
 
 // FileChange represents a detected file modification
 type FileChange struct {
-	Path        string          `json:"path"`          // File path that changed
-	Operation   ChangeOperation `json:"operation"`     // Type of change
-	OldChecksum string          `json:"-"`             // Checksum before change (empty if Created, omitted from JSON)
-	NewChecksum string          `json:"-"`             // Checksum after change (empty if Deleted, omitted from JSON)
+	Path        string          `json:"path"`      // File path that changed
+	Operation   ChangeOperation `json:"operation"` // Type of change
+	OldChecksum string          `json:"-"`         // Checksum before change (empty if Created, omitted from JSON)
+	NewChecksum string          `json:"-"`         // Checksum after change (empty if Deleted, omitted from JSON)
 }
 
 // String returns a human-readable representation of the change operation
