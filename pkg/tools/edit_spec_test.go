@@ -1,0 +1,90 @@
+package tools
+
+import (
+	"testing"
+
+	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/google/uuid"
+	"github.com/samber/do/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+)
+
+// TestEditToolSpec verifies the tool specification
+func TestEditToolSpec(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	tool := &EditTool{
+		fsm:         mockFSM,
+		hookManager: mockHookManager,
+		agentID:     uuid.New(),
+	}
+
+	spec := tool.Spec()
+
+	assert.Equal(t, "edit", spec.Name)
+	assert.Contains(t, spec.Description, "exact string replacements")
+	assert.Contains(t, spec.Description, "read first")
+
+	// Check required parameters
+	assert.Equal(t, []string{"file_path", "old_string", "new_string"}, spec.Required)
+
+	// Check all parameters exist
+	require.Contains(t, spec.Parameters, "file_path")
+	require.Contains(t, spec.Parameters, "old_string")
+	require.Contains(t, spec.Parameters, "new_string")
+	require.Contains(t, spec.Parameters, "replace_all")
+
+	// replace_all should not be required
+	param := spec.Parameters["replace_all"]
+	assert.NotNil(t, param)
+}
+
+// TestEditToolSpecIsConstant verifies that calling Spec() multiple times returns consistent results
+func TestEditToolSpecIsConstant(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	tool := &EditTool{
+		fsm:         mockFSM,
+		hookManager: mockHookManager,
+		agentID:     uuid.New(),
+	}
+
+	spec1 := tool.Spec()
+	spec2 := tool.Spec()
+
+	assert.Equal(t, spec1.Name, spec2.Name)
+	assert.Equal(t, spec1.Description, spec2.Description)
+	assert.Equal(t, spec1.Required, spec2.Required)
+}
+
+// TestEditToolProvider tests the provider
+func TestEditToolProvider(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+	mockFSM := mocks.NewMockFileStateManager(ctrl)
+
+	provider := &editToolProvider{
+		logService: logService,
+		fsm:        mockFSM,
+	}
+
+	agentID := uuid.New()
+	tool := provider.CreateTool(agentID)
+
+	require.NotNil(t, tool)
+	assert.Equal(t, agentID, tool.agentID)
+	assert.Equal(t, logService, tool.logService)
+	assert.Equal(t, mockFSM, tool.fsm)
+}
