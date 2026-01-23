@@ -20,9 +20,13 @@ func TestAgentOutputTool_Spec(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	tool := &AgentOutputTool{
-		registry: mockRegistry,
-		senderID: uuid.New(),
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    uuid.New(),
 	}
 
 	spec := tool.Spec()
@@ -52,9 +56,13 @@ func TestAgentOutputTool_Run_MissingAgentID(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	tool := &AgentOutputTool{
-		registry: mockRegistry,
-		senderID: uuid.New(),
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    uuid.New(),
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{})
@@ -70,9 +78,13 @@ func TestAgentOutputTool_Run_EmptyAgentID(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	tool := &AgentOutputTool{
-		registry: mockRegistry,
-		senderID: uuid.New(),
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    uuid.New(),
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -89,9 +101,13 @@ func TestAgentOutputTool_Run_InvalidUUID(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	tool := &AgentOutputTool{
-		registry: mockRegistry,
-		senderID: uuid.New(),
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    uuid.New(),
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -108,6 +124,9 @@ func TestAgentOutputTool_Run_AgentNotFound(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	senderID := uuid.New()
 	agentID := uuid.New()
 
@@ -121,8 +140,9 @@ func TestAgentOutputTool_Run_AgentNotFound(t *testing.T) {
 		Return(nil, false)
 
 	tool := &AgentOutputTool{
-		registry: mockRegistry,
-		senderID: senderID,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -139,6 +159,9 @@ func TestAgentOutputTool_Run_NonBlockingMode_Running(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	senderID := uuid.New()
 	agentID := uuid.New()
 	startedAt := time.Now().Unix()
@@ -159,8 +182,9 @@ func TestAgentOutputTool_Run_NonBlockingMode_Running(t *testing.T) {
 		Return(taskResult, true)
 
 	tool := &AgentOutputTool{
-		registry: mockRegistry,
-		senderID: senderID,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -183,6 +207,9 @@ func TestAgentOutputTool_Run_NonBlockingMode_Completed(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	senderID := uuid.New()
 	agentID := uuid.New()
 	startedAt := time.Now().Add(-1 * time.Hour).Unix()
@@ -211,8 +238,9 @@ func TestAgentOutputTool_Run_NonBlockingMode_Completed(t *testing.T) {
 		Return(taskResult, true)
 
 	tool := &AgentOutputTool{
-		registry: mockRegistry,
-		senderID: senderID,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -234,6 +262,9 @@ func TestAgentOutputTool_Run_NonBlockingMode_Failed(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	senderID := uuid.New()
 	agentID := uuid.New()
 	startedAt := time.Now().Add(-1 * time.Hour).Unix()
@@ -257,8 +288,9 @@ func TestAgentOutputTool_Run_NonBlockingMode_Failed(t *testing.T) {
 		Return(taskResult, true)
 
 	tool := &AgentOutputTool{
-		registry: mockRegistry,
-		senderID: senderID,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -280,6 +312,9 @@ func TestAgentOutputTool_Run_BlockingMode_Completed(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	senderID := uuid.New()
 	agentID := uuid.New()
 	startedAt := time.Now().Add(-1 * time.Hour).Unix()
@@ -311,8 +346,9 @@ func TestAgentOutputTool_Run_BlockingMode_Completed(t *testing.T) {
 		Return(taskResult, nil)
 
 	tool := &AgentOutputTool{
-		registry: mockRegistry,
-		senderID: senderID,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -334,6 +370,9 @@ func TestAgentOutputTool_Run_BlockingMode_Timeout(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	senderID := uuid.New()
 	agentID := uuid.New()
 	startedAt := time.Now().Unix()
@@ -358,8 +397,9 @@ func TestAgentOutputTool_Run_BlockingMode_Timeout(t *testing.T) {
 		Return(taskResult, errors.New("timeout waiting for agent"))
 
 	tool := &AgentOutputTool{
-		registry: mockRegistry,
-		senderID: senderID,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -380,6 +420,9 @@ func TestAgentOutputTool_Run_BlockingMode_Failed(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	senderID := uuid.New()
 	agentID := uuid.New()
 	startedAt := time.Now().Add(-1 * time.Hour).Unix()
@@ -407,8 +450,9 @@ func TestAgentOutputTool_Run_BlockingMode_Failed(t *testing.T) {
 		Return(taskResult, nil)
 
 	tool := &AgentOutputTool{
-		registry: mockRegistry,
-		senderID: senderID,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -430,6 +474,9 @@ func TestAgentOutputTool_Run_CustomTimeout(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	senderID := uuid.New()
 	agentID := uuid.New()
 	startedAt := time.Now().Unix()
@@ -454,8 +501,9 @@ func TestAgentOutputTool_Run_CustomTimeout(t *testing.T) {
 		Return(taskResult, nil)
 
 	tool := &AgentOutputTool{
-		registry: mockRegistry,
-		senderID: senderID,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -473,6 +521,9 @@ func TestAgentOutputTool_Run_TimeoutClamping_Int(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	senderID := uuid.New()
 	agentID := uuid.New()
 
@@ -511,8 +562,9 @@ func TestAgentOutputTool_Run_TimeoutClamping_Int(t *testing.T) {
 				Return(taskResult, nil)
 
 			tool := &AgentOutputTool{
-				registry: mockRegistry,
-				senderID: senderID,
+				hookManager: mockHookManager,
+				registry:    mockRegistry,
+				senderID:    senderID,
 			}
 
 			result, err := tool.Run(context.Background(), map[string]any{
@@ -533,6 +585,9 @@ func TestAgentOutputTool_Run_TimeoutClamping_Float(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	senderID := uuid.New()
 	agentID := uuid.New()
 
@@ -568,8 +623,9 @@ func TestAgentOutputTool_Run_TimeoutClamping_Float(t *testing.T) {
 				Return(taskResult, nil)
 
 			tool := &AgentOutputTool{
-				registry: mockRegistry,
-				senderID: senderID,
+				hookManager: mockHookManager,
+				registry:    mockRegistry,
+				senderID:    senderID,
 			}
 
 			result, err := tool.Run(context.Background(), map[string]any{
@@ -590,6 +646,9 @@ func TestAgentOutputTool_Run_DefaultBlockValue(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	senderID := uuid.New()
 	agentID := uuid.New()
 	startedAt := time.Now().Unix()
@@ -615,8 +674,9 @@ func TestAgentOutputTool_Run_DefaultBlockValue(t *testing.T) {
 		Return(taskResult, nil)
 
 	tool := &AgentOutputTool{
-		registry: mockRegistry,
-		senderID: senderID,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	// No "block" parameter provided - should default to blocking mode
@@ -633,16 +693,19 @@ func TestAgentOutputToolProvider(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
 	senderID := uuid.New()
 
 	provider := &agentOutputToolProvider{
-		registry: mockRegistry,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
 	}
 
 	tool := provider.CreateTool(senderID)
 
 	assert.NotNil(t, tool)
 	assert.Equal(t, mockRegistry, tool.registry)
+	assert.Equal(t, mockHookManager, tool.hookManager)
 	assert.Equal(t, senderID, tool.senderID)
 }
 
@@ -652,6 +715,9 @@ func TestAgentOutputTool_Run_PermissionDenied(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	senderID := uuid.New()
 	agentID := uuid.New()
 
@@ -661,8 +727,9 @@ func TestAgentOutputTool_Run_PermissionDenied(t *testing.T) {
 		Return(false)
 
 	tool := &AgentOutputTool{
-		registry: mockRegistry,
-		senderID: senderID,
+		hookManager: mockHookManager,
+		registry:    mockRegistry,
+		senderID:    senderID,
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{

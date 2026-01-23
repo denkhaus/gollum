@@ -105,8 +105,9 @@ func TestBackgroundAgent_SyncExecution(t *testing.T) {
 
 	// Create agent output tool for result retrieval
 	outputTool := &AgentOutputTool{
-		registry: agentRegistry,
-		senderID: senderID,
+		registry:    agentRegistry,
+		hookManager: mockHookManager,
+		senderID:    senderID,
 	}
 
 	// Test AgentOutputTool in non-blocking mode
@@ -188,8 +189,9 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 
 	// Create agent output tool for result retrieval
 	outputTool := &AgentOutputTool{
-		registry: agentRegistry,
-		senderID: senderID,
+		registry:    agentRegistry,
+		hookManager: mockHookManager,
+		senderID:    senderID,
 	}
 
 	// Execute spawn agent in background
@@ -304,8 +306,9 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 
 	// Create agent output tool
 	outputTool := &AgentOutputTool{
-		registry: agentRegistry,
-		senderID: senderID,
+		registry:    agentRegistry,
+		hookManager: mockHookManager,
+		senderID:    senderID,
 	}
 
 	// Wait with short timeout - should timeout before completion
@@ -470,8 +473,9 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 
 	// Create agent output tool
 	outputTool := &AgentOutputTool{
-		registry: agentRegistry,
-		senderID: senderID,
+		registry:    agentRegistry,
+		hookManager: mockHookManager,
+		senderID:    senderID,
 	}
 
 	// Spawn agent in background
@@ -595,8 +599,9 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 
 	// Create agent output tool
 	outputTool := &AgentOutputTool{
-		registry: agentRegistry,
-		senderID: senderID,
+		registry:    agentRegistry,
+		hookManager: mockHookManager,
+		senderID:    senderID,
 	}
 
 	// Wait for all agents to complete
@@ -690,8 +695,9 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 
 	// Create agent output tool
 	outputTool := &AgentOutputTool{
-		registry: agentRegistry,
-		senderID: senderID,
+		registry:    agentRegistry,
+		hookManager: mockHookManager,
+		senderID:    senderID,
 	}
 
 	// Spawn agent in background
@@ -829,8 +835,9 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 
 	// Step 3: Get output from the agent
 	outputTool := &AgentOutputTool{
-		registry: agentRegistry,
-		senderID: senderID,
+		registry:    agentRegistry,
+		hookManager: mockHookManager,
+		senderID:    senderID,
 	}
 
 	outputResult, err := outputTool.Run(ctx, map[string]any{
@@ -1008,8 +1015,9 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 
 	// Verify permission checks: root can access child but not grandchild directly
 	outputTool := &AgentOutputTool{
-		registry: agentRegistry,
-		senderID: rootID,
+		registry:    agentRegistry,
+		hookManager: mockHookManager,
+		senderID:    rootID,
 	}
 
 	// Root can get child's output (direct parent)

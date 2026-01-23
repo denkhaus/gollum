@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -16,8 +17,9 @@ import (
 type (
 	// SessionLogsTool allows agents to query session logs with filtering.
 	SessionLogsTool struct {
-		logService logger.LoggerService
-		agentID    uuid.UUID
+		logService  logger.LoggerService
+		hookManager hooks.HookManager
+		agentID     uuid.UUID
 	}
 
 	// SessionLogsToolProvider creates SessionLogsTool instances via DI.
@@ -26,26 +28,40 @@ type (
 	}
 
 	sessionLogsToolProvider struct {
-		logService logger.LoggerService
+		logService  logger.LoggerService
+		hookManager hooks.HookManager
 	}
 )
 
 // NewSessionLogsToolProvider creates a provider for SessionLogs tools.
 func NewSessionLogsToolProvider(injector do.Injector) (SessionLogsToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	return &sessionLogsToolProvider{logService: logService}, nil
+	hookManager := do.MustInvoke[hooks.HookManager](injector)
+	return &sessionLogsToolProvider{
+		logService:  logService,
+		hookManager: hookManager,
+	}, nil
 }
 
 // CreateSessionLogsTool creates a new SessionLogsTool with agent ID.
 func (p *sessionLogsToolProvider) CreateTool(agentID uuid.UUID) *SessionLogsTool {
 	return &SessionLogsTool{
-		logService: p.logService,
-		agentID:    agentID,
+		logService:  p.logService,
+		hookManager: p.hookManager,
+		agentID:     agentID,
 	}
 }
 
 // Run executes the SessionLogs tool to retrieve filtered log entries.
-func (t *SessionLogsTool) Run(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *SessionLogsTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameSessionLogs, args,
+		func() (map[string]any, error) {
+			return t.runSessionLogs(ctx, args)
+		})
+}
+
+// runSessionLogs implements the core SessionLogs logic
+func (t *SessionLogsTool) runSessionLogs(_ context.Context, args map[string]any) (map[string]any, error) {
 	// Get mode parameter (required)
 	mode, exists := args["mode"].(string)
 	if !exists || mode == "" {
@@ -144,11 +160,11 @@ func (t *SessionLogsTool) Run(_ context.Context, args map[string]any) (map[strin
 
 	// Build response
 	result := map[string]any{
-		"entries": jsonEntries,
-		"total_matching": len(jsonEntries),
-		"returned": len(jsonEntries),
+		"entries":         jsonEntries,
+		"total_matching":  len(jsonEntries),
+		"returned":        len(jsonEntries),
 		"filters_applied": map[string]interface{}{
-			"mode": mode,
+			"mode":  mode,
 			"count": count,
 		},
 	}
