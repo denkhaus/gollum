@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -11,11 +12,16 @@ import (
 	"github.com/samber/do/v2"
 )
 
+const (
+	defaultTimezone = "UTC"
+)
+
 type (
 	// CurrentTimeTool returns the current time
 	CurrentTimeTool struct {
-		logService logger.LoggerService
-		agentID    uuid.UUID
+		logService  logger.LoggerService
+		hookManager hooks.HookManager
+		agentID     uuid.UUID
 	}
 	// CurrentTimeToolProvider creates CurrentTimeTool instances via DI
 	CurrentTimeToolProvider interface {
@@ -23,28 +29,42 @@ type (
 	}
 
 	currentTimeToolProvider struct {
-		logService logger.LoggerService
+		logService  logger.LoggerService
+		hookManager hooks.HookManager
 	}
 )
 
 // NewCurrentTimeToolProvider creates a provider for CurrentTime tools
 func NewCurrentTimeToolProvider(injector do.Injector) (CurrentTimeToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	return &currentTimeToolProvider{logService: logService}, nil
+	hookManager := do.MustInvoke[hooks.HookManager](injector)
+	return &currentTimeToolProvider{
+		logService:  logService,
+		hookManager: hookManager,
+	}, nil
 }
 
 // CreateCurrentTimeTool creates a new CurrentTimeTool with agent ID
 func (p *currentTimeToolProvider) CreateTool(agentID uuid.UUID) *CurrentTimeTool {
 	return &CurrentTimeTool{
-		logService: p.logService,
-		agentID:    agentID,
+		logService:  p.logService,
+		hookManager: p.hookManager,
+		agentID:     agentID,
 	}
 }
 
 // Run executes the CurrentTime tool to return the current time
-func (t *CurrentTimeTool) Run(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *CurrentTimeTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameCurrentTime, args,
+		func() (map[string]any, error) {
+			return t.runCurrentTime(ctx, args)
+		})
+}
+
+// runCurrentTime implements the core CurrentTime logic
+func (t *CurrentTimeTool) runCurrentTime(_ context.Context, args map[string]any) (map[string]any, error) {
 	// Get timezone from args, default to UTC
-	timezone := "UTC"
+	timezone := defaultTimezone
 	if tz, exists := args["timezone"].(string); exists && tz != "" {
 		timezone = tz
 	}

@@ -22,6 +22,12 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	outputModeContent          = "content"
+	outputModeFilesWithMatches = "files_with_matches"
+	outputModeCount            = "count"
+)
+
 type (
 	// GrepTool searches file contents with regex patterns
 	GrepTool struct {
@@ -155,19 +161,19 @@ func (t *GrepTool) runGrep(ctx context.Context, args map[string]any) (map[string
 	}
 
 	// Get output mode (default: content)
-	outputMode := "content"
+	outputMode := outputModeContent
 	if modeVal, exists := args["output_mode"].(string); exists && modeVal != "" {
 		outputMode = modeVal
 	}
 
 	// Validate output mode
-	if outputMode != "content" && outputMode != "files_with_matches" && outputMode != "count" {
+	if outputMode != outputModeContent && outputMode != outputModeFilesWithMatches && outputMode != outputModeCount {
 		t.logService.Error("Grep operation failed: invalid output_mode",
 			zap.String("agent_id", t.agentID.String()),
 			zap.String("output_mode", outputMode))
 		return map[string]any{
 			"success": false,
-			"error":   fmt.Sprintf("invalid output_mode: %s (must be 'content', 'files_with_matches', or 'count')", outputMode),
+			"error":   fmt.Sprintf("invalid output_mode: %s (must be '%s', '%s', or '%s')", outputMode, outputModeContent, outputModeFilesWithMatches, outputModeCount),
 		}, nil
 	}
 
