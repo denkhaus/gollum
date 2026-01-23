@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -13,11 +14,19 @@ import (
 	"github.com/samber/do/v2"
 )
 
+const (
+	modeHead  = "head"
+	modeTail  = "tail"
+	modeSince = "since"
+	modeAll   = "all"
+)
+
 type (
 	// SessionLogsTool allows agents to query session logs with filtering.
 	SessionLogsTool struct {
-		logService logger.LoggerService
-		agentID    uuid.UUID
+		logService  logger.LoggerService
+		hookManager hooks.HookManager
+		agentID     uuid.UUID
 	}
 
 	// SessionLogsToolProvider creates SessionLogsTool instances via DI.
@@ -26,36 +35,50 @@ type (
 	}
 
 	sessionLogsToolProvider struct {
-		logService logger.LoggerService
+		logService  logger.LoggerService
+		hookManager hooks.HookManager
 	}
 )
 
 // NewSessionLogsToolProvider creates a provider for SessionLogs tools.
 func NewSessionLogsToolProvider(injector do.Injector) (SessionLogsToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	return &sessionLogsToolProvider{logService: logService}, nil
+	hookManager := do.MustInvoke[hooks.HookManager](injector)
+	return &sessionLogsToolProvider{
+		logService:  logService,
+		hookManager: hookManager,
+	}, nil
 }
 
 // CreateSessionLogsTool creates a new SessionLogsTool with agent ID.
 func (p *sessionLogsToolProvider) CreateTool(agentID uuid.UUID) *SessionLogsTool {
 	return &SessionLogsTool{
-		logService: p.logService,
-		agentID:    agentID,
+		logService:  p.logService,
+		hookManager: p.hookManager,
+		agentID:     agentID,
 	}
 }
 
 // Run executes the SessionLogs tool to retrieve filtered log entries.
-func (t *SessionLogsTool) Run(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *SessionLogsTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameSessionLogs, args,
+		func() (map[string]any, error) {
+			return t.runSessionLogs(ctx, args)
+		})
+}
+
+// runSessionLogs implements the core SessionLogs logic
+func (t *SessionLogsTool) runSessionLogs(_ context.Context, args map[string]any) (map[string]any, error) {
 	// Get mode parameter (required)
 	mode, exists := args["mode"].(string)
 	if !exists || mode == "" {
 		// Default to tail mode
-		mode = "tail"
+		mode = modeTail
 	}
 
 	// Validate mode
 	if !isValidMode(mode) {
-		return nil, fmt.Errorf("invalid mode: %s (must be one of: head, tail, since, all)", mode)
+		return nil, fmt.Errorf("invalid mode: %s (must be one of: %s, %s, %s, %s)", mode, modeHead, modeTail, modeSince, modeAll)
 	}
 
 	// Parse optional parameters
@@ -85,7 +108,7 @@ func (t *SessionLogsTool) Run(_ context.Context, args map[string]any) (map[strin
 	}
 
 	// Handle "since" mode
-	if mode == "since" {
+	if mode == modeSince {
 		sinceStr, exists := args["since"].(string)
 		if !exists || sinceStr == "" {
 			return nil, fmt.Errorf("since parameter is required for 'since' mode")
@@ -100,19 +123,19 @@ func (t *SessionLogsTool) Run(_ context.Context, args map[string]any) (map[strin
 
 	// Apply mode-specific logic
 	switch mode {
-	case "head":
+	case modeHead:
 		// Head: newest first (reverse), limited by count
 		filter.Reverse = true
 		filter.Count = count
-	case "tail":
+	case modeTail:
 		// Tail: oldest first (chronological), limited by count
 		filter.Count = count
-	case "since":
+	case modeSince:
 		// Since: chronological order, no count limit (use count as soft limit if huge)
 		if count > 0 {
 			filter.Count = count
 		}
-	case "all":
+	case modeAll:
 		// All: chronological order, optional count limit
 		if count > 0 {
 			filter.Count = count
@@ -144,11 +167,11 @@ func (t *SessionLogsTool) Run(_ context.Context, args map[string]any) (map[strin
 
 	// Build response
 	result := map[string]any{
-		"entries": jsonEntries,
+		"entries":        jsonEntries,
 		"total_matching": len(jsonEntries),
-		"returned": len(jsonEntries),
+		"returned":       len(jsonEntries),
 		"filters_applied": map[string]interface{}{
-			"mode": mode,
+			"mode":  mode,
 			"count": count,
 		},
 	}
@@ -171,13 +194,13 @@ func (t *SessionLogsTool) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
 		Name: shared.ToolNameSessionLogs,
 		Description: "Queries session logs with intelligent filtering. " +
-			"Supports multiple modes: 'tail' (last N entries, default), 'head' (first N entries, newest first), " +
-			"'since' (all entries after a datetime), and 'all' (all entries with optional count limit). " +
+			"Supports multiple modes: '" + modeTail + "' (last N entries, default), '" + modeHead + "' (first N entries, newest first), " +
+			"'" + modeSince + "' (all entries after a datetime), and '" + modeAll + "' (all entries with optional count limit). " +
 			"Optional filters: level (debug/info/warn/error), agent_id (specific agent UUID).",
 		Parameters: map[string]*gollem.Parameter{
 			"mode": {
 				Type:        gollem.TypeString,
-				Description: "Query mode: 'tail' (last N, chronological), 'head' (first N, newest first), 'since' (after datetime), 'all' (all entries). Defaults to 'tail'.",
+				Description: "Query mode: '" + modeTail + "' (last N, chronological), '" + modeHead + "' (first N, newest first), '" + modeSince + "' (after datetime), '" + modeAll + "' (all entries). Defaults to '" + modeTail + "'.",
 			},
 			"count": {
 				Type:        gollem.TypeInteger,
@@ -202,7 +225,7 @@ func (t *SessionLogsTool) Spec() gollem.ToolSpec {
 // isValidMode checks if the mode is valid.
 func isValidMode(mode string) bool {
 	switch mode {
-	case "head", "tail", "since", "all":
+	case modeHead, modeTail, modeSince, modeAll:
 		return true
 	default:
 		return false

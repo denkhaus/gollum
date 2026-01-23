@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -16,8 +17,9 @@ import (
 type (
 	// AgentOutputTool retrieves results from background agents
 	AgentOutputTool struct {
-		registry registry.AgentRegistry
-		senderID uuid.UUID
+		hookManager hooks.HookManager
+		registry    registry.AgentRegistry
+		senderID    uuid.UUID
 	}
 
 	// AgentOutputToolProvider creates AgentOutputTool instances via DI
@@ -26,24 +28,28 @@ type (
 	}
 
 	agentOutputToolProvider struct {
-		registry registry.AgentRegistry
+		hookManager hooks.HookManager
+		registry    registry.AgentRegistry
 	}
 )
 
 // NewAgentOutputToolProvider creates a provider for AgentOutput tools
 func NewAgentOutputToolProvider(injector do.Injector) (AgentOutputToolProvider, error) {
+	hookManager := do.MustInvoke[hooks.HookManager](injector)
 	registry := do.MustInvoke[registry.AgentRegistry](injector)
 
 	return &agentOutputToolProvider{
-		registry: registry,
+		hookManager: hookManager,
+		registry:    registry,
 	}, nil
 }
 
 // CreateAgentOutputTool creates a new AgentOutputTool for a specific sender
 func (p *agentOutputToolProvider) CreateTool(senderID uuid.UUID) *AgentOutputTool {
 	return &AgentOutputTool{
-		registry: p.registry,
-		senderID: senderID,
+		hookManager: p.hookManager,
+		registry:    p.registry,
+		senderID:    senderID,
 	}
 }
 
@@ -72,6 +78,14 @@ func (t *AgentOutputTool) Spec() gollem.ToolSpec {
 
 // Run executes the AgentOutput tool to retrieve results from background agents
 func (t *AgentOutputTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.senderID, shared.ToolNameAgentOutput, args,
+		func() (map[string]any, error) {
+			return t.runAgentOutput(ctx, args)
+		})
+}
+
+// runAgentOutput implements the core AgentOutput logic
+func (t *AgentOutputTool) runAgentOutput(ctx context.Context, args map[string]any) (map[string]any, error) {
 	// Validate agent_id
 	agentIDStr, ok := args["agent_id"].(string)
 	if !ok || agentIDStr == "" {

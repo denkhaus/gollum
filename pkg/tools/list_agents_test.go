@@ -21,10 +21,14 @@ func TestListAgentsTool_Spec(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	registry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
 	tool := &ListAgentsTool{
-		logService: logService,
-		registry:   registry,
-		senderID:   uuid.New(),
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    registry,
+		senderID:    uuid.New(),
 	}
 
 	spec := tool.Spec()
@@ -54,13 +58,16 @@ func TestListAgentsTool_Run_SuccessNoRelatedAgents(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	senderID := uuid.New()
 	registry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 	registry.EXPECT().GetChildren(senderID).Return([]shared.Agent{})
 	registry.EXPECT().GetParent(senderID).Return(nil, false)
 
 	tool := &ListAgentsTool{
-		logService: logService,
-		registry:   registry,
-		senderID:   senderID,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    registry,
+		senderID:    senderID,
 	}
 
 	ctx := context.Background()
@@ -85,6 +92,8 @@ func TestListAgentsTool_Run_SuccessWithSubagentsOnly(t *testing.T) {
 	childID2 := uuid.New()
 
 	registry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock child agents
 	child1 := mocks.NewMockAgent(ctrl)
@@ -106,9 +115,10 @@ func TestListAgentsTool_Run_SuccessWithSubagentsOnly(t *testing.T) {
 	registry.EXPECT().GetParent(senderID).Return(nil, false) // No parent
 
 	tool := &ListAgentsTool{
-		logService: logService,
-		registry:   registry,
-		senderID:   senderID,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    registry,
+		senderID:    senderID,
 	}
 
 	ctx := context.Background()
@@ -142,6 +152,8 @@ func TestListAgentsTool_Run_SuccessWithParentOnly(t *testing.T) {
 	parentID := uuid.New()
 
 	registry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock parent agent
 	parent := mocks.NewMockAgent(ctrl)
@@ -157,9 +169,10 @@ func TestListAgentsTool_Run_SuccessWithParentOnly(t *testing.T) {
 	registry.EXPECT().GetParent(senderID).Return(parent, true)
 
 	tool := &ListAgentsTool{
-		logService: logService,
-		registry:   registry,
-		senderID:   senderID,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    registry,
+		senderID:    senderID,
 	}
 
 	ctx := context.Background()
@@ -190,6 +203,8 @@ func TestListAgentsTool_Run_SuccessWithParentAndSubagents(t *testing.T) {
 	childID2 := uuid.New()
 
 	registry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock parent agent
 	parent := mocks.NewMockAgent(ctrl)
@@ -219,9 +234,10 @@ func TestListAgentsTool_Run_SuccessWithParentAndSubagents(t *testing.T) {
 	registry.EXPECT().GetParent(senderID).Return(parent, true)
 
 	tool := &ListAgentsTool{
-		logService: logService,
-		registry:   registry,
-		senderID:   senderID,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    registry,
+		senderID:    senderID,
 	}
 
 	ctx := context.Background()
@@ -306,6 +322,8 @@ func TestListAgentsTool_Run_RecursiveFlag(t *testing.T) {
 	grandchildID := uuid.New()
 
 	registry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock agents
 	child1 := mocks.NewMockAgent(ctrl)
@@ -333,9 +351,10 @@ func TestListAgentsTool_Run_RecursiveFlag(t *testing.T) {
 	registry.EXPECT().GetChildren(grandchildID).Return([]shared.Agent{}) // No more descendants
 
 	tool := &ListAgentsTool{
-		logService: logService,
-		registry:   registry,
-		senderID:   senderID,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    registry,
+		senderID:    senderID,
 	}
 
 	ctx := context.Background()
@@ -372,6 +391,8 @@ func TestListAgentsTool_Run_TreeFlag(t *testing.T) {
 	childID2 := uuid.New()
 
 	registry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock child agents
 	child1 := mocks.NewMockAgent(ctrl)
@@ -394,9 +415,10 @@ func TestListAgentsTool_Run_TreeFlag(t *testing.T) {
 	registry.EXPECT().GetChildren(senderID).Return([]shared.Agent{child1, child2})
 
 	tool := &ListAgentsTool{
-		logService: logService,
-		registry:   registry,
-		senderID:   senderID,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    registry,
+		senderID:    senderID,
 	}
 
 	ctx := context.Background()
@@ -412,8 +434,8 @@ func TestListAgentsTool_Run_TreeFlag(t *testing.T) {
 	assert.Contains(t, treeOutput, "(YOU)")
 	assert.Contains(t, treeOutput, "Child Agent 1")
 	assert.Contains(t, treeOutput, "Child Agent 2")
-	assert.Contains(t, treeOutput, "├─")  // Tree connector
-	assert.Contains(t, treeOutput, "└─")  // Tree connector for last item
+	assert.Contains(t, treeOutput, "├─") // Tree connector
+	assert.Contains(t, treeOutput, "└─") // Tree connector for last item
 }
 
 func TestListAgentsTool_Run_TreeFlagWithRecursive(t *testing.T) {
@@ -427,6 +449,8 @@ func TestListAgentsTool_Run_TreeFlagWithRecursive(t *testing.T) {
 	grandchildID := uuid.New()
 
 	registry := mocks.NewMockAgentRegistry(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock agents
 	child := mocks.NewMockAgent(ctrl)
@@ -451,9 +475,10 @@ func TestListAgentsTool_Run_TreeFlagWithRecursive(t *testing.T) {
 	registry.EXPECT().GetChildren(grandchildID).Return([]shared.Agent{}) // No more descendants
 
 	tool := &ListAgentsTool{
-		logService: logService,
-		registry:   registry,
-		senderID:   senderID,
+		logService:  logService,
+		hookManager: mockHookManager,
+		registry:    registry,
+		senderID:    senderID,
 	}
 
 	ctx := context.Background()
@@ -468,4 +493,3 @@ func TestListAgentsTool_Run_TreeFlagWithRecursive(t *testing.T) {
 	assert.Contains(t, treeOutput, "Child Agent")
 	assert.Contains(t, treeOutput, "Grandchild Agent")
 }
-

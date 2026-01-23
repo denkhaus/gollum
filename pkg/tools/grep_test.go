@@ -542,37 +542,29 @@ func TestGrepTool_Spec(t *testing.T) {
 	// Check pattern parameter
 	if patternParam, exists := spec.Parameters["pattern"]; !exists {
 		t.Error("Missing 'pattern' parameter in spec")
-	} else {
-		if patternParam.Type != gollem.TypeString {
-			t.Errorf("Expected 'pattern' parameter type to be String, got %v", patternParam.Type)
-		}
+	} else if patternParam.Type != gollem.TypeString { //nolint:gocritic // Need variable from if condition
+		t.Errorf("Expected 'pattern' parameter type to be String, got %v", patternParam.Type)
 	}
 
 	// Check output_mode parameter
 	if modeParam, exists := spec.Parameters["output_mode"]; !exists {
 		t.Error("Missing 'output_mode' parameter in spec")
-	} else {
-		if modeParam.Type != gollem.TypeString {
-			t.Errorf("Expected 'output_mode' parameter type to be String, got %v", modeParam.Type)
-		}
+	} else if modeParam.Type != gollem.TypeString { //nolint:gocritic // Need variable from if condition
+		t.Errorf("Expected 'output_mode' parameter type to be String, got %v", modeParam.Type)
 	}
 
 	// Check -i parameter (case insensitive)
 	if iParam, exists := spec.Parameters["-i"]; !exists {
 		t.Error("Missing '-i' parameter in spec")
-	} else {
-		if iParam.Type != gollem.TypeBoolean {
-			t.Errorf("Expected '-i' parameter type to be Boolean, got %v", iParam.Type)
-		}
+	} else if iParam.Type != gollem.TypeBoolean { //nolint:gocritic // Need variable from if condition
+		t.Errorf("Expected '-i' parameter type to be Boolean, got %v", iParam.Type)
 	}
 
 	// Check glob parameter
 	if globParam, exists := spec.Parameters["glob"]; !exists {
 		t.Error("Missing 'glob' parameter in spec")
-	} else {
-		if globParam.Type != gollem.TypeString {
-			t.Errorf("Expected 'glob' parameter type to be String, got %v", globParam.Type)
-		}
+	} else if globParam.Type != gollem.TypeString { //nolint:gocritic // Need variable from if condition
+		t.Errorf("Expected 'glob' parameter type to be String, got %v", globParam.Type)
 	}
 }
 

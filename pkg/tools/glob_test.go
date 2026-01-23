@@ -203,9 +203,18 @@ func TestGlobTool_Run_DefaultPath(t *testing.T) {
 	// Change to temp directory for this test
 	originalDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	defer os.Chdir(originalDir)
+	if err := os.Chdir(originalDir); err != nil {
+		t.Fatalf("Failed to change directory: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(originalDir); err != nil {
+			t.Fatalf("Failed to change directory back: %v", err)
+		}
+	}()
 
-	os.Chdir(tmpDir)
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("Failed to change to temp directory: %v", err)
+	}
 
 	// Create test files
 	if err := os.WriteFile("test.go", []byte("test"), 0644); err != nil {
@@ -395,10 +404,8 @@ func TestGlobTool_Spec(t *testing.T) {
 	// Check path parameter
 	if pathParam, exists := spec.Parameters["path"]; !exists {
 		t.Error("Missing 'path' parameter in spec")
-	} else {
-		if pathParam.Type != gollem.TypeString {
-			t.Errorf("Expected 'path' parameter type to be String, got %v", pathParam.Type)
-		}
+	} else if pathParam.Type != gollem.TypeString { //nolint:gocritic // Need variable from if condition
+		t.Errorf("Expected 'path' parameter type to be String, got %v", pathParam.Type)
 	}
 
 	// Check required parameters
