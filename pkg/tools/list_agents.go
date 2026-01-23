@@ -196,6 +196,7 @@ func (t *ListAgentsTool) runListAgents(_ context.Context, params map[string]any)
 
 	// Prepare message based on what was found
 	var message string
+	//nolint:gocritic // Nested conditions with recursive flag make switch less readable
 	if hasParent && descendantCount > 0 {
 		if recursive {
 			message = fmt.Sprintf("Found 1 parent agent and %d descendant(s)", descendantCount)
@@ -228,8 +229,8 @@ func (t *ListAgentsTool) runListAgents(_ context.Context, params map[string]any)
 
 // getAllDescendants recursively fetches all descendants of an agent
 func (t *ListAgentsTool) getAllDescendants(agentID uuid.UUID, depth int) []descendantInfo {
-	var result []descendantInfo
 	children := t.registry.GetChildren(agentID)
+	result := make([]descendantInfo, 0, len(children))
 
 	for _, child := range children {
 		config := child.GetConfig()
@@ -303,11 +304,7 @@ func (t *ListAgentsTool) buildTreeLine(desc descendantInfo, prefix string) strin
 	// Calculate indentation based on depth
 	indent := prefix
 	for i := 0; i < desc.depth; i++ {
-		if i == 0 {
-			indent += "   "
-		} else {
-			indent += "   "
-		}
+		indent += "   "
 	}
 
 	// Choose connector
