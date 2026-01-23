@@ -167,9 +167,9 @@ func (t *SessionLogsTool) runSessionLogs(_ context.Context, args map[string]any)
 
 	// Build response
 	result := map[string]any{
-		"entries":         jsonEntries,
-		"total_matching":  len(jsonEntries),
-		"returned":        len(jsonEntries),
+		"entries":        jsonEntries,
+		"total_matching": len(jsonEntries),
+		"returned":       len(jsonEntries),
 		"filters_applied": map[string]interface{}{
 			"mode":  mode,
 			"count": count,

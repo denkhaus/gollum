@@ -12,6 +12,10 @@ import (
 	"github.com/samber/do/v2"
 )
 
+const (
+	defaultTimezone = "UTC"
+)
+
 type (
 	// CurrentTimeTool returns the current time
 	CurrentTimeTool struct {
@@ -60,7 +64,7 @@ func (t *CurrentTimeTool) Run(ctx context.Context, args map[string]any) (map[str
 // runCurrentTime implements the core CurrentTime logic
 func (t *CurrentTimeTool) runCurrentTime(_ context.Context, args map[string]any) (map[string]any, error) {
 	// Get timezone from args, default to UTC
-	timezone := "UTC"
+	timezone := defaultTimezone
 	if tz, exists := args["timezone"].(string); exists && tz != "" {
 		timezone = tz
 	}

@@ -434,8 +434,8 @@ func TestListAgentsTool_Run_TreeFlag(t *testing.T) {
 	assert.Contains(t, treeOutput, "(YOU)")
 	assert.Contains(t, treeOutput, "Child Agent 1")
 	assert.Contains(t, treeOutput, "Child Agent 2")
-	assert.Contains(t, treeOutput, "├─")  // Tree connector
-	assert.Contains(t, treeOutput, "└─")  // Tree connector for last item
+	assert.Contains(t, treeOutput, "├─") // Tree connector
+	assert.Contains(t, treeOutput, "└─") // Tree connector for last item
 }
 
 func TestListAgentsTool_Run_TreeFlagWithRecursive(t *testing.T) {
@@ -493,4 +493,3 @@ func TestListAgentsTool_Run_TreeFlagWithRecursive(t *testing.T) {
 	assert.Contains(t, treeOutput, "Child Agent")
 	assert.Contains(t, treeOutput, "Grandchild Agent")
 }
-
