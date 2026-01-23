@@ -15,21 +15,23 @@ import (
 var (
 	// Styles for different message types
 	messageTypeStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#9B59B6")). // Purple
-			Bold(true).
-			Width(10).
-			Align(lipgloss.Center)
+				Foreground(lipgloss.Color("#9B59B6")). // Purple
+				Bold(true).
+				Width(10).
+				Align(lipgloss.Center)
 
 	borderStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("#3498DB")). // Blue border
-			Padding(0, 1).
-			Width(80)
+			Padding(0, 1)
 
 	timestampStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#7F8C8D")). // Gray
 			Faint(true).
-			Align(lipgloss.Right)
+			Width(10)
+
+	headerStyle = lipgloss.NewStyle().
+			Width(82) // Matches border width (80 + 2 padding)
 )
 
 type (
@@ -71,13 +73,18 @@ func (p *agentMessengerImpl) DisplayAgentMessage(agentID uuid.UUID, agentRole, m
 		icon = "🤖"
 	}
 
-	// Create the header
-	header := lipgloss.JoinHorizontal(
+	// Create the header with proper spacing
+	headerLeft := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		lipgloss.NewStyle().Foreground(lipgloss.Color("#2ECC71")).Bold(true).Render(fmt.Sprintf("%s %s", icon, agentShort)),
 		lipgloss.NewStyle().Padding(0, 1).Render(messageTypeStyle.Render(messageType)),
+	)
+	header := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		headerLeft,
 		timestampStyle.Render(time.Now().Format("15:04:05")),
 	)
+	header = headerStyle.Width(82).Render(header)
 
 	// Create the full message
 	fullMessage := lipgloss.JoinVertical(
@@ -99,11 +106,11 @@ func (p *agentMessengerImpl) DisplayUserMessage(message string) {
 		Foreground(lipgloss.Color("#3498DB")). // Blue
 		Bold(true)
 
-	header := lipgloss.JoinHorizontal(
+	header := headerStyle.Width(82).Render(lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		userStyle.Render("👤 You"),
 		timestampStyle.Render(time.Now().Format("15:04:05")),
-	)
+	))
 
 	fullMessage := lipgloss.JoinVertical(
 		lipgloss.Left,
