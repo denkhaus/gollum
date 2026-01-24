@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
@@ -49,6 +50,7 @@ type (
 
 	// agentMessengerImpl is the private implementation of AgentMessenger
 	agentMessengerImpl struct {
+		mu sync.Mutex
 	}
 )
 
@@ -62,6 +64,9 @@ func NewAgentMessenger(_ do.Injector) (AgentMessenger, error) {
 
 // DisplayAgentMessage shows an agent's own message (LLM output or tool usage)
 func (p *agentMessengerImpl) DisplayAgentMessage(agentID uuid.UUID, agentRole, message string, isTool bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	agentShort := p.shortenAgentName(agentID, agentRole)
 
 	var messageType, icon string
@@ -102,6 +107,9 @@ func (p *agentMessengerImpl) DisplayAgentMessage(agentID uuid.UUID, agentRole, m
 
 // DisplayUserMessage shows a user's input message
 func (p *agentMessengerImpl) DisplayUserMessage(message string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	userStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#3498DB")). // Blue
 		Bold(true)
@@ -126,6 +134,9 @@ func (p *agentMessengerImpl) DisplayUserMessage(message string) {
 
 // DisplaySystemInfo shows system-level information
 func (p *agentMessengerImpl) DisplaySystemInfo(message string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	header := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#F39C12")). // Orange
 		Bold(true).
@@ -184,6 +195,9 @@ func (p *agentMessengerImpl) formatContent(content map[string]any) string {
 
 // DisplayWelcome shows the welcome message
 func (p *agentMessengerImpl) DisplayWelcome() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	welcomeStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#2ECC71")).
 		Bold(true).
