@@ -5,8 +5,8 @@
       "path": ".",
     },
     {
-      "name": "dendron",
-      "path": "/home/denkhaus/dev/dendron",
+      "name": "knowledge-base",
+      "path": "/home/denkhaus/dev/kb",
     },
     {
       "name": "claude-settings",
