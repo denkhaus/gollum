@@ -50,7 +50,8 @@
       "Bash(but status:*)",
       "Bash(but stage:*)",
       "Bash(but branch list:*)",
-      "Bash(register:*)"
+      "Bash(register:*)",
+      "Bash(gbregister:*)"
     ],
     "deny": [],
     "ask": []
