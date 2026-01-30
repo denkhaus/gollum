@@ -48,7 +48,10 @@
       "Bash(go tool cover:*)",
       "Skill(gitbutler:complete-branch)",
       "Bash(but status:*)",
-      "Bash(but stage:*)"
+      "Bash(but stage:*)",
+      "Bash(but branch list:*)",
+      "Bash(register:*)",
+      "Bash(gbregister:*)"
     ],
     "deny": [],
     "ask": []
@@ -60,7 +63,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "but claude pre-tool"
+            "command": "~/bin/gbtool pre-tool"
           }
         ]
       }
@@ -71,7 +74,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "but claude post-tool"
+            "command": "~/bin/gbtool post-tool"
           }
         ]
       }
@@ -82,7 +85,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "but claude stop"
+            "command": "~/bin/gbtool stop"
           }
         ]
       }
