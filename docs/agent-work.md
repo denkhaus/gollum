@@ -10,19 +10,19 @@ The built-in **Task Tool** allows spawning specialized subagents for complex, mu
 
 ### Required Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `subagent_type` | string | Type of specialized agent to use |
-| `description` | string | Short task description (3-5 words) |
-| `prompt` | string | Detailed task instructions for the agent |
+| Parameter       | Type   | Description                              |
+| --------------- | ------ | ---------------------------------------- |
+| `subagent_type` | string | Type of specialized agent to use         |
+| `description`   | string | Short task description (3-5 words)       |
+| `prompt`        | string | Detailed task instructions for the agent |
 
 ### Optional Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `model` | string | Model to use (`sonnet`, `opus`, `haiku`). Default: inherits from parent |
-| `resume` | string | Agent ID to resume from (preserves full previous context) |
-| `run_in_background` | boolean | Run agent in background. Use TaskOutput to read results later |
+| Parameter           | Type    | Description                                                             |
+| ------------------- | ------- | ----------------------------------------------------------------------- |
+| `model`             | string  | Model to use (`sonnet`, `opus`, `haiku`). Default: inherits from parent |
+| `resume`            | string  | Agent ID to resume from (preserves full previous context)               |
+| `run_in_background` | boolean | Run agent in background. Use TaskOutput to read results later           |
 
 ### Available Subagent Types
 
@@ -83,11 +83,11 @@ Retrieves output from a running or completed background task.
 
 ### Parameters
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `task_id` | string | - | ID from Task tool response |
-| `block` | boolean | true | Wait for completion (true) or check status only (false) |
-| `timeout` | number | 30000 | Max wait time in ms (max 600000 = 10 min) |
+| Parameter | Type    | Default | Description                                             |
+| --------- | ------- | ------- | ------------------------------------------------------- |
+| `task_id` | string  | -       | ID from Task tool response                              |
+| `block`   | boolean | true    | Wait for completion (true) or check status only (false) |
+| `timeout` | number  | 30000   | Max wait time in ms (max 600000 = 10 min)               |
 
 ### Usage Examples
 
@@ -165,12 +165,12 @@ Returns:
 
 ### Caller Must Remember
 
-| Responsibility | Mechanism |
-|----------------|-----------|
-| Remember task exists | ❌ No automatic reminder |
-| Store task_id | 🔵 Caller must track it |
-| Retrieve result | 🔵 Caller must invoke TaskOutput |
-| Handle timeout | 🔵 Caller must manage timing |
+| Responsibility       | Mechanism                       |
+| -------------------- | ------------------------------- |
+| Remember task exists | ❌ No automatic reminder         |
+| Store task_id        | 🔵 Caller must track it          |
+| Retrieve result      | 🔵 Caller must invoke TaskOutput |
+| Handle timeout       | 🔵 Caller must manage timing     |
 
 ### Consequences
 
@@ -258,17 +258,17 @@ Launch multiple tasks in a single response:
 
 ## Summary Table
 
-| Aspect | Mechanism |
-|--------|-----------|
-| **Execution modes** | Synchronous (default) / Asynchronous (background) |
-| **Return value** | Plain text from subagent's final response |
-| **Communication** | One-shot only (prompt → result) |
-| **Bidirectional chat** | ❌ Not possible |
-| **Background reminders** | ❌ None, caller must remember |
-| **task_id tracking** | 🔵 Full caller responsibility |
-| **Result retrieval** | 🔵 Caller must invoke TaskOutput |
-| **Resume** | ✅ Possible after completion |
-| **Parallel tasks** | ✅ Launch multiple in single response |
+| Aspect                   | Mechanism                                         |
+| ------------------------ | ------------------------------------------------- |
+| **Execution modes**      | Synchronous (default) / Asynchronous (background) |
+| **Return value**         | Plain text from subagent's final response         |
+| **Communication**        | One-shot only (prompt → result)                   |
+| **Bidirectional chat**   | ❌ Not possible                                    |
+| **Background reminders** | ❌ None, caller must remember                      |
+| **task_id tracking**     | 🔵 Full caller responsibility                      |
+| **Result retrieval**     | 🔵 Caller must invoke TaskOutput                   |
+| **Resume**               | ✅ Possible after completion                       |
+| **Parallel tasks**       | ✅ Launch multiple in single response              |
 
 ---
 
