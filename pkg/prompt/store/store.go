@@ -57,20 +57,3 @@ var (
 	ErrInvalidPromptID = errors.New("invalid prompt ID format")
 	ErrCASFailed       = errors.New("compare-and-swap operation failed")
 )
-
-// PromptStoreConfig contains configuration for prompt store implementations.
-type PromptStoreConfig struct {
-	// Type of store backend ("memory", "file", "langfuse")
-	Type string `envconfig:"default" env:"PROMPT_STORE_TYPE"`
-
-	// FilePath for file-based storage
-	FilePath string `envconfig:"default:\"./data/prompts\"" env:"PROMPT_STORE_FILE_PATH"`
-
-	// Langfuse configuration for Langfuse backend
-	LangfusePublicKey string `envconfig:"" env:"LANGFUSE_PUBLIC_KEY"`
-	LangfuseSecretKey string `envconfig:"" env:"LANGFUSE_SECRET_KEY"`
-	LangfuseHost      string `envconfig:"default:\"https://cloud.langfuse.com\"" env:"LANGFUSE_HOST"`
-
-	// CacheEnabled enables caching for store operations
-	CacheEnabled bool `envconfig:"default" env:"PROMPT_STORE_CACHE_ENABLED"`
-}
