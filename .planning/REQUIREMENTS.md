@@ -17,7 +17,7 @@
 ### Store Layer
 
 - [ ] **STORE-01**: PromptStore interface with SaveNewVersion, Load, Delete, List, Exists, ListTags methods
-- [ ] **STORE-02**: ResolveAlias method to resolve shortcuts ("subagent" → "subagent@latest")
+- [ ] **STORE-02**: ResolveAlias method to resolve shortcuts ("subagent" -> "subagent@latest")
 - [ ] **STORE-03**: ListVersions method to list all versions of a base prompt ID
 - [ ] **STORE-04**: SetLatestAlias method to manage @latest alias
 - [ ] **STORE-05**: InMemory store implementation for testing
@@ -148,13 +148,6 @@ Deferred to future release. Acknowledged but not in current roadmap.
 | MGR-05 | Phase 2 | Pending |
 | MGR-06 | Phase 2 | Pending |
 | MGR-07 | Phase 2 | Pending |
-| CFG-01 | Phase 4 | Pending |
-| CFG-02 | Phase 4 | Pending |
-| CFG-03 | Phase 4 | Pending |
-| CFG-04 | Phase 4 | Pending |
-| DI-01 | Phase 4 | Pending |
-| DI-02 | Phase 4 | Pending |
-| DI-03 | Phase 4 | Pending |
 | OPT-01 | Phase 3 | Pending |
 | OPT-02 | Phase 3 | Pending |
 | OPT-03 | Phase 3 | Pending |
@@ -165,6 +158,13 @@ Deferred to future release. Acknowledged but not in current roadmap.
 | OPT-08 | Phase 3 | Pending |
 | OPT-09 | Phase 3 | Pending |
 | OPT-10 | Phase 3 | Pending |
+| CFG-01 | Phase 4 | Pending |
+| CFG-02 | Phase 4 | Pending |
+| CFG-03 | Phase 4 | Pending |
+| CFG-04 | Phase 4 | Pending |
+| DI-01 | Phase 4 | Pending |
+| DI-02 | Phase 4 | Pending |
+| DI-03 | Phase 4 | Pending |
 | TEST-01 | All | Pending |
 | TEST-02 | All | Pending |
 | TEST-03 | All | Pending |
@@ -185,8 +185,16 @@ Deferred to future release. Acknowledged but not in current roadmap.
 **Coverage:**
 - v1 requirements: 56 total
 - Mapped to phases: 56
-- Unmapped: 0 ✓
+- Unmapped: 0
+
+**Phase Distribution:**
+- Phase 1: 22 requirements (Core Types + Store Layer)
+- Phase 2: 7 requirements (Prompt Manager)
+- Phase 3: 10 requirements (Prompt Optimizer)
+- Phase 4: 7 requirements (Config + DI)
+- Phase 5: 4 requirements (Documentation)
+- All phases: 6 requirements (Testing + Design Constraints)
 
 ---
 *Requirements defined: 2025-02-01*
-*Last updated: 2025-02-01 after initial definition*
+*Last updated: 2025-02-01 after roadmap creation*
