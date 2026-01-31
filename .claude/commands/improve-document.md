@@ -12,8 +12,8 @@ With the learnings and experience of the current session do you see valid points
 
 ## Prerequisites
 - Make sure that all information in the file **MUST follow a general approach** to be reusable in any project context. So dismiss specific information tied to an existing project.
-- The $ARGUMENTS parameter must be defined. Otherwise notify the user to provide valid arguments to this command
-- The file mentioned in $ARGUMENTS filepath must be available and of markdown type (*.md)
+- The ARGUMENTS parameter must be defined. Otherwise notify the user to provide valid arguments to this command
+- The file mentioned in ARGUMENTS filepath must be available and of markdown type (*.md)
 
 
 ## Principles to follow
