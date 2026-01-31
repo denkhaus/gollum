@@ -28,8 +28,8 @@ type Prompt struct {
 	IsBuiltin bool                   // Built-in prompts cannot be deleted
 }
 
-// PromptContext contains general context values for prompt rendering.
-type PromptContext struct {
+// RenderContext contains general context values for prompt rendering.
+type RenderContext struct {
 	Values   map[string]interface{} // General context values
 	SubAgent *SubAgentContext       // SubAgent-specific context
 	Agent    *AgentContext          // Agent-specific context

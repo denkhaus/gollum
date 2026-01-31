@@ -26,7 +26,7 @@ func NewMemoryStore() PromptStore {
 
 // Load retrieves a prompt by ID.
 // Returns nil if not found (not an error).
-func (m *memoryStore) Load(ctx context.Context, id string) (*prompt.Prompt, error) {
+func (m *memoryStore) Load(_ context.Context, id string) (*prompt.Prompt, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -175,11 +175,12 @@ func (m *memoryStore) Delete(ctx context.Context, id string) error {
 }
 
 // List returns prompts matching the given filter criteria.
-func (m *memoryStore) List(ctx context.Context, filter *ListFilter) ([]*prompt.Prompt, error) {
+func (m *memoryStore) List(_ context.Context, filter *ListFilter) ([]*prompt.Prompt, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	var result []*prompt.Prompt
+	// Pre-allocate result slice with reasonable capacity
+	result := make([]*prompt.Prompt, 0, len(m.prompts))
 
 	// Use a map to avoid duplicates
 	seen := make(map[string]bool)
@@ -216,7 +217,7 @@ func (m *memoryStore) List(ctx context.Context, filter *ListFilter) ([]*prompt.P
 }
 
 // Exists checks if a prompt exists by ID.
-func (m *memoryStore) Exists(ctx context.Context, id string) (bool, error) {
+func (m *memoryStore) Exists(_ context.Context, id string) (bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -225,7 +226,7 @@ func (m *memoryStore) Exists(ctx context.Context, id string) (bool, error) {
 }
 
 // ListTags returns all unique tags across all prompts.
-func (m *memoryStore) ListTags(ctx context.Context) ([]string, error) {
+func (m *memoryStore) ListTags(_ context.Context) ([]string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -246,7 +247,7 @@ func (m *memoryStore) ListTags(ctx context.Context) ([]string, error) {
 
 // ResolveAlias resolves shortcuts to versioned IDs.
 // Resolves "subagent" -> "subagent@latest" -> versioned ID.
-func (m *memoryStore) ResolveAlias(ctx context.Context, id string) (*prompt.Prompt, error) {
+func (m *memoryStore) ResolveAlias(_ context.Context, id string) (*prompt.Prompt, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -274,7 +275,7 @@ func (m *memoryStore) ResolveAlias(ctx context.Context, id string) (*prompt.Prom
 }
 
 // ListVersions returns all versions of a prompt base ID.
-func (m *memoryStore) ListVersions(ctx context.Context, baseID string) ([]*prompt.Prompt, error) {
+func (m *memoryStore) ListVersions(_ context.Context, baseID string) ([]*prompt.Prompt, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -412,7 +413,7 @@ func (m *memoryStore) extractBaseID(id string) string {
 }
 
 // getTime returns the current time or a time from context if available.
-func (m *memoryStore) getTime(ctx context.Context) time.Time {
+func (m *memoryStore) getTime(_ context.Context) time.Time {
 	// In a real implementation, you might extract time from context
 	// For now, just return current time
 	return time.Now()

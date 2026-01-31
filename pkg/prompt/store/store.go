@@ -52,7 +52,7 @@ type ListFilter struct {
 
 // Error definitions
 var (
-	ErrPromptNotFound = errors.New("prompt not found")
+	ErrPromptNotFound  = errors.New("prompt not found")
 	ErrPromptIsBuiltin = errors.New("cannot delete built-in prompt")
 	ErrInvalidPromptID = errors.New("invalid prompt ID format")
 	ErrCASFailed       = errors.New("compare-and-swap operation failed")
