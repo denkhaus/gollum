@@ -4,6 +4,7 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/ui"
@@ -64,12 +65,17 @@ func (d *DisplayMiddleware) ContentBlockMiddleware(next gollem.ContentBlockHandl
 			return resp, err
 		}
 
-		// Display text responses
+		// Display text responses - combine all text blocks to avoid multiple boxes
 		if resp != nil && len(resp.Texts) > 0 {
+			var nonEmptyTexts []string
 			for _, text := range resp.Texts {
 				if text != "" {
-					d.messenger.DisplayAgentMessage(d.agentID, d.agentRole, text, false)
+					nonEmptyTexts = append(nonEmptyTexts, text)
 				}
+			}
+			if len(nonEmptyTexts) > 0 {
+				combinedText := strings.Join(nonEmptyTexts, "")
+				d.messenger.DisplayAgentMessage(d.agentID, d.agentRole, combinedText, false)
 			}
 		}
 

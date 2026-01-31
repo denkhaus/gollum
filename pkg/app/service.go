@@ -147,7 +147,7 @@ func (p *applicationServiceImpl) runInteractiveLoop(ctx context.Context, agent s
 	go p.stdinReader(inputCh, cancelCh, shutdownCh)
 
 	for {
-		if _, err := fmt.Fprint(os.Stdout, "> "); err != nil {
+		if _, err := fmt.Fprint(os.Stdout, "\r> "); err != nil {
 			p.logService.Debugf("failed to write prompt: %v", err)
 		}
 
@@ -260,7 +260,7 @@ func (p *applicationServiceImpl) stdinReader(inputCh chan<- string, cancelCh cha
 				}
 				lineBuf = nil // Clear any pending input
 				// Redraw prompt
-				if _, err := fmt.Fprint(os.Stdout, "> "); err != nil {
+				if _, err := fmt.Fprint(os.Stdout, "\r> "); err != nil {
 					p.logService.Debugf("failed to write prompt: %v", err)
 				}
 
