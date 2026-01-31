@@ -1,0 +1,574 @@
+// Package store provides file-based implementation of PromptStore with JSON persistence.
+package store
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
+	"github.com/Masterminds/semver/v3"
+	"github.com/denkhaus/gollum/pkg/prompt"
+)
+
+type fileStore struct {
+	mu         sync.RWMutex
+	dir        string
+	cache      map[string]*prompt.Prompt
+	enableCache bool
+}
+
+// NewFileStore creates a new file-based prompt store.
+func NewFileStore(dir string, enableCache bool) PromptStore {
+	return &fileStore{
+		dir:         dir,
+		cache:       make(map[string]*prompt.Prompt),
+		enableCache: enableCache,
+	}
+}
+
+// Load retrieves a prompt by ID.
+// Returns nil if not found (not an error).
+func (f *fileStore) Load(_ context.Context, id string) (*prompt.Prompt, error) {
+	// Check cache first
+	if f.enableCache {
+		f.mu.RLock()
+		if cached, exists := f.cache[id]; exists {
+			f.mu.RUnlock()
+			return copyPrompt(cached), nil
+		}
+		f.mu.RUnlock()
+	}
+
+	// Read from file
+	path := f.getFilePath(id)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to read prompt file: %w", err)
+	}
+
+	// Unmarshal JSON
+	var p prompt.Prompt
+	if err := json.Unmarshal(data, &p); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal prompt: %w", err)
+	}
+
+	// Update cache
+	if f.enableCache {
+		f.mu.Lock()
+		f.cache[id] = &p
+		f.mu.Unlock()
+	}
+
+	return copyPrompt(&p), nil
+}
+
+// SaveNewVersion creates a new version with auto-incremented patch version.
+// Returns new prompt with versioned ID (e.g., "subagent@1.0.1").
+func (f *fileStore) SaveNewVersion(ctx context.Context, baseID string, content string, name string) (*prompt.Prompt, error) {
+	// Find the latest version
+	latestVersion, latestPrompt, err := f.findLatestVersion(baseID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Determine new version
+	var newVersion *semver.Version
+	if latestVersion == nil {
+		// First version: 1.0.0
+		newVersion = semver.New(1, 0, 0, "", "")
+	} else {
+		// Increment patch version
+		newVersion = incrementPatchVersion(latestVersion)
+	}
+
+	// Create versioned ID
+	versionID := fmt.Sprintf("%s@%s", baseID, newVersion.String())
+
+	now := time.Now()
+
+	// Create new prompt
+	newPrompt := &prompt.Prompt{
+		ID:        versionID,
+		Name:      name,
+		Content:   content,
+		Context:   make(map[string]interface{}),
+		Tags:      []string{},
+		CreatedAt: now,
+		UpdatedAt: now,
+		Version:   newVersion,
+		IsBuiltin: false,
+	}
+
+	// Copy context from previous version if exists
+	if latestPrompt != nil && latestPrompt.Context != nil {
+		for k, v := range latestPrompt.Context {
+			newPrompt.Context[k] = v
+		}
+	}
+
+	// Add aliases to new version
+	newPrompt.Tags = append(newPrompt.Tags, baseID, baseID+"@latest")
+
+	// Write to file with locking
+	if err := f.writePromptLocked(newPrompt); err != nil {
+		return nil, err
+	}
+
+	// Remove aliases from old versions
+	if latestPrompt != nil {
+		for _, aliasID := range []string{baseID, baseID + "@latest"} {
+			if err := f.removeAliasFromFile(aliasID, latestPrompt.ID); err != nil {
+				// Log warning but don't fail
+				_ = err
+			}
+		}
+	}
+
+	// Update cache
+	if f.enableCache {
+		f.mu.Lock()
+		f.cache[versionID] = newPrompt
+		f.cache[baseID] = newPrompt
+		f.cache[baseID+"@latest"] = newPrompt
+		f.mu.Unlock()
+	}
+
+	return copyPrompt(newPrompt), nil
+}
+
+// Delete removes a prompt by ID.
+// Returns nil if not found.
+// Returns error for IsBuiltin prompts.
+func (f *fileStore) Delete(ctx context.Context, id string) error {
+	// Load the prompt first to check if it's builtin
+	p, err := f.Load(ctx, id)
+	if err != nil {
+		return err
+	}
+	if p == nil {
+		return nil
+	}
+
+	// Check if built-in
+	if p.IsBuiltin {
+		return ErrPromptIsBuiltin
+	}
+
+	// Delete all files associated with this prompt
+	baseID := f.extractBaseID(id)
+	if baseID != "" {
+		// Delete all versions
+		versions, err := f.ListVersions(ctx, baseID)
+		if err != nil {
+			return err
+		}
+
+		for _, v := range versions {
+			path := f.getFilePath(v.ID)
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("failed to delete prompt file: %w", err)
+			}
+		}
+
+		// Delete alias files
+		for _, aliasID := range []string{baseID, baseID + "@latest"} {
+			path := f.getFilePath(aliasID)
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				// Ignore errors for aliases
+				_ = err
+			}
+		}
+
+		// Update cache
+		if f.enableCache {
+			f.mu.Lock()
+			for _, v := range versions {
+				delete(f.cache, v.ID)
+			}
+			delete(f.cache, baseID)
+			delete(f.cache, baseID+"@latest")
+			f.mu.Unlock()
+		}
+	} else {
+		// Single file delete
+		path := f.getFilePath(id)
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to delete prompt file: %w", err)
+		}
+
+		// Update cache
+		if f.enableCache {
+			f.mu.Lock()
+			delete(f.cache, id)
+			f.mu.Unlock()
+		}
+	}
+
+	return nil
+}
+
+// List returns prompts matching the given filter criteria.
+func (f *fileStore) List(_ context.Context, filter *ListFilter) ([]*prompt.Prompt, error) {
+	// Read directory
+	entries, err := os.ReadDir(f.dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []*prompt.Prompt{}, nil
+		}
+		return nil, fmt.Errorf("failed to read store directory: %w", err)
+	}
+
+	// Use a map to avoid duplicates
+	seen := make(map[string]bool)
+	result := make([]*prompt.Prompt, 0, len(entries))
+
+	for _, entry := range entries {
+		// Skip non-JSON files
+		if !strings.HasSuffix(entry.Name(), ".json") {
+			continue
+		}
+
+		// Extract ID from filename
+		id := strings.TrimSuffix(entry.Name(), ".json")
+
+		// Skip aliases (non-versioned IDs and @latest)
+		if !strings.Contains(id, "@") || strings.HasSuffix(id, "@latest") {
+			continue
+		}
+
+		// Skip if already seen
+		if seen[id] {
+			continue
+		}
+
+		// Load prompt
+		path := filepath.Join(f.dir, entry.Name())
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue // Skip files that can't be read
+		}
+
+		var p prompt.Prompt
+		if err := json.Unmarshal(data, &p); err != nil {
+			continue // Skip files that can't be unmarshaled
+		}
+
+		// Apply filters
+		if filter != nil {
+			// Filter by tags
+			if len(filter.Tags) > 0 && !hasAnyTag(p.Tags, filter.Tags) {
+				continue
+			}
+
+			// Filter by IDs
+			if len(filter.IDs) > 0 && !containsAny(p.ID, filter.IDs) {
+				continue
+			}
+		}
+
+		seen[id] = true
+		result = append(result, copyPrompt(&p))
+	}
+
+	return result, nil
+}
+
+// Exists checks if a prompt exists by ID.
+func (f *fileStore) Exists(_ context.Context, id string) (bool, error) {
+	// Check cache first
+	if f.enableCache {
+		f.mu.RLock()
+		_, exists := f.cache[id]
+		f.mu.RUnlock()
+		if exists {
+			return true, nil
+		}
+	}
+
+	// Check file
+	path := f.getFilePath(id)
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to check file existence: %w", err)
+	}
+
+	return true, nil
+}
+
+// ListTags returns all unique tags across all prompts.
+func (f *fileStore) ListTags(_ context.Context) ([]string, error) {
+	prompts, err := f.List(_context, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	tagSet := make(map[string]bool)
+	for _, p := range prompts {
+		for _, tag := range p.Tags {
+			tagSet[tag] = true
+		}
+	}
+
+	result := make([]string, 0, len(tagSet))
+	for tag := range tagSet {
+		result = append(result, tag)
+	}
+
+	return result, nil
+}
+
+// ResolveAlias resolves shortcuts to versioned IDs.
+// Resolves "subagent" -> "subagent@latest" -> versioned ID.
+func (f *fileStore) ResolveAlias(ctx context.Context, id string) (*prompt.Prompt, error) {
+	// Direct lookup
+	p, err := f.Load(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if p != nil {
+		// If this is an alias (no version), return the actual prompt
+		if !strings.Contains(id, "@") || strings.HasSuffix(id, "@latest") {
+			// Find the versioned ID by checking tags
+			if strings.Contains(p.ID, "@") && !strings.HasSuffix(p.ID, "@latest") {
+				return copyPrompt(p), nil
+			}
+		}
+		return copyPrompt(p), nil
+	}
+
+	// Try @latest
+	latestID := id + "@latest"
+	p, err = f.Load(ctx, latestID)
+	if err != nil {
+		return nil, err
+	}
+	if p != nil {
+		return copyPrompt(p), nil
+	}
+
+	return nil, nil
+}
+
+// ListVersions returns all versions of a prompt base ID.
+func (f *fileStore) ListVersions(_ context.Context, baseID string) ([]*prompt.Prompt, error) {
+	// Read directory
+	entries, err := os.ReadDir(f.dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []*prompt.Prompt{}, nil
+		}
+		return nil, fmt.Errorf("failed to read store directory: %w", err)
+	}
+
+	var result []*prompt.Prompt
+	seen := make(map[string]bool)
+
+	for _, entry := range entries {
+		// Check if file matches baseID@version.json pattern
+		if !strings.HasPrefix(entry.Name(), baseID+"@") {
+			continue
+		}
+		if !strings.HasSuffix(entry.Name(), ".json") {
+			continue
+		}
+		if strings.HasSuffix(entry.Name(), "@latest.json") {
+			continue
+		}
+
+		// Extract ID from filename
+		id := strings.TrimSuffix(entry.Name(), ".json")
+
+		// Skip duplicates
+		if seen[id] {
+			continue
+		}
+
+		// Load prompt
+		path := filepath.Join(f.dir, entry.Name())
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+
+		var p prompt.Prompt
+		if err := json.Unmarshal(data, &p); err != nil {
+			continue
+		}
+
+		seen[id] = true
+		result = append(result, copyPrompt(&p))
+	}
+
+	return result, nil
+}
+
+// SetLatestAlias sets the @latest alias to a specific version.
+// Removes @latest from all other versions of the same base ID.
+func (f *fileStore) SetLatestAlias(ctx context.Context, baseID, versionID string) error {
+	// Find the target prompt
+	targetPrompt, err := f.Load(ctx, versionID)
+	if err != nil {
+		return err
+	}
+	if targetPrompt == nil {
+		return ErrPromptNotFound
+	}
+
+	now := time.Now()
+
+	// List all versions
+	versions, err := f.ListVersions(ctx, baseID)
+	if err != nil {
+		return err
+	}
+
+	// Remove @latest tag from all versions
+	for _, v := range versions {
+		var newTags []string
+		for _, tag := range v.Tags {
+			if tag != baseID+"@latest" {
+				newTags = append(newTags, tag)
+			}
+		}
+		v.Tags = newTags
+		v.UpdatedAt = now
+
+		// Write updated file
+		if err := f.writePromptLocked(v); err != nil {
+			return err
+		}
+
+		// Update cache
+		if f.enableCache {
+			f.mu.Lock()
+			f.cache[v.ID] = v
+			f.mu.Unlock()
+		}
+	}
+
+	// Add @latest to target prompt
+	targetPrompt.Tags = append(targetPrompt.Tags, baseID+"@latest")
+	targetPrompt.UpdatedAt = now
+
+	// Write target prompt
+	if err := f.writePromptLocked(targetPrompt); err != nil {
+		return err
+	}
+
+	// Update cache
+	if f.enableCache {
+		f.mu.Lock()
+		f.cache[versionID] = targetPrompt
+		f.cache[baseID+"@latest"] = targetPrompt
+		f.mu.Unlock()
+	}
+
+	return nil
+}
+
+// Helper functions
+
+// getFilePath returns the file path for a prompt ID.
+func (f *fileStore) getFilePath(id string) string {
+	return filepath.Join(f.dir, id+".json")
+}
+
+// writePromptLocked writes a prompt to file with exclusive locking.
+func (f *fileStore) writePromptLocked(p *prompt.Prompt) error {
+	path := f.getFilePath(p.ID)
+
+	// Open file with locking
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open prompt file: %w", err)
+	}
+	defer file.Close()
+
+	// Acquire exclusive lock
+	if err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX); err != nil {
+		return fmt.Errorf("failed to lock file: %w", err)
+	}
+	defer syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+
+	// Marshal JSON
+	data, err := json.Marshal(p)
+	if err != nil {
+		return fmt.Errorf("failed to marshal prompt: %w", err)
+	}
+
+	// Write data
+	if _, err := file.Write(data); err != nil {
+		return fmt.Errorf("failed to write prompt: %w", err)
+	}
+
+	return nil
+}
+
+// findLatestVersion finds the latest version of a prompt by base ID.
+func (f *fileStore) findLatestVersion(baseID string) (*semver.Version, *prompt.Prompt, error) {
+	versions, err := f.ListVersions(context.Background(), baseID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var latestVersion *semver.Version
+	var latestPrompt *prompt.Prompt
+
+	for _, p := range versions {
+		if latestVersion == nil || p.Version.GreaterThan(latestVersion) {
+			latestVersion = p.Version
+			latestPrompt = p
+		}
+	}
+
+	return latestVersion, latestPrompt, nil
+}
+
+// removeAliasFromFile removes alias tags from a prompt file.
+func (f *fileStore) removeAliasFromFile(aliasID, versionID string) error {
+	p, err := f.Load(context.Background(), aliasID)
+	if err != nil || p == nil {
+		return nil // Ignore errors
+	}
+
+	// Remove alias tag if present
+	var newTags []string
+	for _, tag := range p.Tags {
+		if tag != aliasID {
+			newTags = append(newTags, tag)
+		}
+	}
+	p.Tags = newTags
+	p.UpdatedAt = time.Now()
+
+	// Write updated file (but only if it's the actual versioned file)
+	if p.ID == versionID {
+		return f.writePromptLocked(p)
+	}
+
+	return nil
+}
+
+// extractBaseID extracts the base ID from a versioned ID.
+func (f *fileStore) extractBaseID(id string) string {
+	idx := strings.Index(id, "@")
+	if idx == -1 {
+		return ""
+	}
+	return id[:idx]
+}
+
+// _context is a nil context for internal calls.
+var _context = context.Background()
