@@ -35,8 +35,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 4. Alias resolution converts shortcuts like "subagent" to versioned IDs like "subagent@1.0.0"
 5. Store returns nil (not error) when prompts are not found
 
-**Plans**: 1 plan in 1 wave
-- [ ] 01-01-PLAN.md — Core types and store layer implementation
+**Plans**: 2 plans in 2 waves
+- [ ] 01-01-PLAN.md — Foundation: Core types, Store interface, InMemory store (Wave 1)
+- [ ] 01-02-PLAN.md — File persistence: File store, DI provider, Tests, Mocks (Wave 2)
 
 ### Phase 2: Prompt Manager Extension
 
@@ -113,7 +114,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Types and Store Layer | 0/1 | Ready to execute | - |
+| 1. Core Types and Store Layer | 0/2 | Ready to execute | - |
 | 2. Prompt Manager Extension | 0/TBD | Not started | - |
 | 3. Prompt Optimizer | 0/TBD | Not started | - |
 | 4. Configuration and DI Integration | 0/TBD | Not started | - |
