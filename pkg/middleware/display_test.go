@@ -152,10 +152,8 @@ func TestDisplayMiddleware_ContentBlockMiddleware_MultipleTexts(t *testing.T) {
 	agentRole := testAgentRole
 	dm := provider.CreateDisplayMiddleware(agentID, agentRole)
 
-	// Setup mock expectations for multiple texts
-	mockMessenger.EXPECT().DisplayAgentMessage(agentID, agentRole, "text 1", false).Times(1)
-	mockMessenger.EXPECT().DisplayAgentMessage(agentID, agentRole, "text 2", false).Times(1)
-	mockMessenger.EXPECT().DisplayAgentMessage(agentID, agentRole, "text 3", false).Times(1)
+	// Setup mock expectations - texts are now combined into a single call
+	mockMessenger.EXPECT().DisplayAgentMessage(agentID, agentRole, "text 1text 2text 3", false).Times(1)
 
 	// Create content block handler
 	nextHandler := func(_ context.Context, _ *gollem.ContentRequest) (*gollem.ContentResponse, error) {
