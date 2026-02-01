@@ -54,9 +54,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 4. Backward-compatible methods (GetSupervisorPrompt, GetSubagentPrompt, etc.) continue to work
 5. Built-in prompts are protected from deletion by IsBuiltin flag
 
-**Plans**: 2 plans in 2 waves
-- [ ] 02-01-PLAN.md — Built-in prompt bootstrap and store integration (Wave 1)
-- [ ] 02-02-PLAN.md — Template rendering and backward compatibility (Wave 2)
+**Plans**: 3 plans in 3 waves (2 original + 1 gap closure)
+- [x] 02-01-PLAN.md — Built-in prompt bootstrap and store integration (Wave 1)
+- [x] 02-02-PLAN.md — Template rendering and backward compatibility (Wave 2)
+- [ ] 02-03-PLAN.md — Gap closure: IsBuiltin protection for built-in prompts (Wave 3)
 
 ### Phase 3: Prompt Optimizer
 
@@ -116,8 +117,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Types and Store Layer | 2/2 | ✓ Complete | 2025-02-01 |
-| 2. Prompt Manager Extension | 0/2 | Planned | - |
+| 1. Core Types and Store Layer | 2/2 | Complete | 2025-02-01 |
+| 2. Prompt Manager Extension | 2/3 | Gap Closure | 2026-02-01 |
 | 3. Prompt Optimizer | 0/TBD | Not started | - |
 | 4. Configuration and DI Integration | 0/TBD | Not started | - |
 | 5. Documentation and Knowledge Capture | 0/TBD | Not started | - |
