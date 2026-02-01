@@ -7,25 +7,25 @@
 
 ### Core Types
 
-- [ ] **TYPE-01**: Prompt struct with ID, Content, Version (SemVer), Aliases, Tags, Timestamps, IsBuiltin flag
-- [ ] **TYPE-02**: PromptContext for template rendering with Values, SubAgent, and Agent contexts
-- [ ] **TYPE-03**: Trajectory struct using Gollem Message format with Feedback field
-- [ ] **TYPE-04**: Feedback and EditFeedback structs for structured user input
-- [ ] **TYPE-05**: OptimizerInput with PromptID, Prompt, Trajectories, and NewVersionName
-- [ ] **TYPE-06**: OptimizerResult with OptimizedContent, NewPromptID, OldPromptID, Version, and Changes
+- [x] **TYPE-01**: Prompt struct with ID, Content, Version (SemVer), Aliases, Tags, Timestamps, IsBuiltin flag
+- [x] **TYPE-02**: PromptContext for template rendering with Values, SubAgent, and Agent contexts
+- [x] **TYPE-03**: Trajectory struct using Gollem Message format with Feedback field
+- [x] **TYPE-04**: Feedback and EditFeedback structs for structured user input
+- [x] **TYPE-05**: OptimizerInput with PromptID, Prompt, Trajectories, and NewVersionName
+- [x] **TYPE-06**: OptimizerResult with OptimizedContent, NewPromptID, OldPromptID, Version, and Changes
 
 ### Store Layer
 
-- [ ] **STORE-01**: PromptStore interface with SaveNewVersion, Load, Delete, List, Exists, ListTags methods
-- [ ] **STORE-02**: ResolveAlias method to resolve shortcuts ("subagent" -> "subagent@latest")
-- [ ] **STORE-03**: ListVersions method to list all versions of a base prompt ID
-- [ ] **STORE-04**: SetLatestAlias method to manage @latest alias
-- [ ] **STORE-05**: InMemory store implementation for testing
-- [ ] **STORE-06**: File-based store implementation with JSON persistence
-- [ ] **STORE-07**: File locking with syscall.Flock for cross-process safety
-- [ ] **STORE-08**: Optional caching for file store
-- [ ] **STORE-09**: PromptStoreProvider for DI integration
-- [ ] **STORE-10**: Store returns nil (not error) when prompt not found for Load/Delete
+- [x] **STORE-01**: PromptStore interface with SaveNewVersion, Load, Delete, List, Exists, ListTags methods
+- [x] **STORE-02**: ResolveAlias method to resolve shortcuts ("subagent" -> "subagent@latest")
+- [x] **STORE-03**: ListVersions method to list all versions of a base prompt ID
+- [x] **STORE-04**: SetLatestAlias method to manage @latest alias
+- [x] **STORE-05**: InMemory store implementation for testing
+- [x] **STORE-06**: File-based store implementation with JSON persistence
+- [x] **STORE-07**: File locking with syscall.Flock for cross-process safety
+- [x] **STORE-08**: Optional caching for file store
+- [x] **STORE-09**: PromptStoreProvider for DI integration
+- [x] **STORE-10**: Store returns nil (not error) when prompt not found for Load/Delete
 
 ### Prompt Manager
 
@@ -125,22 +125,29 @@ Deferred to future release. Acknowledged but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TYPE-01 | Phase 1 | Pending |
-| TYPE-02 | Phase 1 | Pending |
-| TYPE-03 | Phase 1 | Pending |
-| TYPE-04 | Phase 1 | Pending |
-| TYPE-05 | Phase 1 | Pending |
-| TYPE-06 | Phase 1 | Pending |
-| STORE-01 | Phase 1 | Pending |
-| STORE-02 | Phase 1 | Pending |
-| STORE-03 | Phase 1 | Pending |
-| STORE-04 | Phase 1 | Pending |
-| STORE-05 | Phase 1 | Pending |
-| STORE-06 | Phase 1 | Pending |
-| STORE-07 | Phase 1 | Pending |
-| STORE-08 | Phase 1 | Pending |
-| STORE-09 | Phase 1 | Pending |
-| STORE-10 | Phase 1 | Pending |
+| TYPE-01 | Phase 1 | Complete |
+| TYPE-02 | Phase 1 | Complete |
+| TYPE-03 | Phase 1 | Complete |
+| TYPE-04 | Phase 1 | Complete |
+| TYPE-05 | Phase 1 | Complete |
+| TYPE-06 | Phase 1 | Complete |
+| STORE-01 | Phase 1 | Complete |
+| STORE-02 | Phase 1 | Complete |
+| STORE-03 | Phase 1 | Complete |
+| STORE-04 | Phase 1 | Complete |
+| STORE-05 | Phase 1 | Complete |
+| STORE-06 | Phase 1 | Complete |
+| STORE-07 | Phase 1 | Complete |
+| STORE-08 | Phase 1 | Complete |
+| STORE-09 | Phase 1 | Complete |
+| STORE-10 | Phase 1 | Complete |
+| TEST-01 | All | Pending |
+| TEST-02 | All | Pending |
+| TEST-04 | All | Pending |
+| TEST-05 | All | Pending |
+| TEST-06 | All | Pending |
+| TEST-03 | Phase 2 | Pending |
+| TEST-07 | All | Pending |
 | MGR-01 | Phase 2 | Pending |
 | MGR-02 | Phase 2 | Pending |
 | MGR-03 | Phase 2 | Pending |
@@ -165,13 +172,6 @@ Deferred to future release. Acknowledged but not in current roadmap.
 | DI-01 | Phase 4 | Pending |
 | DI-02 | Phase 4 | Pending |
 | DI-03 | Phase 4 | Pending |
-| TEST-01 | All | Pending |
-| TEST-02 | All | Pending |
-| TEST-03 | All | Pending |
-| TEST-04 | All | Pending |
-| TEST-05 | All | Pending |
-| TEST-06 | All | Pending |
-| TEST-07 | All | Pending |
 | DOC-01 | Phase 5 | Pending |
 | DOC-02 | Phase 5 | Pending |
 | DOC-03 | Phase 5 | Pending |
