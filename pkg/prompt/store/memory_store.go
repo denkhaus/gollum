@@ -122,6 +122,91 @@ func (m *memoryStore) SaveNewVersion(ctx context.Context, baseID string, content
 	return copyPrompt(newPrompt), nil
 }
 
+// SaveBuiltinVersion creates a new version with IsBuiltin=true.
+// Used for bootstrapping built-in prompts that cannot be deleted.
+// Returns new prompt with versioned ID (e.g., "system@1.0.0").
+func (m *memoryStore) SaveBuiltinVersion(ctx context.Context, baseID string, content string, name string) (*prompt.Prompt, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// Find the latest version of this prompt
+	var latestVersion *semver.Version
+	var latestPrompt *prompt.Prompt
+
+	// Look for existing prompts with this base ID
+	for id, p := range m.prompts {
+		// Check if this prompt belongs to the base ID
+		if strings.HasPrefix(id, baseID+"@") {
+			if latestVersion == nil || p.Version.GreaterThan(latestVersion) {
+				latestVersion = p.Version
+				latestPrompt = p
+			}
+		}
+	}
+
+	// Determine new version
+	var newVersion *semver.Version
+	if latestVersion == nil {
+		// First version: 1.0.0
+		newVersion = semver.New(1, 0, 0, "", "")
+	} else {
+		// Increment patch version
+		newVersion = incrementPatchVersion(latestVersion)
+	}
+
+	// Create versioned ID
+	versionID := fmt.Sprintf("%s@%s", baseID, newVersion.String())
+
+	now := m.getTime(ctx)
+
+	// Create new prompt with IsBuiltin=true
+	newPrompt := &prompt.Prompt{
+		ID:        versionID,
+		Name:      name,
+		Content:   content,
+		Context:   make(map[string]interface{}),
+		Tags:      []string{},
+		CreatedAt: now,
+		UpdatedAt: now,
+		Version:   newVersion,
+		IsBuiltin: true,
+	}
+
+	// Copy context from previous version if exists
+	if latestPrompt != nil && latestPrompt.Context != nil {
+		for k, v := range latestPrompt.Context {
+			newPrompt.Context[k] = v
+		}
+	}
+
+	// Remove aliases from old version and add to new version
+	if latestPrompt != nil {
+		for _, oldID := range []string{baseID, baseID + "@latest"} {
+			if oldPrompt, exists := m.prompts[oldID]; exists {
+				// Remove alias tags from old version
+				var newTags []string
+				for _, tag := range oldPrompt.Tags {
+					if tag != oldID {
+						newTags = append(newTags, tag)
+					}
+				}
+				oldPrompt.Tags = newTags
+				oldPrompt.UpdatedAt = now
+			}
+		}
+	}
+
+	// Add aliases to new version
+	newPrompt.Tags = append(newPrompt.Tags, baseID, baseID+"@latest")
+
+	// Store the new prompt
+	m.prompts[versionID] = newPrompt
+	m.prompts[baseID] = newPrompt
+	m.prompts[baseID+"@latest"] = newPrompt
+
+	return copyPrompt(newPrompt), nil
+}
+
 // Delete removes a prompt by ID.
 // Returns nil if not found.
 // Returns error for IsBuiltin prompts.
