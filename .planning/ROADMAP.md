@@ -13,7 +13,7 @@ Build a prompt optimization system for the Gollum agent framework that automatic
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Core Types and Store Layer** - Foundation types and persistence abstraction
-- [ ] **Phase 2: Prompt Manager Extension** - ID-based prompt management with lazy loading
+- [x] **Phase 2: Prompt Manager Extension** - ID-based prompt management with lazy loading
 - [ ] **Phase 3: Prompt Optimizer** - Three optimization strategies with LLM integration
 - [ ] **Phase 4: Configuration and DI Integration** - System integration and wiring
 - [ ] **Phase 5: Documentation and Knowledge Capture** - Guidance and documentation
@@ -57,7 +57,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans in 3 waves (2 original + 1 gap closure)
 - [x] 02-01-PLAN.md — Built-in prompt bootstrap and store integration (Wave 1)
 - [x] 02-02-PLAN.md — Template rendering and backward compatibility (Wave 2)
-- [ ] 02-03-PLAN.md — Gap closure: IsBuiltin protection for built-in prompts (Wave 3)
+- [x] 02-03-PLAN.md — Gap closure: IsBuiltin protection for built-in prompts (Wave 3)
 
 ### Phase 3: Prompt Optimizer
 
@@ -118,7 +118,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Core Types and Store Layer | 2/2 | Complete | 2025-02-01 |
-| 2. Prompt Manager Extension | 2/3 | Gap Closure | 2026-02-01 |
+| 2. Prompt Manager Extension | 3/3 | Complete | 2026-02-01 |
 | 3. Prompt Optimizer | 0/TBD | Not started | - |
 | 4. Configuration and DI Integration | 0/TBD | Not started | - |
 | 5. Documentation and Knowledge Capture | 0/TBD | Not started | - |
