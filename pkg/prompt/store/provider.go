@@ -65,3 +65,13 @@ func NewPromptStoreProvider(injector do.Injector) (PromptStoreProvider, error) {
 func (p *promptStoreProvider) GetStore() PromptStore {
 	return p.store
 }
+
+// NewPromptStore creates a new PromptStore and returns it directly.
+// This provider is used by the prompt manager for DI injection.
+func NewPromptStore(injector do.Injector) (PromptStore, error) {
+	provider, err := NewPromptStoreProvider(injector)
+	if err != nil {
+		return nil, err
+	}
+	return provider.GetStore(), nil
+}
