@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2025-02-01)
 ## Current Position
 
 Phase: 2 of 5 (Prompt Manager Extension)
-Plan: 2 of TBD in current phase
+Plan: 3 of TBD in current phase
 Status: In progress
-Last activity: 2026-02-01 — Completed 02-02-PLAN.md (Template Rendering and Backward Compatibility)
+Last activity: 2026-02-01 — Completed 02-03-PLAN.md (IsBuiltin Protection)
 
-Progress: [██████░░░] 40%
+Progress: [██████░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 14 min
-- Total execution time: 0.9 hours
+- Total plans completed: 5
+- Average duration: 13 min
+- Total execution time: 1.1 hours
 
 **By Phase:**
 
 | Phase | Plans | Complete | Total | Avg/Plan |
 |-------|-------|----------|-------|----------|
-| 1     | 2     | 2        | 4     | 9 min    |
-| 2     | 2     | 2        | TBD   | 23 min   |
+| 1     | 2     | 2        | 2     | 9 min    |
+| 2     | 3     | 3        | TBD   | 20 min   |
 
 **Recent Trend:**
-- Last 5 plans: 6min (01-01), 12min (01-02), 22min (02-01), 25min (02-02)
-- Trend: 16 min average
+- Last 5 plans: 6min (01-01), 12min (01-02), 22min (02-01), 25min (02-02), 12min (02-03)
+- Trend: 15 min average
 
 *Updated after each plan completion*
 
@@ -64,6 +64,7 @@ Recent decisions affecting current work:
 - **Base ID extraction**: Extract base ID from versioned prompt IDs for template name mapping (system@1.0.0 -> system)
 - **Template name mapping**: Hard-coded map of prompt IDs to template names for built-in prompts
 - **GetCompacterPrompt map handling**: Accept map[string]interface{} directly for template variable access
+- **SaveBuiltinVersion pattern**: Separate store method for built-in prompts to set IsBuiltin=true instead of modifying SaveNewVersion signature for backward compatibility
 
 ### Pending Todos
 
@@ -75,6 +76,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-01T13:53:05Z
-Stopped at: Completed 02-02-PLAN.md (Template Rendering and Backward Compatibility)
+Last session: 2026-02-01T14:38:00Z
+Stopped at: Completed 02-03-PLAN.md (IsBuiltin Protection)
 Resume file: None
