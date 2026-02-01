@@ -166,6 +166,20 @@ func (mr *MockConfigServiceMockRecorder) GetOpenAIConfig() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOpenAIConfig", reflect.TypeOf((*MockConfigService)(nil).GetOpenAIConfig))
 }
 
+// GetPromptStoreConfig mocks base method.
+func (m *MockConfigService) GetPromptStoreConfig() *config.PromptStoreConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPromptStoreConfig")
+	ret0, _ := ret[0].(*config.PromptStoreConfig)
+	return ret0
+}
+
+// GetPromptStoreConfig indicates an expected call of GetPromptStoreConfig.
+func (mr *MockConfigServiceMockRecorder) GetPromptStoreConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPromptStoreConfig", reflect.TypeOf((*MockConfigService)(nil).GetPromptStoreConfig))
+}
+
 // IsDevMode mocks base method.
 func (m *MockConfigService) IsDevMode() bool {
 	m.ctrl.T.Helper()
