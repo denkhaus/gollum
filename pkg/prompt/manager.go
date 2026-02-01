@@ -7,6 +7,7 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
+	"sync"
 
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/samber/do/v2"
@@ -27,7 +28,11 @@ type PromptStore interface {
 
 type (
 	promptManager struct {
-		store PromptStore
+		store          PromptStore
+		systemOnce     sync.Once
+		supervisorOnce sync.Once
+		compacterOnce  sync.Once
+		subagentOnce   sync.Once
 	}
 
 	// PromptManager provides prompt rendering services for agents.
