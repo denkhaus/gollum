@@ -51,3 +51,9 @@ type AgentContext struct {
 	AgentID string // The agent's unique identifier
 	Task    string // The task the agent is working on
 }
+
+// ListFilter provides filtering options for listing prompts.
+type ListFilter struct {
+	Tags []string // Filter by tags (OR logic)
+	IDs  []string // Filter by IDs (OR logic)
+}

@@ -1,17 +1,19 @@
 package shared
 
+type ToolName string
+
 // Tool name constants for type safety and to avoid magic strings
 const (
-	ToolNameSpawnAgent  = "spawn_agent"
-	ToolNameResumeAgent = "resume_agent"
-	ToolNameAgentOutput = "agent_output"
-	ToolNameRemoveAgent = "remove_agent"
-	ToolNameListAgents  = "list_agents"
-	ToolNameCurrentTime = "current_time"
-	ToolNameBash        = "bash"
-	ToolNameWriteFile   = "write_file"
-	ToolNameReadFile    = "read_file"
-	ToolNameSessionLogs = "session_logs"
+	ToolNameSpawnAgent  ToolName = "spawn_agent"
+	ToolNameResumeAgent ToolName = "resume_agent"
+	ToolNameAgentOutput ToolName = "agent_output"
+	ToolNameRemoveAgent ToolName = "remove_agent"
+	ToolNameListAgents  ToolName = "list_agents"
+	ToolNameCurrentTime ToolName = "current_time"
+	ToolNameBash        ToolName = "bash"
+	ToolNameWriteFile   ToolName = "write_file"
+	ToolNameReadFile    ToolName = "read_file"
+	ToolNameSessionLogs ToolName = "session_logs"
 
 	// File operation tools (matching builtin tools)
 	ToolNameEdit = "edit"
