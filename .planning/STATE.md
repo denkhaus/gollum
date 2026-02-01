@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2025-02-01)
 ## Current Position
 
 Phase: 1 of 5 (Core Types and Store Layer)
-Plan: 1 of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: In progress
-Last activity: 2026-01-31 — Completed 01-01: Core Types and Store Interface
+Last activity: 2026-02-01 — Completed 01-02: File Persistence, DI, Tests, and Mocks
 
-Progress: [█░░░░░░░░░] 25%
+Progress: [██░░░░░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 6 min
-- Total execution time: 0.1 hours
+- Total plans completed: 2
+- Average duration: 9 min
+- Total execution time: 0.3 hours
 
 **By Phase:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 1     | 1     | 4     | 6 min    |
+| Phase | Plans | Complete | Total | Avg/Plan |
+|-------|-------|----------|-------|----------|
+| 1     | 2     | 2        | 4     | 9 min    |
 
 **Recent Trend:**
-- Last 5 plans: 6min (01-01)
-- Trend: Insufficient data
+- Last 5 plans: 6min (01-01), 12min (01-02)
+- Trend: 9 min average (insufficient data)
 
 *Updated after each plan completion*
 
@@ -50,6 +50,9 @@ Recent decisions affecting current work:
 - **Nil returns for not-found**: Load/Delete return nil (not error) to simplify caller error handling
 - **Interface consistency**: All PromptStore methods accept context.Context for future async implementations
 - **Type naming**: RenderContext (not PromptContext) to avoid stuttering in prompt package
+- **PromptStoreConfig location**: Moved to pkg/config to avoid import cycle between packages
+- **File store alias resolution**: Uses tag scanning instead of separate alias files for simpler design
+- **Nil-safe field access**: Always check for nil slices before iteration in store operations
 
 ### Pending Todos
 
@@ -61,6 +64,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-31T23:43:21Z
-Stopped at: Completed 01-01-PLAN.md (Core Types and Store Layer)
+Last session: 2026-02-01T00:03:47Z
+Stopped at: Completed 01-02-PLAN.md (File Persistence, DI, Tests, and Mocks)
 Resume file: None
