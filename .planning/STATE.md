@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2025-02-01)
 ## Current Position
 
 Phase: 2 of 5 (Prompt Manager Extension)
-Plan: 1 of TBD in current phase
+Plan: 2 of TBD in current phase
 Status: In progress
-Last activity: 2026-02-01 — Completed 02-01-PLAN.md (Prompt Manager Extension)
+Last activity: 2026-02-01 — Completed 02-02-PLAN.md (Template Rendering and Backward Compatibility)
 
-Progress: [█████░░░░] 30%
+Progress: [██████░░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 13 min
-- Total execution time: 0.6 hours
+- Total plans completed: 4
+- Average duration: 14 min
+- Total execution time: 0.9 hours
 
 **By Phase:**
 
 | Phase | Plans | Complete | Total | Avg/Plan |
 |-------|-------|----------|-------|----------|
 | 1     | 2     | 2        | 4     | 9 min    |
-| 2     | 1     | 1        | TBD   | 22 min   |
+| 2     | 2     | 2        | TBD   | 23 min   |
 
 **Recent Trend:**
-- Last 5 plans: 6min (01-01), 12min (01-02), 22min (02-01)
-- Trend: 13 min average
+- Last 5 plans: 6min (01-01), 12min (01-02), 22min (02-01), 25min (02-02)
+- Trend: 16 min average
 
 *Updated after each plan completion*
 
@@ -59,6 +59,11 @@ Recent decisions affecting current work:
 - **ListFilter location**: Moved to prompt/types.go instead of store package to break import cycle
 - **Template file mapping**: "system" -> subagent_system_prompt.md, "supervisor" -> supervisor_system_prompt.md, "compacter" -> compacter_prompt.md, "subagent" -> subagent_task_prompt.md
 - **sync.Once per built-in**: Each built-in prompt has its own sync.Once for thread-safe lazy initialization
+- **Package restructuring**: Moved PromptManager to pkg/prompt/manager/ to break dependency cycle, PromptStore now injected via constructor
+- **Named template execution**: Use template.Lookup() for templates with define/end blocks (systemprompt, supervisorprompt, etc.)
+- **Base ID extraction**: Extract base ID from versioned prompt IDs for template name mapping (system@1.0.0 -> system)
+- **Template name mapping**: Hard-coded map of prompt IDs to template names for built-in prompts
+- **GetCompacterPrompt map handling**: Accept map[string]interface{} directly for template variable access
 
 ### Pending Todos
 
@@ -70,6 +75,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-01T13:00:00Z
-Stopped at: Completed 02-01-PLAN.md (Prompt Manager Extension)
+Last session: 2026-02-01T13:53:05Z
+Stopped at: Completed 02-02-PLAN.md (Template Rendering and Backward Compatibility)
 Resume file: None
