@@ -14,6 +14,11 @@ type PromptStore interface {
 	// Returns new prompt with versioned ID (e.g., "subagent@1.0.1").
 	SaveNewVersion(ctx context.Context, baseID string, content string, name string) (*prompt.Prompt, error)
 
+	// SaveBuiltinVersion creates a new version with IsBuiltin=true.
+	// Used for bootstrapping built-in prompts that cannot be deleted.
+	// Returns new prompt with versioned ID (e.g., "system@1.0.0").
+	SaveBuiltinVersion(ctx context.Context, baseID string, content string, name string) (*prompt.Prompt, error)
+
 	// Load retrieves a prompt by ID.
 	// Returns nil if not found (not an error).
 	Load(ctx context.Context, id string) (*prompt.Prompt, error)

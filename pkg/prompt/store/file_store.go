@@ -164,6 +164,100 @@ func (f *fileStore) SaveNewVersion(ctx context.Context, baseID string, content s
 	return copyPrompt(newPrompt), nil
 }
 
+// SaveBuiltinVersion creates a new version with IsBuiltin=true.
+// Used for bootstrapping built-in prompts that cannot be deleted.
+// Returns new prompt with versioned ID (e.g., "system@1.0.0").
+func (f *fileStore) SaveBuiltinVersion(ctx context.Context, baseID string, content string, name string) (*prompt.Prompt, error) {
+	// Find the latest version
+	latestVersion, latestPrompt, err := f.findLatestVersion(baseID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Determine new version
+	var newVersion *semver.Version
+	if latestVersion == nil {
+		// First version: 1.0.0
+		newVersion = semver.New(1, 0, 0, "", "")
+	} else {
+		// Increment patch version
+		newVersion = incrementPatchVersion(latestVersion)
+	}
+
+	// Create versioned ID
+	versionID := fmt.Sprintf("%s@%s", baseID, newVersion.String())
+
+	now := time.Now()
+
+	// Create new prompt with IsBuiltin=true
+	newPrompt := &prompt.Prompt{
+		ID:        versionID,
+		Name:      name,
+		Content:   content,
+		Context:   make(map[string]interface{}),
+		Tags:      []string{},
+		CreatedAt: now,
+		UpdatedAt: now,
+		Version:   newVersion,
+		IsBuiltin: true,
+	}
+
+	// Copy context from previous version if exists
+	if latestPrompt != nil && latestPrompt.Context != nil {
+		for k, v := range latestPrompt.Context {
+			newPrompt.Context[k] = v
+		}
+	}
+
+	// Add aliases to new version
+	newPrompt.Tags = append(newPrompt.Tags, baseID, baseID+"@latest")
+
+	// Write to file with locking
+	if err := f.writePromptLocked(newPrompt); err != nil {
+		return nil, err
+	}
+
+	// Remove aliases from old versions
+	if latestPrompt != nil {
+		// Remove @latest tag from the old version file
+		var newTags []string
+		if latestPrompt.Tags != nil {
+			for _, tag := range latestPrompt.Tags {
+				if tag != baseID+"@latest" {
+					newTags = append(newTags, tag)
+				}
+			}
+		}
+		latestPrompt.Tags = newTags
+		latestPrompt.UpdatedAt = now
+
+		// Write the updated old version
+		if err := f.writePromptLocked(latestPrompt); err != nil {
+			return nil, fmt.Errorf("failed to update old version: %w", err)
+		}
+
+		// Update cache if enabled
+		if f.enableCache {
+			f.mu.Lock()
+			f.cache[latestPrompt.ID] = latestPrompt
+			delete(f.cache, baseID)
+			delete(f.cache, baseID+"@latest")
+			f.mu.Unlock()
+		}
+	}
+
+	// Update cache
+	if f.enableCache {
+		f.mu.Lock()
+		f.cache[versionID] = newPrompt
+		f.cache[baseID] = newPrompt
+		f.cache[baseID+"@latest"] = newPrompt
+		f.mu.Unlock()
+	}
+
+	return copyPrompt(newPrompt), nil
+}
+
 // Delete removes a prompt by ID.
 // Returns nil if not found.
 // Returns error for IsBuiltin prompts.
