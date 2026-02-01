@@ -3,6 +3,7 @@ package prompt
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"fmt"
 	"html/template"
@@ -14,12 +15,34 @@ import (
 //go:embed templates/*.md
 var promptTemplates embed.FS
 
+// PromptStore defines the contract for prompt persistence operations.
+// This is a local copy to avoid import cycle with store package.
+type PromptStore interface {
+	SaveNewVersion(ctx context.Context, baseID string, content string, name string) (*Prompt, error)
+	Load(ctx context.Context, id string) (*Prompt, error)
+	Delete(ctx context.Context, id string) error
+	List(ctx context.Context, filter *ListFilter) ([]*Prompt, error)
+	Exists(ctx context.Context, id string) (bool, error)
+}
+
 type (
-	promptManager struct{}
+	promptManager struct {
+		store PromptStore
+	}
 
 	// PromptManager provides prompt rendering services for agents.
 	//revive:disable-next-line:exported
 	PromptManager interface {
+		// New methods for ID-based prompt access with store integration
+		GetPromptByID(ctx context.Context, id string) (*Prompt, error)
+		GetPromptWithContext(ctx context.Context, id string, renderCtx *RenderContext) (string, error)
+		SetPrompt(ctx context.Context, id string, content string, name string) (*Prompt, error)
+		DeletePrompt(ctx context.Context, id string) error
+		ListPrompts(ctx context.Context, filter *ListFilter) ([]*Prompt, error)
+		RenderPrompt(ctx context.Context, p *Prompt, renderCtx *RenderContext) (string, error)
+		GetStore() PromptStore
+
+		// Existing methods for backward compatibility
 		GetCompacterPrompt(data any) (string, error)
 		GetSystemPrompt() (string, error)
 		GetSupervisorPrompt() (string, error)
@@ -31,11 +54,11 @@ type (
 type SubagentPromptContext struct {
 	Role            string
 	Description     string
-	SpawnAgentTool  string
-	RemoveAgentTool string
-	ResumeAgentTool string
-	AgentOutputTool string
-	ListAgentsTool  string
+	SpawnAgentTool  shared.ToolName
+	RemoveAgentTool shared.ToolName
+	ResumeAgentTool shared.ToolName
+	AgentOutputTool shared.ToolName
+	ListAgentsTool  shared.ToolName
 }
 
 // Pre-parsed templates for better performance
@@ -47,9 +70,18 @@ var (
 )
 
 // NewPromptManager creates a new Manager instance for prompt rendering.
-func NewPromptManager(_ do.Injector) (PromptManager, error) {
-	pm := &promptManager{}
+func NewPromptManager(injector do.Injector) (PromptManager, error) {
+	// Note: store will be injected via separate provider to avoid import cycles
+	// For now, initialize without store
+	pm := &promptManager{
+		store: nil,
+	}
 	return pm, nil
+}
+
+// SetStore sets the prompt store (called by DI provider after initialization)
+func (p *promptManager) SetStore(store PromptStore) {
+	p.store = store
 }
 
 func (p *promptManager) GetCompacterPrompt(data any) (string, error) {
@@ -102,4 +134,47 @@ func (p *promptManager) GetSubagentPrompt(role, description string) (string, err
 	}
 
 	return buf.String(), nil
+}
+
+// New interface methods - implementations will be added in manager_bootstrap.go and manager_store.go
+
+// GetPromptByID retrieves a prompt by ID from store or bootstrap built-in
+func (p *promptManager) GetPromptByID(ctx context.Context, id string) (*Prompt, error) {
+	// TODO: Implement in manager_store.go
+	return nil, nil
+}
+
+// GetPromptWithContext gets and renders prompt with context
+func (p *promptManager) GetPromptWithContext(ctx context.Context, id string, renderCtx *RenderContext) (string, error) {
+	// TODO: Implement in 02-02
+	return "", nil
+}
+
+// SetPrompt saves a new prompt version
+func (p *promptManager) SetPrompt(ctx context.Context, id string, content string, name string) (*Prompt, error) {
+	// TODO: Implement in manager_store.go
+	return nil, nil
+}
+
+// DeletePrompt deletes a prompt (respects IsBuiltin flag)
+func (p *promptManager) DeletePrompt(ctx context.Context, id string) error {
+	// TODO: Implement in manager_store.go
+	return nil
+}
+
+// ListPrompts lists prompts with filter
+func (p *promptManager) ListPrompts(ctx context.Context, filter *ListFilter) ([]*Prompt, error) {
+	// TODO: Implement in manager_store.go
+	return nil, nil
+}
+
+// RenderPrompt renders prompt template
+func (p *promptManager) RenderPrompt(ctx context.Context, prompt *Prompt, renderCtx *RenderContext) (string, error) {
+	// TODO: Implement in 02-02
+	return "", nil
+}
+
+// GetStore returns underlying store
+func (p *promptManager) GetStore() PromptStore {
+	return p.store
 }
