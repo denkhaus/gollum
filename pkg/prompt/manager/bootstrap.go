@@ -68,8 +68,8 @@ func (p *promptManager) bootstrapBuiltinPrompt(ctx context.Context, baseID strin
 			return
 		}
 
-		// Save to store (store will create proper Prompt with version)
-		saved, err := p.store.SaveNewVersion(ctx, baseID, string(content), promptName)
+		// Save to store with IsBuiltin=true (built-in prompts cannot be deleted)
+		saved, err := p.store.SaveBuiltinVersion(ctx, baseID, string(content), promptName)
 		if err != nil {
 			bootstrapErr = fmt.Errorf("failed to save bootstrapped prompt to store: %w", err)
 			return

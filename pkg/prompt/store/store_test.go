@@ -581,3 +581,79 @@ func TestFileStore_ListTags(t *testing.T) {
 		assert.NotEmpty(t, tags)
 	})
 }
+
+// ==================== SaveBuiltinVersion Tests ====================
+
+func TestMemoryStore_SaveBuiltinVersion_SetsIsBuiltinTrue(t *testing.T) {
+	store := setupTestStore(t)
+	ctx := context.Background()
+
+	t.Run("first version has IsBuiltin=true", func(t *testing.T) {
+		p, err := store.SaveBuiltinVersion(ctx, "builtin-test", "builtin content", "Builtin Prompt")
+		assert.NoError(t, err)
+		assert.NotNil(t, p)
+		assert.Equal(t, "builtin-test@1.0.0", p.ID)
+		assert.True(t, p.IsBuiltin, "SaveBuiltinVersion should set IsBuiltin=true")
+	})
+
+	t.Run("second version also has IsBuiltin=true", func(t *testing.T) {
+		_, _ = store.SaveBuiltinVersion(ctx, "builtin-v2", "v1", "Builtin")
+		p2, err := store.SaveBuiltinVersion(ctx, "builtin-v2", "v2", "Builtin")
+		assert.NoError(t, err)
+		assert.True(t, p2.IsBuiltin, "SaveBuiltinVersion should set IsBuiltin=true on subsequent versions")
+	})
+}
+
+func TestMemoryStore_DeleteBuiltinPrompt_ReturnsError(t *testing.T) {
+	store := setupTestStore(t)
+	ctx := context.Background()
+
+	t.Run("delete prompt saved with SaveBuiltinVersion fails", func(t *testing.T) {
+		_, _ = store.SaveBuiltinVersion(ctx, "protected", "protected content", "Protected Prompt")
+
+		err := store.Delete(ctx, "protected@1.0.0")
+		assert.Error(t, err)
+		assert.Equal(t, ErrPromptIsBuiltin, err)
+
+		// Verify prompt still exists
+		loaded, _ := store.Load(ctx, "protected@1.0.0")
+		assert.NotNil(t, loaded, "Builtin prompt should still exist after failed delete")
+	})
+}
+
+func TestFileStore_SaveBuiltinVersion_SetsIsBuiltinTrue(t *testing.T) {
+	store := setupFileStore(t)
+	ctx := context.Background()
+
+	t.Run("file store saves with IsBuiltin=true", func(t *testing.T) {
+		p, err := store.SaveBuiltinVersion(ctx, "file-builtin", "file builtin content", "File Builtin")
+		assert.NoError(t, err)
+		assert.NotNil(t, p)
+		assert.True(t, p.IsBuiltin, "SaveBuiltinVersion should set IsBuiltin=true in FileStore")
+	})
+
+	t.Run("IsBuiltin persists across load", func(t *testing.T) {
+		saved, _ := store.SaveBuiltinVersion(ctx, "persist-builtin", "content", "Persist")
+		loaded, err := store.Load(ctx, saved.ID)
+		assert.NoError(t, err)
+		assert.NotNil(t, loaded)
+		assert.True(t, loaded.IsBuiltin, "IsBuiltin should persist when loaded from file")
+	})
+}
+
+func TestFileStore_DeleteBuiltinPrompt_ReturnsError(t *testing.T) {
+	store := setupFileStore(t)
+	ctx := context.Background()
+
+	t.Run("delete builtin prompt from file store fails", func(t *testing.T) {
+		_, _ = store.SaveBuiltinVersion(ctx, "file-protected", "protected content", "Protected")
+
+		err := store.Delete(ctx, "file-protected@1.0.0")
+		assert.Error(t, err)
+		assert.Equal(t, ErrPromptIsBuiltin, err)
+
+		// Verify prompt still exists
+		loaded, _ := store.Load(ctx, "file-protected@1.0.0")
+		assert.NotNil(t, loaded, "Builtin prompt should still exist in file store after failed delete")
+	})
+}
