@@ -8,7 +8,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/prompt"
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -22,7 +22,7 @@ type (
 		logService      logger.LoggerService
 		agentFactory    shared.AgentFactory
 		registry        registry.AgentRegistry
-		promptManager   prompt.PromptManager
+		promptManager   manager.PromptManager
 		executionHelper AgentExecutionHelper
 		configService   config.ConfigService
 		hookManager     hooks.HookManager
@@ -37,7 +37,7 @@ type (
 	spawnAgentToolProvider struct {
 		logService      logger.LoggerService
 		registry        registry.AgentRegistry
-		promptManager   prompt.PromptManager
+		promptManager   manager.PromptManager
 		executionHelper AgentExecutionHelper
 		configService   config.ConfigService
 		hookManager     hooks.HookManager
@@ -48,7 +48,7 @@ type (
 func NewSpawnAgentToolProvider(injector do.Injector) (SpawnAgentToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	registry := do.MustInvoke[registry.AgentRegistry](injector)
-	promptManager := do.MustInvoke[prompt.PromptManager](injector)
+	promptManager := do.MustInvoke[manager.PromptManager](injector)
 	executionHelper := do.MustInvoke[AgentExecutionHelper](injector)
 	configService := do.MustInvoke[config.ConfigService](injector)
 	hookManager := do.MustInvoke[hooks.HookManager](injector)
