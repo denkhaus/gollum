@@ -13,6 +13,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/middleware"
 	"github.com/denkhaus/gollum/pkg/prompt"
+	"github.com/denkhaus/gollum/pkg/prompt/store"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/denkhaus/gollum/pkg/tools"
@@ -97,6 +98,8 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	do.Provide(p.injector, tools.NewEditToolProvider)
 	do.Provide(p.injector, tools.NewSessionLogsToolProvider)
 
+	// Register prompt store before prompt manager (manager depends on it)
+	do.Provide(p.injector, store.NewPromptStore)
 	do.Provide(p.injector, prompt.NewPromptManager)
 
 	// Register application service (must be last, depends on all other services)
