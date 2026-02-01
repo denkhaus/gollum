@@ -29,13 +29,13 @@
 
 ### Prompt Manager
 
-- [ ] **MGR-01**: Extended PromptManager interface with GetPromptByID, GetPromptWithContext, SetPrompt, DeletePrompt, ListPrompts, RenderPrompt, GetStore methods
-- [ ] **MGR-02**: Lazy initialization pattern for built-in prompts (load from embedded FS on first access)
-- [ ] **MGR-03**: Bootstrap built-in prompts as version 1.0.0 with aliases
-- [ ] **MGR-04**: Template rendering using text/template with PromptContext variables
-- [ ] **MGR-05**: Thread-safe loading with sync.Once per built-in prompt
-- [ ] **MGR-06**: Backward compatibility with existing GetCompacterPrompt, GetSystemPrompt, GetSupervisorPrompt, GetSubagentPrompt methods
-- [ ] **MGR-07**: IsBuiltin flag prevents deletion of built-in prompts
+- [x] **MGR-01**: Extended PromptManager interface with GetPromptByID, GetPromptWithContext, SetPrompt, DeletePrompt, ListPrompts, RenderPrompt, GetStore methods
+- [x] **MGR-02**: Lazy initialization pattern for built-in prompts (load from embedded FS on first access)
+- [x] **MGR-03**: Bootstrap built-in prompts as version 1.0.0 with aliases
+- [x] **MGR-04**: Template rendering using text/template with PromptContext variables
+- [x] **MGR-05**: Thread-safe loading with sync.Once per built-in prompt
+- [x] **MGR-06**: Backward compatibility with existing GetCompacterPrompt, GetSystemPrompt, GetSupervisorPrompt, GetSubagentPrompt methods
+- [x] **MGR-07**: IsBuiltin flag prevents deletion of built-in prompts
 
 ### Prompt Optimizer
 
@@ -146,15 +146,15 @@ Deferred to future release. Acknowledged but not in current roadmap.
 | TEST-04 | All | Pending |
 | TEST-05 | All | Pending |
 | TEST-06 | All | Pending |
-| TEST-03 | Phase 2 | Pending |
+| TEST-03 | Phase 2 | Complete |
 | TEST-07 | All | Pending |
-| MGR-01 | Phase 2 | Pending |
-| MGR-02 | Phase 2 | Pending |
-| MGR-03 | Phase 2 | Pending |
-| MGR-04 | Phase 2 | Pending |
-| MGR-05 | Phase 2 | Pending |
-| MGR-06 | Phase 2 | Pending |
-| MGR-07 | Phase 2 | Pending |
+| MGR-01 | Phase 2 | Complete |
+| MGR-02 | Phase 2 | Complete |
+| MGR-03 | Phase 2 | Complete |
+| MGR-04 | Phase 2 | Complete |
+| MGR-05 | Phase 2 | Complete |
+| MGR-06 | Phase 2 | Complete |
+| MGR-07 | Phase 2 | Complete |
 | OPT-01 | Phase 3 | Pending |
 | OPT-02 | Phase 3 | Pending |
 | OPT-03 | Phase 3 | Pending |
