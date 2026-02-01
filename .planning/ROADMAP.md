@@ -74,7 +74,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 4. Prompt memory strategy performs single-shot optimization
 5. Optimizer returns new prompt version with incremented SemVer and change description
 
-**Plans**: TBD
+**Plans**: 3 plans in 3 waves
+- [ ] 03-01-PLAN.md — Core types, templates, and optimizer interface (Wave 1)
+- [ ] 03-02-PLAN.md — Three strategy implementations with TDD (Wave 2)
+- [ ] 03-03-PLAN.md — Integration helpers and mock registration (Wave 3)
 
 ### Phase 4: Configuration and DI Integration
 
@@ -119,6 +122,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Core Types and Store Layer | 2/2 | Complete | 2025-02-01 |
 | 2. Prompt Manager Extension | 3/3 | Complete | 2026-02-01 |
-| 3. Prompt Optimizer | 0/TBD | Not started | - |
+| 3. Prompt Optimizer | 0/3 | Planned | - |
 | 4. Configuration and DI Integration | 0/TBD | Not started | - |
 | 5. Documentation and Knowledge Capture | 0/TBD | Not started | - |
