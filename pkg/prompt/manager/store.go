@@ -1,29 +1,28 @@
-// Package prompt provides PromptStore integration for prompt manager.
-package prompt
+// Package manager provides PromptStore integration for prompt manager.
+package manager
 
 import (
 	"context"
-	"errors"
 	"fmt"
+
+	"github.com/denkhaus/gollum/pkg/prompt"
+	promptstore "github.com/denkhaus/gollum/pkg/prompt/store"
 )
 
-// Local error definitions to avoid import cycle with store package
 var (
-	ErrPromptNotFound  = errors.New("prompt not found")
-	ErrPromptIsBuiltin = errors.New("cannot delete built-in prompt")
+	// ErrPromptNotFound is returned when a prompt is not found
+	ErrPromptNotFound = promptstore.ErrPromptNotFound
+	// ErrPromptIsBuiltin is returned when trying to delete a built-in prompt
+	ErrPromptIsBuiltin = promptstore.ErrPromptIsBuiltin
 )
 
 // GetStore returns the underlying PromptStore for advanced operations
-func (p *promptManager) GetStore() PromptStore {
+func (p *promptManager) GetStore() promptstore.PromptStore {
 	return p.store
 }
 
 // GetPromptByID retrieves a prompt by ID from store or bootstraps built-in
-func (p *promptManager) GetPromptByID(ctx context.Context, id string) (*Prompt, error) {
-	if p.store == nil {
-		return nil, fmt.Errorf("prompt store not initialized")
-	}
-
+func (p *promptManager) GetPromptByID(ctx context.Context, id string) (*prompt.Prompt, error) {
 	// Check if ID is a built-in constant
 	if p.isBuiltinID(id) {
 		// Get bootstrap sync.Once for this built-in
@@ -46,47 +45,39 @@ func (p *promptManager) GetPromptByID(ctx context.Context, id string) (*Prompt, 
 	}
 
 	// Load from store
-	prompt, err := p.store.Load(ctx, id)
+	loadedPrompt, err := p.store.Load(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load prompt %s: %w", id, err)
 	}
 
 	// Return nil, not error, if not found
-	if prompt == nil {
+	if loadedPrompt == nil {
 		return nil, nil
 	}
 
-	return prompt, nil
+	return loadedPrompt, nil
 }
 
 // SetPrompt saves a new prompt version
-func (p *promptManager) SetPrompt(ctx context.Context, id string, content string, name string) (*Prompt, error) {
-	if p.store == nil {
-		return nil, fmt.Errorf("prompt store not initialized")
-	}
-
-	prompt, err := p.store.SaveNewVersion(ctx, id, content, name)
+func (p *promptManager) SetPrompt(ctx context.Context, id string, content string, name string) (*prompt.Prompt, error) {
+	savedPrompt, err := p.store.SaveNewVersion(ctx, id, content, name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save prompt %s: %w", id, err)
 	}
 
-	return prompt, nil
+	return savedPrompt, nil
 }
 
 // DeletePrompt deletes a prompt (respects IsBuiltin flag)
 func (p *promptManager) DeletePrompt(ctx context.Context, id string) error {
-	if p.store == nil {
-		return fmt.Errorf("prompt store not initialized")
-	}
-
 	// Load prompt to check IsBuiltin flag
-	prompt, err := p.store.Load(ctx, id)
+	loadedPrompt, err := p.store.Load(ctx, id)
 	if err != nil {
 		return fmt.Errorf("failed to load prompt %s for deletion check: %w", id, err)
 	}
 
 	// If prompt exists and IsBuiltin is true, return error
-	if prompt != nil && prompt.IsBuiltin {
+	if loadedPrompt != nil && loadedPrompt.IsBuiltin {
 		return ErrPromptIsBuiltin
 	}
 
@@ -100,16 +91,17 @@ func (p *promptManager) DeletePrompt(ctx context.Context, id string) error {
 }
 
 // ListPrompts lists prompts with filter
-func (p *promptManager) ListPrompts(ctx context.Context, filter *ListFilter) ([]*Prompt, error) {
-	if p.store == nil {
-		return nil, fmt.Errorf("prompt store not initialized")
+func (p *promptManager) ListPrompts(ctx context.Context, filter *prompt.ListFilter) ([]*prompt.Prompt, error) {
+	// Convert prompt.ListFilter to store.ListFilter
+	storeFilter := &promptstore.ListFilter{
+		Tags: filter.Tags,
+		IDs:  filter.IDs,
 	}
 
-	prompts, err := p.store.List(ctx, filter)
+	prompts, err := p.store.List(ctx, storeFilter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list prompts: %w", err)
 	}
 
 	return prompts, nil
 }
-

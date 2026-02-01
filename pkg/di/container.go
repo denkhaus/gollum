@@ -12,7 +12,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/middleware"
-	"github.com/denkhaus/gollum/pkg/prompt"
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/prompt/store"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/state"
@@ -61,10 +61,10 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	// Register HookManager
 	do.Provide(p.injector, hooks.NewHookManager)
 
-	// Register built-in hooks (must come after HookManager)
+	// Register built-in hooks
 	do.Provide(p.injector, builtin.NewBuiltinHooksProvider)
 
-	// Register agent registry before agent provider (agent provider depends on it)
+	// Register agent registry
 	do.Provide(p.injector, registry.NewAgentRegistry)
 
 	// Register UI components
@@ -98,11 +98,11 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	do.Provide(p.injector, tools.NewEditToolProvider)
 	do.Provide(p.injector, tools.NewSessionLogsToolProvider)
 
-	// Register prompt store before prompt manager (manager depends on it)
+	// Register prompt store
 	do.Provide(p.injector, store.NewPromptStore)
-	do.Provide(p.injector, prompt.NewPromptManager)
+	do.Provide[manager.PromptManager](p.injector, manager.NewPromptManagerProvider)
 
-	// Register application service (must be last, depends on all other services)
+	// Register application service
 	do.Provide(p.injector, app.NewService)
 
 	return p.injector

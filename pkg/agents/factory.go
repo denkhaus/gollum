@@ -8,7 +8,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/middleware"
-	"github.com/denkhaus/gollum/pkg/prompt"
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/tools"
@@ -25,7 +25,7 @@ type defaultAgentFactory struct {
 	configService   config.ConfigService
 	clientProvider  llm.ClientProvider
 	registry        registry.AgentRegistry
-	promptManager   prompt.PromptManager
+	promptManager   manager.PromptManager
 	displayProvider middleware.DisplayMiddlewareProvider
 	summaryProvider middleware.SummaryMiddlewareProvider
 	// Tool providers for adding default tools to all agents
@@ -50,7 +50,7 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 	configService := do.MustInvoke[config.ConfigService](injector)
 	clientProvider := do.MustInvoke[llm.ClientProvider](injector)
 	registry := do.MustInvoke[registry.AgentRegistry](injector)
-	promptManager := do.MustInvoke[prompt.PromptManager](injector)
+	promptManager := do.MustInvoke[manager.PromptManager](injector)
 	displayProvider := do.MustInvoke[middleware.DisplayMiddlewareProvider](injector)
 	summaryProvider := do.MustInvoke[middleware.SummaryMiddlewareProvider](injector)
 

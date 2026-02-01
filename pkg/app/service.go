@@ -10,7 +10,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/mcp"
 	"github.com/denkhaus/gollum/pkg/middleware"
-	"github.com/denkhaus/gollum/pkg/prompt"
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/state"
@@ -32,7 +32,7 @@ type applicationServiceImpl struct {
 	logService    logger.LoggerService
 	fsm           state.FileStateManager
 	agentRegistry registry.AgentRegistry
-	promptMgr     prompt.PromptManager
+	promptMgr     manager.PromptManager
 	displayProv   middleware.DisplayMiddlewareProvider
 	agentFactory  shared.AgentFactory
 	currentCancel context.CancelFunc // Current active request cancel function
@@ -47,7 +47,7 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	fsm := do.MustInvoke[state.FileStateManager](injector)
 	agentRegistry := do.MustInvoke[registry.AgentRegistry](injector)
-	promptMgr := do.MustInvoke[prompt.PromptManager](injector)
+	promptMgr := do.MustInvoke[manager.PromptManager](injector)
 	displayProv := do.MustInvoke[middleware.DisplayMiddlewareProvider](injector)
 	agentFactory := do.MustInvoke[shared.AgentFactory](injector)
 
