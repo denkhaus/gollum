@@ -2,14 +2,10 @@
 package prompt
 
 import (
-	"bytes"
 	"context"
 	"embed"
-	"fmt"
-	"html/template"
 	"sync"
 
-	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/samber/do/v2"
 )
 
@@ -55,14 +51,6 @@ type (
 	}
 )
 
-// Pre-parsed templates for better performance
-var (
-	compacterTemplate        = template.Must(template.New("compacter").ParseFS(promptTemplates, "templates/compacter_prompt.md"))
-	systemPromptTemplate     = template.Must(template.New("systemprompt").ParseFS(promptTemplates, "templates/subagent_system_prompt.md"))
-	supervisorPromptTemplate = template.Must(template.New("supervisorprompt").ParseFS(promptTemplates, "templates/supervisor_system_prompt.md"))
-	subagentTaskTemplate     = template.Must(template.New("subagenttaskprompt").ParseFS(promptTemplates, "templates/subagent_task_prompt.md"))
-)
-
 // NewPromptManager creates a new Manager instance for prompt rendering.
 func NewPromptManager(injector do.Injector) (PromptManager, error) {
 	// Note: store will be injected via separate provider to avoid import cycles
@@ -78,56 +66,5 @@ func (p *promptManager) SetStore(store PromptStore) {
 	p.store = store
 }
 
-func (p *promptManager) GetCompacterPrompt(data any) (string, error) {
-	buf := bytes.NewBuffer(nil)
-	err := compacterTemplate.Execute(buf, data)
-	if err != nil {
-		return "", fmt.Errorf("failed to render compacter prompt: %v", err)
-	}
-
-	return buf.String(), nil
-}
-
-func (p *promptManager) GetSystemPrompt() (string, error) {
-	buf := bytes.NewBuffer(nil)
-	err := systemPromptTemplate.Execute(buf, nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to render system prompt: %v", err)
-	}
-
-	return buf.String(), nil
-}
-
-func (p *promptManager) GetSupervisorPrompt() (string, error) {
-	buf := bytes.NewBuffer(nil)
-	err := supervisorPromptTemplate.Execute(buf, nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to render supervisor prompt: %v", err)
-	}
-
-	return buf.String(), nil
-}
-
-// GetSubagentPrompt generates a specialized prompt for subagents with their role and description
-func (p *promptManager) GetSubagentPrompt(role, description string) (string, error) {
-	// Prepare context with role, description, and tool names
-	ctx := SubAgentContext{
-		Role:            role,
-		Description:     description,
-		SpawnAgentTool:  shared.ToolNameSpawnAgent,
-		RemoveAgentTool: shared.ToolNameRemoveAgent,
-		ResumeAgentTool: shared.ToolNameResumeAgent,
-		AgentOutputTool: shared.ToolNameAgentOutput,
-		ListAgentsTool:  shared.ToolNameListAgents,
-	}
-
-	buf := bytes.NewBuffer(nil)
-	err := subagentTaskTemplate.Execute(buf, ctx)
-	if err != nil {
-		return "", fmt.Errorf("failed to render subagent task prompt: %v", err)
-	}
-
-	return buf.String(), nil
-}
-
-// New interface methods are implemented in manager_bootstrap.go and manager_store.go
+// Backward-compatible wrapper methods are implemented in manager_backward_compat.go
+// These delegate to the new store-based API while maintaining existing signatures.
