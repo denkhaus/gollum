@@ -125,11 +125,30 @@ func (f *fileStore) SaveNewVersion(ctx context.Context, baseID string, content s
 
 	// Remove aliases from old versions
 	if latestPrompt != nil {
-		for _, aliasID := range []string{baseID, baseID + "@latest"} {
-			if err := f.removeAliasFromFile(aliasID, latestPrompt.ID); err != nil {
-				// Log warning but don't fail
-				_ = err
+		// Remove @latest tag from the old version file
+		var newTags []string
+		if latestPrompt.Tags != nil {
+			for _, tag := range latestPrompt.Tags {
+				if tag != baseID+"@latest" {
+					newTags = append(newTags, tag)
+				}
 			}
+		}
+		latestPrompt.Tags = newTags
+		latestPrompt.UpdatedAt = now
+
+		// Write the updated old version
+		if err := f.writePromptLocked(latestPrompt); err != nil {
+			return nil, fmt.Errorf("failed to update old version: %w", err)
+		}
+
+		// Update cache if enabled
+		if f.enableCache {
+			f.mu.Lock()
+			f.cache[latestPrompt.ID] = latestPrompt
+			delete(f.cache, baseID)
+			delete(f.cache, baseID+"@latest")
+			f.mu.Unlock()
 		}
 	}
 
@@ -332,20 +351,28 @@ func (f *fileStore) ListTags(_ context.Context) ([]string, error) {
 // ResolveAlias resolves shortcuts to versioned IDs.
 // Resolves "subagent" -> "subagent@latest" -> versioned ID.
 func (f *fileStore) ResolveAlias(ctx context.Context, id string) (*prompt.Prompt, error) {
-	// Direct lookup
+	// Direct lookup first
 	p, err := f.Load(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	if p != nil {
-		// If this is an alias (no version), return the actual prompt
+		// If this is an alias (no version or @latest suffix), find the versioned ID
 		if !strings.Contains(id, "@") || strings.HasSuffix(id, "@latest") {
-			// Find the versioned ID by checking tags
-			if strings.Contains(p.ID, "@") && !strings.HasSuffix(p.ID, "@latest") {
-				return copyPrompt(p), nil
+			// For file store, we need to scan files to find the one with @latest tag
+			baseID := id
+			if strings.HasSuffix(id, "@latest") {
+				baseID = strings.TrimSuffix(id, "@latest")
 			}
+			return f.findLatestWithTag(ctx, baseID, baseID+"@latest")
 		}
 		return copyPrompt(p), nil
+	}
+
+	// If still not found and input has @latest suffix, scan for it
+	if strings.HasSuffix(id, "@latest") {
+		baseID := strings.TrimSuffix(id, "@latest")
+		return f.findLatestWithTag(ctx, baseID, id)
 	}
 
 	// Try @latest
@@ -356,6 +383,59 @@ func (f *fileStore) ResolveAlias(ctx context.Context, id string) (*prompt.Prompt
 	}
 	if p != nil {
 		return copyPrompt(p), nil
+	}
+
+	// If still not found, try to scan for it
+	if !strings.Contains(id, "@") {
+		return f.findLatestWithTag(ctx, id, id+"@latest")
+	}
+
+	return nil, nil
+}
+
+// findLatestWithTag scans files to find the prompt with the specified tag.
+func (f *fileStore) findLatestWithTag(_ context.Context, baseID, tag string) (*prompt.Prompt, error) {
+	// Read directory
+	entries, err := os.ReadDir(f.dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to read store directory: %w", err)
+	}
+
+	for _, entry := range entries {
+		// Check if file matches baseID@version.json pattern
+		if !strings.HasPrefix(entry.Name(), baseID+"@") {
+			continue
+		}
+		if !strings.HasSuffix(entry.Name(), ".json") {
+			continue
+		}
+		if strings.HasSuffix(entry.Name(), "@latest.json") {
+			continue
+		}
+
+		// Load prompt
+		path := filepath.Join(f.dir, entry.Name())
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+
+		var p prompt.Prompt
+		if err := json.Unmarshal(data, &p); err != nil {
+			continue
+		}
+
+		// Check if this prompt has the tag we're looking for
+		if p.Tags != nil {
+			for _, t := range p.Tags {
+				if t == tag {
+					return copyPrompt(&p), nil
+				}
+			}
+		}
 	}
 
 	return nil, nil
@@ -437,9 +517,11 @@ func (f *fileStore) SetLatestAlias(ctx context.Context, baseID, versionID string
 	// Remove @latest tag from all versions
 	for _, v := range versions {
 		var newTags []string
-		for _, tag := range v.Tags {
-			if tag != baseID+"@latest" {
-				newTags = append(newTags, tag)
+		if v.Tags != nil {
+			for _, tag := range v.Tags {
+				if tag != baseID+"@latest" {
+					newTags = append(newTags, tag)
+				}
 			}
 		}
 		v.Tags = newTags
@@ -459,6 +541,9 @@ func (f *fileStore) SetLatestAlias(ctx context.Context, baseID, versionID string
 	}
 
 	// Add @latest to target prompt
+	if targetPrompt.Tags == nil {
+		targetPrompt.Tags = []string{}
+	}
 	targetPrompt.Tags = append(targetPrompt.Tags, baseID+"@latest")
 	targetPrompt.UpdatedAt = now
 

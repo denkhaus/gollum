@@ -320,9 +320,11 @@ func (m *memoryStore) SetLatestAlias(ctx context.Context, baseID, versionID stri
 		if strings.HasPrefix(id, baseID+"@") && id != baseID+"@latest" {
 			// Remove @latest tag
 			var newTags []string
-			for _, tag := range p.Tags {
-				if tag != baseID+"@latest" {
-					newTags = append(newTags, tag)
+			if p.Tags != nil {
+				for _, tag := range p.Tags {
+					if tag != baseID+"@latest" {
+						newTags = append(newTags, tag)
+					}
 				}
 			}
 			p.Tags = newTags
@@ -331,6 +333,9 @@ func (m *memoryStore) SetLatestAlias(ctx context.Context, baseID, versionID stri
 	}
 
 	// Add @latest to target prompt
+	if targetPrompt.Tags == nil {
+		targetPrompt.Tags = []string{}
+	}
 	targetPrompt.Tags = append(targetPrompt.Tags, baseID+"@latest")
 	targetPrompt.UpdatedAt = now
 
