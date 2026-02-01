@@ -582,3 +582,31 @@ func TestRenderPrompt_AllContextFields(t *testing.T) {
 	assert.Contains(t, rendered, "AgentID: agent-456", "Should contain Agent AgentID")
 	assert.Contains(t, rendered, "Custom: custom value", "Should contain custom Value")
 }
+
+// TestDeletePrompt_BuiltinPromptReturnsError verifies that built-in prompts cannot be deleted
+func TestDeletePrompt_BuiltinPromptReturnsError(t *testing.T) {
+	ctx := context.Background()
+
+	// Create in-memory store
+	st := promptstore.NewMemoryStore()
+
+	// Save a prompt using SaveBuiltinVersion (like bootstrap does)
+	_, err := st.SaveBuiltinVersion(ctx, prompt.PromptIDSystem, "Built-in system prompt content", "System Prompt")
+	require.NoError(t, err)
+
+	// Verify it was saved with IsBuiltin=true
+	loaded, err := st.Load(ctx, prompt.PromptIDSystem)
+	require.NoError(t, err)
+	require.NotNil(t, loaded)
+	assert.True(t, loaded.IsBuiltin, "Prompt saved via SaveBuiltinVersion should have IsBuiltin=true")
+
+	// Try to delete the built-in prompt
+	err = st.Delete(ctx, prompt.PromptIDSystem)
+	assert.Error(t, err, "Deleting built-in prompt should return an error")
+	assert.Equal(t, promptstore.ErrPromptIsBuiltin, err, "Error should be ErrPromptIsBuiltin")
+
+	// Verify prompt still exists after failed delete
+	stillExists, err := st.Load(ctx, prompt.PromptIDSystem)
+	require.NoError(t, err)
+	assert.NotNil(t, stillExists, "Built-in prompt should still exist after failed delete")
+}
