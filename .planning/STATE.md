@@ -10,28 +10,29 @@ See: .planning/PROJECT.md (updated 2025-02-01)
 ## Current Position
 
 Phase: 2 of 5 (Prompt Manager Extension)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2025-02-01 — Phase 1 completed, goal verified
+Plan: 1 of TBD in current phase
+Status: In progress
+Last activity: 2026-02-01 — Completed 02-01-PLAN.md (Prompt Manager Extension)
 
-Progress: [███░░░░░░] 20%
+Progress: [█████░░░░] 30%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 9 min
-- Total execution time: 0.3 hours
+- Total plans completed: 3
+- Average duration: 13 min
+- Total execution time: 0.6 hours
 
 **By Phase:**
 
 | Phase | Plans | Complete | Total | Avg/Plan |
 |-------|-------|----------|-------|----------|
 | 1     | 2     | 2        | 4     | 9 min    |
+| 2     | 1     | 1        | TBD   | 22 min   |
 
 **Recent Trend:**
-- Last 5 plans: 6min (01-01), 12min (01-02)
-- Trend: 9 min average (insufficient data)
+- Last 5 plans: 6min (01-01), 12min (01-02), 22min (02-01)
+- Trend: 13 min average
 
 *Updated after each plan completion*
 
@@ -53,6 +54,11 @@ Recent decisions affecting current work:
 - **PromptStoreConfig location**: Moved to pkg/config to avoid import cycle between packages
 - **File store alias resolution**: Uses tag scanning instead of separate alias files for simpler design
 - **Nil-safe field access**: Always check for nil slices before iteration in store operations
+- **Local PromptStore interface copy**: Copied PromptStore interface to prompt package to avoid import cycle
+- **Optional DI injection with recover**: Used recover pattern since do v2 doesn't have TryInvoke like do v1
+- **ListFilter location**: Moved to prompt/types.go instead of store package to break import cycle
+- **Template file mapping**: "system" -> subagent_system_prompt.md, "supervisor" -> supervisor_system_prompt.md, "compacter" -> compacter_prompt.md, "subagent" -> subagent_task_prompt.md
+- **sync.Once per built-in**: Each built-in prompt has its own sync.Once for thread-safe lazy initialization
 
 ### Pending Todos
 
@@ -64,6 +70,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-01T00:03:47Z
-Stopped at: Completed 01-02-PLAN.md (File Persistence, DI, Tests, and Mocks)
+Last session: 2026-02-01T13:00:00Z
+Stopped at: Completed 02-01-PLAN.md (Prompt Manager Extension)
 Resume file: None
