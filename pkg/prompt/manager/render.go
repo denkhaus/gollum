@@ -11,6 +11,23 @@ import (
 	promptstore "github.com/denkhaus/gollum/pkg/prompt/store"
 )
 
+// templateNameMap maps prompt IDs to their template names
+var templateNameMap = map[string]string{
+	prompt.PromptIDSystem:     "systemprompt",
+	prompt.PromptIDSupervisor: "supervisorprompt",
+	prompt.PromptIDCompacter:  "compacter",
+	prompt.PromptIDSubagent:   "subagenttaskprompt",
+}
+
+// extractBaseID extracts the base prompt ID from a versioned ID
+// e.g., "system@1.0.0" -> "system", "system" -> "system"
+func extractBaseID(id string) string {
+	if idx := strings.Index(id, "@"); idx != -1 {
+		return id[:idx]
+	}
+	return id
+}
+
 // RenderPrompt renders a prompt template with the given context
 func (p *promptManager) RenderPrompt(ctx context.Context, prompt *prompt.Prompt, renderCtx *prompt.RenderContext) (string, error) {
 	// Check for nil prompt
@@ -29,6 +46,23 @@ func (p *promptManager) RenderPrompt(ctx context.Context, prompt *prompt.Prompt,
 
 	// Execute template
 	var buf strings.Builder
+
+	// Check if this is a named template (has define blocks)
+	// Try to execute the specific named template if it exists
+	// Extract base ID from versioned ID (e.g., "system@1.0.0" -> "system")
+	baseID := extractBaseID(prompt.ID)
+	if templateName, ok := templateNameMap[baseID]; ok {
+		// Look up the named template and execute it
+		namedTmpl := tmpl.Lookup(templateName)
+		if namedTmpl != nil {
+			if err := namedTmpl.Execute(&buf, data); err != nil {
+				return "", fmt.Errorf("failed to execute named template %q for prompt %s: %w", templateName, prompt.ID, err)
+			}
+			return buf.String(), nil
+		}
+	}
+
+	// Fall back to executing the root template
 	if err := tmpl.Execute(&buf, data); err != nil {
 		return "", fmt.Errorf("failed to execute template for prompt %s: %w", prompt.ID, err)
 	}

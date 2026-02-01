@@ -382,31 +382,20 @@ func TestBackwardCompatibility_GetSystemPrompt(t *testing.T) {
 	// Create in-memory store
 	st := promptstore.NewMemoryStore()
 
-	// Save system prompt
-	systemContent := "You are a helpful AI assistant working as part of a multi-agent system."
-	_, err := st.SaveNewVersion(context.Background(), prompt.PromptIDSystem, systemContent, "System Prompt")
-	require.NoError(t, err)
-
 	// Create prompt manager
 	pm := manager.NewPromptManager(st)
 
 	// Call GetSystemPrompt
 	result, err := pm.GetSystemPrompt()
 	require.NoError(t, err)
-	t.Logf("System prompt result: %q", result)
 	assert.NotEmpty(t, result, "System prompt should not be empty")
-	assert.Contains(t, result, "multi-agent system", "Should contain expected content")
+	assert.Contains(t, result, "multi-agent system", "Should contain expected content from template")
 }
 
 // TestBackwardCompatibility_GetSubagentPrompt tests backward-compatible GetSubagentPrompt
 func TestBackwardCompatibility_GetSubagentPrompt(t *testing.T) {
 	// Create in-memory store
 	st := promptstore.NewMemoryStore()
-
-	// Save subagent prompt with template variables
-	subagentContent := "You are a specialized subagent.\n**Your Role:** {{.Role}}\n**Your Purpose:** {{.Description}}\n**Available Tool:** {{.SpawnAgentTool}}"
-	_, err := st.SaveNewVersion(context.Background(), prompt.PromptIDSubagent, subagentContent, "Subagent Task Prompt")
-	require.NoError(t, err)
 
 	// Create prompt manager
 	pm := manager.NewPromptManager(st)
@@ -425,11 +414,6 @@ func TestBackwardCompatibility_GetSupervisorPrompt(t *testing.T) {
 	// Create in-memory store
 	st := promptstore.NewMemoryStore()
 
-	// Save supervisor prompt
-	supervisorContent := "You are a supervisor agent managing a hierarchical multi-agent system."
-	_, err := st.SaveNewVersion(context.Background(), prompt.PromptIDSupervisor, supervisorContent, "Supervisor Prompt")
-	require.NoError(t, err)
-
 	// Create prompt manager
 	pm := manager.NewPromptManager(st)
 
@@ -437,7 +421,7 @@ func TestBackwardCompatibility_GetSupervisorPrompt(t *testing.T) {
 	result, err := pm.GetSupervisorPrompt()
 	require.NoError(t, err)
 	assert.NotEmpty(t, result, "Supervisor prompt should not be empty")
-	assert.Contains(t, result, "supervisor", "Should contain supervisor content")
+	assert.Contains(t, result, "helpful agent", "Should contain supervisor content from template")
 }
 
 // TestBackwardCompatibility_GetCompacterPrompt tests backward-compatible GetCompacterPrompt
@@ -445,21 +429,45 @@ func TestBackwardCompatibility_GetCompacterPrompt(t *testing.T) {
 	// Create in-memory store
 	st := promptstore.NewMemoryStore()
 
-	// Save compacter prompt with template variable
-	compacterContent := "Summarize the given conversation. Key points: {{.Data}}"
-	_, err := st.SaveNewVersion(context.Background(), prompt.PromptIDCompacter, compacterContent, "Compacter Prompt")
-	require.NoError(t, err)
-
 	// Create prompt manager
 	pm := manager.NewPromptManager(st)
 
 	// Call GetCompacterPrompt with data
+	// The built-in compacter template doesn't use template variables,
+	// so we test that the method works and returns the built-in template
 	data := map[string]interface{}{
 		"Data": "User asked about fixing a bug, we provided a solution.",
 	}
 	result, err := pm.GetCompacterPrompt(data)
 	require.NoError(t, err)
 	assert.NotEmpty(t, result, "Compacter prompt should not be empty")
+	assert.Contains(t, result, "Summarize", "Should contain compacter content")
+}
+
+// TestBackwardCompatibility_GetCompacterPromptWithCustomTemplate tests custom compacter prompt with variables
+func TestBackwardCompatibility_GetCompacterPromptWithCustomTemplate(t *testing.T) {
+	// Create in-memory store
+	st := promptstore.NewMemoryStore()
+
+	// Save a custom prompt (not using built-in ID) with template variable
+	customContent := "Summarize the given conversation. Key points: {{.Data}}"
+	_, err := st.SaveNewVersion(context.Background(), "custom-compacter", customContent, "Custom Compacter Prompt")
+	require.NoError(t, err)
+
+	// Create prompt manager
+	pm := manager.NewPromptManager(st)
+
+	// Create render context with data
+	renderCtx := &prompt.RenderContext{
+		Values: map[string]interface{}{
+			"Data": "User asked about fixing a bug, we provided a solution.",
+		},
+	}
+
+	// Use GetPromptWithContext for custom prompts
+	result, err := pm.GetPromptWithContext(context.Background(), "custom-compacter", renderCtx)
+	require.NoError(t, err)
+	assert.NotEmpty(t, result, "Custom compacter prompt should not be empty")
 	assert.Contains(t, result, "User asked about fixing a bug", "Should contain data")
 }
 
