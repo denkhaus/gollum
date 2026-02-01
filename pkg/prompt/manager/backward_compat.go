@@ -11,10 +11,22 @@ import (
 // GetCompacterPrompt returns the compacter prompt with data values rendered
 func (p *promptManager) GetCompacterPrompt(data any) (string, error) {
 	ctx := context.Background()
-	renderCtx := &prompt.RenderContext{
-		Values: map[string]interface{}{
+
+	// Convert data to Values map
+	var values map[string]interface{}
+	switch v := data.(type) {
+	case map[string]interface{}:
+		// If already a map, use it directly
+		values = v
+	default:
+		// For other types, wrap in a "data" key
+		values = map[string]interface{}{
 			"data": data,
-		},
+		}
+	}
+
+	renderCtx := &prompt.RenderContext{
+		Values: values,
 	}
 	return p.GetPromptWithContext(ctx, prompt.PromptIDCompacter, renderCtx)
 }
