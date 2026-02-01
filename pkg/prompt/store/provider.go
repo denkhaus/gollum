@@ -30,26 +30,26 @@ func NewPromptStoreProvider(injector do.Injector) (PromptStoreProvider, error) {
 
 	var s PromptStore
 	switch cfg.Type {
-	case "file":
+	case config.PromptStoreTypeFile:
 		s = NewFileStore(cfg.FilePath, cfg.CacheEnabled)
 		logService.Info("initialized file store",
-			zap.String("type", cfg.Type),
+			zap.String("type", string(cfg.Type)),
 			zap.String("path", cfg.FilePath),
 		)
-	case "langfuse":
+	case config.PromptStoreTypeLangfuse:
 		// TODO: Implement Langfuse store
 		logService.Warn("langfuse store not yet implemented, falling back to memory store",
 			zap.String("host", cfg.LangfuseHost),
 		)
 		s = NewMemoryStore()
-	case "memory", "":
+	case config.PromptStoreTypeMemory, "":
 		s = NewMemoryStore()
 		logService.Info("initialized memory store",
-			zap.String("type", cfg.Type),
+			zap.String("type", string(cfg.Type)),
 		)
 	default:
 		logService.Warn("unknown prompt store type, falling back to memory store",
-			zap.String("type", cfg.Type),
+			zap.String("type", string(cfg.Type)),
 		)
 		s = NewMemoryStore()
 	}

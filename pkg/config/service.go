@@ -111,10 +111,18 @@ func (c *HooksConfig) GetSecurityMode() string {
 	}
 }
 
+type PromptStoreType string
+
+const (
+	PromptStoreTypeMemory   PromptStoreType = "memory"
+	PromptStoreTypeFile     PromptStoreType = "file"
+	PromptStoreTypeLangfuse PromptStoreType = "langfuse"
+)
+
 // PromptStoreConfig contains configuration for prompt store implementations.
 type PromptStoreConfig struct {
 	// Type of store backend ("memory", "file", "langfuse")
-	Type string `envconfig:"default" env:"PROMPT_STORE_TYPE"`
+	Type PromptStoreType `envconfig:"default" env:"PROMPT_STORE_TYPE"`
 
 	// FilePath for file-based storage
 	FilePath string `envconfig:"default:\"./data/prompts\"" env:"PROMPT_STORE_FILE_PATH"`
@@ -127,7 +135,6 @@ type PromptStoreConfig struct {
 	// CacheEnabled enables caching for store operations
 	CacheEnabled bool `envconfig:"default" env:"PROMPT_STORE_CACHE_ENABLED"`
 }
-
 
 // ConfigService defines the configuration service interface
 //

@@ -55,17 +55,6 @@ type (
 	}
 )
 
-// SubagentPromptContext contains data for rendering the subagent task prompt
-type SubagentPromptContext struct {
-	Role            string
-	Description     string
-	SpawnAgentTool  shared.ToolName
-	RemoveAgentTool shared.ToolName
-	ResumeAgentTool shared.ToolName
-	AgentOutputTool shared.ToolName
-	ListAgentsTool  shared.ToolName
-}
-
 // Pre-parsed templates for better performance
 var (
 	compacterTemplate        = template.Must(template.New("compacter").ParseFS(promptTemplates, "templates/compacter_prompt.md"))
@@ -122,7 +111,7 @@ func (p *promptManager) GetSupervisorPrompt() (string, error) {
 // GetSubagentPrompt generates a specialized prompt for subagents with their role and description
 func (p *promptManager) GetSubagentPrompt(role, description string) (string, error) {
 	// Prepare context with role, description, and tool names
-	ctx := SubagentPromptContext{
+	ctx := SubAgentContext{
 		Role:            role,
 		Description:     description,
 		SpawnAgentTool:  shared.ToolNameSpawnAgent,
@@ -141,45 +130,4 @@ func (p *promptManager) GetSubagentPrompt(role, description string) (string, err
 	return buf.String(), nil
 }
 
-// New interface methods - implementations will be added in manager_bootstrap.go and manager_store.go
-
-// GetPromptByID retrieves a prompt by ID from store or bootstrap built-in
-func (p *promptManager) GetPromptByID(ctx context.Context, id string) (*Prompt, error) {
-	// TODO: Implement in manager_store.go
-	return nil, nil
-}
-
-// GetPromptWithContext gets and renders prompt with context
-func (p *promptManager) GetPromptWithContext(ctx context.Context, id string, renderCtx *RenderContext) (string, error) {
-	// TODO: Implement in 02-02
-	return "", nil
-}
-
-// SetPrompt saves a new prompt version
-func (p *promptManager) SetPrompt(ctx context.Context, id string, content string, name string) (*Prompt, error) {
-	// TODO: Implement in manager_store.go
-	return nil, nil
-}
-
-// DeletePrompt deletes a prompt (respects IsBuiltin flag)
-func (p *promptManager) DeletePrompt(ctx context.Context, id string) error {
-	// TODO: Implement in manager_store.go
-	return nil
-}
-
-// ListPrompts lists prompts with filter
-func (p *promptManager) ListPrompts(ctx context.Context, filter *ListFilter) ([]*Prompt, error) {
-	// TODO: Implement in manager_store.go
-	return nil, nil
-}
-
-// RenderPrompt renders prompt template
-func (p *promptManager) RenderPrompt(ctx context.Context, prompt *Prompt, renderCtx *RenderContext) (string, error) {
-	// TODO: Implement in 02-02
-	return "", nil
-}
-
-// GetStore returns underlying store
-func (p *promptManager) GetStore() PromptStore {
-	return p.store
-}
+// New interface methods are implemented in manager_bootstrap.go and manager_store.go

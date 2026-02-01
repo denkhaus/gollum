@@ -113,14 +113,3 @@ func (p *promptManager) ListPrompts(ctx context.Context, filter *ListFilter) ([]
 	return prompts, nil
 }
 
-// GetPromptWithContext gets and renders prompt with context
-// TODO: Implement in 02-02
-func (p *promptManager) GetPromptWithContext(ctx context.Context, id string, renderCtx *RenderContext) (string, error) {
-	return "", fmt.Errorf("not implemented yet")
-}
-
-// RenderPrompt renders prompt template
-// TODO: Implement in 02-02
-func (p *promptManager) RenderPrompt(ctx context.Context, prompt *Prompt, renderCtx *RenderContext) (string, error) {
-	return "", fmt.Errorf("not implemented yet")
-}
