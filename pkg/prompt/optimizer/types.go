@@ -20,6 +20,8 @@ const (
 	StrategyMetaPrompt OptimizerStrategy = "metaprompt"
 	// StrategyPromptMemory performs single-shot optimization
 	StrategyPromptMemory OptimizerStrategy = "prompt_memory"
+	// StrategyUnknown represents an invalid/unknown strategy
+	StrategyUnknown OptimizerStrategy = ""
 )
 
 // Trajectory represents a single conversation with optional feedback.
