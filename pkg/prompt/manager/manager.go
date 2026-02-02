@@ -29,26 +29,18 @@ type PromptManager interface {
 	GetSystemPrompt() (string, error)
 	GetSupervisorPrompt() (string, error)
 	GetSubagentPrompt(role, description string) (string, error)
-
-	// Optimizer template methods
-	GetOptimizerGradientPrompt() (string, error)
-	GetOptimizerGradientMetaprompt() (string, error)
-	GetOptimizerMetaprompt() (string, error)
-	GetOptimizerPromptMemory() (string, error)
-
-	// Optimizer template render methods
-	RenderOptimizerGradientPrompt(data map[string]string) (string, error)
-	RenderOptimizerGradientMetaprompt(data map[string]string) (string, error)
-	RenderOptimizerMetaprompt(data map[string]string) (string, error)
-	RenderOptimizerPromptMemory(data map[string]string) (string, error)
 }
 
 type promptManager struct {
-	store          promptstore.PromptStore
-	systemOnce     sync.Once
-	supervisorOnce sync.Once
-	compacterOnce  sync.Once
-	subagentOnce   sync.Once
+	store                    promptstore.PromptStore
+	systemOnce               sync.Once
+	supervisorOnce           sync.Once
+	compacterOnce            sync.Once
+	subagentOnce             sync.Once
+	optimizerGradientOnce    sync.Once
+	optimizerGradientMetaOnce sync.Once
+	optimizerMetaOnce         sync.Once
+	optimizerMemoryOnce       sync.Once
 }
 
 // NewPromptManager creates a new Manager instance with PromptStore.

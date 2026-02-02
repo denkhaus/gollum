@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/m-mizutani/gollem"
 )
@@ -35,7 +36,7 @@ func (o *metaPromptOptimizer) Optimize(ctx context.Context, input *OptimizerInpu
 	}
 
 	// Build the metaprompt from PromptManager
-	prompt, err := o.buildMetaPrompt(input)
+	prompt, err := o.buildMetaPrompt(ctx, input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build metaprompt: %w", err)
 	}
@@ -97,18 +98,20 @@ func (o *metaPromptOptimizer) Optimize(ctx context.Context, input *OptimizerInpu
 }
 
 // buildMetaPrompt constructs the metaprompt using PromptManager.
-func (o *metaPromptOptimizer) buildMetaPrompt(input *OptimizerInput) (string, error) {
+func (o *metaPromptOptimizer) buildMetaPrompt(ctx context.Context, input *OptimizerInput) (string, error) {
 	updateInstructions := input.UpdateInstructions
 	if updateInstructions == "" {
 		updateInstructions = "No specific instructions provided"
 	}
 
-	data := map[string]string{
-		"Prompt":             input.Prompt,
-		"Trajectories":       FormatSessions(input.Trajectories),
-		"UpdateInstructions": updateInstructions,
+	renderCtx := &prompt.RenderContext{
+		Values: map[string]interface{}{
+			"Prompt":             input.Prompt,
+			"Trajectories":       FormatSessions(input.Trajectories),
+			"UpdateInstructions": updateInstructions,
+		},
 	}
 
-	// Use PromptManager to render the template
-	return o.promptManager.RenderOptimizerMetaprompt(data)
+	// Use PromptManager's GetPromptWithContext
+	return o.promptManager.GetPromptWithContext(ctx, prompt.PromptIDOptimizerMeta, renderCtx)
 }

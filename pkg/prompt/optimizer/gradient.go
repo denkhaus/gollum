@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/m-mizutani/gollem"
 )
@@ -64,8 +65,8 @@ func (o *gradientOptimizer) runReflectionLoop(ctx context.Context, input *Optimi
 		return nil, fmt.Errorf("failed to create response schema: %w", err)
 	}
 
-	// Build reflection prompt from PromptManager
-	prompt, err := o.buildReflectionPrompt(input)
+	// Build reflection prompt using PromptManager
+	prompt, err := o.buildReflectionPrompt(ctx, input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build reflection prompt: %w", err)
 	}
@@ -114,20 +115,22 @@ func (o *gradientOptimizer) runReflectionLoop(ctx context.Context, input *Optimi
 }
 
 // buildReflectionPrompt constructs the prompt for the reflection phase using PromptManager.
-func (o *gradientOptimizer) buildReflectionPrompt(input *OptimizerInput) (string, error) {
+func (o *gradientOptimizer) buildReflectionPrompt(ctx context.Context, input *OptimizerInput) (string, error) {
 	updateInstructions := input.UpdateInstructions
 	if updateInstructions == "" {
 		updateInstructions = "No specific instructions provided"
 	}
 
-	data := map[string]string{
-		"Prompt":             input.Prompt,
-		"Trajectories":       FormatSessions(input.Trajectories),
-		"UpdateInstructions": updateInstructions,
+	renderCtx := &prompt.RenderContext{
+		Values: map[string]interface{}{
+			"Prompt":             input.Prompt,
+			"Trajectories":       FormatSessions(input.Trajectories),
+			"UpdateInstructions": updateInstructions,
+		},
 	}
 
-	// Use PromptManager to render the template
-	return o.promptManager.RenderOptimizerGradientPrompt(data)
+	// Use PromptManager's GetPromptWithContext - will auto-bootstrap if needed
+	return o.promptManager.GetPromptWithContext(ctx, prompt.PromptIDOptimizerGradient, renderCtx)
 }
 
 // applyRecommendations applies the recommendations using the metaprompt.
@@ -140,8 +143,8 @@ func (o *gradientOptimizer) applyRecommendations(ctx context.Context, currentPro
 		return "", fmt.Errorf("failed to create response schema: %w", err)
 	}
 
-	// Build metaprompt with hypotheses and recommendations from PromptManager
-	metaprompt, err := o.buildMetaprompt(currentPrompt, reflection.Hypotheses, reflection.Recommendations)
+	// Build metaprompt with hypotheses and recommendations using PromptManager
+	metaprompt, err := o.buildMetaprompt(ctx, currentPrompt, reflection.Hypotheses, reflection.Recommendations)
 	if err != nil {
 		return "", fmt.Errorf("failed to build metaprompt: %w", err)
 	}
@@ -173,13 +176,15 @@ func (o *gradientOptimizer) applyRecommendations(ctx context.Context, currentPro
 }
 
 // buildMetaprompt constructs the metaprompt for phase 2 using PromptManager.
-func (o *gradientOptimizer) buildMetaprompt(currentPrompt, hypotheses, recommendations string) (string, error) {
-	data := map[string]string{
-		"CurrentPrompt":   currentPrompt,
-		"Hypotheses":      hypotheses,
-		"Recommendations": recommendations,
+func (o *gradientOptimizer) buildMetaprompt(ctx context.Context, currentPrompt, hypotheses, recommendations string) (string, error) {
+	renderCtx := &prompt.RenderContext{
+		Values: map[string]interface{}{
+			"CurrentPrompt":   currentPrompt,
+			"Hypotheses":      hypotheses,
+			"Recommendations": recommendations,
+		},
 	}
 
-	// Use PromptManager to render the template
-	return o.promptManager.RenderOptimizerGradientMetaprompt(data)
+	// Use PromptManager's GetPromptWithContext
+	return o.promptManager.GetPromptWithContext(ctx, prompt.PromptIDOptimizerGradientMeta, renderCtx)
 }

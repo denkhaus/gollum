@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/m-mizutani/gollem"
 )
@@ -35,7 +36,7 @@ func (o *promptMemoryOptimizer) Optimize(ctx context.Context, input *OptimizerIn
 	}
 
 	// Build the prompt memory prompt from PromptManager
-	prompt, err := o.buildPromptMemoryPrompt(input)
+	prompt, err := o.buildPromptMemoryPrompt(ctx, input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build prompt memory prompt: %w", err)
 	}
@@ -78,7 +79,7 @@ func (o *promptMemoryOptimizer) Optimize(ctx context.Context, input *OptimizerIn
 }
 
 // buildPromptMemoryPrompt constructs the prompt memory prompt using PromptManager.
-func (o *promptMemoryOptimizer) buildPromptMemoryPrompt(input *OptimizerInput) (string, error) {
+func (o *promptMemoryOptimizer) buildPromptMemoryPrompt(ctx context.Context, input *OptimizerInput) (string, error) {
 	// Use first trajectory for single-shot
 	trajectory := ""
 	if len(input.Trajectories) > 0 {
@@ -95,13 +96,15 @@ func (o *promptMemoryOptimizer) buildPromptMemoryPrompt(input *OptimizerInput) (
 		instructions = "No specific instructions provided"
 	}
 
-	data := map[string]string{
-		"CurrentPrompt": input.Prompt,
-		"Trajectory":    trajectory,
-		"Feedback":      feedback,
-		"Instructions":  instructions,
+	renderCtx := &prompt.RenderContext{
+		Values: map[string]interface{}{
+			"CurrentPrompt": input.Prompt,
+			"Trajectory":    trajectory,
+			"Feedback":      feedback,
+			"Instructions":  instructions,
+		},
 	}
 
-	// Use PromptManager to render the template
-	return o.promptManager.RenderOptimizerPromptMemory(data)
+	// Use PromptManager's GetPromptWithContext
+	return o.promptManager.GetPromptWithContext(ctx, prompt.PromptIDOptimizerMemory, renderCtx)
 }
