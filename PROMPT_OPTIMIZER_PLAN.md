@@ -1704,7 +1704,7 @@ var (
 5. `pkg/prompt/store/provider.go` - DI Provider
 6. `pkg/prompt/store/store_test.go` - Tests
 7. `pkg/config/service.go` - PromptStoreConfig
-8. **[DELIVERABLE]** `/home/denkhaus/dev/kb/guide.golang.prompt-store.md` erstellen
+8. **[DELIVERABLE]** `/home/denkhaus/dev/kb/guides/guide.golang.prompt-store.md` erstellen
 
 ### Phase 2: Prompt Manager Erweiterung
 1. `pkg/prompt/manager.go` - Interface erweitern
@@ -1716,8 +1716,8 @@ var (
 2. `pkg/prompt/optimizer/optimizer.go` - Optimizer Implementierung
 3. `pkg/prompt/optimizer/strategies.go` - Strategies
 4. `pkg/prompt/optimizer/optimizer_test.go` - Tests
-5. **[DELIVERABLE]** `/home/denkhaus/dev/kb/guide.golang.prompt-optimizer.md` erstellen
-6. **[DELIVERABLE]** `/home/denkhaus/dev/kb/guide.general.prompt-optimization.md` erstellen
+5. **[DELIVERABLE]** `/home/denkhaus/dev/kb/guides/guide.golang.prompt-optimizer.md` erstellen
+6. **[DELIVERABLE]** `/home/denkhaus/dev/kb/guides/guide.general.prompt-optimization.md` erstellen
 
 ### Phase 4: Config Integration
 1. `pkg/config/service.go` - Alle Configs hinzufügen

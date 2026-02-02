@@ -146,6 +146,21 @@ func (mr *MockPromptStoreMockRecorder) ResolveAlias(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveAlias", reflect.TypeOf((*MockPromptStore)(nil).ResolveAlias), ctx, id)
 }
 
+// SaveBuiltinVersion mocks base method.
+func (m *MockPromptStore) SaveBuiltinVersion(ctx context.Context, baseID, content, name string) (*prompt.Prompt, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveBuiltinVersion", ctx, baseID, content, name)
+	ret0, _ := ret[0].(*prompt.Prompt)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SaveBuiltinVersion indicates an expected call of SaveBuiltinVersion.
+func (mr *MockPromptStoreMockRecorder) SaveBuiltinVersion(ctx, baseID, content, name any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveBuiltinVersion", reflect.TypeOf((*MockPromptStore)(nil).SaveBuiltinVersion), ctx, baseID, content, name)
+}
+
 // SaveNewVersion mocks base method.
 func (m *MockPromptStore) SaveNewVersion(ctx context.Context, baseID, content, name string) (*prompt.Prompt, error) {
 	m.ctrl.T.Helper()

@@ -82,7 +82,7 @@
 
 ### Design Constraints
 
-- [ ] **DCON-01**: Follow Go guidance files in /home/denkhaus/dev/kb/guide.golang.*.md for every phase
+- [ ] **DCON-01**: Follow Go guidance files in /home/denkhaus/dev/kb/guides/guide.golang.*.md for every phase
 - [ ] **DCON-02**: Use existing LLM providers (Anthropic, OpenAI, Gemini) - no new provider dependencies
 - [ ] **DCON-03**: Use centralized mocks from pkg/mocks/ (uber.org/mock)
 - [ ] **DCON-04**: Follow existing Gollum package structure and DI patterns
