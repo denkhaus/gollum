@@ -52,16 +52,16 @@
 
 ### Config Integration
 
-- [ ] **CFG-01**: PromptStoreConfig with Type (memory/file), FilePath, CacheEnabled fields
-- [ ] **CFG-02**: Langfuse configuration options (deferred to v2, but config structure in place)
-- [ ] **CFG-03**: PromptOptimizerConfig with DefaultStrategy, DefaultProvider, MaxReflectionSteps, MinReflectionSteps
-- [ ] **CFG-04**: ConfigService extension methods: GetPromptStoreConfig, GetPromptOptimizerConfig
+- [x] **CFG-01**: PromptStoreConfig with Type (memory/file), FilePath, CacheEnabled fields
+- [x] **CFG-02**: Langfuse configuration options (deferred to v2, but config structure in place)
+- [x] **CFG-03**: PromptOptimizerConfig with DefaultStrategy, DefaultProvider, MaxReflectionSteps, MinReflectionSteps
+- [x] **CFG-04**: ConfigService extension methods: GetPromptStoreConfig, GetPromptOptimizerConfig
 
 ### DI Integration
 
-- [ ] **DI-01**: Register PromptStoreProvider in DI container
-- [ ] **DI-02**: Register PromptOptimizer in DI container
-- [ ] **DI-03**: Update PromptManager registration to use PromptStoreProvider
+- [x] **DI-01**: Register PromptStoreProvider in DI container
+- [x] **DI-02**: Register PromptOptimizer in DI container
+- [x] **DI-03**: Update PromptManager registration to use PromptStoreProvider
 
 ### Testing
 
@@ -165,13 +165,13 @@ Deferred to future release. Acknowledged but not in current roadmap.
 | OPT-08 | Phase 3 | Pending |
 | OPT-09 | Phase 3 | Pending |
 | OPT-10 | Phase 3 | Pending |
-| CFG-01 | Phase 4 | Pending |
-| CFG-02 | Phase 4 | Pending |
-| CFG-03 | Phase 4 | Pending |
-| CFG-04 | Phase 4 | Pending |
-| DI-01 | Phase 4 | Pending |
-| DI-02 | Phase 4 | Pending |
-| DI-03 | Phase 4 | Pending |
+| CFG-01 | Phase 4 | Complete |
+| CFG-02 | Phase 4 | Complete |
+| CFG-03 | Phase 4 | Complete |
+| CFG-04 | Phase 4 | Complete |
+| DI-01 | Phase 4 | Complete |
+| DI-02 | Phase 4 | Complete |
+| DI-03 | Phase 4 | Complete |
 | DOC-01 | Phase 5 | Pending |
 | DOC-02 | Phase 5 | Pending |
 | DOC-03 | Phase 5 | Pending |
