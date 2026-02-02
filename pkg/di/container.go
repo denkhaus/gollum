@@ -13,6 +13,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/middleware"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
+	"github.com/denkhaus/gollum/pkg/prompt/optimizer"
 	"github.com/denkhaus/gollum/pkg/prompt/store"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/state"
@@ -101,6 +102,9 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	// Register prompt store
 	do.Provide(p.injector, store.NewPromptStore)
 	do.Provide[manager.PromptManager](p.injector, manager.NewPromptManagerProvider)
+
+	// Register prompt optimizer
+	do.Provide(p.injector, optimizer.NewOptimizerProvider)
 
 	// Register application service
 	do.Provide(p.injector, app.NewService)
