@@ -2,20 +2,21 @@
 package optimizer
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/shared"
-	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 )
 
 // NewOptimizerProvider creates a PromptOptimizer instance from DI container dependencies
 func NewOptimizerProvider(injector do.Injector) (PromptOptimizer, error) {
 	cfg := do.MustInvoke[config.ConfigService](injector)
-	clientProvider := do.MustInvoke[LLMClientProvider](injector)
+	clientProvider := do.MustInvoke[llm.ClientProvider](injector)
 	promptManager := do.MustInvoke[manager.PromptManager](injector)
 
 	optimizerCfg := cfg.GetPromptOptimizerConfig()
@@ -32,8 +33,8 @@ func NewOptimizerProvider(injector do.Injector) (PromptOptimizer, error) {
 		return nil, fmt.Errorf("unknown LLM provider: %s", optimizerCfg.DefaultProvider)
 	}
 
-	// Get LLM client
-	client, err := clientProvider.GetClient(provider)
+	// Get LLM client (context.Background is used as client creation is one-time)
+	client, err := clientProvider.GetClient(context.Background(), provider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get LLM client: %w", err)
 	}
@@ -80,19 +81,4 @@ func mapProvider(p string) shared.LLMProvider {
 	default:
 		return shared.LLMProvider("")
 	}
-}
-
-// LLMClientProvider defines the interface for getting LLM clients
-// This is a subset of the full llm.ClientProvider interface for DI injection
-type LLMClientProvider interface {
-	GetClient(provider shared.LLMProvider) (gollem.LLMClient, error)
-}
-
-// llmClientProviderAdapter adapts the full llm.ClientProvider to LLMClientProvider
-type llmClientProviderAdapter struct {
-	getClientFunc func(provider shared.LLMProvider) (gollem.LLMClient, error)
-}
-
-func (a *llmClientProviderAdapter) GetClient(provider shared.LLMProvider) (gollem.LLMClient, error) {
-	return a.getClientFunc(provider)
 }
