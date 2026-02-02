@@ -9,10 +9,23 @@ import (
 
 // Built-in prompt ID constants
 const (
-	PromptIDSystem     = "system"
+	PromptIDSystem = "system"
+	// PromptIDSupervisor is the supervisor system prompt.
 	PromptIDSupervisor = "supervisor"
-	PromptIDCompacter  = "compacter"
-	PromptIDSubagent   = "subagent"
+	// PromptIDCompacter is the compacter prompt.
+	PromptIDCompacter = "compacter"
+	// PromptIDSubagent is the subagent task prompt.
+	PromptIDSubagent = "subagent"
+
+	// Optimizer prompt IDs
+	// PromptIDOptimizerGradient is the gradient strategy reflection prompt.
+	PromptIDOptimizerGradient = "optimizer_gradient"
+	// PromptIDOptimizerGradientMeta is the gradient strategy metaprompt (phase 2).
+	PromptIDOptimizerGradientMeta = "optimizer_gradient_meta"
+	// PromptIDOptimizerMeta is the meta-prompt strategy.
+	PromptIDOptimizerMeta = "optimizer_meta"
+	// PromptIDOptimizerMemory is the prompt memory strategy.
+	PromptIDOptimizerMemory = "optimizer_memory"
 )
 
 // Prompt represents a versioned prompt with metadata.
