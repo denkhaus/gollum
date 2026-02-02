@@ -166,21 +166,23 @@ type ConfigService interface {
 	GetBashConfig() *BashConfig
 	GetHooksConfig() *HooksConfig
 	GetPromptStoreConfig() *PromptStoreConfig
+	GetPromptOptimizerConfig() *PromptOptimizerConfig
 }
 
 // serviceImpl implements the ConfigService interface
 type serviceImpl struct {
-	Anthropic   AnthropicConfig   `envconfig:"ANTHROPIC"`
-	Gemini      GeminiConfig      `envconfig:"GEMINI"`
-	OpenAI      OpenAIConfig      `envconfig:"OPENAI"`
-	AgentLimits AgentLimitsConfig `envconfig:"AGENT_LIMITS"`
-	Files       FilesConfig       `envconfig:"FILES"`
-	Logging     LoggingConfig     `envconfig:"LOGGING"`
-	Bash        BashConfig        `envconfig:"BASH"`
-	Hooks       HooksConfig       `envconfig:"HOOKS"`
-	LogLevel    string            `envconfig:"LOG_LEVEL" default:"info"`
-	Development bool              `envconfig:"DEVELOPMENT" default:"false"`
-	PromptStore PromptStoreConfig `envconfig:"PROMPT_STORE"`
+	Anthropic        AnthropicConfig        `envconfig:"ANTHROPIC"`
+	Gemini           GeminiConfig           `envconfig:"GEMINI"`
+	OpenAI           OpenAIConfig           `envconfig:"OPENAI"`
+	AgentLimits      AgentLimitsConfig      `envconfig:"AGENT_LIMITS"`
+	Files            FilesConfig            `envconfig:"FILES"`
+	Logging          LoggingConfig          `envconfig:"LOGGING"`
+	Bash             BashConfig             `envconfig:"BASH"`
+	Hooks            HooksConfig            `envconfig:"HOOKS"`
+	LogLevel         string                 `envconfig:"LOG_LEVEL" default:"info"`
+	Development      bool                   `envconfig:"DEVELOPMENT" default:"false"`
+	PromptStore      PromptStoreConfig      `envconfig:"PROMPT_STORE"`
+	PromptOptimizer  PromptOptimizerConfig  `envconfig:"OPTIMIZER"`
 }
 
 // NewService creates a new configuration service
@@ -245,4 +247,8 @@ func (s *serviceImpl) GetHooksConfig() *HooksConfig {
 
 func (s *serviceImpl) GetPromptStoreConfig() *PromptStoreConfig {
 	return &s.PromptStore
+}
+
+func (s *serviceImpl) GetPromptOptimizerConfig() *PromptOptimizerConfig {
+	return &s.PromptOptimizer
 }
