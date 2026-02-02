@@ -17,6 +17,11 @@ var templateNameMap = map[string]string{
 	prompt.PromptIDSupervisor: "supervisorprompt",
 	prompt.PromptIDCompacter:  "compacter",
 	prompt.PromptIDSubagent:   "subagenttaskprompt",
+	// Optimizer templates (not loaded from store, embedded only)
+	"optimizer_gradient_prompt":      "optimizergradientprompt",
+	"optimizer_gradient_metaprompt":  "optimizergradientmetaprompt",
+	"optimizer_metaprompt":           "optimizermetapromptprompt",
+	"optimizer_prompt_memory":        "optimizerpromptmemory",
 }
 
 // extractBaseID extracts the base prompt ID from a versioned ID

@@ -29,6 +29,12 @@ type PromptManager interface {
 	GetSystemPrompt() (string, error)
 	GetSupervisorPrompt() (string, error)
 	GetSubagentPrompt(role, description string) (string, error)
+
+	// Optimizer template methods
+	GetOptimizerGradientPrompt() (string, error)
+	GetOptimizerGradientMetaprompt() (string, error)
+	GetOptimizerMetaprompt() (string, error)
+	GetOptimizerPromptMemory() (string, error)
 }
 
 type promptManager struct {
