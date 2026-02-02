@@ -11,11 +11,11 @@ import (
 
 // Bootstrap entries for each built-in prompt.
 var (
-	systemOnce               sync.Once
-	supervisorOnce           sync.Once
-	compacterOnce            sync.Once
-	subagentOnce             sync.Once
-	optimizerGradientOnce    sync.Once
+	systemOnce                sync.Once
+	supervisorOnce            sync.Once
+	compacterOnce             sync.Once
+	subagentOnce              sync.Once
+	optimizerGradientOnce     sync.Once
 	optimizerGradientMetaOnce sync.Once
 	optimizerMetaOnce         sync.Once
 	optimizerMemoryOnce       sync.Once
@@ -30,14 +30,14 @@ type templateInfo struct {
 
 // templateRegistry maps built-in prompt IDs to their template entries.
 var templateRegistry = map[string]templateInfo{
-	prompt.PromptIDSystem:              {"subagent_system_prompt.md", "System Prompt", &systemOnce},
-	prompt.PromptIDSupervisor:          {"supervisor_system_prompt.md", "Supervisor System Prompt", &supervisorOnce},
-	prompt.PromptIDCompacter:           {"compacter_prompt.md", "Compacter Prompt", &compacterOnce},
-	prompt.PromptIDSubagent:            {"subagent_task_prompt.md", "Subagent Task Prompt", &subagentOnce},
-	prompt.PromptIDOptimizerGradient:   {"optimizer_gradient_prompt.md", "Optimizer Gradient Reflection Prompt", &optimizerGradientOnce},
+	prompt.PromptIDSystem:                {"subagent_system_prompt.md", "System Prompt", &systemOnce},
+	prompt.PromptIDSupervisor:            {"supervisor_system_prompt.md", "Supervisor System Prompt", &supervisorOnce},
+	prompt.PromptIDCompacter:             {"compacter_prompt.md", "Compacter Prompt", &compacterOnce},
+	prompt.PromptIDSubagent:              {"subagent_task_prompt.md", "Subagent Task Prompt", &subagentOnce},
+	prompt.PromptIDOptimizerGradient:     {"optimizer_gradient_prompt.md", "Optimizer Gradient Reflection Prompt", &optimizerGradientOnce},
 	prompt.PromptIDOptimizerGradientMeta: {"optimizer_gradient_metaprompt.md", "Optimizer Gradient Metaprompt", &optimizerGradientMetaOnce},
-	prompt.PromptIDOptimizerMeta:        {"optimizer_metaprompt.md", "Optimizer Metaprompt", &optimizerMetaOnce},
-	prompt.PromptIDOptimizerMemory:     {"optimizer_prompt_memory.md", "Optimizer Prompt Memory", &optimizerMemoryOnce},
+	prompt.PromptIDOptimizerMeta:         {"optimizer_metaprompt.md", "Optimizer Metaprompt", &optimizerMetaOnce},
+	prompt.PromptIDOptimizerMemory:       {"optimizer_prompt_memory.md", "Optimizer Prompt Memory", &optimizerMemoryOnce},
 }
 
 // isBuiltinID checks if an ID is a built-in prompt.
@@ -71,7 +71,7 @@ func (p *promptManager) bootstrapBuiltinPrompt(ctx context.Context, baseID strin
 
 	once.Do(func() {
 		// Read template from embedded FS
-		content, err := promptTemplates.ReadFile("templates/"+templateFile)
+		content, err := promptTemplates.ReadFile("templates/" + templateFile)
 		if err != nil {
 			bootstrapErr = fmt.Errorf("failed to read template %s: %w", templateFile, err)
 			return
