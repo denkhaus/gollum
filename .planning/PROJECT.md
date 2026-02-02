@@ -62,7 +62,7 @@ Every session makes agents better — they gather new facts from feedback and le
 ## Constraints
 
 - **LLM Providers**: Must use existing Anthropic/OpenAI/Gemini providers in Gollum — no new provider dependencies
-- **Go Guidance**: CRITICAL — `/home/denkhaus/dev/kb/guide.golang.*.md` files MUST be read and understood in every phase
+- **Go Guidance**: CRITICAL — `/home/denkhaus/dev/kb/guides/guide.golang.*.md` files MUST be read and understood in every phase
 - **Testing**: All code must include tests using centralized mocks from `pkg/mocks/`
 - **Package Structure**: Follow Gollum conventions (pkg/ structure, DI patterns, naming)
 - **Breaking Changes**: Minimize disruption to existing agents; integration should be opt-in initially

@@ -40,7 +40,7 @@ func OptimizeAndSave(ctx context.Context, optimizer PromptOptimizer, store store
 	}
 
 	// Extract base ID (strip version suffix)
-	baseID := extractBaseID(current.ID)
+	baseID := ExtractBaseID(current.ID)
 
 	// Save new version to store
 	saved, err := store.SaveNewVersion(ctx, baseID, result.NewPrompt, current.Name)
@@ -51,9 +51,9 @@ func OptimizeAndSave(ctx context.Context, optimizer PromptOptimizer, store store
 	return saved, nil
 }
 
-// extractBaseID strips the version suffix from a prompt ID.
+// ExtractBaseID strips the version suffix from a prompt ID.
 // For example: "supervisor@1.0.0" -> "supervisor", "supervisor" -> "supervisor"
-func extractBaseID(id string) string {
+func ExtractBaseID(id string) string {
 	idx := strings.LastIndex(id, "@")
 	if idx == -1 {
 		return id
@@ -61,9 +61,9 @@ func extractBaseID(id string) string {
 	return id[:idx]
 }
 
-// parseVersion extracts the SemVer from a prompt ID.
+// ParseVersion extracts the SemVer from a prompt ID.
 // For example: "supervisor@1.0.0" -> 1.0.0, "supervisor" -> error
-func parseVersion(id string) (*semver.Version, error) {
+func ParseVersion(id string) (*semver.Version, error) {
 	idx := strings.LastIndex(id, "@")
 	if idx == -1 {
 		return nil, fmt.Errorf("no version found in ID: %s", id)
