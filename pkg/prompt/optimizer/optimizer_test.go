@@ -18,6 +18,7 @@ func TestNewOptimizer_ValidConfig(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockClient := mocks.NewMockLLMClient(ctrl)
+	mockPM := mocks.NewMockPromptManager(ctrl)
 
 	tests := []struct {
 		name     string
@@ -34,7 +35,7 @@ func TestNewOptimizer_ValidConfig(t *testing.T) {
 				Kind: tt.strategy,
 			}
 
-			opt, err := optimizer.NewOptimizer(mockClient, config)
+			opt, err := optimizer.NewOptimizer(mockClient, mockPM, config)
 			require.NoError(t, err)
 			assert.NotNil(t, opt)
 			assert.Implements(t, (*optimizer.PromptOptimizer)(nil), opt)
@@ -48,8 +49,9 @@ func TestNewOptimizer_NilConfig(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockClient := mocks.NewMockLLMClient(ctrl)
+	mockPM := mocks.NewMockPromptManager(ctrl)
 
-	opt, err := optimizer.NewOptimizer(mockClient, nil)
+	opt, err := optimizer.NewOptimizer(mockClient, mockPM, nil)
 	assert.Error(t, err)
 	assert.Nil(t, opt)
 	assert.Contains(t, err.Error(), "config cannot be nil")
@@ -57,14 +59,34 @@ func TestNewOptimizer_NilConfig(t *testing.T) {
 
 // TestNewOptimizer_NilClient tests error handling for nil client.
 func TestNewOptimizer_NilClient(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockPM := mocks.NewMockPromptManager(ctrl)
 	config := &optimizer.OptimizerConfig{
 		Kind: optimizer.StrategyGradient,
 	}
 
-	opt, err := optimizer.NewOptimizer(nil, config)
+	opt, err := optimizer.NewOptimizer(nil, mockPM, config)
 	assert.Error(t, err)
 	assert.Nil(t, opt)
 	assert.Contains(t, err.Error(), "LLM client cannot be nil")
+}
+
+// TestNewOptimizer_NilPromptManager tests error handling for nil PromptManager.
+func TestNewOptimizer_NilPromptManager(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockClient := mocks.NewMockLLMClient(ctrl)
+	config := &optimizer.OptimizerConfig{
+		Kind: optimizer.StrategyGradient,
+	}
+
+	opt, err := optimizer.NewOptimizer(mockClient, nil, config)
+	assert.Error(t, err)
+	assert.Nil(t, opt)
+	assert.Contains(t, err.Error(), "promptManager cannot be nil")
 }
 
 // TestNewOptimizer_InvalidReflectionBounds tests error handling for invalid bounds.
@@ -73,13 +95,14 @@ func TestNewOptimizer_InvalidReflectionBounds(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockClient := mocks.NewMockLLMClient(ctrl)
+	mockPM := mocks.NewMockPromptManager(ctrl)
 	config := &optimizer.OptimizerConfig{
 		Kind:               optimizer.StrategyGradient,
 		MinReflectionSteps: 5,
 		MaxReflectionSteps: 2, // max < min
 	}
 
-	opt, err := optimizer.NewOptimizer(mockClient, config)
+	opt, err := optimizer.NewOptimizer(mockClient, mockPM, config)
 	assert.Error(t, err)
 	assert.Nil(t, opt)
 	assert.Contains(t, err.Error(), "max_reflection_steps")
@@ -91,12 +114,14 @@ func TestNewOptimizer_DefaultReflectionBounds(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockClient := mocks.NewMockLLMClient(ctrl)
+	mockPM := mocks.NewMockPromptManager(ctrl)
+
 	config := &optimizer.OptimizerConfig{
 		Kind: optimizer.StrategyGradient,
-		// Bounds left as zero
+		// Bounds left as zero - should default to 1 min, 5 max
 	}
 
-	opt, err := optimizer.NewOptimizer(mockClient, config)
+	opt, err := optimizer.NewOptimizer(mockClient, mockPM, config)
 	require.NoError(t, err)
 	require.NotNil(t, opt)
 	assert.Implements(t, (*optimizer.PromptOptimizer)(nil), opt)
@@ -108,11 +133,12 @@ func TestNewOptimizer_UnknownStrategy(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockClient := mocks.NewMockLLMClient(ctrl)
+	mockPM := mocks.NewMockPromptManager(ctrl)
 	config := &optimizer.OptimizerConfig{
 		Kind: optimizer.OptimizerStrategy("unknown"),
 	}
 
-	opt, err := optimizer.NewOptimizer(mockClient, config)
+	opt, err := optimizer.NewOptimizer(mockClient, mockPM, config)
 	assert.Error(t, err)
 	assert.Nil(t, opt)
 	assert.Contains(t, err.Error(), "unknown optimizer strategy")

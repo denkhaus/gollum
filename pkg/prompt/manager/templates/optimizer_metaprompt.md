@@ -29,4 +29,11 @@ Analyze the session(s) (and any user feedback) below:
 3. Retain any f-string variables in the existing prompt exactly as they are (e.g. {{.VariableName}}).
 
 IFF changes are warranted, focus on actionable edits. Be concrete. Edits should be appropriate for the identified failure modes. For example, consider synthetic few-shot examples for style or clarifying decision boundaries, or adding or modifying explicit instructions for conditionals, rules, or logic fixes; or provide step-by-step reasoning guidelines for multi-step logic problems if the model is failing to reason appropriately.
+
+## Response Format
+
+You must respond with a JSON object containing:
+- warrants_adjustment (boolean): true if the prompt needs adjustment, false otherwise
+- updated_prompt (string): the optimized prompt (only if adjustment warranted)
+- reasoning (string): your explanation of the analysis and changes
 {{- end}}

@@ -49,4 +49,12 @@ Do not recommend generic changes that aren't clearly linked to failure modes.
 First think through the conversation and critique the current behavior.
 If you believe the prompt needs to further adapt to the target context, provide precise recommendations.
 Otherwise, mark warrants_adjustment as False and respond with 'No recommendations.'
+
+## Response Format
+
+You must respond with a JSON object containing:
+- warrants_adjustment (boolean): true if the prompt needs adjustment, false otherwise
+- hypotheses (string): your analysis of what problems exist
+- recommendations (string): your specific recommendations for fixing the problems
+- reasoning (string): your explanation of the analysis
 {{- end}}

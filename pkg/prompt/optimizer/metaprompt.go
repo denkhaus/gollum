@@ -3,74 +3,87 @@ package optimizer
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"text/template"
 
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/m-mizutani/gollem"
 )
 
 // metaPromptOptimizer implements the combined reflection and update strategy.
 type metaPromptOptimizer struct {
-	client gollem.LLMClient
-	config *OptimizerConfig
+	client        gollem.LLMClient
+	promptManager manager.PromptManager
+	config        *OptimizerConfig
 }
 
 // newMetaPromptOptimizer creates a new metaprompt optimizer.
-func newMetaPromptOptimizer(client gollem.LLMClient, config *OptimizerConfig) (PromptOptimizer, error) {
+func newMetaPromptOptimizer(client gollem.LLMClient, promptManager manager.PromptManager, config *OptimizerConfig) (PromptOptimizer, error) {
 	return &metaPromptOptimizer{
-		client: client,
-		config: config,
+		client:        client,
+		promptManager: promptManager,
+		config:        config,
 	}, nil
 }
 
 // Optimize runs the metaprompt optimization strategy.
 func (o *metaPromptOptimizer) Optimize(ctx context.Context, input *OptimizerInput) (*OptimizerResult, error) {
-	// Build the metaprompt
-	prompt := o.buildMetaPrompt(input)
+	// Create response schema
+	schema, err := gollem.ToSchema(MetaPromptResponse{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create response schema: %w", err)
+	}
 
-	// Create agent
-	agent := gollem.New(o.client)
+	// Build the metaprompt from PromptManager
+	prompt, err := o.buildMetaPrompt(input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build metaprompt: %w", err)
+	}
 
-	// Run reflection loop (min to max steps)
+	// Create session with JSON schema for structured output
+	session, err := o.client.NewSession(ctx,
+		gollem.WithSessionContentType(gollem.ContentTypeJSON),
+		gollem.WithSessionResponseSchema(schema),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
+	// Run reflection iterations (min to max steps)
 	minSteps := o.config.MinReflectionSteps
 	maxSteps := o.config.MaxReflectionSteps
 
-	var lastResponse string
-	var warrantsAdjustment bool
+	var lastResponse *MetaPromptResponse
 
 	for step := 0; step < maxSteps; step++ {
-		// Execute agent
-		resp, err := agent.Execute(ctx, gollem.Text(prompt))
+		// Generate structured response
+		resp, err := session.GenerateContent(ctx, gollem.Text(prompt))
 		if err != nil {
-			return nil, fmt.Errorf("agent execute failed: %w", err)
+			return nil, fmt.Errorf("generate content failed: %w", err)
 		}
 
-		if len(resp.Texts) == 0 {
-			continue
+		// Parse JSON response
+		var response MetaPromptResponse
+		if err := json.Unmarshal([]byte(resp.Texts[0]), &response); err != nil {
+			return nil, fmt.Errorf("failed to parse metaprompt response: %w", err)
 		}
 
-		// Extract text response
-		lastResponse = resp.Texts[0]
+		lastResponse = &response
 
-		// Check if response indicates no adjustment needed
-		if o.isNoAdjustmentResponse(lastResponse) {
-			warrantsAdjustment = false
-			// Still need to meet min steps
-			if step >= minSteps-1 {
-				break
-			}
-		} else {
-			warrantsAdjustment = true
-			// Can stop once we have a valid adjustment
-			if step >= minSteps-1 {
-				break
-			}
+		// If we have a clear decision and met min steps, we can stop
+		if step >= minSteps-1 {
+			break
 		}
 	}
 
+	if lastResponse == nil {
+		return nil, fmt.Errorf("no valid metaprompt response received")
+	}
+
 	// If no adjustment warranted, return original
-	if !warrantsAdjustment {
+	if !lastResponse.WarrantsAdjustment {
 		return &OptimizerResult{
 			NewPrompt:          input.Prompt,
 			WarrantsAdjustment: false,
@@ -79,50 +92,24 @@ func (o *metaPromptOptimizer) Optimize(ctx context.Context, input *OptimizerInpu
 	}
 
 	return &OptimizerResult{
-		NewPrompt:          lastResponse,
+		NewPrompt:          lastResponse.UpdatedPrompt,
 		WarrantsAdjustment: true,
-		ChangeDescription:  "Metaprompt optimization applied",
+		ChangeDescription:  fmt.Sprintf("Metaprompt optimization applied: %s", lastResponse.Reasoning),
 	}, nil
 }
 
-// buildMetaPrompt constructs the metaprompt.
-func (o *metaPromptOptimizer) buildMetaPrompt(input *OptimizerInput) string {
-	// TODO: Load from PromptManager
-	promptTemplate := `You are helping an AI assistant learn by optimizing its prompt.
-
-## Background
-
-Below is the current prompt:
-
-<current_prompt>
-{{.Prompt}}
-</current_prompt>
-
-The developer provided these instructions regarding when/how to update:
-
-<update_instructions>
-{{.UpdateInstructions}}
-</update_instructions>
-
-## Session Data
-Analyze the session(s) (and any user feedback) below:
-
-<trajectories>
-{{.Trajectories}}
-</trajectories>
-
-## Instructions
-
-1. Reflect on the agent's performance on the given session(s) and identify any real failure modes (e.g., style mismatch, unclear or incomplete instructions, flawed reasoning, etc.).
-2. Recommend the minimal changes necessary to address any real failures. If the prompt performs perfectly, simply respond with the original prompt without making any changes.
-3. Retain any f-string variables in the existing prompt exactly as they are (e.g. {{.VariableName}}).
-
-IFF changes are warranted, focus on actionable edits. Be concrete. Edits should be appropriate for the identified failure modes. For example, consider synthetic few-shot examples for style or clarifying decision boundaries, or adding or modifying explicit instructions for conditionals, rules, or logic fixes; or provide step-by-step reasoning guidelines for multi-step logic problems if the model is failing to reason appropriately.`
-
-	// Render template with data
-	tmpl, err := template.New("metaprompt").Parse(promptTemplate)
+// buildMetaPrompt constructs the metaprompt using PromptManager.
+func (o *metaPromptOptimizer) buildMetaPrompt(input *OptimizerInput) (string, error) {
+	// Load template from PromptManager
+	templateContent, err := o.promptManager.GetOptimizerMetaprompt()
 	if err != nil {
-		return fmt.Sprintf("ERROR: failed to parse template: %v", err)
+		return "", fmt.Errorf("failed to load metaprompt template: %w", err)
+	}
+
+	// Parse template
+	tmpl, err := template.New("optimizermetapromptprompt").Parse(templateContent)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse template: %w", err)
 	}
 
 	updateInstructions := input.UpdateInstructions
@@ -138,28 +125,8 @@ IFF changes are warranted, focus on actionable edits. Be concrete. Edits should 
 
 	var buf strings.Builder
 	if err := tmpl.Execute(&buf, data); err != nil {
-		return fmt.Sprintf("ERROR: failed to execute template: %v", err)
+		return "", fmt.Errorf("failed to execute template: %w", err)
 	}
 
-	return buf.String()
-}
-
-// isNoAdjustmentResponse checks if the response indicates no adjustment is needed.
-func (o *metaPromptOptimizer) isNoAdjustmentResponse(response string) bool {
-	lower := strings.ToLower(response)
-	noChangeIndicators := []string{
-		"no adjustment",
-		"no changes",
-		"warrants_adjustment = false",
-		"warrants_adjustment=false",
-		"no recommendations",
-	}
-
-	for _, indicator := range noChangeIndicators {
-		if strings.Contains(lower, indicator) {
-			return true
-		}
-	}
-
-	return false
+	return buf.String(), nil
 }

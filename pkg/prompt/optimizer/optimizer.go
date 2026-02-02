@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/m-mizutani/gollem"
 )
 
@@ -17,13 +18,17 @@ type PromptOptimizer interface {
 
 // NewOptimizer creates a new PromptOptimizer based on the specified strategy.
 // Validates config and sets defaults (MaxReflectionSteps: 5, MinReflectionSteps: 1).
-func NewOptimizer(client gollem.LLMClient, config *OptimizerConfig) (PromptOptimizer, error) {
+func NewOptimizer(client gollem.LLMClient, promptManager manager.PromptManager, config *OptimizerConfig) (PromptOptimizer, error) {
 	if config == nil {
 		return nil, fmt.Errorf("config cannot be nil")
 	}
 
 	if client == nil {
 		return nil, fmt.Errorf("LLM client cannot be nil")
+	}
+
+	if promptManager == nil {
+		return nil, fmt.Errorf("promptManager cannot be nil")
 	}
 
 	// Set defaults
@@ -43,11 +48,11 @@ func NewOptimizer(client gollem.LLMClient, config *OptimizerConfig) (PromptOptim
 
 	switch cfg.Kind {
 	case StrategyGradient:
-		return newGradientOptimizer(client, &cfg)
+		return newGradientOptimizer(client, promptManager, &cfg)
 	case StrategyMetaPrompt:
-		return newMetaPromptOptimizer(client, &cfg)
+		return newMetaPromptOptimizer(client, promptManager, &cfg)
 	case StrategyPromptMemory:
-		return newPromptMemoryOptimizer(client, &cfg)
+		return newPromptMemoryOptimizer(client, promptManager, &cfg)
 	default:
 		return nil, fmt.Errorf("unknown optimizer strategy: %s", cfg.Kind)
 	}

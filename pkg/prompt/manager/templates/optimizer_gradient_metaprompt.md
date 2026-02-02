@@ -17,5 +17,10 @@ Based on these hypotheses, we recommend the following adjustments:
 {{.Recommendations}}
 </recommendations>
 
-Respond with the updated prompt. Remember to ONLY make changes that are clearly necessary. Aim to be minimally invasive.
+## Response Format
+
+You must respond with a JSON object containing:
+- updated_prompt (string): the optimized prompt
+
+Remember to ONLY make changes that are clearly necessary. Aim to be minimally invasive.
 {{- end}}
