@@ -35,6 +35,12 @@ type PromptManager interface {
 	GetOptimizerGradientMetaprompt() (string, error)
 	GetOptimizerMetaprompt() (string, error)
 	GetOptimizerPromptMemory() (string, error)
+
+	// Optimizer template render methods
+	RenderOptimizerGradientPrompt(data map[string]string) (string, error)
+	RenderOptimizerGradientMetaprompt(data map[string]string) (string, error)
+	RenderOptimizerMetaprompt(data map[string]string) (string, error)
+	RenderOptimizerPromptMemory(data map[string]string) (string, error)
 }
 
 type promptManager struct {

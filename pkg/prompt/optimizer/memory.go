@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
-	"text/template"
 
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/m-mizutani/gollem"
@@ -81,18 +79,6 @@ func (o *promptMemoryOptimizer) Optimize(ctx context.Context, input *OptimizerIn
 
 // buildPromptMemoryPrompt constructs the prompt memory prompt using PromptManager.
 func (o *promptMemoryOptimizer) buildPromptMemoryPrompt(input *OptimizerInput) (string, error) {
-	// Load template from PromptManager
-	templateContent, err := o.promptManager.GetOptimizerPromptMemory()
-	if err != nil {
-		return "", fmt.Errorf("failed to load prompt memory template: %w", err)
-	}
-
-	// Parse template
-	tmpl, err := template.New("optimizerpromptmemory").Parse(templateContent)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse template: %w", err)
-	}
-
 	// Use first trajectory for single-shot
 	trajectory := ""
 	if len(input.Trajectories) > 0 {
@@ -116,10 +102,6 @@ func (o *promptMemoryOptimizer) buildPromptMemoryPrompt(input *OptimizerInput) (
 		"Instructions":  instructions,
 	}
 
-	var buf strings.Builder
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", fmt.Errorf("failed to execute template: %w", err)
-	}
-
-	return buf.String(), nil
+	// Use PromptManager to render the template
+	return o.promptManager.RenderOptimizerPromptMemory(data)
 }

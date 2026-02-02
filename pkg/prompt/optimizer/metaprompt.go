@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
-	"text/template"
 
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/m-mizutani/gollem"
@@ -100,18 +98,6 @@ func (o *metaPromptOptimizer) Optimize(ctx context.Context, input *OptimizerInpu
 
 // buildMetaPrompt constructs the metaprompt using PromptManager.
 func (o *metaPromptOptimizer) buildMetaPrompt(input *OptimizerInput) (string, error) {
-	// Load template from PromptManager
-	templateContent, err := o.promptManager.GetOptimizerMetaprompt()
-	if err != nil {
-		return "", fmt.Errorf("failed to load metaprompt template: %w", err)
-	}
-
-	// Parse template
-	tmpl, err := template.New("optimizermetapromptprompt").Parse(templateContent)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse template: %w", err)
-	}
-
 	updateInstructions := input.UpdateInstructions
 	if updateInstructions == "" {
 		updateInstructions = "No specific instructions provided"
@@ -123,10 +109,6 @@ func (o *metaPromptOptimizer) buildMetaPrompt(input *OptimizerInput) (string, er
 		"UpdateInstructions": updateInstructions,
 	}
 
-	var buf strings.Builder
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", fmt.Errorf("failed to execute template: %w", err)
-	}
-
-	return buf.String(), nil
+	// Use PromptManager to render the template
+	return o.promptManager.RenderOptimizerMetaprompt(data)
 }
