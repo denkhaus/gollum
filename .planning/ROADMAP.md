@@ -114,7 +114,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 4. guide.general.prompt-optimization.md created with universal optimization concepts
 5. All guidance files are general/universal (no project-specific paths or details)
 
-**Plans**: TBD
+**Plans**: 4 plans in 1 wave
+- [ ] 05-01-PLAN.md — Go guidance: Prompt store patterns (Wave 1)
+- [ ] 05-02-PLAN.md — Go guidance: Prompt optimizer patterns (Wave 1)
+- [ ] 05-03-PLAN.md — General guidance: Prompt optimization concepts (Wave 1)
+- [ ] 05-04-PLAN.md — Project documentation: CLAUDE.md update (Wave 1)
 
 ## Progress
 
@@ -127,4 +131,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Prompt Manager Extension | 3/3 | Complete | 2026-02-01 |
 | 3. Prompt Optimizer | 3/3 | Complete | 2026-02-02 |
 | 4. Configuration and DI Integration | 3/3 | Complete | 2026-02-02 |
-| 5. Documentation and Knowledge Capture | 0/TBD | Not started | - |
+| 5. Documentation and Knowledge Capture | 0/4 | Not started | - |
