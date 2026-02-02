@@ -1,4 +1,4 @@
-// Package manager provides optimizer template loading methods.
+// Package manager provides optimizer template loading and rendering methods.
 package manager
 
 import (
@@ -27,8 +27,28 @@ func (p *promptManager) GetOptimizerPromptMemory() (string, error) {
 	return p.loadOptimizerTemplate("optimizerpromptmemory")
 }
 
-// loadOptimizerTemplate loads an optimizer template from the embedded filesystem.
-func (p *promptManager) loadOptimizerTemplate(templateName string) (string, error) {
+// RenderOptimizerGradientPrompt renders the gradient reflection prompt with the provided data.
+func (p *promptManager) RenderOptimizerGradientPrompt(data map[string]string) (string, error) {
+	return p.renderOptimizerTemplate("optimizergradientprompt", data)
+}
+
+// RenderOptimizerGradientMetaprompt renders the gradient metaprompt with the provided data.
+func (p *promptManager) RenderOptimizerGradientMetaprompt(data map[string]string) (string, error) {
+	return p.renderOptimizerTemplate("optimizergradientmetaprompt", data)
+}
+
+// RenderOptimizerMetaprompt renders the meta-prompt strategy template with the provided data.
+func (p *promptManager) RenderOptimizerMetaprompt(data map[string]string) (string, error) {
+	return p.renderOptimizerTemplate("optimizermetapromptprompt", data)
+}
+
+// RenderOptimizerPromptMemory renders the prompt memory strategy template with the provided data.
+func (p *promptManager) RenderOptimizerPromptMemory(data map[string]string) (string, error) {
+	return p.renderOptimizerTemplate("optimizerpromptmemory", data)
+}
+
+// renderOptimizerTemplate loads and renders an optimizer template with the provided data.
+func (p *promptManager) renderOptimizerTemplate(templateName string, data map[string]string) (string, error) {
 	// Read all template files from embedded FS
 	templateFiles, err := promptTemplates.ReadDir("templates")
 	if err != nil {
@@ -61,11 +81,17 @@ func (p *promptManager) loadOptimizerTemplate(templateName string) (string, erro
 		return "", fmt.Errorf("optimizer template %q not found", templateName)
 	}
 
-	// Execute the template to get the raw content
+	// Execute the template with data
 	var buf strings.Builder
-	if err := namedTmpl.Execute(&buf, nil); err != nil {
+	if err := namedTmpl.Execute(&buf, data); err != nil {
 		return "", fmt.Errorf("failed to execute optimizer template %q: %w", templateName, err)
 	}
 
 	return buf.String(), nil
+}
+
+// loadOptimizerTemplate loads an optimizer template from the embedded filesystem without rendering.
+// This returns the raw template content for compatibility.
+func (p *promptManager) loadOptimizerTemplate(templateName string) (string, error) {
+	return p.renderOptimizerTemplate(templateName, nil)
 }

@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
-	"text/template"
 
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/m-mizutani/gollem"
@@ -117,18 +115,6 @@ func (o *gradientOptimizer) runReflectionLoop(ctx context.Context, input *Optimi
 
 // buildReflectionPrompt constructs the prompt for the reflection phase using PromptManager.
 func (o *gradientOptimizer) buildReflectionPrompt(input *OptimizerInput) (string, error) {
-	// Load template from PromptManager
-	templateContent, err := o.promptManager.GetOptimizerGradientPrompt()
-	if err != nil {
-		return "", fmt.Errorf("failed to load gradient prompt template: %w", err)
-	}
-
-	// Parse template
-	tmpl, err := template.New("optimizergradientprompt").Parse(templateContent)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse template: %w", err)
-	}
-
 	updateInstructions := input.UpdateInstructions
 	if updateInstructions == "" {
 		updateInstructions = "No specific instructions provided"
@@ -140,12 +126,8 @@ func (o *gradientOptimizer) buildReflectionPrompt(input *OptimizerInput) (string
 		"UpdateInstructions": updateInstructions,
 	}
 
-	var buf strings.Builder
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", fmt.Errorf("failed to execute template: %w", err)
-	}
-
-	return buf.String(), nil
+	// Use PromptManager to render the template
+	return o.promptManager.RenderOptimizerGradientPrompt(data)
 }
 
 // applyRecommendations applies the recommendations using the metaprompt.
@@ -192,28 +174,12 @@ func (o *gradientOptimizer) applyRecommendations(ctx context.Context, currentPro
 
 // buildMetaprompt constructs the metaprompt for phase 2 using PromptManager.
 func (o *gradientOptimizer) buildMetaprompt(currentPrompt, hypotheses, recommendations string) (string, error) {
-	// Load template from PromptManager
-	templateContent, err := o.promptManager.GetOptimizerGradientMetaprompt()
-	if err != nil {
-		return "", fmt.Errorf("failed to load gradient metaprompt template: %w", err)
-	}
-
-	// Parse template
-	tmpl, err := template.New("optimizergradientmetaprompt").Parse(templateContent)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse template: %w", err)
-	}
-
 	data := map[string]string{
 		"CurrentPrompt":   currentPrompt,
 		"Hypotheses":      hypotheses,
 		"Recommendations": recommendations,
 	}
 
-	var buf strings.Builder
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", fmt.Errorf("failed to execute template: %w", err)
-	}
-
-	return buf.String(), nil
+	// Use PromptManager to render the template
+	return o.promptManager.RenderOptimizerGradientMetaprompt(data)
 }
