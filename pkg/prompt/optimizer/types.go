@@ -187,8 +187,8 @@ type OptimizerConfig struct {
 	MetaPrompt          string            `json:"metaprompt,omitempty"`           // Custom update prompt
 }
 
-// formatSessions converts multiple trajectories to LLM-readable format.
-func formatSessions(trajectories []*Trajectory) string {
+// FormatSessions converts multiple trajectories to LLM-readable format.
+func FormatSessions(trajectories []*Trajectory) string {
 	var sb strings.Builder
 
 	for i, traj := range trajectories {
