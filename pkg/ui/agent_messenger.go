@@ -63,19 +63,19 @@ func (p *agentMessengerImpl) printLines(text string) {
 	lines := strings.Split(text, "\n")
 	for i, line := range lines {
 		if i > 0 {
-			fmt.Fprint(os.Stdout, "\r\n")
+			_, _ = fmt.Fprint(os.Stdout, "\r\n")
 		}
-		fmt.Fprint(os.Stdout, line)
+		_, _ = fmt.Fprint(os.Stdout, line)
 	}
 }
 
 // printMessage outputs a header and content box with proper raw terminal mode line endings
 func (p *agentMessengerImpl) printMessage(header, content string) {
-	fmt.Fprint(os.Stdout, "\r\n")
+	_, _ = fmt.Fprint(os.Stdout, "\r\n")
 	p.printLines(header)
-	fmt.Fprint(os.Stdout, "\r\n")
+	_, _ = fmt.Fprint(os.Stdout, "\r\n")
 	p.printLines(content)
-	fmt.Fprint(os.Stdout, "\r\n\n")
+	_, _ = fmt.Fprint(os.Stdout, "\r\n\n")
 }
 
 // NewAgentMessenger creates a new agent messenger for dependency injection.

@@ -6,6 +6,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/prompt/optimizer"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/m-mizutani/gollem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,11 +23,11 @@ func TestNewOptimizer_ValidConfig(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		strategy optimizer.OptimizerStrategy
+		strategy shared.OptimizerStrategy
 	}{
-		{"gradient strategy", optimizer.StrategyGradient},
-		{"metaprompt strategy", optimizer.StrategyMetaPrompt},
-		{"prompt memory strategy", optimizer.StrategyPromptMemory},
+		{"gradient strategy", shared.StrategyGradient},
+		{"metaprompt strategy", shared.StrategyMetaPrompt},
+		{"prompt memory strategy", shared.StrategyPromptMemory},
 	}
 
 	for _, tt := range tests {
@@ -64,7 +65,7 @@ func TestNewOptimizer_NilClient(t *testing.T) {
 
 	mockPM := mocks.NewMockPromptManager(ctrl)
 	config := &optimizer.OptimizerConfig{
-		Kind: optimizer.StrategyGradient,
+		Kind: shared.StrategyGradient,
 	}
 
 	opt, err := optimizer.NewOptimizer(nil, mockPM, config)
@@ -80,7 +81,7 @@ func TestNewOptimizer_NilPromptManager(t *testing.T) {
 
 	mockClient := mocks.NewMockLLMClient(ctrl)
 	config := &optimizer.OptimizerConfig{
-		Kind: optimizer.StrategyGradient,
+		Kind: shared.StrategyGradient,
 	}
 
 	opt, err := optimizer.NewOptimizer(mockClient, nil, config)
@@ -97,7 +98,7 @@ func TestNewOptimizer_InvalidReflectionBounds(t *testing.T) {
 	mockClient := mocks.NewMockLLMClient(ctrl)
 	mockPM := mocks.NewMockPromptManager(ctrl)
 	config := &optimizer.OptimizerConfig{
-		Kind:               optimizer.StrategyGradient,
+		Kind:               shared.StrategyGradient,
 		MinReflectionSteps: 5,
 		MaxReflectionSteps: 2, // max < min
 	}
@@ -117,7 +118,7 @@ func TestNewOptimizer_DefaultReflectionBounds(t *testing.T) {
 	mockPM := mocks.NewMockPromptManager(ctrl)
 
 	config := &optimizer.OptimizerConfig{
-		Kind: optimizer.StrategyGradient,
+		Kind: shared.StrategyGradient,
 		// Bounds left as zero - should default to 1 min, 5 max
 	}
 
@@ -135,7 +136,7 @@ func TestNewOptimizer_UnknownStrategy(t *testing.T) {
 	mockClient := mocks.NewMockLLMClient(ctrl)
 	mockPM := mocks.NewMockPromptManager(ctrl)
 	config := &optimizer.OptimizerConfig{
-		Kind: optimizer.OptimizerStrategy("unknown"),
+		Kind: shared.OptimizerStrategy("unknown"),
 	}
 
 	opt, err := optimizer.NewOptimizer(mockClient, mockPM, config)

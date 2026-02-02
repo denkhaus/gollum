@@ -2,8 +2,8 @@
 package manager
 
 import (
-	"github.com/samber/do/v2"
 	promptstore "github.com/denkhaus/gollum/pkg/prompt/store"
+	"github.com/samber/do/v2"
 )
 
 // NewPromptManagerProvider creates a PromptManager with PromptStore from DI.

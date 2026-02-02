@@ -118,7 +118,7 @@ func (o *gradientOptimizer) runReflectionLoop(ctx context.Context, input *Optimi
 func (o *gradientOptimizer) buildReflectionPrompt(ctx context.Context, input *OptimizerInput) (string, error) {
 	updateInstructions := input.UpdateInstructions
 	if updateInstructions == "" {
-		updateInstructions = "No specific instructions provided"
+		updateInstructions = defaultUpdateInstructions
 	}
 
 	renderCtx := &prompt.RenderContext{
