@@ -8,8 +8,9 @@ package mocks
 //go:generate go run go.uber.org/mock/mockgen -source=../shared/factory.go -destination=mock_agent_factory.go -package=mocks github.com/denkhaus/gollum/pkg/shared AgentFactory
 //go:generate go run go.uber.org/mock/mockgen -source=../state/types.go -destination=mock_file_state_manager.go -package=mocks github.com/denkhaus/gollum/pkg/state FileStateManager
 //go:generate go run go.uber.org/mock/mockgen -source=../logger/logger.go -destination=mock_logger_service.go -package=mocks github.com/denkhaus/gollum/pkg/logger LoggerService
-//go:generate go run go.uber.org/mock/mockgen -source=../prompt/manager.go -destination=mock_prompt_manager.go -package=mocks github.com/denkhaus/gollum/pkg/prompt PromptManager
+//go:generate go run go.uber.org/mock/mockgen -source=../prompt/manager/manager.go -destination=mock_prompt_manager.go -package=mocks github.com/denkhaus/gollum/pkg/prompt/manager PromptManager
 //go:generate go run go.uber.org/mock/mockgen -source=../prompt/store/store.go -destination=mock_store.go -package=mocks github.com/denkhaus/gollum/pkg/prompt/store PromptStore
+//go:generate go run go.uber.org/mock/mockgen -source=../prompt/optimizer/optimizer.go -destination=mock_optimizer.go -package=mocks github.com/denkhaus/gollum/pkg/prompt/optimizer PromptOptimizer
 //go:generate go run go.uber.org/mock/mockgen -source=../llm/provider.go -destination=mock_llm_client_provider.go -package=mocks github.com/denkhaus/gollum/pkg/llm ClientProvider
 //go:generate go run go.uber.org/mock/mockgen -source=../ui/agent_messenger.go -destination=mock_agent_messenger.go -package=mocks github.com/denkhaus/gollum/pkg/ui AgentMessenger
 //go:generate go run -tags=mock go.uber.org/mock/mockgen -destination=mock_llm_client.go -package=mocks github.com/m-mizutani/gollem LLMClient
