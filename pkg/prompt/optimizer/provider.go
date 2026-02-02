@@ -22,13 +22,13 @@ func NewOptimizerProvider(injector do.Injector) (PromptOptimizer, error) {
 	optimizerCfg := cfg.GetPromptOptimizerConfig()
 
 	// Map config string to OptimizerStrategy
-	strategy := mapStrategy(optimizerCfg.DefaultStrategy)
+	strategy := MapStrategy(optimizerCfg.DefaultStrategy)
 	if strategy == StrategyUnknown {
 		return nil, fmt.Errorf("unknown optimizer strategy: %s", optimizerCfg.DefaultStrategy)
 	}
 
 	// Map config string to LLMProvider
-	provider := mapProvider(optimizerCfg.DefaultProvider)
+	provider := MapProvider(optimizerCfg.DefaultProvider)
 	if provider == shared.LLMProvider("") {
 		return nil, fmt.Errorf("unknown LLM provider: %s", optimizerCfg.DefaultProvider)
 	}
@@ -51,10 +51,10 @@ func NewOptimizerProvider(injector do.Injector) (PromptOptimizer, error) {
 	return NewOptimizer(client, promptManager, optCfg)
 }
 
-// mapStrategy converts config string to OptimizerStrategy enum
+// MapStrategy converts config string to OptimizerStrategy enum
 // Supports: gradient, metaprompt/meta-prompt, prompt_memory/prompt-memory
 // Returns StrategyUnknown for invalid values
-func mapStrategy(s string) OptimizerStrategy {
+func MapStrategy(s string) OptimizerStrategy {
 	switch strings.ToLower(strings.ReplaceAll(s, "-", "_")) {
 	case "gradient":
 		return StrategyGradient
@@ -67,10 +67,10 @@ func mapStrategy(s string) OptimizerStrategy {
 	}
 }
 
-// mapProvider converts config string to LLMProvider enum
+// MapProvider converts config string to LLMProvider enum
 // Supports: anthropic, openai, gemini
 // Returns empty string for invalid values
-func mapProvider(p string) shared.LLMProvider {
+func MapProvider(p string) shared.LLMProvider {
 	switch strings.ToLower(p) {
 	case "anthropic":
 		return shared.LLMProviderAnthropic
