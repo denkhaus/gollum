@@ -10,19 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createTestPrompt(id, content string) *prompt.Prompt {
-	return &prompt.Prompt{
-		ID:        id,
-		Name:      "test",
-		Content:   content,
-		Context:   make(map[string]interface{}),
-		Tags:      []string{},
-		Version:   semver.New(1, 0, 0, "", ""),
-		IsBuiltin: false,
-	}
-}
-
-func setupTestStore(t *testing.T) PromptStore {
+func setupTestStore(_ *testing.T) PromptStore {
 	return NewMemoryStore()
 }
 
@@ -163,8 +151,8 @@ func TestMemoryStore_List(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup test data
-	store.SaveNewVersion(ctx, "prompt1", "content1", "Test1")
-	store.SaveNewVersion(ctx, "prompt2", "content2", "Test2")
+	_, _ = store.SaveNewVersion(ctx, "prompt1", "content1", "Test1")
+	_, _ = store.SaveNewVersion(ctx, "prompt2", "content2", "Test2")
 	p3, _ := store.SaveNewVersion(ctx, "prompt3", "content3", "Test3")
 	p3.Tags = append(p3.Tags, "special")
 	store.(*memoryStore).prompts["prompt3@1.0.0"] = p3
@@ -258,9 +246,9 @@ func TestMemoryStore_ListVersions(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("list versions of prompt", func(t *testing.T) {
-		store.SaveNewVersion(ctx, "versiontest", "v1", "Test")
-		store.SaveNewVersion(ctx, "versiontest", "v2", "Test")
-		store.SaveNewVersion(ctx, "versiontest", "v3", "Test")
+		_, _ = store.SaveNewVersion(ctx, "versiontest", "v1", "Test")
+		_, _ = store.SaveNewVersion(ctx, "versiontest", "v2", "Test")
+		_, _ = store.SaveNewVersion(ctx, "versiontest", "v3", "Test")
 
 		versions, err := store.ListVersions(ctx, "versiontest")
 		assert.NoError(t, err)
@@ -274,7 +262,7 @@ func TestMemoryStore_ListVersions(t *testing.T) {
 	})
 
 	t.Run("versions exclude @latest", func(t *testing.T) {
-		store.SaveNewVersion(ctx, "latestcheck", "content", "Test")
+		_, _ = store.SaveNewVersion(ctx, "latestcheck", "content", "Test")
 
 		versions, err := store.ListVersions(ctx, "latestcheck")
 		assert.NoError(t, err)
@@ -318,7 +306,7 @@ func TestMemoryStore_ConcurrentAccess(t *testing.T) {
 		done := make(chan bool, 10)
 
 		for i := 0; i < 10; i++ {
-			go func(id int) {
+			go func(_ int) {
 				_, _ = store.SaveNewVersion(ctx, "concurrent", "content", "Test")
 				done <- true
 			}(i)
@@ -333,7 +321,7 @@ func TestMemoryStore_ConcurrentAccess(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("concurrent reads", func(t *testing.T) {
+	t.Run("concurrent reads", func(_ *testing.T) {
 		_, _ = store.SaveNewVersion(ctx, "readtest", "content", "Test")
 		done := make(chan bool, 10)
 
@@ -438,8 +426,8 @@ func TestFileStore_List(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("list scans directory", func(t *testing.T) {
-		store.SaveNewVersion(ctx, "listtest1", "content1", "Test1")
-		store.SaveNewVersion(ctx, "listtest2", "content2", "Test2")
+		_, _ = store.SaveNewVersion(ctx, "listtest1", "content1", "Test1")
+		_, _ = store.SaveNewVersion(ctx, "listtest2", "content2", "Test2")
 
 		list, err := store.List(ctx, nil)
 		assert.NoError(t, err)
@@ -473,7 +461,7 @@ func TestFileStore_FileLocking(t *testing.T) {
 		done := make(chan bool, 5)
 
 		for i := 0; i < 5; i++ {
-			go func(id int) {
+			go func(_ int) {
 				_, _ = store.SaveNewVersion(ctx, "locktest", "content", "Test")
 				done <- true
 			}(i)
@@ -523,9 +511,9 @@ func TestFileStore_ListVersions(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("list versions from directory", func(t *testing.T) {
-		store.SaveNewVersion(ctx, "verlisttest", "v1", "Test")
-		store.SaveNewVersion(ctx, "verlisttest", "v2", "Test")
-		store.SaveNewVersion(ctx, "verlisttest", "v3", "Test")
+		_, _ = store.SaveNewVersion(ctx, "verlisttest", "v1", "Test")
+		_, _ = store.SaveNewVersion(ctx, "verlisttest", "v2", "Test")
+		_, _ = store.SaveNewVersion(ctx, "verlisttest", "v3", "Test")
 
 		versions, err := store.ListVersions(ctx, "verlisttest")
 		assert.NoError(t, err)

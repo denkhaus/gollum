@@ -18,10 +18,10 @@ var templateNameMap = map[string]string{
 	prompt.PromptIDCompacter:  "compacter",
 	prompt.PromptIDSubagent:   "subagenttaskprompt",
 	// Optimizer templates (not loaded from store, embedded only)
-	"optimizer_gradient_prompt":      "optimizergradientprompt",
-	"optimizer_gradient_metaprompt":  "optimizergradientmetaprompt",
-	"optimizer_metaprompt":           "optimizermetapromptprompt",
-	"optimizer_prompt_memory":        "optimizerpromptmemory",
+	"optimizer_gradient_prompt":     "optimizergradientprompt",
+	"optimizer_gradient_metaprompt": "optimizergradientmetaprompt",
+	"optimizer_metaprompt":          "optimizermetapromptprompt",
+	"optimizer_prompt_memory":       "optimizerpromptmemory",
 }
 
 // extractBaseID extracts the base prompt ID from a versioned ID
@@ -35,6 +35,7 @@ func extractBaseID(id string) string {
 
 // RenderPrompt renders a prompt template with the given context
 func (p *promptManager) RenderPrompt(ctx context.Context, prompt *prompt.Prompt, renderCtx *prompt.RenderContext) (string, error) {
+	_ = ctx // Reserved for future use (logging, tracing, cancellation)
 	// Check for nil prompt
 	if prompt == nil {
 		return "", fmt.Errorf("prompt cannot be nil")

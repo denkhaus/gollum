@@ -93,7 +93,7 @@ func (o *promptMemoryOptimizer) buildPromptMemoryPrompt(ctx context.Context, inp
 
 	instructions := input.UpdateInstructions
 	if instructions == "" {
-		instructions = "No specific instructions provided"
+		instructions = defaultUpdateInstructions
 	}
 
 	renderCtx := &prompt.RenderContext{

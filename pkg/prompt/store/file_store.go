@@ -17,9 +17,9 @@ import (
 )
 
 type fileStore struct {
-	mu         sync.RWMutex
-	dir        string
-	cache      map[string]*prompt.Prompt
+	mu          sync.RWMutex
+	dir         string
+	cache       map[string]*prompt.Prompt
 	enableCache bool
 }
 
@@ -74,6 +74,7 @@ func (f *fileStore) Load(_ context.Context, id string) (*prompt.Prompt, error) {
 // SaveNewVersion creates a new version with auto-incremented patch version.
 // Returns new prompt with versioned ID (e.g., "subagent@1.0.1").
 func (f *fileStore) SaveNewVersion(ctx context.Context, baseID string, content string, name string) (*prompt.Prompt, error) {
+	_ = ctx // Reserved for future use (cancellation, logging, tracing)
 	// Find the latest version
 	latestVersion, latestPrompt, err := f.findLatestVersion(baseID)
 	if err != nil {
@@ -168,6 +169,7 @@ func (f *fileStore) SaveNewVersion(ctx context.Context, baseID string, content s
 // Used for bootstrapping built-in prompts that cannot be deleted.
 // Returns new prompt with versioned ID (e.g., "system@1.0.0").
 func (f *fileStore) SaveBuiltinVersion(ctx context.Context, baseID string, content string, name string) (*prompt.Prompt, error) {
+	_ = ctx // Reserved for future use (cancellation, logging, tracing)
 	// Find the latest version
 	latestVersion, latestPrompt, err := f.findLatestVersion(baseID)
 	if err != nil {
@@ -546,7 +548,7 @@ func (f *fileStore) ListVersions(_ context.Context, baseID string) ([]*prompt.Pr
 		return nil, fmt.Errorf("failed to read store directory: %w", err)
 	}
 
-	var result []*prompt.Prompt
+	result := make([]*prompt.Prompt, 0, len(entries))
 	seen := make(map[string]bool)
 
 	for _, entry := range entries {
@@ -673,13 +675,13 @@ func (f *fileStore) writePromptLocked(p *prompt.Prompt) error {
 	if err != nil {
 		return fmt.Errorf("failed to open prompt file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // Error from Close ignored in defer
 
 	// Acquire exclusive lock
 	if err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX); err != nil {
 		return fmt.Errorf("failed to lock file: %w", err)
 	}
-	defer syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+	defer func() { _ = syscall.Flock(int(file.Fd()), syscall.LOCK_UN) }() // Error from unlock ignored in defer
 
 	// Marshal JSON
 	data, err := json.Marshal(p)
@@ -713,31 +715,6 @@ func (f *fileStore) findLatestVersion(baseID string) (*semver.Version, *prompt.P
 	}
 
 	return latestVersion, latestPrompt, nil
-}
-
-// removeAliasFromFile removes alias tags from a prompt file.
-func (f *fileStore) removeAliasFromFile(aliasID, versionID string) error {
-	p, err := f.Load(context.Background(), aliasID)
-	if err != nil || p == nil {
-		return nil // Ignore errors
-	}
-
-	// Remove alias tag if present
-	var newTags []string
-	for _, tag := range p.Tags {
-		if tag != aliasID {
-			newTags = append(newTags, tag)
-		}
-	}
-	p.Tags = newTags
-	p.UpdatedAt = time.Now()
-
-	// Write updated file (but only if it's the actual versioned file)
-	if p.ID == versionID {
-		return f.writePromptLocked(p)
-	}
-
-	return nil
 }
 
 // extractBaseID extracts the base ID from a versioned ID.

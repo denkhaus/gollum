@@ -101,7 +101,7 @@ func (o *metaPromptOptimizer) Optimize(ctx context.Context, input *OptimizerInpu
 func (o *metaPromptOptimizer) buildMetaPrompt(ctx context.Context, input *OptimizerInput) (string, error) {
 	updateInstructions := input.UpdateInstructions
 	if updateInstructions == "" {
-		updateInstructions = "No specific instructions provided"
+		updateInstructions = defaultUpdateInstructions
 	}
 
 	renderCtx := &prompt.RenderContext{

@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -219,8 +220,8 @@ func TestNewService_DefaultPromptOptimizerConfig(t *testing.T) {
 	assert.NotNil(t, config)
 
 	// Test default values
-	assert.Equal(t, "gradient", config.DefaultStrategy, "Default strategy should be gradient")
-	assert.Equal(t, "anthropic", config.DefaultProvider, "Default provider should be anthropic")
+	assert.Equal(t, shared.StrategyGradient, config.DefaultStrategy, "Default strategy should be gradient")
+	assert.Equal(t, shared.LLMProviderAnthropic, config.DefaultProvider, "Default provider should be anthropic")
 	assert.Equal(t, 5, config.MaxReflectionSteps, "Default max reflection steps should be 5")
 	assert.Equal(t, 2, config.MinReflectionSteps, "Default min reflection steps should be 2")
 }
@@ -233,8 +234,8 @@ func TestNewService_PromptOptimizerConfigFromEnv(t *testing.T) {
 		provider            string
 		maxReflection       string
 		minReflection       string
-		expectStrategy      string
-		expectProvider      string
+		expectStrategy      shared.OptimizerStrategy
+		expectProvider      shared.LLMProvider
 		expectMaxReflection int
 		expectMinReflection int
 	}{
@@ -244,21 +245,21 @@ func TestNewService_PromptOptimizerConfigFromEnv(t *testing.T) {
 			provider:            "openai",
 			maxReflection:       "10",
 			minReflection:       "3",
-			expectStrategy:      "metaprompt",
-			expectProvider:      "openai",
+			expectStrategy:      shared.StrategyMetaPrompt,
+			expectProvider:      shared.LLMProviderOpenAI,
 			expectMaxReflection: 10,
 			expectMinReflection: 3,
 		},
 		{
 			name:                "Only strategy set",
-			strategy:            "prompt_memory",
+			strategy:            "promptmemory",
 			provider:            "",
 			maxReflection:       "",
 			minReflection:       "",
-			expectStrategy:      "prompt_memory",
-			expectProvider:      "anthropic", // default
-			expectMaxReflection: 5,           // default
-			expectMinReflection: 2,           // default
+			expectStrategy:      shared.StrategyPromptMemory,
+			expectProvider:      shared.LLMProviderAnthropic, // default
+			expectMaxReflection: 5,                          // default
+			expectMinReflection: 2,                          // default
 		},
 		{
 			name:                "Gemini provider with custom reflection",
@@ -266,8 +267,8 @@ func TestNewService_PromptOptimizerConfigFromEnv(t *testing.T) {
 			provider:            "gemini",
 			maxReflection:       "7",
 			minReflection:       "1",
-			expectStrategy:      "gradient", // default
-			expectProvider:      "gemini",
+			expectStrategy:      shared.StrategyGradient, // default
+			expectProvider:      shared.LLMProviderGemini,
 			expectMaxReflection: 7,
 			expectMinReflection: 1,
 		},

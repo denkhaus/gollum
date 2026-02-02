@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/m-mizutani/gollem"
 )
 
@@ -47,11 +48,11 @@ func NewOptimizer(client gollem.LLMClient, promptManager manager.PromptManager, 
 	}
 
 	switch cfg.Kind {
-	case StrategyGradient:
+	case shared.StrategyGradient:
 		return newGradientOptimizer(client, promptManager, &cfg)
-	case StrategyMetaPrompt:
+	case shared.StrategyMetaPrompt:
 		return newMetaPromptOptimizer(client, promptManager, &cfg)
-	case StrategyPromptMemory:
+	case shared.StrategyPromptMemory:
 		return newPromptMemoryOptimizer(client, promptManager, &cfg)
 	default:
 		return nil, fmt.Errorf("unknown optimizer strategy: %s", cfg.Kind)

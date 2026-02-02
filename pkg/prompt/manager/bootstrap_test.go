@@ -303,7 +303,7 @@ type mockConfigService struct {
 }
 
 func (m *mockConfigService) GetLogLevel() string { return "info" }
-func (m *mockConfigService) IsDevMode() bool    { return false }
+func (m *mockConfigService) IsDevMode() bool     { return false }
 func (m *mockConfigService) GetAnthropicConfig() *config.AnthropicConfig {
 	return nil
 }

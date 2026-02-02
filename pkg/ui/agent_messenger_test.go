@@ -114,4 +114,3 @@ func TestAgentMessenger_ShortenAgentName(t *testing.T) {
 		})
 	}
 }
-

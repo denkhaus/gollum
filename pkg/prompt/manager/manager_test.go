@@ -228,7 +228,7 @@ func TestRaceConditions(t *testing.T) {
 	// Concurrent writes
 	for i := 0; i < numGoroutines; i++ {
 		wg.Add(1)
-		go func(n int) {
+		go func(_ int) {
 			defer wg.Done()
 			_, _ = st.SaveNewVersion(ctx, "race-test", "Content", "Test")
 		}(i)

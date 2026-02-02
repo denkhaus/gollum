@@ -5,6 +5,7 @@ package config
 import (
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/samber/do/v2"
 )
@@ -111,11 +112,15 @@ func (c *HooksConfig) GetSecurityMode() string {
 	}
 }
 
+// PromptStoreType represents the type of prompt store backend.
 type PromptStoreType string
 
 const (
-	PromptStoreTypeMemory   PromptStoreType = "memory"
-	PromptStoreTypeFile     PromptStoreType = "file"
+	// PromptStoreTypeMemory stores prompts in memory (ephemeral).
+	PromptStoreTypeMemory PromptStoreType = "memory"
+	// PromptStoreTypeFile stores prompts in JSON files on disk.
+	PromptStoreTypeFile PromptStoreType = "file"
+	// PromptStoreTypeLangfuse stores prompts in Langfuse service (deferred to v2).
 	PromptStoreTypeLangfuse PromptStoreType = "langfuse"
 )
 
@@ -139,10 +144,10 @@ type PromptStoreConfig struct {
 // PromptOptimizerConfig holds configuration for the prompt optimizer
 type PromptOptimizerConfig struct {
 	// DefaultStrategy is the optimization strategy to use (gradient, metaprompt, prompt_memory)
-	DefaultStrategy string `envconfig:"STRATEGY" default:"gradient"`
+	DefaultStrategy shared.OptimizerStrategy `envconfig:"STRATEGY" default:"gradient"`
 
 	// DefaultProvider is the LLM provider to use (anthropic, openai, gemini)
-	DefaultProvider string `envconfig:"PROVIDER" default:"anthropic"`
+	DefaultProvider shared.LLMProvider `envconfig:"PROVIDER" default:"anthropic"`
 
 	// MaxReflectionSteps is the maximum number of reflection iterations
 	MaxReflectionSteps int `envconfig:"MAX_REFLECTION" default:"5"`
@@ -171,18 +176,18 @@ type ConfigService interface {
 
 // serviceImpl implements the ConfigService interface
 type serviceImpl struct {
-	Anthropic        AnthropicConfig        `envconfig:"ANTHROPIC"`
-	Gemini           GeminiConfig           `envconfig:"GEMINI"`
-	OpenAI           OpenAIConfig           `envconfig:"OPENAI"`
-	AgentLimits      AgentLimitsConfig      `envconfig:"AGENT_LIMITS"`
-	Files            FilesConfig            `envconfig:"FILES"`
-	Logging          LoggingConfig          `envconfig:"LOGGING"`
-	Bash             BashConfig             `envconfig:"BASH"`
-	Hooks            HooksConfig            `envconfig:"HOOKS"`
-	LogLevel         string                 `envconfig:"LOG_LEVEL" default:"info"`
-	Development      bool                   `envconfig:"DEVELOPMENT" default:"false"`
-	PromptStore      PromptStoreConfig      `envconfig:"PROMPT_STORE"`
-	PromptOptimizer  PromptOptimizerConfig  `envconfig:"OPTIMIZER"`
+	Anthropic       AnthropicConfig       `envconfig:"ANTHROPIC"`
+	Gemini          GeminiConfig          `envconfig:"GEMINI"`
+	OpenAI          OpenAIConfig          `envconfig:"OPENAI"`
+	AgentLimits     AgentLimitsConfig     `envconfig:"AGENT_LIMITS"`
+	Files           FilesConfig           `envconfig:"FILES"`
+	Logging         LoggingConfig         `envconfig:"LOGGING"`
+	Bash            BashConfig            `envconfig:"BASH"`
+	Hooks           HooksConfig           `envconfig:"HOOKS"`
+	LogLevel        string                `envconfig:"LOG_LEVEL" default:"info"`
+	Development     bool                  `envconfig:"DEVELOPMENT" default:"false"`
+	PromptStore     PromptStoreConfig     `envconfig:"PROMPT_STORE"`
+	PromptOptimizer PromptOptimizerConfig `envconfig:"OPTIMIZER"`
 }
 
 // NewService creates a new configuration service
