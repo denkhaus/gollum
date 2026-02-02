@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2025-02-01)
 
 **Core value:** Agent quality improves iteratively through automatic prompt optimization based on execution feedback.
-**Current focus:** Phase 5 - Documentation and Knowledge Capture
+**Current focus:** Phase 5 - Documentation and Knowledge Capture - COMPLETE
 
 ## Current Position
 
-Phase: 5 of 5 (Documentation and Knowledge Capture)
-Plan: 1 of 4 in current phase
-Status: Phase 5 in progress (1/4 plans done)
-Last activity: 2026-02-02 — Completed 05-01 (Go prompt store guidance)
+Phase: 5 of 5 (Documentation and Knowledge Capture) - COMPLETE
+Plan: 4 of 4 in current phase - ALL COMPLETE
+Status: Phase 5 complete (all documentation finished)
+Last activity: 2026-02-02 — Completed 05-04 (CLAUDE.md Prompt Optimizer documentation)
 
-Progress: [████████░░] 86%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: 9 min
-- Total execution time: 1.8 hours
+- Total plans completed: 16
+- Average duration: 11 min
+- Total execution time: 2.9 hours
 
 **By Phase:**
 
@@ -31,10 +31,11 @@ Progress: [████████░░] 86%
 | 2     | 3     | 3        | 3     | 20 min   |
 | 3     | 3     | 3        | 3     | 8 min    |
 | 4     | 3     | 3        | 3     | 7 min    |
+| 5     | 4     | 4        | 4     | 5 min    |
 
 **Recent Trend:**
-- Last 5 plans: 3min (04-01), 10min (04-02), 7min (04-03)
-- Trend: 7 min average
+- Last 7 plans: 3min (04-01), 10min (04-02), 7min (04-03), 5min (05-01), 6min (05-02), 6min (05-03), 1min (05-04)
+- Trend: 5 min average (documentation faster than implementation)
 
 *Updated after each plan completion*
 
@@ -85,6 +86,8 @@ Recent decisions affecting current work:
 - **Config string normalization**: Hyphen/underscore normalization for strategy names (meta-prompt -> metaprompt)
 - **Injector type fix**: Use do.Injector (not *do.Injector) for DI provider signatures per do v2 conventions
 - **PromptOptimizer DI registration**: Registered via do.Provide with NewOptimizerProvider for automatic wiring
+- **CLAUDE.md for project-specific docs**: Project-specific usage examples belong in CLAUDE.md, not in universal guidance
+- **Documentation in CLAUDE.md**: Added Prompt Optimizer section with configuration, usage, feedback types, strategies, and best practices
 
 ### Pending Todos
 
@@ -96,6 +99,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-02T19:53:43Z
-Stopped at: Completed 05-03 (General prompt optimization guidance)
+Last session: 2026-02-02T19:54:54Z
+Stopped at: Phase 5 complete (all 16 plans finished)
 Resume file: None
