@@ -202,3 +202,163 @@ func TestGetLoggingConfig_Immutable(t *testing.T) {
 	// Restore original value for cleanup
 	config2.SessionLogBufferSize = originalSize
 }
+
+// TestNewService_DefaultPromptOptimizerConfig tests that default optimizer values are applied correctly
+func TestNewService_DefaultPromptOptimizerConfig(t *testing.T) {
+	// Clear environment variables to test defaults
+	unsetEnv(t, "GOLLUM_OPTIMIZER_STRATEGY")
+	unsetEnv(t, "GOLLUM_OPTIMIZER_PROVIDER")
+	unsetEnv(t, "GOLLUM_OPTIMIZER_MAX_REFLECTION")
+	unsetEnv(t, "GOLLUM_OPTIMIZER_MIN_REFLECTION")
+
+	injector := do.New()
+	service, err := NewService(injector)
+	require.NoError(t, err)
+
+	config := service.GetPromptOptimizerConfig()
+	assert.NotNil(t, config)
+
+	// Test default values
+	assert.Equal(t, "gradient", config.DefaultStrategy, "Default strategy should be gradient")
+	assert.Equal(t, "anthropic", config.DefaultProvider, "Default provider should be anthropic")
+	assert.Equal(t, 5, config.MaxReflectionSteps, "Default max reflection steps should be 5")
+	assert.Equal(t, 2, config.MinReflectionSteps, "Default min reflection steps should be 2")
+}
+
+// TestNewService_PromptOptimizerConfigFromEnv tests that environment variables are parsed correctly
+func TestNewService_PromptOptimizerConfigFromEnv(t *testing.T) {
+	tests := []struct {
+		name                string
+		strategy            string
+		provider            string
+		maxReflection       string
+		minReflection       string
+		expectStrategy      string
+		expectProvider      string
+		expectMaxReflection int
+		expectMinReflection int
+	}{
+		{
+			name:                "Custom values",
+			strategy:            "metaprompt",
+			provider:            "openai",
+			maxReflection:       "10",
+			minReflection:       "3",
+			expectStrategy:      "metaprompt",
+			expectProvider:      "openai",
+			expectMaxReflection: 10,
+			expectMinReflection: 3,
+		},
+		{
+			name:                "Only strategy set",
+			strategy:            "prompt_memory",
+			provider:            "",
+			maxReflection:       "",
+			minReflection:       "",
+			expectStrategy:      "prompt_memory",
+			expectProvider:      "anthropic", // default
+			expectMaxReflection: 5,           // default
+			expectMinReflection: 2,           // default
+		},
+		{
+			name:                "Gemini provider with custom reflection",
+			strategy:            "",
+			provider:            "gemini",
+			maxReflection:       "7",
+			minReflection:       "1",
+			expectStrategy:      "gradient", // default
+			expectProvider:      "gemini",
+			expectMaxReflection: 7,
+			expectMinReflection: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Clear and set environment variables
+			unsetEnv(t, "GOLLUM_OPTIMIZER_STRATEGY")
+			unsetEnv(t, "GOLLUM_OPTIMIZER_PROVIDER")
+			unsetEnv(t, "GOLLUM_OPTIMIZER_MAX_REFLECTION")
+			unsetEnv(t, "GOLLUM_OPTIMIZER_MIN_REFLECTION")
+
+			if tt.strategy != "" {
+				require.NoError(t, os.Setenv("GOLLUM_OPTIMIZER_STRATEGY", tt.strategy))
+			}
+			if tt.provider != "" {
+				require.NoError(t, os.Setenv("GOLLUM_OPTIMIZER_PROVIDER", tt.provider))
+			}
+			if tt.maxReflection != "" {
+				require.NoError(t, os.Setenv("GOLLUM_OPTIMIZER_MAX_REFLECTION", tt.maxReflection))
+			}
+			if tt.minReflection != "" {
+				require.NoError(t, os.Setenv("GOLLUM_OPTIMIZER_MIN_REFLECTION", tt.minReflection))
+			}
+
+			injector := do.New()
+			service, err := NewService(injector)
+			require.NoError(t, err)
+
+			config := service.GetPromptOptimizerConfig()
+			assert.Equal(t, tt.expectStrategy, config.DefaultStrategy)
+			assert.Equal(t, tt.expectProvider, config.DefaultProvider)
+			assert.Equal(t, tt.expectMaxReflection, config.MaxReflectionSteps)
+			assert.Equal(t, tt.expectMinReflection, config.MinReflectionSteps)
+		})
+	}
+}
+
+// TestGetPromptOptimizerConfig_ReturnsPointer tests that GetPromptOptimizerConfig returns a stable pointer
+func TestGetPromptOptimizerConfig_ReturnsPointer(t *testing.T) {
+	unsetEnv(t, "GOLLUM_OPTIMIZER_STRATEGY")
+	unsetEnv(t, "GOLLUM_OPTIMIZER_PROVIDER")
+	unsetEnv(t, "GOLLUM_OPTIMIZER_MAX_REFLECTION")
+	unsetEnv(t, "GOLLUM_OPTIMIZER_MIN_REFLECTION")
+
+	injector := do.New()
+	service, err := NewService(injector)
+	require.NoError(t, err)
+
+	config1 := service.GetPromptOptimizerConfig()
+	config2 := service.GetPromptOptimizerConfig()
+
+	// Should return the same pointer (stable reference)
+	assert.Same(t, config1, config2, "GetPromptOptimizerConfig should return stable pointer")
+}
+
+// TestNewService_PromptStoreConfigIntegration verifies that PromptStoreConfig still works correctly
+func TestNewService_PromptStoreConfigIntegration(t *testing.T) {
+	// Clear environment variables to test defaults
+	unsetEnv(t, "GOLLUM_PROMPT_STORE_TYPE")
+	unsetEnv(t, "GOLLUM_PROMPT_STORE_FILE_PATH")
+	unsetEnv(t, "GOLLUM_PROMPT_STORE_CACHE_ENABLED")
+
+	injector := do.New()
+	service, err := NewService(injector)
+	require.NoError(t, err)
+
+	config := service.GetPromptStoreConfig()
+	assert.NotNil(t, config)
+
+	// Test default values
+	assert.Equal(t, PromptStoreType("memory"), config.Type, "Default store type should be memory")
+	assert.Equal(t, "./data/prompts", config.FilePath, "Default file path should be ./data/prompts")
+	assert.False(t, config.CacheEnabled, "Cache should be disabled by default")
+
+	// Test with custom values
+	unsetEnv(t, "GOLLUM_PROMPT_STORE_TYPE")
+	unsetEnv(t, "GOLLUM_PROMPT_STORE_FILE_PATH")
+	unsetEnv(t, "GOLLUM_PROMPT_STORE_CACHE_ENABLED")
+
+	require.NoError(t, os.Setenv("GOLLUM_PROMPT_STORE_TYPE", "file"))
+	require.NoError(t, os.Setenv("GOLLUM_PROMPT_STORE_FILE_PATH", "/tmp/prompts"))
+	require.NoError(t, os.Setenv("GOLLUM_PROMPT_STORE_CACHE_ENABLED", "true"))
+
+	injector2 := do.New()
+	service2, err := NewService(injector2)
+	require.NoError(t, err)
+
+	config2 := service2.GetPromptStoreConfig()
+	assert.Equal(t, PromptStoreType("file"), config2.Type)
+	assert.Equal(t, "/tmp/prompts", config2.FilePath)
+	assert.True(t, config2.CacheEnabled)
+}
