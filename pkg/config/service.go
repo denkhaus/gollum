@@ -136,6 +136,21 @@ type PromptStoreConfig struct {
 	CacheEnabled bool `envconfig:"default" env:"PROMPT_STORE_CACHE_ENABLED"`
 }
 
+// PromptOptimizerConfig holds configuration for the prompt optimizer
+type PromptOptimizerConfig struct {
+	// DefaultStrategy is the optimization strategy to use (gradient, metaprompt, prompt_memory)
+	DefaultStrategy string `envconfig:"default:\"gradient\"" env:"OPTIMIZER_STRATEGY"`
+
+	// DefaultProvider is the LLM provider to use (anthropic, openai, gemini)
+	DefaultProvider string `envconfig:"default:\"anthropic\"" env:"OPTIMIZER_PROVIDER"`
+
+	// MaxReflectionSteps is the maximum number of reflection iterations
+	MaxReflectionSteps int `envconfig:"default:\"5\"" env:"OPTIMIZER_MAX_REFLECTION"`
+
+	// MinReflectionSteps is the minimum number of reflection iterations
+	MinReflectionSteps int `envconfig:"default:\"2\"" env:"OPTIMIZER_MIN_REFLECTION"`
+}
+
 // ConfigService defines the configuration service interface
 //
 //revive:disable-next-line:exported
