@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2025-02-01)
 ## Current Position
 
 Phase: 4 of 5 (Configuration and DI Integration)
-Plan: 3 of 3 in current phase - COMPLETE
-Status: Phase 4 complete, ready for Phase 5
-Last activity: 2026-02-02 — Completed 04-03 (PromptManager DI Integration)
+Plan: 2 of 3 in current phase - COMPLETE
+Status: In progress
+Last activity: 2026-02-02 — Completed 04-02 (Prompt Optimizer DI Provider)
 
-Progress: [██████████] 100%
+Progress: [████████░░] 67%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 12
 - Average duration: 11 min
-- Total execution time: 2h 23min
+- Total execution time: 2h 13min
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: [██████████] 100%
 | 1     | 2     | 2        | 2     | 9 min    |
 | 2     | 3     | 3        | 3     | 20 min   |
 | 3     | 3     | 3        | 3     | 8 min    |
-| 4     | 3     | 3        | 3     | 6 min    |
+| 4     | 2     | 2        | 3     | 5 min    |
 
 **Recent Trend:**
-- Last 5 plans: 12min (02-03), 3min (03-01), 13min (03-02), 9min (03-03), 7min (04-03)
-- Trend: 9 min average
+- Last 5 plans: 12min (02-03), 3min (03-01), 13min (03-02), 9min (03-03), 3min (04-01), 10min (04-02)
+- Trend: 10 min average
 
 *Updated after each plan completion*
 
@@ -80,6 +80,9 @@ Recent decisions affecting current work:
 - **DI injection for PromptManager**: Use do.MustInvoke[store.PromptStore] in NewPromptManagerProvider for dependency injection
 - **Config-driven store selection**: PromptStore type selected via GOLLUM_PROMPT_STORE_TYPE env var (memory/file) at DI layer
 - **StrategyUnknown constant**: Added to OptimizerStrategy enum for invalid strategy handling
+- **DI provider for PromptOptimizer**: NewOptimizerProvider creates optimizer from config with string-to-enum mapping
+- **Exported mapping functions**: MapStrategy and MapProvider exported for testability
+- **Config string normalization**: Hyphen/underscore normalization for strategy names (meta-prompt -> metaprompt)
 
 ### Pending Todos
 
@@ -91,6 +94,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-02T18:05:07Z
-Stopped at: Completed 04-03 (PromptManager DI Integration)
+Last session: 2026-02-02T18:08:03Z
+Stopped at: Completed 04-02 (Prompt Optimizer DI Provider)
 Resume file: None
