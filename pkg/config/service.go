@@ -122,33 +122,33 @@ const (
 // PromptStoreConfig contains configuration for prompt store implementations.
 type PromptStoreConfig struct {
 	// Type of store backend ("memory", "file", "langfuse")
-	Type PromptStoreType `envconfig:"default" env:"PROMPT_STORE_TYPE"`
+	Type PromptStoreType `envconfig:"TYPE" default:"memory"`
 
 	// FilePath for file-based storage
-	FilePath string `envconfig:"default:\"./data/prompts\"" env:"PROMPT_STORE_FILE_PATH"`
+	FilePath string `envconfig:"FILE_PATH" default:"./data/prompts"`
 
 	// Langfuse configuration for Langfuse backend
-	LangfusePublicKey string `envconfig:"" env:"LANGFUSE_PUBLIC_KEY"`
-	LangfuseSecretKey string `envconfig:"" env:"LANGFUSE_SECRET_KEY"`
-	LangfuseHost      string `envconfig:"default:\"https://cloud.langfuse.com\"" env:"LANGFUSE_HOST"`
+	LangfusePublicKey string `envconfig:"LANGFUSE_PUBLIC_KEY"`
+	LangfuseSecretKey string `envconfig:"LANGFUSE_SECRET_KEY"`
+	LangfuseHost      string `envconfig:"LANGFUSE_HOST" default:"https://cloud.langfuse.com"`
 
 	// CacheEnabled enables caching for store operations
-	CacheEnabled bool `envconfig:"default" env:"PROMPT_STORE_CACHE_ENABLED"`
+	CacheEnabled bool `envconfig:"CACHE_ENABLED" default:"false"`
 }
 
 // PromptOptimizerConfig holds configuration for the prompt optimizer
 type PromptOptimizerConfig struct {
 	// DefaultStrategy is the optimization strategy to use (gradient, metaprompt, prompt_memory)
-	DefaultStrategy string `envconfig:"default:\"gradient\"" env:"OPTIMIZER_STRATEGY"`
+	DefaultStrategy string `envconfig:"STRATEGY" default:"gradient"`
 
 	// DefaultProvider is the LLM provider to use (anthropic, openai, gemini)
-	DefaultProvider string `envconfig:"default:\"anthropic\"" env:"OPTIMIZER_PROVIDER"`
+	DefaultProvider string `envconfig:"PROVIDER" default:"anthropic"`
 
 	// MaxReflectionSteps is the maximum number of reflection iterations
-	MaxReflectionSteps int `envconfig:"default:\"5\"" env:"OPTIMIZER_MAX_REFLECTION"`
+	MaxReflectionSteps int `envconfig:"MAX_REFLECTION" default:"5"`
 
 	// MinReflectionSteps is the minimum number of reflection iterations
-	MinReflectionSteps int `envconfig:"default:\"2\"" env:"OPTIMIZER_MIN_REFLECTION"`
+	MinReflectionSteps int `envconfig:"MIN_REFLECTION" default:"2"`
 }
 
 // ConfigService defines the configuration service interface
