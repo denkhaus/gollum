@@ -4,7 +4,6 @@ package manager
 import (
 	"context"
 	"embed"
-	"sync"
 
 	"github.com/denkhaus/gollum/pkg/prompt"
 	promptstore "github.com/denkhaus/gollum/pkg/prompt/store"
@@ -32,15 +31,7 @@ type PromptManager interface {
 }
 
 type promptManager struct {
-	store                    promptstore.PromptStore
-	systemOnce               sync.Once
-	supervisorOnce           sync.Once
-	compacterOnce            sync.Once
-	subagentOnce             sync.Once
-	optimizerGradientOnce    sync.Once
-	optimizerGradientMetaOnce sync.Once
-	optimizerMetaOnce         sync.Once
-	optimizerMemoryOnce       sync.Once
+	store promptstore.PromptStore
 }
 
 // NewPromptManager creates a new Manager instance with PromptStore.
