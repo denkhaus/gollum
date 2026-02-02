@@ -177,6 +177,28 @@ type OptimizerResult struct {
 	WarrantsAdjustment bool  `json:"warrants_adjustment"`          // Whether changes were needed
 }
 
+// GradientReflectionResponse is the structured output from gradient reflection phase.
+type GradientReflectionResponse struct {
+	WarrantsAdjustment bool   `json:"warrants_adjustment"` // Whether adjustment is needed
+	Hypotheses         string `json:"hypotheses,omitempty"` // Identified problems
+	Recommendations    string `json:"recommendations,omitempty"` // Suggested fixes
+	Reasoning          string `json:"reasoning,omitempty"` // Analysis explanation
+}
+
+// MetaPromptResponse is the structured output from meta-prompt strategy.
+type MetaPromptResponse struct {
+	WarrantsAdjustment bool   `json:"warrants_adjustment"` // Whether adjustment is needed
+	UpdatedPrompt      string `json:"updated_prompt,omitempty"` // The optimized prompt
+	Reasoning          string `json:"reasoning,omitempty"` // Analysis explanation
+}
+
+// PromptMemoryResponse is the structured output from prompt memory strategy.
+type PromptMemoryResponse struct {
+	WarrantsAdjustment bool   `json:"warrants_adjustment"` // Whether adjustment is needed
+	UpdatedPrompt      string `json:"updated_prompt,omitempty"` // The optimized prompt
+	Reasoning          string `json:"reasoning,omitempty"` // Analysis explanation
+}
+
 // OptimizerConfig contains configuration for the optimizer.
 type OptimizerConfig struct {
 	Kind                OptimizerStrategy `json:"kind"`                          // Optimization strategy

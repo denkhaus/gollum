@@ -23,8 +23,10 @@ Here are instructions for updating the agent's prompt:
 {{.Instructions}}
 </instructions>
 
+## Response Format
 
-Based on this, return an updated prompt
-
-You should return the full prompt, so if there's anything from before that you want to include, make sure to do that. Feel free to override or change anything that seems irrelevant. You do not need to update the prompt - if you don't want to, just return update_prompt = False and an empty string for new prompt.
+You must respond with a JSON object containing:
+- warrants_adjustment (boolean): true if the prompt needs adjustment, false otherwise
+- updated_prompt (string): the optimized prompt (only if adjustment warranted)
+- reasoning (string): your explanation of the analysis and changes
 {{- end}}

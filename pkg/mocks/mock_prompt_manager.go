@@ -71,6 +71,66 @@ func (mr *MockPromptManagerMockRecorder) GetCompacterPrompt(data any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCompacterPrompt", reflect.TypeOf((*MockPromptManager)(nil).GetCompacterPrompt), data)
 }
 
+// GetOptimizerGradientMetaprompt mocks base method.
+func (m *MockPromptManager) GetOptimizerGradientMetaprompt() (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOptimizerGradientMetaprompt")
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOptimizerGradientMetaprompt indicates an expected call of GetOptimizerGradientMetaprompt.
+func (mr *MockPromptManagerMockRecorder) GetOptimizerGradientMetaprompt() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOptimizerGradientMetaprompt", reflect.TypeOf((*MockPromptManager)(nil).GetOptimizerGradientMetaprompt))
+}
+
+// GetOptimizerGradientPrompt mocks base method.
+func (m *MockPromptManager) GetOptimizerGradientPrompt() (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOptimizerGradientPrompt")
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOptimizerGradientPrompt indicates an expected call of GetOptimizerGradientPrompt.
+func (mr *MockPromptManagerMockRecorder) GetOptimizerGradientPrompt() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOptimizerGradientPrompt", reflect.TypeOf((*MockPromptManager)(nil).GetOptimizerGradientPrompt))
+}
+
+// GetOptimizerMetaprompt mocks base method.
+func (m *MockPromptManager) GetOptimizerMetaprompt() (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOptimizerMetaprompt")
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOptimizerMetaprompt indicates an expected call of GetOptimizerMetaprompt.
+func (mr *MockPromptManagerMockRecorder) GetOptimizerMetaprompt() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOptimizerMetaprompt", reflect.TypeOf((*MockPromptManager)(nil).GetOptimizerMetaprompt))
+}
+
+// GetOptimizerPromptMemory mocks base method.
+func (m *MockPromptManager) GetOptimizerPromptMemory() (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOptimizerPromptMemory")
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOptimizerPromptMemory indicates an expected call of GetOptimizerPromptMemory.
+func (mr *MockPromptManagerMockRecorder) GetOptimizerPromptMemory() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOptimizerPromptMemory", reflect.TypeOf((*MockPromptManager)(nil).GetOptimizerPromptMemory))
+}
+
 // GetPromptByID mocks base method.
 func (m *MockPromptManager) GetPromptByID(ctx context.Context, id string) (*prompt.Prompt, error) {
 	m.ctrl.T.Helper()
