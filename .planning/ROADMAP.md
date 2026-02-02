@@ -94,7 +94,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 4. PromptOptimizer registers in DI container with LLM client dependency
 5. PromptManager uses PromptStoreProvider from DI container
 
-**Plans**: TBD
+**Plans**: 3 plans in 2 waves
+- [ ] 04-01-PLAN.md — Config: PromptOptimizerConfig, ConfigService extension (Wave 1)
+- [ ] 04-02-PLAN.md — DI Optimizer: PromptOptimizer provider and registration (Wave 2)
+- [ ] 04-03-PLAN.md — DI Manager: PromptManager uses PromptStore from DI (Wave 2)
 
 ### Phase 5: Documentation and Knowledge Capture
 
@@ -123,5 +126,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Core Types and Store Layer | 2/2 | Complete | 2025-02-01 |
 | 2. Prompt Manager Extension | 3/3 | Complete | 2026-02-01 |
 | 3. Prompt Optimizer | 3/3 | Complete | 2026-02-02 |
-| 4. Configuration and DI Integration | 0/TBD | Not started | - |
+| 4. Configuration and DI Integration | 0/3 | Not started | - |
 | 5. Documentation and Knowledge Capture | 0/TBD | Not started | - |
