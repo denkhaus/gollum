@@ -139,5 +139,6 @@ The Prompt Optimizer enables agents to **learn from their interactions** by:
 ## Related Documentation
 
 - **Main Plan:** `/home/denkhaus/dev/gomodules/gollum/PROMPT_OPTIMIZER_PLAN.md`
-- **Knowledge Base:** `/home/denkhaus/dev/kb/guide.golang.*.md`
+- **Knowledge Base:** `/home/denkhaus/dev/kb/guides/guide.golang.*.md`
 - **LangMEM Source:** https://github.com/langchain-ai/langmem
+- **LangMEM Procedural Memory Example (Jupyter Notebook):** https://github.com/langchain-ai/langmem/blob/main/examples/intro_videos/procedural_memory.ipynb
