@@ -57,7 +57,8 @@
       "Bash(find:*)",
       "WebSearch",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "mcp__forgejo__create_issue_dependency"
     ],
     "deny": [],
     "ask": []

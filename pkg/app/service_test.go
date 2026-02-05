@@ -5,59 +5,31 @@ import (
 	"context"
 	"testing"
 
-	"github.com/denkhaus/gollum/pkg/shared"
-	"github.com/google/uuid"
+	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/m-mizutani/gollem"
+	"go.uber.org/mock/gomock"
 )
-
-// mockAgent is a minimal mock for testing
-type mockAgent struct {
-	id      uuid.UUID
-	config  *shared.AgentConfig
-	session gollem.Session
-	execute func(ctx context.Context, input ...gollem.Input) (*gollem.ExecuteResponse, error)
-}
-
-func (m *mockAgent) GetID() uuid.UUID {
-	return m.id
-}
-
-func (m *mockAgent) GetConfig() *shared.AgentConfig {
-	return m.config
-}
-
-func (m *mockAgent) Session() gollem.Session {
-	return m.session
-}
-
-func (m *mockAgent) Execute(ctx context.Context, input ...gollem.Input) (*gollem.ExecuteResponse, error) {
-	if m.execute != nil {
-		return m.execute(ctx, input...)
-	}
-	return &gollem.ExecuteResponse{Texts: []string{"response"}}, nil
-}
 
 // TestExecuteAgentInput_Cancellation verifies that the per-request context
 // can be canceled independently of the global context
 func TestExecuteAgentInput_Cancellation(t *testing.T) {
 	t.Run("normal completion", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		globalCtx := context.Background()
 
 		executed := false
-
-		agent := &mockAgent{
-			id:     uuid.New(),
-			config: &shared.AgentConfig{},
-			execute: func(_ context.Context, _ ...gollem.Input) (*gollem.ExecuteResponse, error) {
-				executed = true
-				return &gollem.ExecuteResponse{Texts: []string{"response"}}, nil
-			},
-		}
+		mockAgent := mocks.NewMockAgent(ctrl)
+		mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ ...gollem.Input) (*gollem.ExecuteResponse, error) {
+			executed = true
+			return &gollem.ExecuteResponse{Texts: []string{"response"}}, nil
+		}).Times(1)
 
 		service := &applicationServiceImpl{}
 
 		// Execute the agent
-		err := service.executeAgentInput(globalCtx, agent, "test input")
+		err := service.executeAgentInput(globalCtx, mockAgent, "test input")
 
 		// Verify execution occurred
 		if !executed {
@@ -76,29 +48,28 @@ func TestExecuteAgentInput_Cancellation(t *testing.T) {
 	})
 
 	t.Run("canceled via currentCancel", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		globalCtx := context.Background()
 
 		executed := false
 		canceled := false
-
-		agent := &mockAgent{
-			id:     uuid.New(),
-			config: &shared.AgentConfig{},
-			execute: func(ctx context.Context, _ ...gollem.Input) (*gollem.ExecuteResponse, error) {
-				executed = true
-				// Wait for cancellation
-				<-ctx.Done()
-				canceled = true
-				return nil, ctx.Err()
-			},
-		}
+		mockAgent := mocks.NewMockAgent(ctrl)
+		mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, _ ...gollem.Input) (*gollem.ExecuteResponse, error) {
+			executed = true
+			// Wait for cancellation
+			<-ctx.Done()
+			canceled = true
+			return nil, ctx.Err()
+		}).Times(1)
 
 		service := &applicationServiceImpl{}
 
 		// Start execution in goroutine
 		errCh := make(chan error, 1)
 		go func() {
-			errCh <- service.executeAgentInput(globalCtx, agent, "test input")
+			errCh <- service.executeAgentInput(globalCtx, mockAgent, "test input")
 		}()
 
 		// Wait for execution to start
@@ -141,23 +112,23 @@ func TestExecuteAgentInput_Cancellation(t *testing.T) {
 // TestExecuteAgentInput_ContextIsolation verifies that per-request context
 // cancellation doesn't affect the global context
 func TestExecuteAgentInput_ContextIsolation(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	globalCtx := context.Background()
 
-	agent := &mockAgent{
-		id:     uuid.New(),
-		config: &shared.AgentConfig{},
-		execute: func(ctx context.Context, _ ...gollem.Input) (*gollem.ExecuteResponse, error) {
-			// Verify request context is different from global
-			if ctx == globalCtx {
-				t.Error("request context is the same as global context, should be isolated")
-			}
-			return &gollem.ExecuteResponse{Texts: []string{"response"}}, nil
-		},
-	}
+	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, _ ...gollem.Input) (*gollem.ExecuteResponse, error) {
+		// Verify request context is different from global
+		if ctx == globalCtx {
+			t.Error("request context is the same as global context, should be isolated")
+		}
+		return &gollem.ExecuteResponse{Texts: []string{"response"}}, nil
+	}).Times(1)
 
 	service := &applicationServiceImpl{}
 
-	err := service.executeAgentInput(globalCtx, agent, "test")
+	err := service.executeAgentInput(globalCtx, mockAgent, "test")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -171,23 +142,23 @@ func TestExecuteAgentInput_ContextIsolation(t *testing.T) {
 // TestExecuteAgentInput_MultipleExecutions verifies that multiple sequential
 // executions each get independent contexts
 func TestExecuteAgentInput_MultipleExecutions(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	globalCtx := context.Background()
 
 	executionCount := 0
-	agent := &mockAgent{
-		id:     uuid.New(),
-		config: &shared.AgentConfig{},
-		execute: func(_ context.Context, _ ...gollem.Input) (*gollem.ExecuteResponse, error) {
-			executionCount++
-			return &gollem.ExecuteResponse{Texts: []string{"response"}}, nil
-		},
-	}
+	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ ...gollem.Input) (*gollem.ExecuteResponse, error) {
+		executionCount++
+		return &gollem.ExecuteResponse{Texts: []string{"response"}}, nil
+	}).Times(3)
 
 	service := &applicationServiceImpl{}
 
 	// Execute multiple times
 	for i := 0; i < 3; i++ {
-		err := service.executeAgentInput(globalCtx, agent, "test")
+		err := service.executeAgentInput(globalCtx, mockAgent, "test")
 		if err != nil {
 			t.Errorf("execution %d: unexpected error: %v", i, err)
 		}
