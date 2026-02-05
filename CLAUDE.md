@@ -150,23 +150,78 @@ trajectory := &optimizer.Trajectory{
 
 ### Optimization Strategies
 
-#### Gradient Descent (Default)
-Multi-phase reflection with think/critique/recommend tools. Best for comprehensive analysis.
-- Uses multiple reflection iterations (configurable via MAX_REFLECTION/MIN_REFLECTION)
-- Produces structured analysis with hypotheses and recommendations
-- Most comprehensive but slower than other strategies
+The Prompt Optimizer implements three strategies adapted from [LangMEM](https://github.com/langchain-ai/langmem).
+Choose the appropriate strategy based on your requirements:
 
-#### Meta-Prompt
-Single-phase combined reflection and update. Faster, less comprehensive.
-- Combines analysis and prompt update in single LLM call
-- Good balance between speed and quality
-- Suitable for most optimization scenarios
+#### Strategy Selection Guide
 
-#### Prompt Memory
-Direct single-shot optimization. Fastest for minor adjustments.
-- Single-pass optimization without explicit reflection
-- Best for quick prompt tweaks
-- Less detailed analysis than other strategies
+| Strategy | LLM Calls | Best For | Cost | Speed |
+|----------|-----------|----------|-------|-------|
+| **Gradient** | 2-10 | Complex improvements, thorough analysis | Highest | Slowest |
+| **Meta-Prompt** | 1-5 | Balanced optimization | Medium | Medium |
+| **Prompt Memory** | 1 | Simple adjustments | Lowest | Fastest |
+
+#### Prompt Memory (`prompt-memory`)
+**When to use:**
+- Fast, single-shot optimization needed (1 LLM call)
+- Simple adjustments are sufficient
+- Cost/latency is a concern
+- Rapid prototyping or quick iterations
+
+**Limitations:**
+- Limited ability to learn from complex patterns
+- Only analyzes the first trajectory
+- No iterative refinement
+
+**Configuration:**
+```bash
+export GOLLUM_OPTIMIZER_STRATEGY=prompt-memory
+```
+
+#### Meta-Prompt (`metaprompt`)
+**When to use:**
+- Balance between speed and quality needed
+- Moderate cost is acceptable (1-5 LLM calls)
+- Direct pattern learning from examples works well
+- General-purpose optimization for most use cases
+
+**Characteristics:**
+- Combines analysis and prompt update in iterative process
+- Good default choice when unsure which strategy to use
+- Each iteration is a single LLM call
+
+**Configuration:**
+```bash
+export GOLLUM_OPTIMIZER_STRATEGY=metaprompt
+export GOLLUM_OPTIMIZER_MAX_REFLECTION=5  # Max iterations
+export GOLLUM_OPTIMIZER_MIN_REFLECTION=2  # Min iterations
+```
+
+#### Gradient (`gradient`) - **Default**
+**When to use:**
+- Most thorough analysis required
+- Complex improvements needed
+- Cost is not a primary constraint
+- Production-quality optimization for critical prompts
+- Separation of concerns (reflection phase + update phase) beneficial
+- Extracting feedback from conversational context is important
+
+**Characteristics:**
+- Two-phase approach: Reflection Loop → Update Phase
+- Each reflection step generates hypotheses and recommendations
+- Most comprehensive but most expensive strategy
+
+**Configuration:**
+```bash
+export GOLLUM_OPTIMIZER_STRATEGY=gradient
+export GOLLUM_OPTIMIZER_MAX_REFLECTION=5  # Max reflection steps
+export GOLLUM_OPTIMIZER_MIN_REFLECTION=2  # Min reflection steps
+```
+
+**Best Practices:**
+- Use higher MaxReflectionSteps (5-10) for complex, critical prompts
+- Use MinReflectionSteps of at least 2 to ensure convergence
+- Consider cost implications: this strategy can be expensive
 
 ### Best Practices
 

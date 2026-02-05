@@ -1,4 +1,58 @@
 // Package optimizer provides the gradient optimization strategy.
+//
+// # Gradient Strategy
+//
+// The gradient optimizer is the most thorough optimization strategy, using a
+// two-phase approach with reflection loops to identify and apply improvements.
+//
+// ## When to Use
+//
+// Use this strategy when:
+// - You need the most thorough analysis available
+// - Complex improvements are required
+// - Cost is not a primary constraint
+// - You need separation of concerns (reflection phase + update phase)
+// - Extracting feedback from conversational context is important
+// - Production-quality optimization is required
+//
+// ## How It Works
+//
+// Phase 1 - Reflection Loop:
+//   - Iterates from MinReflectionSteps to MaxReflectionSteps
+//   - Each iteration analyzes the prompt and trajectories
+//   - Generates hypotheses about what needs improvement
+//   - Produces specific recommendations
+//
+// Phase 2 - Update:
+//   - Takes the reflection output (hypotheses + recommendations)
+//   - Applies the improvements to generate a new prompt
+//   - Ensures changes are minimally invasive
+//
+// ## Performance
+//
+// - LLM Calls: 2-10 (configurable via Min/MaxReflectionSteps)
+//   - Each reflection step: 1 LLM call for structured analysis
+//   - Update phase: 1 LLM call for applying recommendations
+// - Cost: Highest
+// - Speed: Slowest
+//
+// ## Configuration
+//
+//	config := &optimizer.OptimizerConfig{
+//		Kind:               shared.StrategyGradient,
+//		MaxReflectionSteps: 5,  // Maximum reflection iterations
+//		MinReflectionSteps: 2,  // Minimum reflection iterations
+//	}
+//
+// ## Best Practices
+//
+// - Use higher MaxReflectionSteps (5-10) for complex, critical prompts
+// - Use MinReflectionSteps of at least 2 to ensure convergence
+// - Consider cost implications: this strategy can be expensive
+//
+// # Reference
+//
+// Adapted from LangMEM: https://github.com/langchain-ai/langmem
 package optimizer
 
 import (
