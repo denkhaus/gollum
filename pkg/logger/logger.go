@@ -2,13 +2,14 @@
 package logger
 
 import (
-	"fmt"
-	"io"
+	"bytes"
+	"os"
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
+	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -25,8 +26,6 @@ type LoggerService interface {
 	Warn(msg string, fields ...zap.Field)
 	Warnf(template string, args ...any)
 	GetLogger() *zap.Logger
-	SetTUIWriter(writer io.Writer)
-	ResetToStdout()
 	// GetLogs retrieves log entries from the session buffer
 	GetLogs(filter LogFilter) []LogEntry
 	// GetLogStats returns statistics about the log buffer
@@ -65,10 +64,17 @@ func NewService(injector do.Injector) (LoggerService, error) {
 	atomicLevel := zap.NewAtomicLevelAt(getLogLevel(cnf.GetLogLevel()))
 	config.Level = atomicLevel
 
-	logger, err := config.Build()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build logger: %w", err)
-	}
+	// logger, err := config.Build()
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to build logger: %w", err)
+	// }
+
+	// Build encoder with raw mode line endings (\r\n instead of \n)
+	// This is necessary for proper terminal output in raw terminal mode
+	encoder := newRawModeConsoleEncoder(config.EncoderConfig)
+
+	core := zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), atomicLevel.Level())
+	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 
 	// Initialize log buffer from config
 	loggingConfig := cnf.GetLoggingConfig()
@@ -160,37 +166,6 @@ func (s *service) GetLogger() *zap.Logger {
 	return s.logger
 }
 
-// SetTUIWriter sets a custom writer (e.g., TUIWriter) to receive log output.
-// When TUI is active, logs go ONLY to the TUI writer (not stdout).
-func (s *service) SetTUIWriter(writer io.Writer) {
-	if writer == nil {
-		return
-	}
-
-	// Create a core that writes to the TUI writer ONLY
-	// When TUI is active, we don't want logs going to stdout (they appear beneath the TUI)
-	encoderConfig := zapcore.EncoderConfig{
-		MessageKey:   "msg",
-		LevelKey:     "level",
-		TimeKey:      "time",
-		EncodeTime:   zapcore.RFC3339NanoTimeEncoder,
-		EncodeLevel:  zapcore.CapitalLevelEncoder,
-		EncodeCaller: zapcore.ShortCallerEncoder,
-	}
-
-	tuiEncoder := zapcore.NewConsoleEncoder(encoderConfig)
-	tuiWriteSyncer := zapcore.AddSync(writer)
-	tuiCore := zapcore.NewCore(tuiEncoder, tuiWriteSyncer, s.atomicLevel.Level())
-
-	// Replace the logger with one that only writes to TUI
-	s.logger = zap.New(tuiCore, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
-}
-
-// ResetToStdout restores logging to stdout after TUI mode has been disabled
-func (s *service) ResetToStdout() {
-	s.logger = s.originalLogger
-}
-
 // GetLogs retrieves log entries from the session buffer based on the provided filter.
 func (s *service) GetLogs(filter LogFilter) []LogEntry {
 	return s.logBuffer.getEntries(filter)
@@ -199,4 +174,62 @@ func (s *service) GetLogs(filter LogFilter) []LogEntry {
 // GetLogStats returns statistics about the log buffer.
 func (s *service) GetLogStats() map[string]interface{} {
 	return s.logBuffer.getStats()
+}
+
+// ============================================================================
+// Custom Console Encoder with \r\n line endings for raw terminal mode
+// ============================================================================
+
+// rawModeConsoleEncoder is a custom console encoder that uses \r\n instead of \n
+// for proper line endings in raw terminal mode.
+type rawModeConsoleEncoder struct {
+	zapcore.Encoder
+}
+
+// newRawModeConsoleEncoder creates a new console encoder with \r\n line endings.
+func newRawModeConsoleEncoder(encoderConfig zapcore.EncoderConfig) zapcore.Encoder {
+	return &rawModeConsoleEncoder{
+		Encoder: zapcore.NewConsoleEncoder(encoderConfig),
+	}
+}
+
+// Clone creates a copy of the encoder.
+func (e *rawModeConsoleEncoder) Clone() zapcore.Encoder {
+	return &rawModeConsoleEncoder{
+		Encoder: e.Encoder.Clone(),
+	}
+}
+
+// EncodeEntry encodes a log entry and replaces \n with \r\n for raw terminal mode.
+func (e *rawModeConsoleEncoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
+	buf, err := e.Encoder.EncodeEntry(entry, fields)
+	if err != nil {
+		return nil, err
+	}
+
+	// Replace all \n with \r\n for proper raw terminal mode handling
+	// We need to be careful not to double-replace existing \r\n
+	str := buf.String()
+	var result bytes.Buffer
+	result.Grow(len(str) + len(str)/10) // Pre-allocate with some extra space
+
+	for i := 0; i < len(str); i++ {
+		if str[i] == '\n' {
+			// Check if this is already \r\n
+			if i > 0 && str[i-1] == '\r' {
+				// Already \r\n, just write the \n
+				result.WriteByte('\n')
+			} else {
+				// Standalone \n, convert to \r\n
+				result.WriteString("\r\n")
+			}
+		} else {
+			result.WriteByte(str[i])
+		}
+	}
+
+	// Create a new buffer from the pool and write our processed string to it
+	newBuf := buffer.NewPool().Get()
+	newBuf.WriteString(result.String())
+	return newBuf, nil
 }

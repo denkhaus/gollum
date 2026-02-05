@@ -91,14 +91,39 @@ func (p *applicationServiceImpl) primeFileStateManager(ctx context.Context) erro
 	return nil
 }
 
-// createSupervisorAgent creates and registers the Supervisor agent
-func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (shared.Agent, *shared.AgentConfig, error) {
+func (p *applicationServiceImpl) createToolSet(ctx context.Context) ([]gollem.ToolSet, error) {
+	toolSet := []gollem.ToolSet{}
 	// Create brain MCP toolset
 	brainMCP, err := mcp.NewBrainMCPClient(ctx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create brain MCP client: %w", err)
+		return nil, fmt.Errorf("failed to create brain MCP client: %w", err)
 	}
 
+	toolSet = append(toolSet, brainMCP)
+
+	exaSearchMCP, err := mcp.NewExaSearchMCPClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create exa search MCP client: %w", err)
+	}
+
+	toolSet = append(toolSet, exaSearchMCP)
+
+	tavilySearachMCP, err := mcp.NewTavilySearchMCPClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tavily search MCP client: %w", err)
+	}
+
+	toolSet = append(toolSet, tavilySearachMCP)
+	return toolSet, nil
+}
+
+// createSupervisorAgent creates and registers the Supervisor agent
+func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (shared.Agent, *shared.AgentConfig, error) {
+
+	toolSet, err := p.createToolSet(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create toolset: %w", err)
+	}
 	// Get supervisor prompt from PromptManager
 	systemPrompt, err := p.promptMgr.GetSupervisorPrompt()
 	if err != nil {
@@ -111,9 +136,7 @@ func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (sha
 		SystemPrompt:    systemPrompt,
 		Role:            "Supervisor Agent",
 		LLMProvider:     shared.LLMProviderAnthropic,
-		ToolSets: []gollem.ToolSet{
-			brainMCP,
-		},
+		ToolSets:        toolSet,
 	}
 
 	// Create agent
