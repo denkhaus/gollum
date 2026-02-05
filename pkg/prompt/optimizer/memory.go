@@ -1,4 +1,39 @@
 // Package optimizer provides the prompt memory optimization strategy.
+//
+// # Prompt Memory Strategy
+//
+// The prompt memory optimizer is the fastest optimization strategy, requiring only
+// a single LLM call. It analyzes the first trajectory and provides direct feedback
+// on prompt improvements.
+//
+// ## When to Use
+//
+// Use this strategy when:
+// - You need fast, single-shot optimization (1 LLM call)
+// - Simple adjustments are sufficient
+// - Cost/latency is a concern
+// - You're optimizing for speed over thoroughness
+//
+// ## Limitations
+//
+// - Limited ability to learn from complex patterns
+// - Only analyzes the first trajectory provided
+// - No iterative refinement
+//
+// ## Performance
+//
+// - LLM Calls: 1 total (fastest)
+// - Cost: Lowest
+// - Speed: Fastest
+//
+// ## Configuration
+//
+// This strategy does not use reflection steps configuration (MinReflectionSteps,
+// MaxReflectionSteps) as it completes in a single LLM call.
+//
+// # Reference
+//
+// Adapted from LangMEM: https://github.com/langchain-ai/langmem
 package optimizer
 
 import (
