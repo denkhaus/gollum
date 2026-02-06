@@ -103,6 +103,5 @@ func (t *CurrentTimeTool) Spec() gollem.ToolSpec {
 				Description: "Timezone string (e.g., 'UTC', 'Europe/Berlin', 'America/New_York'). Defaults to UTC if not provided or invalid.",
 			},
 		},
-		Required: []string{},
 	}
 }

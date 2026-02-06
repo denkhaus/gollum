@@ -43,11 +43,6 @@ func TestGlobTool_Spec(t *testing.T) {
 	} else if pathParam.Type != gollem.TypeString {
 		t.Errorf("Expected 'path' parameter type to be String, got %v", pathParam.Type)
 	}
-
-	// Check required parameters
-	if len(spec.Required) != 1 || spec.Required[0] != "pattern" {
-		t.Errorf("Expected 'pattern' to be required, got %v", spec.Required)
-	}
 }
 
 func TestContainsDoubleStar(t *testing.T) {

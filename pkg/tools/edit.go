@@ -88,7 +88,6 @@ func (t *EditTool) Spec() gollem.ToolSpec {
 				Description: "Replace all occurrences instead of just the first (default: false)",
 			},
 		},
-		Required: []string{"file_path", "old_string", "new_string"},
 	}
 }
 

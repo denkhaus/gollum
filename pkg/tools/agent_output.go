@@ -72,7 +72,6 @@ func (t *AgentOutputTool) Spec() gollem.ToolSpec {
 				Description: "Maximum time to wait in milliseconds (default: 30000, max: 600000). Only applies when block=true.",
 			},
 		},
-		Required: []string{"agent_id"},
 	}
 }
 

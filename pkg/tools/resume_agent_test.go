@@ -25,7 +25,6 @@ func TestResumeAgentToolSpec(t *testing.T) {
 	assert.Contains(t, spec.Description, "new prompt")
 
 	// Check required parameters
-	assert.Equal(t, []string{"agent_id", "prompt"}, spec.Required)
 
 	// Check all parameters exist
 	require.Contains(t, spec.Parameters, "agent_id")

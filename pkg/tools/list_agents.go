@@ -90,7 +90,6 @@ See also: ` + shared.ToolNameSpawnAgent + `, ` + shared.ToolNameRemoveAgent + `,
 				Description: "Format output as ASCII tree with indentation by depth",
 			},
 		},
-		Required: []string{},
 	}
 }
 
