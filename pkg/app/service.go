@@ -5,7 +5,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/mcp"
@@ -14,9 +13,9 @@ import (
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/state"
+	"github.com/denkhaus/gollum/pkg/tui"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
-	"golang.org/x/term"
 )
 
 // ApplicationService defines the main application service interface
@@ -35,8 +34,6 @@ type applicationServiceImpl struct {
 	promptMgr     manager.PromptManager
 	displayProv   middleware.DisplayMiddlewareProvider
 	agentFactory  shared.AgentFactory
-	currentCancel context.CancelFunc // Current active request cancel function
-	oldState      *term.State        // Original terminal state for restoration
 }
 
 // Ensure implementation satisfies interface
@@ -160,181 +157,35 @@ func (p *applicationServiceImpl) displayWelcome(config *shared.AgentConfig) {
 	displayMiddleware.DisplayWelcome()
 }
 
-// runInteractiveLoop runs the main CLI interactive loop
+// runInteractiveLoop runs the main CLI interactive loop using Bubbletea TUI
 func (p *applicationServiceImpl) runInteractiveLoop(ctx context.Context, agent shared.Agent) error {
-	inputCh := make(chan string)
-	cancelCh := make(chan struct{})
-	shutdownCh := make(chan struct{})
+	// Create agent executor adapter
+	executor := &agentExecutorAdapter{agent: agent}
 
-	// Read stdin continuously in background
-	go p.stdinReader(inputCh, cancelCh, shutdownCh)
+	// Create and run the TUI program
+	prog := tui.NewProgramWithContext(ctx, executor)
 
-	for {
-		if _, err := fmt.Fprint(os.Stdout, "\r> "); err != nil {
-			p.logService.Debugf("failed to write prompt: %v", err)
-		}
-
-		select {
-		case <-ctx.Done():
-			if _, err := fmt.Fprintln(os.Stdout, "\n👋 Goodbye!"); err != nil {
-				p.logService.Debugf("failed to write goodbye message: %v", err)
-			}
-			return ctx.Err()
-
-		case <-shutdownCh:
-			// Ctrl-C was pressed - trigger shutdown
-			return context.Canceled
-
-		case <-cancelCh:
-			// Escape key was pressed - return to prompt
-			continue
-
-		case input, ok := <-inputCh:
-			if !ok {
-				return nil // stdin closed
-			}
-			if p.handleExitCommand(input) {
-				return nil
-			}
-			if err := p.executeAgentInput(ctx, agent, input); err != nil {
-				p.logService.Infof("❌ Error: %v\n", err)
-			}
-		}
-	}
-}
-
-// handleExitCommand checks if user wants to exit
-func (p *applicationServiceImpl) handleExitCommand(input string) bool {
-	if input == "quit" || input == "exit" {
-		if _, err := fmt.Fprintln(os.Stdout, "👋 Goodbye!"); err != nil {
-			p.logService.Debugf("failed to write goodbye message: %v", err)
-		}
-		return true
-	}
-	return false
-}
-
-// executeAgentInput executes the agent with user input
-// Creates a per-request context that can be canceled independently of the global context
-func (p *applicationServiceImpl) executeAgentInput(globalCtx context.Context, agent shared.Agent, input string) error {
-	// Create a per-request context that can be canceled independently
-	// This allows canceling just this inference (e.g., via Escape key) without stopping the app
-	reqCtx, cancel := context.WithCancel(globalCtx)
-	defer cancel()
-
-	// Set the cancel function for the stdinReader
-	p.currentCancel = cancel
-	defer func() {
-		p.currentCancel = nil
-	}()
-
-	_, err := agent.Execute(reqCtx, gollem.Text(input))
-	return err
-}
-
-// stdinReader reads from stdin in raw mode, detecting both regular input (Enter key) and Escape key
-// Sends complete lines to inputCh and signals cancelCh when Escape is pressed
-func (p *applicationServiceImpl) stdinReader(inputCh chan<- string, cancelCh chan<- struct{}, shutdownCh chan<- struct{}) {
-	// Save terminal state and switch to raw mode
-	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+	_, err := prog.Run()
 	if err != nil {
-		p.logService.Errorf("Failed to set raw mode: %v", err)
-		close(inputCh)
-		return
+		return fmt.Errorf("failed to run TUI: %w", err)
 	}
-	// Store state for cleanup
-	p.oldState = oldState
 
-	buf := make([]byte, 1)
-	var lineBuf []byte
-
-	for {
-		// Read single byte
-		n, readErr := os.Stdin.Read(buf)
-		if n > 0 {
-			ch := buf[0]
-
-			switch ch {
-			case 3: // Ctrl-C (ASCII 3)
-				// Trigger graceful shutdown
-				if _, err := fmt.Fprintln(os.Stdout, "^C"); err != nil {
-					p.logService.Debugf("failed to write ctrl-c message: %v", err)
-				}
-				close(inputCh)
-				select {
-				case shutdownCh <- struct{}{}:
-				default:
-				}
-				return
-
-			case 27: // Escape key
-				// Cancel current inference if active
-				if p.currentCancel != nil {
-					if _, err := fmt.Fprintln(os.Stdout, "\n⚠️  Inference canceled by user"); err != nil {
-						p.logService.Debugf("failed to write cancel message: %v", err)
-					}
-					p.currentCancel()
-					p.currentCancel = nil
-				}
-				// Signal cancel to main loop
-				select {
-				case cancelCh <- struct{}{}:
-				default:
-				}
-				lineBuf = nil // Clear any pending input
-				// Redraw prompt
-				if _, err := fmt.Fprint(os.Stdout, "\r> "); err != nil {
-					p.logService.Debugf("failed to write prompt: %v", err)
-				}
-
-			case 13: // Enter/Return key ( carriage return)
-				// Move to next line
-				if _, err := fmt.Fprint(os.Stdout, "\n"); err != nil {
-					p.logService.Debugf("failed to write newline: %v", err)
-				}
-				// Send complete line to input channel
-				inputCh <- string(lineBuf)
-				lineBuf = nil
-
-			case 127, 8: // Backspace/Delete
-				// Remove last character from buffer
-				if len(lineBuf) > 0 {
-					lineBuf = lineBuf[:len(lineBuf)-1]
-					// Erase character from screen (backspace, space, backspace)
-					if _, err := fmt.Fprint(os.Stdout, "\b \b"); err != nil {
-						p.logService.Debugf("failed to write backspace: %v", err)
-					}
-				}
-
-			default:
-				// Regular character - add to buffer and echo
-				// Only accept printable ASCII characters
-				if ch >= 32 && ch <= 126 {
-					lineBuf = append(lineBuf, ch)
-					// Echo character to screen
-					if _, err := fmt.Fprintf(os.Stdout, "%c", ch); err != nil {
-						p.logService.Debugf("failed to write character: %v", err)
-					}
-				}
-			}
-		}
-
-		// Check for errors (e.g., stdin closed)
-		if readErr != nil {
-			close(inputCh)
-			return
-		}
-	}
+	return nil
 }
 
-// Cleanup restores terminal state when the application exits
+// agentExecutorAdapter adapts shared.Agent to implement tui.AgentExecutor interface
+type agentExecutorAdapter struct {
+	agent shared.Agent
+}
+
+// Execute implements tui.AgentExecutor by delegating to the underlying agent
+func (a *agentExecutorAdapter) Execute(ctx context.Context, input string) (*gollem.ExecuteResponse, error) {
+	return a.agent.Execute(ctx, gollem.Text(input))
+}
+
+// Cleanup performs any necessary cleanup when the application exits.
+// Note: Bubbletea handles terminal state restoration automatically.
 func (p *applicationServiceImpl) Cleanup() {
-	if p.oldState != nil {
-		if err := term.Restore(int(os.Stdin.Fd()), p.oldState); err != nil {
-			p.logService.Debugf("failed to restore terminal state: %v", err)
-		}
-		if _, err := fmt.Fprintln(os.Stdout); err != nil {
-			p.logService.Debugf("failed to write newline: %v", err)
-		}
-	}
+	// Bubbletea handles terminal state restoration automatically
+	// This method is kept for interface compatibility
 }

@@ -58,7 +58,13 @@
       "WebSearch",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "mcp__forgejo__create_issue_dependency"
+      "mcp__forgejo__create_issue_dependency",
+      "Bash(jj log:*)",
+      "Bash(jj bookmark list:*)",
+      "Bash(jj bookmark create:*)",
+      "Bash(jj st)",
+      "Bash(jj desc:*)",
+      "Bash(jj diff:*)"
     ],
     "deny": [],
     "ask": []
