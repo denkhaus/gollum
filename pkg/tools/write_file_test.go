@@ -37,12 +37,6 @@ func TestWriteFileTool_Spec(t *testing.T) {
 		t.Errorf("Expected tool name 'write_file', got '%s'", spec.Name)
 	}
 
-	// Check required parameters
-	//nolint:goconst // Parameter names are documented spec values, not magic strings
-	if len(spec.Required) != 2 || spec.Required[0] != "file_path" || spec.Required[1] != "content" {
-		t.Errorf("Expected required parameters to include 'file_path' and 'content', got %v", spec.Required)
-	}
-
 	// Check file_path parameter
 	if _, exists := spec.Parameters["file_path"]; !exists {
 		t.Error("Missing 'file_path' parameter in spec")

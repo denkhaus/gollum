@@ -93,30 +93,6 @@ func TestAddTool_Spec(t *testing.T) {
 		t.Errorf("Expected description 'Adds two numbers together', got '%s'", spec.Description)
 	}
 
-	// Check required parameters
-	if len(spec.Required) != 2 {
-		t.Errorf("Expected 2 required parameters, got %d", len(spec.Required))
-	}
-
-	// Check that 'a' and 'b' are in required
-	paramAExists := false
-	paramBExists := false
-	for _, req := range spec.Required {
-		if req == "a" {
-			paramAExists = true
-		}
-		if req == "b" {
-			paramBExists = true
-		}
-	}
-
-	if !paramAExists {
-		t.Error("Expected 'a' to be in required parameters")
-	}
-	if !paramBExists {
-		t.Error("Expected 'b' to be in required parameters")
-	}
-
 	// Check parameter 'a'
 	paramA, exists := spec.Parameters["a"]
 	if !exists {
@@ -244,30 +220,6 @@ func TestMultiplyTool_Spec(t *testing.T) {
 
 	if spec.Description != "Multiplies two numbers together" {
 		t.Errorf("Expected description 'Multiplies two numbers together', got '%s'", spec.Description)
-	}
-
-	// Check required parameters
-	if len(spec.Required) != 2 {
-		t.Errorf("Expected 2 required parameters, got %d", len(spec.Required))
-	}
-
-	// Check that 'a' and 'b' are in required
-	paramAExists := false
-	paramBExists := false
-	for _, req := range spec.Required {
-		if req == "a" {
-			paramAExists = true
-		}
-		if req == "b" {
-			paramBExists = true
-		}
-	}
-
-	if !paramAExists {
-		t.Error("Expected 'a' to be in required parameters")
-	}
-	if !paramBExists {
-		t.Error("Expected 'b' to be in required parameters")
 	}
 
 	// Check parameter 'a'

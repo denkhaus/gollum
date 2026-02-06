@@ -77,7 +77,6 @@ func (t *ReadFileTool) Spec() gollem.ToolSpec {
 				Description: "The maximum number of lines to read (default: 200)",
 			},
 		},
-		Required: []string{"file_path"},
 	}
 }
 

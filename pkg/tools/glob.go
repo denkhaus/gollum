@@ -71,7 +71,6 @@ func (t *GlobTool) Spec() gollem.ToolSpec {
 				Description: "The directory to search in (default: current working directory)",
 			},
 		},
-		Required: []string{"pattern"},
 	}
 }
 

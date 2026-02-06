@@ -55,7 +55,6 @@ func TestSpawnAgentToolSpec(t *testing.T) {
 	assert.Contains(t, spec.Description, "Maximum concurrent subagents: 3")
 
 	// Check required parameters
-	assert.Equal(t, []string{"role", "description", "prompt"}, spec.Required)
 
 	// Check all parameters exist
 	require.Contains(t, spec.Parameters, "role")

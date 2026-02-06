@@ -85,7 +85,6 @@ func (t *ResumeAgentTool) Spec() gollem.ToolSpec {
 				Description: fmt.Sprintf("If true, executes asynchronously. Use %s tool to retrieve results. If false or omitted, waits for completion and returns result directly.", shared.ToolNameAgentOutput),
 			},
 		},
-		Required: []string{"agent_id", "prompt"},
 	}
 }
 

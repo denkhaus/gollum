@@ -33,7 +33,6 @@ func (t *AddTool) Spec() gollem.ToolSpec {
 				Description: "Second number",
 			},
 		},
-		Required: []string{"a", "b"},
 	}
 }
 
@@ -63,6 +62,5 @@ func (t *MultiplyTool) Spec() gollem.ToolSpec {
 				Description: "Second number",
 			},
 		},
-		Required: []string{"a", "b"},
 	}
 }

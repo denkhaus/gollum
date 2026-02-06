@@ -78,7 +78,6 @@ func (t *WriteFileTool) Spec() gollem.ToolSpec {
 				Description: "If true, create parent directories if they don't exist (default: false)",
 			},
 		},
-		Required: []string{"file_path", "content"},
 	}
 }
 
