@@ -83,7 +83,6 @@ func (t *BashTool) Spec() gollem.ToolSpec {
 				Description: "Optional timeout in seconds (default: 30, max: 120)",
 			},
 		},
-		Required: []string{"command"},
 	}
 }
 
