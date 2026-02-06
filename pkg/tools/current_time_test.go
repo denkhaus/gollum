@@ -321,11 +321,6 @@ func TestCurrentTimeTool_Spec(t *testing.T) {
 			t.Error("Expected non-empty description for 'timezone' parameter")
 		}
 	}
-
-	// timezone should not be required
-	if len(spec.Required) != 0 {
-		t.Errorf("Expected no required parameters, got %d", len(spec.Required))
-	}
 }
 
 func TestCurrentTimeToolProvider_CreateTool(t *testing.T) {

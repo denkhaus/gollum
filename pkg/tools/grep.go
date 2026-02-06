@@ -117,7 +117,6 @@ func (t *GrepTool) Spec() gollem.ToolSpec {
 				Description: "Show line numbers (default: true)",
 			},
 		},
-		Required: []string{"pattern"},
 	}
 }
 

@@ -21,11 +21,6 @@ func TestBashTool_Spec(t *testing.T) {
 		t.Errorf("Expected tool name 'bash', got '%s'", spec.Name)
 	}
 
-	// Check required parameters
-	if len(spec.Required) != 1 || spec.Required[0] != "command" {
-		t.Errorf("Expected required parameters to include 'command', got %v", spec.Required)
-	}
-
 	// Check command parameter
 	if param, exists := spec.Parameters["command"]; !exists {
 		t.Error("Missing 'command' parameter in spec")

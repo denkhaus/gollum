@@ -36,7 +36,6 @@ func TestAgentOutputTool_Spec(t *testing.T) {
 	assert.NotEmpty(t, spec.Description)
 
 	// Verify required parameters
-	assert.Contains(t, spec.Required, "agent_id")
 
 	// Verify agent_id parameter
 	assert.NotNil(t, spec.Parameters["agent_id"])

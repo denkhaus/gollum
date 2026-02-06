@@ -72,7 +72,6 @@ func (t *RemoveAgentTool) Spec() gollem.ToolSpec {
 				Description: "Force removal even if agent has active children (optional, defaults to false)",
 			},
 		},
-		Required: []string{"agent_id"},
 	}
 }
 

@@ -32,7 +32,6 @@ func TestEditToolSpec(t *testing.T) {
 	assert.Contains(t, spec.Description, "read first")
 
 	// Check required parameters
-	assert.Equal(t, []string{"file_path", "old_string", "new_string"}, spec.Required)
 
 	// Check all parameters exist
 	require.Contains(t, spec.Parameters, "file_path")
@@ -63,7 +62,6 @@ func TestEditToolSpecIsConstant(t *testing.T) {
 
 	assert.Equal(t, spec1.Name, spec2.Name)
 	assert.Equal(t, spec1.Description, spec2.Description)
-	assert.Equal(t, spec1.Required, spec2.Required)
 }
 
 // TestEditToolProvider tests the provider

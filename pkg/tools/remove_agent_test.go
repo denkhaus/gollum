@@ -30,7 +30,6 @@ func TestRemoveAgentTool_Spec(t *testing.T) {
 
 	assert.Equal(t, "remove_agent", spec.Name)
 	assert.Contains(t, spec.Description, "Removes an agent")
-	assert.Equal(t, []string{"agent_id"}, spec.Required)
 	assert.Equal(t, gollem.TypeString, spec.Parameters["agent_id"].Type)
 	assert.Equal(t, gollem.TypeBoolean, spec.Parameters["force"].Type)
 }
