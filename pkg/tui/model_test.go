@@ -8,6 +8,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 )
 
@@ -330,8 +331,12 @@ func TestUpdate_AgentCompleteMsgWithError(t *testing.T) {
 		t.Error("agentCompleteMsg with error should add error message")
 	}
 
-	if !strings.Contains(newM.messages[0], "Error:") {
-		t.Error("Error message should be formatted correctly")
+	if newM.messages[0].Type != MessageTypeError {
+		t.Error("Error message should have MessageTypeError")
+	}
+
+	if !strings.Contains(newM.messages[0].Content, "test error") {
+		t.Error("Error message content should contain the error text")
 	}
 }
 
@@ -435,7 +440,21 @@ func TestViewWithMessages(t *testing.T) {
 
 	// Set height to allow multiple messages to be displayed
 	m.height = 20
-	m.messages = []string{"message 1", "message 2"}
+	m.messages = []Message{
+		{
+			ID:        uuid.New(),
+			Type:      MessageTypeSystem,
+			Content:   "message 1",
+			Timestamp: time.Now(),
+		},
+		{
+			ID:        uuid.New(),
+			Type:      MessageTypeSystem,
+			Content:   "message 2",
+			Timestamp: time.Now(),
+		},
+	}
+	m.viewport.SetContent(m.updateViewportContent())
 
 	view := m.View()
 
