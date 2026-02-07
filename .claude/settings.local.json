@@ -64,7 +64,8 @@
       "Bash(jj bookmark create:*)",
       "Bash(jj st)",
       "Bash(jj desc:*)",
-      "Bash(jj diff:*)"
+      "Bash(jj diff:*)",
+      "Bash(mcp forgejo create-pull-request:*)"
     ],
     "deny": [],
     "ask": []
