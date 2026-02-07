@@ -6,6 +6,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/google/uuid"
 )
 
 // Update handles incoming messages and updates the model state.
@@ -18,7 +19,7 @@ import (
 //   - No side effects (use Cmd for those)
 //   - Returns new Model, never modifies in place
 //
-// # Phase 2 Update Logic
+// # Phase 3 Update Logic
 //
 //   - tea.KeyMsg: Handle keyboard input
 //   - ctrl+c: Graceful shutdown
@@ -28,7 +29,8 @@ import (
 //   - All other keys: Delegate to textinput component
 //   - tickMsg: Check context cancellation, update timer
 //   - agentCompleteMsg: Handle agent response/error
-//   - WindowSizeMsg: Update terminal dimensions
+//   - newMessageMsg: Handle new messages from AgentMessenger
+//   - WindowSizeMsg: Update terminal dimensions and viewport
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -37,6 +39,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		// Update viewport size
+		viewportHeight := m.height - 3 // Reserve space for input and footer
+		if viewportHeight < 1 {
+			viewportHeight = 1
+		}
+		m.viewport.Width = msg.Width
+		m.viewport.Height = viewportHeight
 		return m, nil
 
 	case tickMsg:
@@ -55,10 +64,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if msg.err != nil {
 			m.err = msg.err
-			m.messages = append(m.messages, "❌ Error: "+msg.err.Error())
+			// Add error message to messages
+			errorMsg := Message{
+				ID:        uuid.New(),
+				Type:      MessageTypeError,
+				Content:   msg.err.Error(),
+				Timestamp: time.Now(),
+			}
+			m.messages = append(m.messages, errorMsg)
 		} else if msg.response != nil {
-			m.messages = append(m.messages, msg.response.Texts...)
+			// Add response texts as individual messages
+			for _, text := range msg.response.Texts {
+				agentMsg := Message{
+					ID:        uuid.New(),
+					Type:      MessageTypeAgent,
+					Content:   text,
+					Timestamp: time.Now(),
+					AgentID:   uuid.Nil, // Will be set by agent messenger
+					AgentRole: "",
+				}
+				m.messages = append(m.messages, agentMsg)
+			}
 		}
+
+		// Update viewport with new messages
+		m.viewport.SetContent(m.updateViewportContent())
+		m.viewport.GotoBottom()
 
 		// Restore preserved input if user canceled during execution
 		if m.cancelRequested && m.preservedInput != "" {
@@ -69,6 +100,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		return m, nil
+
+	case newMessageMsg:
+		// Add new message from AgentMessenger
+		m.messages = append(m.messages, msg.message)
+		// Update viewport with new messages
+		m.viewport.SetContent(m.updateViewportContent())
+		m.viewport.GotoBottom()
+		// Continue listening for more messages
+		return m, m.waitForMessages()
 
 	default:
 		// Update text input component
@@ -85,7 +125,14 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case tea.KeyCtrlC:
 		// Trigger graceful shutdown
 		m.quit = true
-		m.messages = append(m.messages, "^C")
+		cancelMsg := Message{
+			ID:        uuid.New(),
+			Type:      MessageTypeSystem,
+			Content:   "^C",
+			Timestamp: time.Now(),
+		}
+		m.messages = append(m.messages, cancelMsg)
+		m.viewport.SetContent(m.updateViewportContent())
 		return m, tea.Quit
 
 	case tea.KeyEscape:
@@ -110,9 +157,27 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Check for exit commands
 		if input == "quit" || input == "exit" {
 			m.quit = true
-			m.messages = append(m.messages, "👋 Goodbye!")
+			goodbyeMsg := Message{
+				ID:        uuid.New(),
+				Type:      MessageTypeSystem,
+				Content:   "👋 Goodbye!",
+				Timestamp: time.Now(),
+			}
+			m.messages = append(m.messages, goodbyeMsg)
+			m.viewport.SetContent(m.updateViewportContent())
 			return m, tea.Quit
 		}
+
+		// Add user message to messages
+		userMsg := Message{
+			ID:        uuid.New(),
+			Type:      MessageTypeUser,
+			Content:   input,
+			Timestamp: time.Now(),
+		}
+		m.messages = append(m.messages, userMsg)
+		m.viewport.SetContent(m.updateViewportContent())
+		m.viewport.GotoBottom()
 
 		// Add to history
 		m.inputHistory = append(m.inputHistory, input)

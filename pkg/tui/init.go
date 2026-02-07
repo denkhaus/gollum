@@ -18,16 +18,16 @@ import (
 // NewTUIProvider provides a new TUI program factory for dependency injection.
 //
 // This provider function follows the samber/do pattern used throughout
-// the Gollum codebase. Note that as of Phase 2, this is not actively used
+// the Gollum codebase. Note that as of Phase 3, this is not actively used
 // since the TUI needs to be created with a specific agent and context.
 //
 // Usage in DI (future use):
 //
-//	programFactory := do.MustInvoke[func(context.Context, AgentExecutor) *tea.Program](injector)
-//	p := programFactory(ctx, agent)
+//	programFactory := do.MustInvoke[func(context.Context, AgentExecutor, ...func(*Model)) *tea.Program](injector)
+//	p := programFactory(ctx, agent, WithMessageChannel())
 //	if _, err := p.Run(); err != nil {
 //	    log.Fatal(err)
 //	}
-func NewTUIProvider(_ do.Injector) func(context.Context, AgentExecutor) *tea.Program {
+func NewTUIProvider(_ do.Injector) func(context.Context, AgentExecutor, ...func(*Model)) *tea.Program {
 	return NewProgramWithContext
 }

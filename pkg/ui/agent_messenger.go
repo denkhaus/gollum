@@ -11,6 +11,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
+
+	"github.com/denkhaus/gollum/pkg/tui"
 )
 
 var (
@@ -51,7 +53,8 @@ type (
 
 	// agentMessengerImpl is the private implementation of AgentMessenger
 	agentMessengerImpl struct {
-		mu sync.Mutex
+		mu      sync.Mutex
+		tuiMode bool // TUI mode sends to channel instead of stdout
 	}
 )
 
@@ -79,8 +82,25 @@ func (p *agentMessengerImpl) printMessage(header, content string) {
 }
 
 // NewAgentMessenger creates a new agent messenger for dependency injection.
+// If a TUI messenger channel is configured globally, it will use TUI mode.
 func NewAgentMessenger(_ do.Injector) (AgentMessenger, error) {
-	return &agentMessengerImpl{}, nil
+	impl := &agentMessengerImpl{}
+	// Check if TUI mode is enabled by checking if the global channel is set
+	// Note: We check at creation time, but the channel could be set later
+	return impl, nil
+}
+
+// NewAgentMessengerWithTUI creates a new agent messenger that sends messages to the TUI.
+// This is used when running in TUI mode instead of stdout mode.
+func NewAgentMessengerWithTUI() (AgentMessenger, error) {
+	return &agentMessengerImpl{tuiMode: true}, nil
+}
+
+// SetTUIMode sets whether the messenger should use TUI mode (channel) or stdout.
+func (p *agentMessengerImpl) SetTUIMode(enabled bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.tuiMode = enabled
 }
 
 // DisplayAgentMessage shows an agent's own message (LLM output or tool usage)
@@ -88,6 +108,26 @@ func (p *agentMessengerImpl) DisplayAgentMessage(agentID uuid.UUID, agentRole, m
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
+	// Check if TUI mode is enabled (channel is set)
+	if ch := tui.GetMessengerChannel(); ch != nil {
+		// Send to TUI via channel
+		msgType := tui.MessageTypeAdapterAgent
+		if isTool {
+			msgType = tui.MessageTypeAdapterTool
+		}
+
+		ch <- tui.MessageAdapter{
+			ID:        uuid.New(),
+			Type:      msgType,
+			Content:   message,
+			AgentID:   agentID,
+			AgentRole: agentRole,
+			IsTool:    isTool,
+		}
+		return
+	}
+
+	// Original stdout-based implementation
 	agentShort := p.shortenAgentName(agentID, agentRole)
 
 	var messageType, icon string
@@ -121,6 +161,21 @@ func (p *agentMessengerImpl) DisplayUserMessage(message string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
+	// Check if TUI mode is enabled (channel is set)
+	if ch := tui.GetMessengerChannel(); ch != nil {
+		// Send to TUI via channel
+		ch <- tui.MessageAdapter{
+			ID:        uuid.New(),
+			Type:      tui.MessageTypeAdapterUser,
+			Content:   message,
+			AgentID:   uuid.Nil,
+			AgentRole: "",
+			IsTool:    false,
+		}
+		return
+	}
+
+	// Original stdout-based implementation
 	userStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#3498DB")). // Blue
 		Bold(true)
@@ -140,6 +195,21 @@ func (p *agentMessengerImpl) DisplaySystemInfo(message string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
+	// Check if TUI mode is enabled (channel is set)
+	if ch := tui.GetMessengerChannel(); ch != nil {
+		// Send to TUI via channel
+		ch <- tui.MessageAdapter{
+			ID:        uuid.New(),
+			Type:      tui.MessageTypeAdapterSystem,
+			Content:   message,
+			AgentID:   uuid.Nil,
+			AgentRole: "",
+			IsTool:    false,
+		}
+		return
+	}
+
+	// Original stdout-based implementation
 	header := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#F39C12")). // Orange
 		Bold(true).
@@ -165,6 +235,13 @@ func (p *agentMessengerImpl) DisplayWelcome() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
+	// Check if TUI mode is enabled (channel is set)
+	if ch := tui.GetMessengerChannel(); ch != nil {
+		// In TUI mode, skip welcome since TUI shows its own welcome
+		return
+	}
+
+	// Original stdout-based implementation
 	welcomeStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#2ECC71")).
 		Bold(true).
