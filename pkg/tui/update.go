@@ -128,9 +128,13 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.textInput.Blur()
 
 		// Create a per-request context that can be canceled
-		reqCtx, cancel := m.ctx, func() {}
+		// Defensive: ensure we always have a cancellable context
+		var reqCtx context.Context
+		var cancel context.CancelFunc
 		if m.ctx != nil {
 			reqCtx, cancel = context.WithCancel(m.ctx)
+		} else {
+			reqCtx, cancel = context.WithCancel(context.Background())
 		}
 		m.currentCancel = cancel
 
