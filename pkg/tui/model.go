@@ -183,9 +183,6 @@ type Model struct {
 	// agentExecuting indicates whether an agent is currently running
 	agentExecuting bool
 
-	// agentStartTime tracks when the current agent execution started
-	agentStartTime time.Time
-
 	// currentCancel allows canceling the active agent execution
 	currentCancel context.CancelFunc
 

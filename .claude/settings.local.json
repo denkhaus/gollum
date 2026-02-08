@@ -57,7 +57,8 @@
       "Bash(jj st)",
       "Bash(jj desc:*)",
       "Bash(jj diff:*)",
-      "mcp__vestige__intention"
+      "mcp__vestige__intention",
+      "mcp__forgejo__list_repo_commits"
     ],
     "deny": [],
     "ask": []
