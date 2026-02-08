@@ -89,6 +89,9 @@ func (p *applicationServiceImpl) primeFileStateManager(ctx context.Context) erro
 }
 
 func (p *applicationServiceImpl) createToolSet(ctx context.Context) ([]gollem.ToolSet, error) {
+
+	p.logService.Info("create tool-set for main agent")
+
 	toolSet := []gollem.ToolSet{}
 	// Create brain MCP toolset
 	brainMCP, err := mcp.NewBrainMCPClient(ctx)
