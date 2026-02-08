@@ -15,4 +15,6 @@ type Agent interface {
 	GetConfig() *AgentConfig
 	Session() gollem.Session
 	Execute(ctx context.Context, input ...gollem.Input) (*gollem.ExecuteResponse, error)
+	// GetMessageHistory retrieves the agent's message history
+	GetMessageHistory(ctx context.Context) ([]gollem.Message, error)
 }

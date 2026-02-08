@@ -122,6 +122,10 @@ func (p *promptManager) buildTemplateData(renderCtx *prompt.RenderContext) map[s
 	if renderCtx.Agent != nil {
 		data["AgentID"] = renderCtx.Agent.AgentID
 		data["Task"] = renderCtx.Agent.Task
+		// Message history for context awareness
+		if len(renderCtx.Agent.MessageHistory) > 0 {
+			data["MessageHistory"] = renderCtx.Agent.MessageHistory
+		}
 	}
 
 	return data

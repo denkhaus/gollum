@@ -71,66 +71,6 @@ func (mr *MockPromptManagerMockRecorder) GetCompacterPrompt(data any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCompacterPrompt", reflect.TypeOf((*MockPromptManager)(nil).GetCompacterPrompt), data)
 }
 
-// GetOptimizerGradientMetaprompt mocks base method.
-func (m *MockPromptManager) GetOptimizerGradientMetaprompt() (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOptimizerGradientMetaprompt")
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetOptimizerGradientMetaprompt indicates an expected call of GetOptimizerGradientMetaprompt.
-func (mr *MockPromptManagerMockRecorder) GetOptimizerGradientMetaprompt() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOptimizerGradientMetaprompt", reflect.TypeOf((*MockPromptManager)(nil).GetOptimizerGradientMetaprompt))
-}
-
-// GetOptimizerGradientPrompt mocks base method.
-func (m *MockPromptManager) GetOptimizerGradientPrompt() (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOptimizerGradientPrompt")
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetOptimizerGradientPrompt indicates an expected call of GetOptimizerGradientPrompt.
-func (mr *MockPromptManagerMockRecorder) GetOptimizerGradientPrompt() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOptimizerGradientPrompt", reflect.TypeOf((*MockPromptManager)(nil).GetOptimizerGradientPrompt))
-}
-
-// GetOptimizerMetaprompt mocks base method.
-func (m *MockPromptManager) GetOptimizerMetaprompt() (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOptimizerMetaprompt")
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetOptimizerMetaprompt indicates an expected call of GetOptimizerMetaprompt.
-func (mr *MockPromptManagerMockRecorder) GetOptimizerMetaprompt() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOptimizerMetaprompt", reflect.TypeOf((*MockPromptManager)(nil).GetOptimizerMetaprompt))
-}
-
-// GetOptimizerPromptMemory mocks base method.
-func (m *MockPromptManager) GetOptimizerPromptMemory() (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOptimizerPromptMemory")
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetOptimizerPromptMemory indicates an expected call of GetOptimizerPromptMemory.
-func (mr *MockPromptManagerMockRecorder) GetOptimizerPromptMemory() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOptimizerPromptMemory", reflect.TypeOf((*MockPromptManager)(nil).GetOptimizerPromptMemory))
-}
-
 // GetPromptByID mocks base method.
 func (m *MockPromptManager) GetPromptByID(ctx context.Context, id string) (*prompt.Prompt, error) {
 	m.ctrl.T.Helper()
@@ -233,66 +173,6 @@ func (m *MockPromptManager) ListPrompts(ctx context.Context, filter *prompt.List
 func (mr *MockPromptManagerMockRecorder) ListPrompts(ctx, filter any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPrompts", reflect.TypeOf((*MockPromptManager)(nil).ListPrompts), ctx, filter)
-}
-
-// RenderOptimizerGradientMetaprompt mocks base method.
-func (m *MockPromptManager) RenderOptimizerGradientMetaprompt(data map[string]string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RenderOptimizerGradientMetaprompt", data)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RenderOptimizerGradientMetaprompt indicates an expected call of RenderOptimizerGradientMetaprompt.
-func (mr *MockPromptManagerMockRecorder) RenderOptimizerGradientMetaprompt(data any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenderOptimizerGradientMetaprompt", reflect.TypeOf((*MockPromptManager)(nil).RenderOptimizerGradientMetaprompt), data)
-}
-
-// RenderOptimizerGradientPrompt mocks base method.
-func (m *MockPromptManager) RenderOptimizerGradientPrompt(data map[string]string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RenderOptimizerGradientPrompt", data)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RenderOptimizerGradientPrompt indicates an expected call of RenderOptimizerGradientPrompt.
-func (mr *MockPromptManagerMockRecorder) RenderOptimizerGradientPrompt(data any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenderOptimizerGradientPrompt", reflect.TypeOf((*MockPromptManager)(nil).RenderOptimizerGradientPrompt), data)
-}
-
-// RenderOptimizerMetaprompt mocks base method.
-func (m *MockPromptManager) RenderOptimizerMetaprompt(data map[string]string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RenderOptimizerMetaprompt", data)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RenderOptimizerMetaprompt indicates an expected call of RenderOptimizerMetaprompt.
-func (mr *MockPromptManagerMockRecorder) RenderOptimizerMetaprompt(data any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenderOptimizerMetaprompt", reflect.TypeOf((*MockPromptManager)(nil).RenderOptimizerMetaprompt), data)
-}
-
-// RenderOptimizerPromptMemory mocks base method.
-func (m *MockPromptManager) RenderOptimizerPromptMemory(data map[string]string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RenderOptimizerPromptMemory", data)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RenderOptimizerPromptMemory indicates an expected call of RenderOptimizerPromptMemory.
-func (mr *MockPromptManagerMockRecorder) RenderOptimizerPromptMemory(data any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenderOptimizerPromptMemory", reflect.TypeOf((*MockPromptManager)(nil).RenderOptimizerPromptMemory), data)
 }
 
 // RenderPrompt mocks base method.

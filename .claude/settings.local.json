@@ -56,7 +56,9 @@
       "Bash(jj bookmark create:*)",
       "Bash(jj st)",
       "Bash(jj desc:*)",
-      "Bash(jj diff:*)"
+      "Bash(jj diff:*)",
+      "mcp__vestige__intention",
+      "mcp__forgejo__list_repo_commits"
     ],
     "deny": [],
     "ask": []

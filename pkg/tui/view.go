@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -81,11 +80,12 @@ func (m Model) View() string {
 	default:
 		// Prompt and input section
 		if m.agentExecuting {
-			elapsed := time.Since(m.agentStartTime)
+			// When agent is executing, show a simple prompt indicator
+			// The status bar already shows "⚡ Executing" with elapsed time
 			promptStyle := lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#F39C12")). // Orange
-				Bold(true)
-			b.WriteString("\n" + promptStyle.Render(fmt.Sprintf("> [Executing... %v]", elapsed.Round(time.Second))))
+				Foreground(lipgloss.Color("#95A5A6")). // Gray (disabled look)
+				Faint(true)
+			b.WriteString("\n" + promptStyle.Render("> "))
 		} else {
 			promptStyle := lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#3498DB")). // Blue
