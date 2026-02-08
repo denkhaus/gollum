@@ -58,7 +58,8 @@
       "Bash(jj desc:*)",
       "Bash(jj diff:*)",
       "mcp__vestige__intention",
-      "mcp__forgejo__list_repo_commits"
+      "mcp__forgejo__list_repo_commits",
+      "mcp__tavily__tavily-search"
     ],
     "deny": [],
     "ask": []

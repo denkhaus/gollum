@@ -185,6 +185,32 @@ func (mr *MockLoggerServiceMockRecorder) Infof(template any, args ...any) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Infof", reflect.TypeOf((*MockLoggerService)(nil).Infof), varargs...)
 }
 
+// IsTUIMode mocks base method.
+func (m *MockLoggerService) IsTUIMode() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsTUIMode")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsTUIMode indicates an expected call of IsTUIMode.
+func (mr *MockLoggerServiceMockRecorder) IsTUIMode() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsTUIMode", reflect.TypeOf((*MockLoggerService)(nil).IsTUIMode))
+}
+
+// SetTUIMode mocks base method.
+func (m *MockLoggerService) SetTUIMode(enabled bool) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetTUIMode", enabled)
+}
+
+// SetTUIMode indicates an expected call of SetTUIMode.
+func (mr *MockLoggerServiceMockRecorder) SetTUIMode(enabled any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTUIMode", reflect.TypeOf((*MockLoggerService)(nil).SetTUIMode), enabled)
+}
+
 // Warn mocks base method.
 func (m *MockLoggerService) Warn(msg string, fields ...zap.Field) {
 	m.ctrl.T.Helper()

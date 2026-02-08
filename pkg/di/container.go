@@ -11,6 +11,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/markdown"
 	"github.com/denkhaus/gollum/pkg/middleware"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/prompt/optimizer"
@@ -70,6 +71,9 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 
 	// Register UI components
 	do.Provide(p.injector, ui.NewAgentMessenger)
+
+	// Register markdown renderer
+	do.Provide(p.injector, markdown.ProvideRenderer)
 
 	// Register middleware providers
 	do.Provide(p.injector, middleware.NewDisplayMiddlewareProvider)

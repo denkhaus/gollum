@@ -16,15 +16,17 @@ type LogEntry struct {
 	Message   string                 `json:"message"`
 	Fields    map[string]interface{} `json:"fields,omitempty"`
 	AgentID   uuid.UUID              `json:"agent_id,omitempty"`
+	Sequence  int64                  `json:"sequence"` // Monotonically increasing sequence number
 }
 
 // LogFilter defines filtering options for retrieving log entries.
 type LogFilter struct {
-	Level   string    // Filter by log level (debug, info, warn, error)
-	AgentID uuid.UUID // Filter by specific agent ID
-	Since   time.Time // Filter entries after this timestamp
-	Count   int       // Maximum number of entries to return (0 = all)
-	Reverse bool      // If true, return entries in reverse chronological order
+	Level    string    // Filter by log level (debug, info, warn, error)
+	AgentID  uuid.UUID // Filter by specific agent ID
+	SinceSeq int64     // Filter entries with sequence > this (exclusive)
+	Since    time.Time // Filter entries after this timestamp (deprecated, use SinceSeq)
+	Count    int       // Maximum number of entries to return (0 = all)
+	Reverse  bool      // If true, return entries in reverse chronological order
 }
 
 // logBuffer implements a thread-safe circular buffer for log entries.
@@ -35,6 +37,7 @@ type logBuffer struct {
 	headIndex int
 	count     int
 	enabled   bool
+	nextSeq   int64 // Next sequence number to assign
 }
 
 // newLogBuffer creates a new circular buffer for log entries.
@@ -61,6 +64,10 @@ func (b *logBuffer) add(entry LogEntry) {
 
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
+
+	// Assign sequence number atomically
+	entry.Sequence = b.nextSeq
+	b.nextSeq++
 
 	// Store the entry at the current head position
 	b.entries[b.headIndex] = entry
@@ -110,6 +117,17 @@ func (b *logBuffer) getEntries(filter LogFilter) []LogEntry {
 func (b *logBuffer) applyFilters(entries []LogEntry, filter LogFilter) []LogEntry {
 	result := entries
 
+	// Filter by sequence number (preferred over timestamp for deduplication)
+	if filter.SinceSeq > 0 {
+		filtered := make([]LogEntry, 0)
+		for _, entry := range result {
+			if entry.Sequence > filter.SinceSeq {
+				filtered = append(filtered, entry)
+			}
+		}
+		result = filtered
+	}
+
 	// Filter by level
 	if filter.Level != "" {
 		filtered := make([]LogEntry, 0)
@@ -132,8 +150,9 @@ func (b *logBuffer) applyFilters(entries []LogEntry, filter LogFilter) []LogEntr
 		result = filtered
 	}
 
-	// Filter by timestamp (since)
-	if !filter.Since.IsZero() {
+	// Filter by timestamp (since) - fallback for backward compatibility
+	// Only apply if SinceSeq is not set (prefer sequence-based filtering)
+	if filter.SinceSeq <= 0 && !filter.Since.IsZero() {
 		filtered := make([]LogEntry, 0)
 		for _, entry := range result {
 			if entry.Timestamp.After(filter.Since) || entry.Timestamp.Equal(filter.Since) {

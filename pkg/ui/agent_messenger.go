@@ -235,28 +235,7 @@ func (p *agentMessengerImpl) DisplayWelcome() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// Check if TUI mode is enabled (channel is set)
-	if ch := tui.GetMessengerChannel(); ch != nil {
-		// In TUI mode, skip welcome since TUI shows its own welcome
-		return
-	}
-
-	// Original stdout-based implementation
-	welcomeStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#2ECC71")).
-		Bold(true).
-		Padding(0, 2).
-		Background(lipgloss.Color("#1E1E1E"))
-
-	welcome := welcomeStyle.Render("🚀 Gollum Agent System - Interactive Mode")
-	if _, err := fmt.Fprint(os.Stdout, "\r\n"+welcome+"\r\n\n"); err != nil {
-		// Ignore write errors to stdout in UI code
-		_ = err
-	}
-	if _, err := fmt.Fprint(os.Stdout, lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#7F8C8D")).
-		Render("Type 'quit' to exit • Agent communication will be displayed below\r\n")); err != nil {
-		// Ignore write errors to stdout in UI code
-		_ = err
-	}
+	// Welcome message removed - TUI displays everything
+	// The stdout-based welcome was causing text to appear before TUI starts
+	// Since we use AltScreen mode, this text is immediately covered anyway
 }

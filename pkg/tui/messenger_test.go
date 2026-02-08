@@ -5,7 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
+	"go.uber.org/mock/gomock"
 )
 
 func TestMessageTypeString(t *testing.T) {
@@ -200,8 +202,13 @@ func TestSendMessage(t *testing.T) {
 }
 
 func TestModelSetAndGetMessageChannel(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	ctx := context.Background()
-	agent := &mockAgentExecutor{}
+	// Create mock directly to ensure import is used
+	_ = mocks.NewMockAgentExecutor(ctrl)
+	agent := setupMockAgent(ctrl)
 	m := NewModel(ctx, agent)
 
 	// Initially should be nil
@@ -265,8 +272,12 @@ func TestModelFormatAgentName(t *testing.T) {
 }
 
 func TestModelUpdateViewportContent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	ctx := context.Background()
-	agent := &mockAgentExecutor{}
+	_ = mocks.NewMockAgentExecutor(ctrl)
+	agent := setupMockAgent(ctrl)
 	m := NewModel(ctx, agent)
 
 	// Add some messages
@@ -323,8 +334,12 @@ func indexOf(s, substr string) int {
 }
 
 func TestModelFormatMessage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	ctx := context.Background()
-	agent := &mockAgentExecutor{}
+	_ = mocks.NewMockAgentExecutor(ctrl)
+	agent := setupMockAgent(ctrl)
 	m := NewModel(ctx, agent)
 
 	tests := []struct {

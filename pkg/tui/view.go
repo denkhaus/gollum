@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/markdown"
 )
 
 // View renders the model state as a string for display.
@@ -18,7 +21,8 @@ import (
 //  1. Viewport with scrollable message history
 //  2. Status bar (if enabled)
 //  3. Prompt with current text input or agent execution status
-//  4. Instructions footer
+//  4. Log panel (if logs are available)
+//  5. Instructions footer
 func (m Model) View() string {
 	if m.quit {
 		return ""
@@ -26,29 +30,15 @@ func (m Model) View() string {
 
 	var b strings.Builder
 
-	// Viewport section with scrollable messages
-	viewportHeight := m.height - 4
-	if m.config.StatusEnabled {
-		viewportHeight-- // Extra line for status bar
-	}
-	if viewportHeight < 1 {
-		viewportHeight = 1
-	}
-	m.viewport.Height = viewportHeight
-	m.viewport.Width = m.width
+	separatorStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#3498DB")). // Blue
+		Faint(true)
 
-	// If viewport is empty (first render), populate it
-	if m.viewport.View() == "" && len(m.messages) > 0 {
-		m.viewport.SetContent(m.updateViewportContent())
-		m.viewport.GotoBottom()
-	}
-
+	// Render viewport (content is set in Update handlers)
 	b.WriteString(m.viewport.View())
 
-	// Status bar (if enabled)
-	if m.config.StatusEnabled {
-		b.WriteString("\n" + m.renderStatusBar())
-	}
+	// Render seperator
+	b.WriteString("\n" + separatorStyle.Render(strings.Repeat("─", m.width)))
 
 	// Render input section based on current mode
 	switch {
@@ -94,7 +84,25 @@ func (m Model) View() string {
 		}
 	}
 
-	// Footer with instructions
+	// Log panel with separator before and after
+	if len(m.logEntries) > 0 || m.logService != nil {
+		// Separator line before logs
+		b.WriteString("\n" + separatorStyle.Render(strings.Repeat("─", m.width)))
+		// Log viewport content
+		b.WriteString("\n" + m.logViewport.View())
+	}
+
+	// Status bar (if enabled)
+	if m.config.StatusEnabled {
+		// Render seperator
+		b.WriteString("\n" + separatorStyle.Render(strings.Repeat("─", m.width)))
+		// Render Statusbar
+		b.WriteString("\n" + m.renderStatusBar())
+	}
+
+	// Separator line after logs (before footer)
+	b.WriteString("\n" + separatorStyle.Render(strings.Repeat("─", m.width)))
+	// Footer with instructions (at the very bottom)
 	b.WriteString("\n" + m.renderFooter())
 
 	return b.String()
@@ -107,10 +115,13 @@ func (m Model) renderStatusBar() string {
 
 	// Agent status
 	if m.agentExecuting {
+		// Calculate elapsed time since agent started
+		elapsed := time.Since(m.agentStartTime)
+		elapsedText := fmt.Sprintf("%.0fs", elapsed.Seconds())
 		statusParts = append(statusParts, lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#F39C12")). // Orange
 			Bold(true).
-			Render("⚡ Executing"))
+			Render(fmt.Sprintf("⚡ Executing %s", elapsedText)))
 	} else {
 		statusParts = append(statusParts, lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#2ECC71")). // Green
@@ -128,11 +139,12 @@ func (m Model) renderStatusBar() string {
 		Render(fmt.Sprintf("History: %d/%d", len(m.inputHistory), m.config.HistoryMaxSize)))
 
 	// Join parts with separator
-	statusBar := lipgloss.JoinHorizontal(lipgloss.Left, statusParts...)
+	separator := "  |  "
+	statusBar := strings.Join(statusParts, separator)
 
 	// Apply status bar styling
 	statusBarStyle := lipgloss.NewStyle().
-		Background(lipgloss.Color("#2C3E50")). // Dark blue-gray
+		//Background(lipgloss.Color("#2C3E50")). // Dark blue-gray
 		Foreground(lipgloss.Color("#ECF0F1")). // Light gray
 		Padding(0, 1).
 		Width(m.width)
@@ -154,6 +166,16 @@ func (m Model) renderFooter() string {
 
 	shortcuts = append(shortcuts, "↑/↓: History", "Ctrl+R: Search")
 
+	// Add viewport shortcuts
+	activeViewportStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#F39C12")). // Orange
+		Bold(true)
+	if m.activeViewport == "logs" {
+		shortcuts = append(shortcuts, activeViewportStyle.Render("● Logs: Ctrl+L|PgUp/Down"))
+	} else {
+		shortcuts = append(shortcuts, "● Main: Ctrl+L|PgUp/Down")
+	}
+
 	// Add multi-line specific shortcut if in multi-line mode
 	if m.multiLineInput {
 		shortcuts = []string{"Alt+Enter: New line", "Enter: Submit", "Esc: Cancel"}
@@ -166,6 +188,7 @@ func (m Model) renderFooter() string {
 
 	footerStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#7F8C8D")). // Gray
+		Padding(0, 0, 1).
 		Faint(true)
 
 	// Join shortcuts with proper spacing
@@ -190,7 +213,11 @@ func NewProgramWithContext(ctx context.Context, agent AgentExecutor, opts ...fun
 	for _, opt := range opts {
 		opt(&m)
 	}
-	return tea.NewProgram(m, tea.WithContext(ctx), tea.WithAltScreen())
+	return tea.NewProgram(m,
+		tea.WithContext(ctx),
+		tea.WithAltScreen(),
+		// Kein MouseCellMotion - ermöglicht Text-Selection im Terminal
+	)
 }
 
 // WithMessageChannel is an option for NewProgramWithContext that sets the message channel.
@@ -218,5 +245,29 @@ func WithMessageChannel() func(*Model) {
 			}
 			close(ch)
 		}()
+	}
+}
+
+// WithLoggerService is an option for NewProgramWithContext that sets the logger service.
+// This allows the TUI to fetch and display logs in a dedicated panel.
+//
+// Usage:
+//
+//	p := tui.NewProgramWithContext(ctx, agent, tui.WithMessageChannel(), tui.WithLoggerService(logService))
+func WithLoggerService(service logger.LoggerService) func(*Model) {
+	return func(m *Model) {
+		m.SetLoggerService(service)
+	}
+}
+
+// WithMarkdownRenderer is an option for NewProgramWithContext that sets the markdown renderer.
+// This enables rich markdown rendering for agent responses with syntax highlighting.
+//
+// Usage:
+//
+//	p := tui.NewProgramWithContext(ctx, agent, tui.WithMarkdownRenderer(renderer))
+func WithMarkdownRenderer(renderer markdown.Renderer) func(*Model) {
+	return func(m *Model) {
+		m.SetMarkdownRenderer(renderer)
 	}
 }

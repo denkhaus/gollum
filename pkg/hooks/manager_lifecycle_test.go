@@ -51,6 +51,8 @@ func (m *mockLogger) SetTUIWriter(_ io.Writer)                     {}
 func (m *mockLogger) ResetToStdout()                               {}
 func (m *mockLogger) GetLogs(_ logger.LogFilter) []logger.LogEntry { return nil }
 func (m *mockLogger) GetLogStats() map[string]interface{}          { return nil }
+func (m *mockLogger) IsTUIMode() bool                              { return false }
+func (m *mockLogger) SetTUIMode(_ bool)                            {}
 
 var _ logger.LoggerService = (*mockLogger)(nil)
 
