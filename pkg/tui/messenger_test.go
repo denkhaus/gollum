@@ -11,7 +11,7 @@ import (
 func TestMessageTypeString(t *testing.T) {
 	tests := []struct {
 		name     string
-	 mt       MessageType
+		mt       MessageType
 		expected string
 	}{
 		{"User", MessageTypeUser, "user"},
@@ -328,9 +328,9 @@ func TestModelFormatMessage(t *testing.T) {
 	m := NewModel(ctx, agent)
 
 	tests := []struct {
-		name   string
-		msg    Message
-		check  func(string) bool
+		name  string
+		msg   Message
+		check func(string) bool
 	}{
 		{
 			name: "user message",
