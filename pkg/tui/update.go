@@ -81,24 +81,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				Timestamp: time.Now(),
 			}
 			m.messages = append(m.messages, errorMsg)
+			// Update viewport with error message
+			m.viewport.SetContent(m.updateViewportContent())
+			m.viewport.GotoBottom()
 		} else if msg.response != nil {
-			// Add response texts as individual messages
-			for _, text := range msg.response.Texts {
-				agentMsg := Message{
-					ID:        uuid.New(),
-					Type:      MessageTypeAgent,
-					Content:   text,
-					Timestamp: time.Now(),
-					AgentID:   uuid.Nil, // Will be set by agent messenger
-					AgentRole: "",
+			// Only add response texts if NOT using AgentMessenger
+			// When AgentMessenger is active (messageChan configured), messages are sent
+			// via the channel during execution, avoiding duplicates
+			if m.messageChan == nil {
+				// Add response texts as individual messages (legacy mode)
+				for _, text := range msg.response.Texts {
+					agentMsg := Message{
+						ID:        uuid.New(),
+						Type:      MessageTypeAgent,
+						Content:   text,
+						Timestamp: time.Now(),
+						AgentID:   uuid.Nil, // Will be set by agent messenger
+						AgentRole: "",
+					}
+					m.messages = append(m.messages, agentMsg)
 				}
-				m.messages = append(m.messages, agentMsg)
+				// Update viewport with new messages
+				m.viewport.SetContent(m.updateViewportContent())
+				m.viewport.GotoBottom()
 			}
+			// When messageChan is active, messages were already added via newMessageMsg
+			// during execution, so no viewport update needed here
 		}
-
-		// Update viewport with new messages
-		m.viewport.SetContent(m.updateViewportContent())
-		m.viewport.GotoBottom()
 
 		// Restore preserved input if user canceled during execution
 		if m.cancelRequested && m.preservedInput != "" {
@@ -232,7 +241,8 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.messages = append(m.messages, userMsg)
 		m.viewport.SetContent(m.updateViewportContent())
-		m.viewport.GotoBottom()
+		// Don't call GotoBottom() here - let the viewport stay where it is.
+		// New messages from the agent will trigger scrolling via newMessageMsg handler.
 
 		// Add to history with size limit
 		m.addToHistory(input)
