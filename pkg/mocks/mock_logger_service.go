@@ -10,7 +10,6 @@
 package mocks
 
 import (
-	io "io"
 	reflect "reflect"
 
 	logger "github.com/denkhaus/gollum/pkg/logger"
@@ -184,30 +183,6 @@ func (mr *MockLoggerServiceMockRecorder) Infof(template any, args ...any) *gomoc
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{template}, args...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Infof", reflect.TypeOf((*MockLoggerService)(nil).Infof), varargs...)
-}
-
-// ResetToStdout mocks base method.
-func (m *MockLoggerService) ResetToStdout() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ResetToStdout")
-}
-
-// ResetToStdout indicates an expected call of ResetToStdout.
-func (mr *MockLoggerServiceMockRecorder) ResetToStdout() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetToStdout", reflect.TypeOf((*MockLoggerService)(nil).ResetToStdout))
-}
-
-// SetTUIWriter mocks base method.
-func (m *MockLoggerService) SetTUIWriter(writer io.Writer) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetTUIWriter", writer)
-}
-
-// SetTUIWriter indicates an expected call of SetTUIWriter.
-func (mr *MockLoggerServiceMockRecorder) SetTUIWriter(writer any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTUIWriter", reflect.TypeOf((*MockLoggerService)(nil).SetTUIWriter), writer)
 }
 
 // Warn mocks base method.

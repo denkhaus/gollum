@@ -91,6 +91,21 @@ func (mr *MockAgentMockRecorder) GetID() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetID", reflect.TypeOf((*MockAgent)(nil).GetID))
 }
 
+// GetMessageHistory mocks base method.
+func (m *MockAgent) GetMessageHistory(ctx context.Context) ([]gollem.Message, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMessageHistory", ctx)
+	ret0, _ := ret[0].([]gollem.Message)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMessageHistory indicates an expected call of GetMessageHistory.
+func (mr *MockAgentMockRecorder) GetMessageHistory(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMessageHistory", reflect.TypeOf((*MockAgent)(nil).GetMessageHistory), ctx)
+}
+
 // Session mocks base method.
 func (m *MockAgent) Session() gollem.Session {
 	m.ctrl.T.Helper()
