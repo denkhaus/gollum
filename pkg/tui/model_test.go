@@ -425,7 +425,6 @@ func TestViewWithAgentExecuting(t *testing.T) {
 	m := NewModel(ctx, agent)
 
 	m.agentExecuting = true
-	m.agentStartTime = m.agentStartTime.Add(-1 * time.Second) // Set to 1 second ago
 
 	view := m.View()
 	if !strings.Contains(view, "Executing") {

@@ -243,7 +243,6 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Set agent execution state BEFORE creating the command
 		// (this is needed because commands can't modify the model)
 		m.agentExecuting = true
-		m.agentStartTime = time.Now()
 		m.textInput.Blur()
 
 		// Create a per-request context that can be canceled
