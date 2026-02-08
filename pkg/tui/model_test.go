@@ -868,7 +868,7 @@ func TestSetConfig(t *testing.T) {
 	m := NewModel(ctx, agent)
 
 	newConfig := Config{
-		HistoryMaxSize:    500,
+		HistoryMaxSize:   500,
 		EnableTimestamps: false,
 		EnableColors:     false,
 		StatusEnabled:    false,
