@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/m-mizutani/gollem"
 )
 
 // Built-in prompt ID constants
@@ -61,8 +62,9 @@ type SubAgentContext struct {
 
 // AgentContext contains context specific to agent operations.
 type AgentContext struct {
-	AgentID string // The agent's unique identifier
-	Task    string // The task the agent is working on
+	AgentID        string            // The agent's unique identifier
+	Task           string            // The task the agent is working on
+	MessageHistory []gollem.Message  // Optional message history for context awareness
 }
 
 // ListFilter provides filtering options for listing prompts.

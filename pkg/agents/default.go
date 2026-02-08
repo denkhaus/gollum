@@ -40,3 +40,28 @@ func (p *defaultAgent) GetID() uuid.UUID {
 func (p *defaultAgent) GetConfig() *shared.AgentConfig {
 	return p.config
 }
+
+// GetMessageHistory retrieves the agent's message history from its session
+func (p *defaultAgent) GetMessageHistory(ctx context.Context) ([]gollem.Message, error) {
+	// Handle nil base agent
+	if p.base == nil {
+		return nil, nil
+	}
+
+	session := p.base.Session()
+	if session == nil {
+		return nil, nil
+	}
+
+	history, err := session.History()
+	if err != nil {
+		return nil, err
+	}
+
+	// Return messages from history
+	if history != nil {
+		return history.Messages, nil
+	}
+
+	return nil, nil
+}

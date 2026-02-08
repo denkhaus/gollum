@@ -610,3 +610,73 @@ func TestDeletePrompt_BuiltinPromptReturnsError(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, stillExists, "Built-in prompt should still exist after failed delete")
 }
+
+// TestRenderPrompt_WithMessageHistory tests template rendering with MessageHistory in AgentContext
+func TestRenderPrompt_WithMessageHistory(t *testing.T) {
+	ctx := context.Background()
+
+	// Create in-memory store
+	st := promptstore.NewMemoryStore()
+
+	// Save a test prompt with message history template (safe handling of nil)
+	testContent := "Agent {{.AgentID}}"
+	_, err := st.SaveNewVersion(ctx, "test-history", testContent, "Test History")
+	require.NoError(t, err)
+
+	// Get the prompt
+	loaded, err := st.Load(ctx, "test-history")
+	require.NoError(t, err)
+	require.NotNil(t, loaded)
+
+	// Create render context with nil MessageHistory
+	renderCtx := &prompt.RenderContext{
+		Agent: &prompt.AgentContext{
+			AgentID:        "agent-789",
+			MessageHistory: nil,
+		},
+	}
+
+	// Create prompt manager
+	pm := manager.NewPromptManager(st)
+
+	// Render the prompt
+	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
+	require.NoError(t, err)
+	assert.Contains(t, rendered, "Agent agent-789", "Should contain substituted AgentID")
+}
+
+// TestRenderPrompt_EmptyMessageHistory tests template rendering with empty MessageHistory
+func TestRenderPrompt_EmptyMessageHistory(t *testing.T) {
+	ctx := context.Background()
+
+	// Create in-memory store
+	st := promptstore.NewMemoryStore()
+
+	// Save a test prompt
+	testContent := "Agent {{.AgentID}} - Task: {{.Task}}"
+	_, err := st.SaveNewVersion(ctx, "test-empty-history", testContent, "Test Empty History")
+	require.NoError(t, err)
+
+	// Get the prompt
+	loaded, err := st.Load(ctx, "test-empty-history")
+	require.NoError(t, err)
+	require.NotNil(t, loaded)
+
+	// Create render context with AgentContext (MessageHistory is optional)
+	renderCtx := &prompt.RenderContext{
+		Agent: &prompt.AgentContext{
+			AgentID:        "agent-empty",
+			Task:           "test task",
+			MessageHistory: nil, // Empty/nil history
+		},
+	}
+
+	// Create prompt manager
+	pm := manager.NewPromptManager(st)
+
+	// Render the prompt - should handle nil MessageHistory gracefully
+	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
+	require.NoError(t, err)
+	assert.Contains(t, rendered, "Agent agent-empty", "Should contain substituted AgentID")
+	assert.Contains(t, rendered, "Task: test task", "Should contain substituted Task")
+}
