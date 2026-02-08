@@ -9,6 +9,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/google/uuid"
+
+	"github.com/denkhaus/gollum/pkg/logger"
 )
 
 // Update handles incoming messages and updates the model state.
@@ -45,16 +47,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		// Update viewport size (reserve space for input, footer, and status bar)
-		viewportHeight := m.height - 4
+		// Update viewport size (reserve space for input, footer, status bar, and log panel)
+		reservedLines := 4 // status bar + prompt + footer
 		if m.config.StatusEnabled {
-			viewportHeight-- // Extra line for status bar
+			reservedLines++ // Extra line for status bar
 		}
+		logPanelHeight := 6                 // Reserve 6 lines for log panel
+		reservedLines += logPanelHeight + 1 // +1 for log separator
+
+		viewportHeight := m.height - reservedLines
 		if viewportHeight < 1 {
 			viewportHeight = 1
+			// If we're very short, reduce log panel height
+			logPanelHeight = m.height - reservedLines + logPanelHeight
+			if logPanelHeight < 3 {
+				logPanelHeight = 3 // Minimum log panel height
+			}
 		}
 		m.viewport.Width = msg.Width
 		m.viewport.Height = viewportHeight
+		m.logViewport.Width = msg.Width
+		m.logViewport.Height = logPanelHeight
 		return m, nil
 
 	case tickMsg:
@@ -65,10 +78,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		default:
 		}
-		return m, m.tickCmd()
+		return m, tea.Batch(m.tickCmd(), m.logTickCmd())
+
+	case logTickMsg:
+		// Fetch new log entries from logger service using sequence-based filtering
+		if m.logService != nil {
+			newLogs := m.logService.GetLogs(logger.LogFilter{
+				SinceSeq: m.lastLogFetchSeq,
+				Reverse:  false,
+			})
+			if len(newLogs) > 0 {
+				// Update last fetch sequence to the most recent log's sequence
+				m.lastLogFetchSeq = newLogs[len(newLogs)-1].Sequence
+				// Format and append new log entries
+				for _, log := range newLogs {
+					formatted := fmt.Sprintf("%s [%s] %s",
+						log.Timestamp.Format("15:04:05"),
+						strings.ToUpper(log.Level),
+						log.Message)
+					m.logEntries = append(m.logEntries, formatted)
+				}
+				// Update log viewport content
+				m.logViewport.SetContent(strings.Join(m.logEntries, "\n"))
+				m.logViewport.GotoBottom()
+			}
+		}
+		return m, m.logTickCmd()
 
 	case agentCompleteMsg:
 		m.agentExecuting = false
+		m.agentStartTime = time.Time{} // Clear start time
 		m.textInput.Focus()
 
 		if msg.err != nil {
@@ -83,7 +122,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.messages = append(m.messages, errorMsg)
 			// Update viewport with error message
 			m.viewport.SetContent(m.updateViewportContent())
-			m.viewport.GotoBottom()
+			m.viewport.GotoTop()
 		} else if msg.response != nil {
 			// Only add response texts if NOT using AgentMessenger
 			// When AgentMessenger is active (messageChan configured), messages are sent
@@ -103,7 +142,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				// Update viewport with new messages
 				m.viewport.SetContent(m.updateViewportContent())
-				m.viewport.GotoBottom()
+				m.viewport.GotoTop()
 			}
 			// When messageChan is active, messages were already added via newMessageMsg
 			// during execution, so no viewport update needed here
@@ -124,7 +163,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.messages = append(m.messages, msg.message)
 		// Update viewport with new messages
 		m.viewport.SetContent(m.updateViewportContent())
-		m.viewport.GotoBottom()
+		m.viewport.GotoTop()
 		// Continue listening for more messages
 		return m, m.waitForMessages()
 
@@ -132,8 +171,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Handle conversation export
 		return m.handleExport()
 
+	case tea.MouseMsg:
+		// Handle mouse events with debouncing to prevent UI slowdown
+		// Only process mouse wheel events for scrolling
+		return m.handleMouseMsg(msg)
+
+	case mouseDebounceMsg:
+		// Process debounced mouse scroll
+		// Only apply if the tag matches (this is the latest scroll event)
+		if msg.tag == m.mouseDebounceTag {
+			scrollLines := 3 // Scroll 3 lines per debounced event for smooth scrolling
+			if msg.viewport == "logs" {
+				if msg.direction < 0 {
+					m.logViewport.LineUp(scrollLines)
+				} else {
+					m.logViewport.LineDown(scrollLines)
+				}
+			} else {
+				if msg.direction < 0 {
+					m.viewport.LineUp(scrollLines)
+				} else {
+					m.viewport.LineDown(scrollLines)
+				}
+			}
+		}
+		return m, nil
+
 	default:
-		// Update text input component (unless in search mode)
+		// Update text input component with remaining messages (unless in search mode)
 		if !m.searchState.active {
 			var cmd tea.Cmd
 			m.textInput, cmd = m.textInput.Update(msg)
@@ -241,8 +306,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.messages = append(m.messages, userMsg)
 		m.viewport.SetContent(m.updateViewportContent())
-		// Don't call GotoBottom() here - let the viewport stay where it is.
-		// New messages from the agent will trigger scrolling via newMessageMsg handler.
+		m.viewport.GotoTop() // Start from top to show conversation from beginning
 
 		// Add to history with size limit
 		m.addToHistory(input)
@@ -253,6 +317,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Set agent execution state BEFORE creating the command
 		// (this is needed because commands can't modify the model)
 		m.agentExecuting = true
+		m.agentStartTime = time.Now() // Track start time for elapsed timer
 		m.textInput.Blur()
 
 		// Create a per-request context that can be canceled
@@ -276,8 +341,24 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.KeyUp, tea.KeyDown:
-		// Handle history navigation
-		return m.handleHistoryNavigation(msg.Type)
+		// Arrow keys always scroll the active viewport
+		// Scroll multiple lines at once for better performance
+		scrollLines := 5 // Scroll 5 lines per keypress
+		if m.activeViewport == "logs" {
+			if msg.Type == tea.KeyUp {
+				m.logViewport.LineUp(scrollLines)
+			} else {
+				m.logViewport.LineDown(scrollLines)
+			}
+			return m, nil
+		}
+		// Main viewport
+		if msg.Type == tea.KeyUp {
+			m.viewport.LineUp(scrollLines)
+		} else {
+			m.viewport.LineDown(scrollLines)
+		}
+		return m, nil
 
 	case tea.KeyCtrlR:
 		// Start history search mode
@@ -297,6 +378,44 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.textInput.SetValue(m.inputHistory[m.searchState.results[m.searchState.matchedIdx]])
 				m.textInput.CursorEnd()
 			}
+		}
+		return m, nil
+
+	case tea.KeyCtrlL:
+		// Toggle between main and log viewport
+		if m.activeViewport == "main" {
+			m.activeViewport = "logs"
+		} else {
+			m.activeViewport = "main"
+		}
+		return m, nil
+
+	case tea.KeyPgUp, tea.KeyPgDown:
+		// Scroll the active viewport
+		if m.activeViewport == "logs" {
+			var cmd tea.Cmd
+			m.logViewport, cmd = m.logViewport.Update(msg)
+			return m, cmd
+		}
+		var cmd tea.Cmd
+		m.viewport, cmd = m.viewport.Update(msg)
+		return m, cmd
+
+	case tea.KeyShiftUp, tea.KeyShiftDown:
+		// Scroll the active viewport (faster, alternative to Page Up/Down)
+		scrollLines := 10 // Scroll 10 lines for faster navigation
+		if m.activeViewport == "logs" {
+			if msg.Type == tea.KeyShiftUp {
+				m.logViewport.LineUp(scrollLines)
+			} else {
+				m.logViewport.LineDown(scrollLines)
+			}
+			return m, nil
+		}
+		if msg.Type == tea.KeyShiftUp {
+			m.viewport.LineUp(scrollLines)
+		} else {
+			m.viewport.LineDown(scrollLines)
 		}
 		return m, nil
 
@@ -475,7 +594,7 @@ func (m Model) handleExport() (tea.Model, tea.Cmd) {
 	}
 
 	m.viewport.SetContent(m.updateViewportContent())
-	m.viewport.GotoBottom()
+	m.viewport.GotoTop()
 	return m, nil
 }
 
@@ -509,4 +628,43 @@ func (m Model) handleHistoryNavigation(keyType tea.KeyType) (tea.Model, tea.Cmd)
 	}
 
 	return m, nil
+}
+
+// handleMouseMsg handles mouse events with debouncing for smooth scrolling.
+//
+// This function implements the debounce pattern from Charmbracelet's example:
+// https://github.com/charmbracelet/bubbletea/blob/main/examples/debounce/main.go
+//
+// The pattern works by:
+// 1. Incrementing a tag on each mouse event
+// 2. Scheduling a debounce command that includes the current tag
+// 3. Only processing the scroll if the tag matches when the command fires
+//
+// This prevents rapid mouse wheel events from overwhelming the UI.
+func (m Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.MouseWheelUp, tea.MouseWheelDown:
+		// Increment tag to invalidate any pending debounce commands
+		m.mouseDebounceTag++
+
+		// Determine scroll direction (-1 for up, 1 for down)
+		direction := -1
+		if msg.Type == tea.MouseWheelDown {
+			direction = 1
+		}
+
+		// Return a debounce command with the current tag
+		return m, tea.Tick(m.mouseDebounceDuration, func(_ time.Time) tea.Msg {
+			return mouseDebounceMsg{
+				tag:      m.mouseDebounceTag,
+				direction: direction,
+				viewport: m.activeViewport,
+			}
+		})
+	}
+
+	// For other mouse events, pass to text input (for clicks, etc.)
+	var cmd tea.Cmd
+	m.textInput, cmd = m.textInput.Update(msg)
+	return m, cmd
 }

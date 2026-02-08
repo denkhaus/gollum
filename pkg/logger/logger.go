@@ -3,6 +3,8 @@ package logger
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -30,6 +32,10 @@ type LoggerService interface {
 	GetLogs(filter LogFilter) []LogEntry
 	// GetLogStats returns statistics about the log buffer
 	GetLogStats() map[string]interface{}
+	// SetTUIMode disables stdout logging when TUI is active
+	SetTUIMode(enabled bool)
+	// IsTUIMode returns whether TUI mode is enabled
+	IsTUIMode() bool
 }
 
 // service implements the Service interface
@@ -39,6 +45,7 @@ type service struct {
 	config         zap.Config
 	originalLogger *zap.Logger
 	logBuffer      *logBuffer
+	tuiMode        bool
 }
 
 // NewService creates a new logger service
@@ -86,6 +93,7 @@ func NewService(injector do.Injector) (LoggerService, error) {
 		config:         config,
 		originalLogger: logger,
 		logBuffer:      logBuffer,
+		tuiMode:        false,
 	}, nil
 }
 
@@ -114,8 +122,9 @@ func (s *service) Info(msg string, fields ...zap.Field) {
 
 func (s *service) Infof(template string, args ...any) {
 	s.logger.Sugar().Infof(template, args...)
-	// Note: We don't store formatted messages in buffer to avoid duplication
-	// The structured Info() method should be used for buffer storage
+	// Store formatted message in buffer for TUI log panel
+	msg := fmt.Sprintf(template, args...)
+	s.storeInBuffer("info", msg, nil)
 }
 
 func (s *service) Error(msg string, fields ...zap.Field) {
@@ -125,7 +134,9 @@ func (s *service) Error(msg string, fields ...zap.Field) {
 
 func (s *service) Errorf(template string, args ...any) {
 	s.logger.Sugar().Errorf(template, args...)
-	// Note: We don't store formatted messages in buffer to avoid duplication
+	// Store formatted message in buffer for TUI log panel
+	msg := fmt.Sprintf(template, args...)
+	s.storeInBuffer("error", msg, nil)
 }
 
 func (s *service) Debug(msg string, fields ...zap.Field) {
@@ -135,7 +146,9 @@ func (s *service) Debug(msg string, fields ...zap.Field) {
 
 func (s *service) Debugf(template string, args ...any) {
 	s.logger.Sugar().Debugf(template, args...)
-	// Note: We don't store formatted messages in buffer to avoid duplication
+	// Store formatted message in buffer for TUI log panel
+	msg := fmt.Sprintf(template, args...)
+	s.storeInBuffer("debug", msg, nil)
 }
 
 func (s *service) Warn(msg string, fields ...zap.Field) {
@@ -145,7 +158,9 @@ func (s *service) Warn(msg string, fields ...zap.Field) {
 
 func (s *service) Warnf(template string, args ...any) {
 	s.logger.Sugar().Warnf(template, args...)
-	// Note: We don't store formatted messages in buffer to avoid duplication
+	// Store formatted message in buffer for TUI log panel
+	msg := fmt.Sprintf(template, args...)
+	s.storeInBuffer("warn", msg, nil)
 }
 
 // storeInBuffer stores a log entry in the session buffer.
@@ -175,6 +190,36 @@ func (s *service) GetLogs(filter LogFilter) []LogEntry {
 func (s *service) GetLogStats() map[string]interface{} {
 	return s.logBuffer.getStats()
 }
+
+// SetTUIMode disables stdout logging and redirects all logs to the buffer only.
+// This prevents duplicate log output when the TUI is running.
+func (s *service) SetTUIMode(enabled bool) {
+	s.tuiMode = enabled
+	if enabled {
+		// Replace the core with one that only writes to discard (noop output)
+		// This prevents stdout logging during TUI execution
+		s.logger = s.logger.WithOptions(zap.WrapCore(func(zapcore.Core) zapcore.Core {
+			// Create a noop sync to discard output
+			noopSync := zapcore.AddSync(io.Discard)
+			// Create a new core with the same encoder but noop output
+			encoder := newRawModeConsoleEncoder(s.config.EncoderConfig)
+			return zapcore.NewCore(
+				encoder,
+				noopSync,
+				s.atomicLevel,
+			)
+		}))
+	} else {
+		// Restore original logger with stdout output
+		s.logger = s.originalLogger
+	}
+}
+
+// IsTUIMode returns whether TUI mode is enabled.
+func (s *service) IsTUIMode() bool {
+	return s.tuiMode
+}
+
 
 // ============================================================================
 // Custom Console Encoder with \r\n line endings for raw terminal mode

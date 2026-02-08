@@ -42,6 +42,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
+	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/markdown"
 )
 
 // AgentExecutor defines the interface for executing agent commands.
@@ -52,6 +54,17 @@ type AgentExecutor interface {
 
 // tickMsg is sent periodically to update the UI (for agent execution timer).
 type tickMsg time.Time
+
+// logTickMsg is sent periodically to fetch new log entries.
+type logTickMsg time.Time
+
+// mouseDebounceMsg is sent after mouse wheel debouncing to perform the actual scroll.
+// This prevents the UI from being overwhelmed by rapid mouse events.
+type mouseDebounceMsg struct {
+	tag       int    // Unique ID to identify this debounce batch
+	direction int    // -1 for up, 1 for down
+	viewport  string // "main" or "logs"
+}
 
 // agentCompleteMsg is sent when agent execution completes.
 type agentCompleteMsg struct {
@@ -186,6 +199,9 @@ type Model struct {
 	// currentCancel allows canceling the active agent execution
 	currentCancel context.CancelFunc
 
+	// agentStartTime tracks when the current agent execution started
+	agentStartTime time.Time
+
 	// err stores the last agent error
 	err error
 
@@ -205,14 +221,33 @@ type Model struct {
 	width  int
 	height int
 
+	// activeViewport indicates which viewport receives keyboard scroll events
+	// "main" or "logs"
+	activeViewport string
+
 	// messageChan receives messages from AgentMessenger (optional, for TUI mode)
 	messageChan chan Message
 
 	// viewport manages scrollable message display
 	viewport viewport.Model
 
+	// logViewport manages scrollable log output
+	logViewport viewport.Model
+
+	// lastLogFetchSeq tracks the last fetched log sequence number to avoid duplicates
+	lastLogFetchSeq int64
+
+	// logEntries holds the formatted log lines for display
+	logEntries []string
+
+	// logService provides access to fetch logs (injected via DI)
+	logService logger.LoggerService
+
 	// config holds TUI configuration
 	config Config
+
+	// markdownRenderer provides markdown rendering for agent responses
+	markdownRenderer markdown.Renderer
 
 	// searchState tracks history search state (Ctrl+R)
 	searchState searchState
@@ -222,6 +257,12 @@ type Model struct {
 
 	// multiLineBuffer stores the current multi-line input being composed
 	multiLineBuffer []string
+
+	// mouseDebounceTag is incremented on each mouse wheel event for debouncing
+	mouseDebounceTag int
+
+	// mouseDebounceDuration controls how long to wait before processing scroll events
+	mouseDebounceDuration time.Duration
 }
 
 // NewModel creates a new TUI model with initial state.
@@ -237,26 +278,39 @@ func NewModel(ctx context.Context, agent AgentExecutor) Model {
 	ti := textinput.New()
 	ti.Focus()
 	ti.Placeholder = ""
+	ti.Prompt = ""   // Remove default prompt to avoid duplication with custom "> " in view
 	ti.CharLimit = 0 // No limit for agent input
 
 	// Initialize viewport with default size (will be updated on WindowSizeMsg)
 	vp := viewport.New(0, 0)
+	logVp := viewport.New(0, 0)
 
 	return Model{
-		textInput:         ti,
-		quit:              false,
-		messages:          []Message{},
-		agent:             agent,
-		ctx:               ctx,
-		inputHistory:      []string{},
-		inputHistoryIndex: -1,
-		messageChan:       nil, // Will be set by SetMessageChannel
-		viewport:          vp,
-		config:            DefaultConfig(),
-		searchState:       searchState{},
-		multiLineInput:    false,
-		multiLineBuffer:   []string{},
+		textInput:             ti,
+		quit:                  false,
+		messages:              []Message{},
+		agent:                 agent,
+		ctx:                   ctx,
+		inputHistory:          []string{},
+		inputHistoryIndex:     -1,
+		messageChan:           nil, // Will be set by SetMessageChannel
+		viewport:              vp,
+		logViewport:           logVp,
+		lastLogFetchSeq:       -1, // -1 means fetch all logs initially
+		logEntries:            []string{},
+		config:                DefaultConfig(),
+		searchState:           searchState{},
+		multiLineInput:        false,
+		multiLineBuffer:       []string{},
+		activeViewport:        "main", // Start with main viewport active
+		mouseDebounceTag:      0,
+		mouseDebounceDuration: 130 * time.Millisecond, // 30ms debounce for smooth scrolling
 	}
+}
+
+// SetLoggerService sets the logger service for fetching logs.
+func (m *Model) SetLoggerService(service logger.LoggerService) {
+	m.logService = service
 }
 
 // SetConfig sets the TUI configuration.
@@ -264,12 +318,17 @@ func (m *Model) SetConfig(config Config) {
 	m.config = config
 }
 
+// SetMarkdownRenderer sets the markdown renderer for rich text display.
+func (m *Model) SetMarkdownRenderer(renderer markdown.Renderer) {
+	m.markdownRenderer = renderer
+}
+
 // Init initializes the TUI application.
 //
 // This function is called once at the start of the program.
-// It returns the initial command (textinput focus, tick for timer updates, and message listener).
+// It returns the initial command (textinput focus, tick for timer updates, log tick, and message listener).
 func (m Model) Init() tea.Cmd {
-	cmds := []tea.Cmd{textinput.Blink, m.tickCmd()}
+	cmds := []tea.Cmd{textinput.Blink, m.tickCmd(), m.logTickCmd()}
 	if msgCmd := m.waitForMessages(); msgCmd != nil {
 		cmds = append(cmds, msgCmd)
 	}
@@ -280,6 +339,13 @@ func (m Model) Init() tea.Cmd {
 func (m Model) tickCmd() tea.Cmd {
 	return tea.Tick(time.Millisecond*100, func(t time.Time) tea.Msg {
 		return tickMsg(t)
+	})
+}
+
+// logTickCmd returns a command that sends log tick messages to fetch new logs.
+func (m Model) logTickCmd() tea.Cmd {
+	return tea.Tick(time.Millisecond*500, func(t time.Time) tea.Msg {
+		return logTickMsg(t)
 	})
 }
 
@@ -311,15 +377,17 @@ func (m Model) waitForMessages() tea.Cmd {
 
 // updateViewportContent updates the viewport with the current messages.
 func (m Model) updateViewportContent() string {
-	var content string
+	var b strings.Builder
 	for _, msg := range m.messages {
-		content += m.formatMessage(msg) + "\n\n"
+		b.WriteString(m.formatMessage(msg))
+		b.WriteString("\n\n")
 	}
-	return content
+	return b.String()
 }
 
 // formatMessage formats a single message for display in the viewport.
 // Uses lipgloss styling to match the AgentMessenger appearance.
+// For agent messages, it uses the markdown renderer if available.
 func (m Model) formatMessage(msg Message) string {
 	timestamp := msg.Timestamp.Format("15:04:05")
 
@@ -389,13 +457,60 @@ func (m Model) formatMessage(msg Message) string {
 		header = fmt.Sprintf("❓ Unknown %s", timestamp)
 	}
 
-	// Render content with border styling (simplified from AgentMessenger)
+	// Calculate render width accounting for borders and glamour gutter.
+	// Following Charmbracelet best practices:
+	// https://github.com/charmbracelet/bubbletea/blob/main/examples/glamour/main.go
+	//
+	// The border style uses RoundedBorder() which adds 2 chars on each side.
+	// Glamour also adds a 2-char gutter for line numbers/indentation.
+	const (
+		glamourGutter = 2 // Glamour's internal left gutter
+		borderPadding = 4 // RoundedBorder: 2 left + 2 right
+	)
+
+	width := m.width - borderPadding - glamourGutter
+	if width < 20 {
+		width = 20 // Minimum width
+	}
+
+	// For agent messages, use markdown renderer if available
+	// Tool messages and other types use plain word wrapping
+	var contentText string
+	if msg.Type == MessageTypeAgent && m.markdownRenderer != nil {
+		// Use markdown renderer for rich agent responses
+		rendered, err := m.markdownRenderer.Render(context.Background(), msg.Content, width)
+		if err != nil {
+			// Fallback to plain text if rendering fails
+			contentText = msg.Content
+		} else {
+			contentText = rendered
+		}
+	} else {
+		// Use plain text with word wrapping for other message types
+		contentText = msg.Content
+	}
+
+	// Apply word wrapping for plain text content
+	// (markdown content is already wrapped by the renderer)
+	contentStyle := lipgloss.NewStyle().
+		Width(width).
+		MaxWidth(width)
+
+	var wrappedContent string
+	if msg.Type == MessageTypeAgent && m.markdownRenderer != nil {
+		// Markdown renderer already handles wrapping
+		wrappedContent = contentText
+	} else {
+		// Apply word wrapping for plain text
+		wrappedContent = contentStyle.Render(contentText)
+	}
+
+	// Apply minimal border (no padding to save space)
 	borderStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#3498DB")). // Blue border
-		Padding(0, 1)
+		BorderForeground(lipgloss.Color("#3498DB")) // Blue border
 
-	content := borderStyle.Render(msg.Content)
+	content := borderStyle.Render(wrappedContent)
 
 	return header + "\n" + content
 }
@@ -501,7 +616,7 @@ func (m *Model) executeCommand(cmd string) (tea.Model, tea.Cmd) {
 		}
 		m.messages = append(m.messages, systemMsg)
 		m.viewport.SetContent(m.updateViewportContent())
-		m.viewport.GotoBottom()
+		m.viewport.GotoTop()
 		return m, nil
 
 	case "/quit":
@@ -540,7 +655,7 @@ Ctrl+R    - Search history (type query, use C-s/C-r to navigate)`
 		}
 		m.messages = append(m.messages, helpMsg)
 		m.viewport.SetContent(m.updateViewportContent())
-		m.viewport.GotoBottom()
+		m.viewport.GotoTop()
 		return m, nil
 
 	case "/export":
@@ -559,7 +674,7 @@ Ctrl+R    - Search history (type query, use C-s/C-r to navigate)`
 		}
 		m.messages = append(m.messages, errorMsg)
 		m.viewport.SetContent(m.updateViewportContent())
-		m.viewport.GotoBottom()
+		m.viewport.GotoTop()
 		return m, nil
 	}
 }

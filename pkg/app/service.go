@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/markdown"
 	"github.com/denkhaus/gollum/pkg/mcp"
 	"github.com/denkhaus/gollum/pkg/middleware"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
@@ -28,12 +29,13 @@ type ApplicationService interface {
 
 // applicationServiceImpl implements the ApplicationService interface
 type applicationServiceImpl struct {
-	logService    logger.LoggerService
-	fsm           state.FileStateManager
-	agentRegistry registry.AgentRegistry
-	promptMgr     manager.PromptManager
-	displayProv   middleware.DisplayMiddlewareProvider
-	agentFactory  shared.AgentFactory
+	logService      logger.LoggerService
+	fsm             state.FileStateManager
+	agentRegistry   registry.AgentRegistry
+	promptMgr       manager.PromptManager
+	displayProv     middleware.DisplayMiddlewareProvider
+	agentFactory    shared.AgentFactory
+	markdownRenderer markdown.Renderer
 }
 
 // Ensure implementation satisfies interface
@@ -47,14 +49,16 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 	promptMgr := do.MustInvoke[manager.PromptManager](injector)
 	displayProv := do.MustInvoke[middleware.DisplayMiddlewareProvider](injector)
 	agentFactory := do.MustInvoke[shared.AgentFactory](injector)
+	markdownRenderer := do.MustInvoke[markdown.Renderer](injector)
 
 	return &applicationServiceImpl{
-		logService:    logService,
-		fsm:           fsm,
-		agentRegistry: agentRegistry,
-		promptMgr:     promptMgr,
-		displayProv:   displayProv,
-		agentFactory:  agentFactory,
+		logService:      logService,
+		fsm:             fsm,
+		agentRegistry:   agentRegistry,
+		promptMgr:       promptMgr,
+		displayProv:     displayProv,
+		agentFactory:    agentFactory,
+		markdownRenderer: markdownRenderer,
 	}, nil
 }
 
@@ -165,8 +169,19 @@ func (p *applicationServiceImpl) runInteractiveLoop(ctx context.Context, agent s
 	// Create agent executor adapter
 	executor := &agentExecutorAdapter{agent: agent}
 
-	// Create and run the TUI program
-	prog := tui.NewProgramWithContext(ctx, executor)
+	// Enable TUI mode to disable stdout logging (logs go to buffer only)
+	p.logService.SetTUIMode(true)
+	defer p.logService.SetTUIMode(false) // Restore stdout logging on exit
+
+	// Create and run the TUI program with message channel integration, logger service, and markdown renderer
+	// This ensures AgentMessenger sends messages to the TUI instead of stdout
+	// and logs are displayed in a dedicated panel
+	// Markdown is rendered with syntax highlighting for agent responses
+	prog := tui.NewProgramWithContext(ctx, executor,
+		tui.WithMessageChannel(),
+		tui.WithLoggerService(p.logService),
+		tui.WithMarkdownRenderer(p.markdownRenderer),
+	)
 
 	_, err := prog.Run()
 	if err != nil {

@@ -17,3 +17,5 @@ package mocks
 //go:generate go run -tags=mock go.uber.org/mock/mockgen -destination=mock_session.go -package=mocks github.com/m-mizutani/gollem Session
 //go:generate go run go.uber.org/mock/mockgen -source=../tools/agent_execution_helper.go -destination=mock_agent_execution_helper.go -package=mocks github.com/denkhaus/gollum/pkg/tools AgentExecutionHelper
 //go:generate go run go.uber.org/mock/mockgen -source=../hooks/manager.go -destination=mock_hook_manager.go -package=mocks github.com/denkhaus/gollum/pkg/hooks HookManager
+//go:generate go run go.uber.org/mock/mockgen -source=../markdown/renderer.go -destination=mock_markdown_renderer.go -package=mocks github.com/denkhaus/gollum/pkg/markdown Renderer
+//go:generate go run go.uber.org/mock/mockgen -source=../tui/model.go -destination=mock_agent_executor.go -package=mocks github.com/denkhaus/gollum/pkg/tui AgentExecutor

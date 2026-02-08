@@ -202,12 +202,15 @@ func (t *SpawnAgentTool) runSpawnAgent(ctx context.Context, args map[string]any)
 
 	// Execute based on mode
 	if runInBackground {
-		// Asynchronous execution - create cancellable context from request context
-		// This allows the background agent to be cancelled if the request is cancelled
-		bgCtx, cancel := context.WithCancel(ctx)
+		// Asynchronous execution - create independent context for background agent
+		// This ensures the background agent continues running even after the parent request completes
+		// The background agent is not tied to the parent request lifecycle
+		bgCtx := context.Background()
 
-		// Register agent with cancel function
-		if err := t.registry.Register(subagent, subagentConfig, cancel); err != nil {
+		// Register agent with cancel function (using bgCtx, not parent ctx)
+		// Note: The cancel function won't be tied to parent context anymore
+		// Background agents should be explicitly cancelled via RemoveAgentTool
+		if err := t.registry.Register(subagent, subagentConfig, nil); err != nil {
 			t.logService.Errorf("Failed to register background agent: %v", err)
 			return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to register agent: %v", err)), nil
 		}
