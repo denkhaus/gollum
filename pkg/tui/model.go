@@ -32,14 +32,16 @@ package tui
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
+
+	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
 )
 
 // AgentExecutor defines the interface for executing agent commands.
@@ -121,6 +123,43 @@ type newMessageMsg struct {
 	message Message
 }
 
+// Config holds TUI configuration from environment variables.
+type Config struct {
+	// HistoryMaxSize is the maximum number of history entries to keep
+	HistoryMaxSize int
+
+	// EnableTimestamps controls whether timestamps are shown in messages
+	EnableTimestamps bool
+
+	// EnableColors controls whether colors are used in the UI
+	EnableColors bool
+
+	// StatusEnabled controls whether the status bar is shown
+	StatusEnabled bool
+
+	// MultiLineEnabled controls whether multi-line input is enabled
+	MultiLineEnabled bool
+}
+
+// DefaultConfig returns the default TUI configuration.
+func DefaultConfig() Config {
+	return Config{
+		HistoryMaxSize:   1000,
+		EnableTimestamps: true,
+		EnableColors:     true,
+		StatusEnabled:    true,
+		MultiLineEnabled: true,
+	}
+}
+
+// searchState represents the current state of history search (Ctrl+R).
+type searchState struct {
+	active     bool
+	query      string
+	matchedIdx int
+	results    []int // Indices of matching history entries
+}
+
 // Model represents the application state for the TUI.
 //
 // In Bubbletea's architecture, the Model is a pure data structure that
@@ -174,6 +213,18 @@ type Model struct {
 
 	// viewport manages scrollable message display
 	viewport viewport.Model
+
+	// config holds TUI configuration
+	config Config
+
+	// searchState tracks history search state (Ctrl+R)
+	searchState searchState
+
+	// multiLineInput indicates whether multi-line input mode is active
+	multiLineInput bool
+
+	// multiLineBuffer stores the current multi-line input being composed
+	multiLineBuffer []string
 }
 
 // NewModel creates a new TUI model with initial state.
@@ -204,7 +255,16 @@ func NewModel(ctx context.Context, agent AgentExecutor) Model {
 		inputHistoryIndex: -1,
 		messageChan:       nil, // Will be set by SetMessageChannel
 		viewport:          vp,
+		config:            DefaultConfig(),
+		searchState:       searchState{},
+		multiLineInput:    false,
+		multiLineBuffer:   []string{},
 	}
+}
+
+// SetConfig sets the TUI configuration.
+func (m *Model) SetConfig(config Config) {
+	m.config = config
 }
 
 // Init initializes the TUI application.
@@ -355,3 +415,157 @@ func formatAgentName(agentID uuid.UUID, role string) string {
 	}
 	return "agent"
 }
+
+// addToHistory adds input to history with size limit enforcement.
+func (m *Model) addToHistory(input string) {
+	// Skip empty inputs and duplicates of the most recent entry
+	if input == "" || (len(m.inputHistory) > 0 && m.inputHistory[len(m.inputHistory)-1] == input) {
+		return
+	}
+
+	m.inputHistory = append(m.inputHistory, input)
+
+	// Enforce history size limit
+	if len(m.inputHistory) > m.config.HistoryMaxSize {
+		// Keep only the most recent entries
+		m.inputHistory = m.inputHistory[len(m.inputHistory)-m.config.HistoryMaxSize:]
+	}
+
+	// Reset history index to point to the "new" position (after the added entry)
+	m.inputHistoryIndex = len(m.inputHistory)
+}
+
+// searchHistory performs a case-insensitive search through history.
+// Returns indices of matching entries.
+func (m Model) searchHistory(query string) []int {
+	var results []int
+	query = strings.ToLower(query)
+
+	for i, entry := range m.inputHistory {
+		if strings.Contains(strings.ToLower(entry), query) {
+			results = append(results, i)
+		}
+	}
+
+	return results
+}
+
+// nextSearchResult navigates to the next search result.
+func (m *Model) nextSearchResult() {
+	if len(m.searchState.results) == 0 {
+		return
+	}
+
+	m.searchState.matchedIdx = (m.searchState.matchedIdx + 1) % len(m.searchState.results)
+	m.textInput.SetValue(m.inputHistory[m.searchState.results[m.searchState.matchedIdx]])
+	m.textInput.CursorEnd()
+}
+
+// prevSearchResult navigates to the previous search result.
+func (m *Model) prevSearchResult() {
+	if len(m.searchState.results) == 0 {
+		return
+	}
+
+	m.searchState.matchedIdx = (m.searchState.matchedIdx - 1 + len(m.searchState.results)) % len(m.searchState.results)
+	m.textInput.SetValue(m.inputHistory[m.searchState.results[m.searchState.matchedIdx]])
+	m.textInput.CursorEnd()
+}
+
+// exitSearch exits history search mode.
+func (m *Model) exitSearch() {
+	m.searchState = searchState{}
+}
+
+// getMessageCount returns the total number of messages.
+func (m Model) getMessageCount() int {
+	return len(m.messages)
+}
+
+// executeCommand handles TUI slash commands.
+func (m *Model) executeCommand(cmd string) (tea.Model, tea.Cmd) {
+	parts := strings.Fields(cmd)
+	if len(parts) == 0 {
+		return m, nil
+	}
+
+	command := parts[0]
+
+	switch command {
+	case "/clear":
+		// Clear all messages
+		m.messages = []Message{}
+		m.viewport.SetContent("")
+		systemMsg := Message{
+			ID:        uuid.New(),
+			Type:      MessageTypeSystem,
+			Content:   "Messages cleared",
+			Timestamp: time.Now(),
+		}
+		m.messages = append(m.messages, systemMsg)
+		m.viewport.SetContent(m.updateViewportContent())
+		m.viewport.GotoBottom()
+		return m, nil
+
+	case "/quit":
+		// Quit the TUI
+		m.quit = true
+		goodbyeMsg := Message{
+			ID:        uuid.New(),
+			Type:      MessageTypeSystem,
+			Content:   "👋 Goodbye!",
+			Timestamp: time.Now(),
+		}
+		m.messages = append(m.messages, goodbyeMsg)
+		m.viewport.SetContent(m.updateViewportContent())
+		return m, tea.Quit
+
+	case "/help":
+		// Show help message
+		helpText := `TUI Commands:
+/clear    - Clear all messages
+/export   - Export conversation to file
+/help     - Show this help message
+/quit     - Exit the TUI
+
+Keyboard Shortcuts:
+Ctrl+C    - Quit
+Esc       - Cancel active agent
+Enter     - Submit input
+Alt+Enter - New line (multi-line input)
+↑/↓       - Navigate history
+Ctrl+R    - Search history (type query, use C-s/C-r to navigate)`
+		helpMsg := Message{
+			ID:        uuid.New(),
+			Type:      MessageTypeSystem,
+			Content:   helpText,
+			Timestamp: time.Now(),
+		}
+		m.messages = append(m.messages, helpMsg)
+		m.viewport.SetContent(m.updateViewportContent())
+		m.viewport.GotoBottom()
+		return m, nil
+
+	case "/export":
+		// Export conversation - return a command to handle the export
+		return m, func() tea.Msg {
+			return exportMsg{}
+		}
+
+	default:
+		// Unknown command
+		errorMsg := Message{
+			ID:        uuid.New(),
+			Type:      MessageTypeError,
+			Content:   fmt.Sprintf("Unknown command: %s. Type /help for available commands.", command),
+			Timestamp: time.Now(),
+		}
+		m.messages = append(m.messages, errorMsg)
+		m.viewport.SetContent(m.updateViewportContent())
+		m.viewport.GotoBottom()
+		return m, nil
+	}
+}
+
+// exportMsg is sent when /export command is invoked.
+type exportMsg struct{}

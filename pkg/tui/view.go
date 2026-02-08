@@ -17,8 +17,9 @@ import (
 //
 // The view is rendered in order:
 //  1. Viewport with scrollable message history
-//  2. Prompt with current text input or agent execution status
-//  3. Instructions footer
+//  2. Status bar (if enabled)
+//  3. Prompt with current text input or agent execution status
+//  4. Instructions footer
 func (m Model) View() string {
 	if m.quit {
 		return ""
@@ -27,7 +28,10 @@ func (m Model) View() string {
 	var b strings.Builder
 
 	// Viewport section with scrollable messages
-	viewportHeight := m.height - 3 // Reserve space for input and footer
+	viewportHeight := m.height - 4
+	if m.config.StatusEnabled {
+		viewportHeight-- // Extra line for status bar
+	}
 	if viewportHeight < 1 {
 		viewportHeight = 1
 	}
@@ -42,27 +46,131 @@ func (m Model) View() string {
 
 	b.WriteString(m.viewport.View())
 
-	// Prompt and input section
-	if m.agentExecuting {
-		elapsed := time.Since(m.agentStartTime)
-		promptStyle := lipgloss.NewStyle().
+	// Status bar (if enabled)
+	if m.config.StatusEnabled {
+		b.WriteString("\n" + m.renderStatusBar())
+	}
+
+	// Render input section based on current mode
+	switch {
+	case m.multiLineInput && m.config.MultiLineEnabled:
+		// Multi-line input indicator
+		multiLineStyle := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#F39C12")). // Orange
 			Bold(true)
-		b.WriteString("\n" + promptStyle.Render(fmt.Sprintf("> [Executing... %v]", elapsed.Round(time.Second))))
-	} else {
-		promptStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#3498DB")). // Blue
+		lineCount := len(m.multiLineBuffer)
+		if current := m.textInput.Value(); current != "" {
+			lineCount++
+		}
+		b.WriteString("\n" + multiLineStyle.Render(fmt.Sprintf("[Multi-line: %d lines] (Alt+Enter to add line, Enter to submit, Esc to cancel)", lineCount)))
+		b.WriteString("\n" + m.textInput.View())
+
+	case m.searchState.active:
+		// Search mode indicator
+		searchStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#9B59B6")). // Purple
 			Bold(true)
-		b.WriteString("\n" + promptStyle.Render("> ") + m.textInput.View())
+		matchedCount := len(m.searchState.results)
+		if matchedCount > 0 {
+			b.WriteString("\n" + searchStyle.Render(fmt.Sprintf("[Search: %s] (%d matches, %d/%d) Ctrl+S/R: nav, Enter: accept, Esc: exit]",
+				m.searchState.query, matchedCount, m.searchState.matchedIdx+1, matchedCount)))
+		} else {
+			b.WriteString("\n" + searchStyle.Render(fmt.Sprintf("[Search: %s] (no matches) Esc: exit", m.searchState.query)))
+		}
+
+	default:
+		// Prompt and input section
+		if m.agentExecuting {
+			elapsed := time.Since(m.agentStartTime)
+			promptStyle := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#F39C12")). // Orange
+				Bold(true)
+			b.WriteString("\n" + promptStyle.Render(fmt.Sprintf("> [Executing... %v]", elapsed.Round(time.Second))))
+		} else {
+			promptStyle := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#3498DB")). // Blue
+				Bold(true)
+			b.WriteString("\n" + promptStyle.Render("> ") + m.textInput.View())
+		}
 	}
 
 	// Footer with instructions
+	b.WriteString("\n" + m.renderFooter())
+
+	return b.String()
+}
+
+// renderStatusBar renders the status bar with agent status and message count.
+func (m Model) renderStatusBar() string {
+	// Build status bar content
+	statusParts := []string{}
+
+	// Agent status
+	if m.agentExecuting {
+		statusParts = append(statusParts, lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#F39C12")). // Orange
+			Bold(true).
+			Render("⚡ Executing"))
+	} else {
+		statusParts = append(statusParts, lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#2ECC71")). // Green
+			Render("● Idle"))
+	}
+
+	// Message count
+	statusParts = append(statusParts, lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#7F8C8D")). // Gray
+		Render(fmt.Sprintf("Messages: %d", m.getMessageCount())))
+
+	// History size
+	statusParts = append(statusParts, lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#7F8C8D")). // Gray
+		Render(fmt.Sprintf("History: %d/%d", len(m.inputHistory), m.config.HistoryMaxSize)))
+
+	// Join parts with separator
+	statusBar := lipgloss.JoinHorizontal(lipgloss.Left, statusParts...)
+
+	// Apply status bar styling
+	statusBarStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#2C3E50")). // Dark blue-gray
+		Foreground(lipgloss.Color("#ECF0F1")). // Light gray
+		Padding(0, 1).
+		Width(m.width)
+
+	return statusBarStyle.Render(statusBar)
+}
+
+// renderFooter renders the footer with keyboard shortcuts.
+func (m Model) renderFooter() string {
+	shortcuts := []string{
+		"Ctrl+C: Quit",
+		"Esc: Cancel/Exit",
+		"Enter: Submit",
+	}
+
+	if m.config.MultiLineEnabled {
+		shortcuts = append(shortcuts, "Alt+Enter: Multi-line")
+	}
+
+	shortcuts = append(shortcuts, "↑/↓: History", "Ctrl+R: Search")
+
+	// Add multi-line specific shortcut if in multi-line mode
+	if m.multiLineInput {
+		shortcuts = []string{"Alt+Enter: New line", "Enter: Submit", "Esc: Cancel"}
+	}
+
+	// Add search specific shortcuts if in search mode
+	if m.searchState.active {
+		shortcuts = []string{"Ctrl+S/R: Navigate", "Enter: Accept", "Esc: Exit"}
+	}
+
 	footerStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#7F8C8D")). // Gray
 		Faint(true)
-	b.WriteString("\n" + footerStyle.Render("Ctrl+C: Quit | Esc: Cancel Agent | Enter: Submit | ↑/↓: History"))
 
-	return b.String()
+	// Join shortcuts with proper spacing
+	footerText := strings.Join(shortcuts, " | ")
+	return footerStyle.Render(footerText)
 }
 
 // NewProgramWithContext creates a new Bubbletea program with the TUI model.
