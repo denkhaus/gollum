@@ -547,48 +547,6 @@ func (m *Model) addToHistory(input string) {
 	m.inputHistoryIndex = len(m.inputHistory)
 }
 
-// searchHistory performs a case-insensitive search through history.
-// Returns indices of matching entries.
-func (m Model) searchHistory(query string) []int {
-	var results []int
-	query = strings.ToLower(query)
-
-	for i, entry := range m.inputHistory {
-		if strings.Contains(strings.ToLower(entry), query) {
-			results = append(results, i)
-		}
-	}
-
-	return results
-}
-
-// nextSearchResult navigates to the next search result.
-func (m *Model) nextSearchResult() {
-	if len(m.searchState.results) == 0 {
-		return
-	}
-
-	m.searchState.matchedIdx = (m.searchState.matchedIdx + 1) % len(m.searchState.results)
-	m.textInput.SetValue(m.inputHistory[m.searchState.results[m.searchState.matchedIdx]])
-	m.textInput.CursorEnd()
-}
-
-// prevSearchResult navigates to the previous search result.
-func (m *Model) prevSearchResult() {
-	if len(m.searchState.results) == 0 {
-		return
-	}
-
-	m.searchState.matchedIdx = (m.searchState.matchedIdx - 1 + len(m.searchState.results)) % len(m.searchState.results)
-	m.textInput.SetValue(m.inputHistory[m.searchState.results[m.searchState.matchedIdx]])
-	m.textInput.CursorEnd()
-}
-
-// exitSearch exits history search mode.
-func (m *Model) exitSearch() {
-	m.searchState = searchState{}
-}
-
 // getMessageCount returns the total number of messages.
 func (m Model) getMessageCount() int {
 	return len(m.messages)
