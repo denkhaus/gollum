@@ -1,11 +1,14 @@
 package tui
 
+// This file handles conversation export for the TUI.
+
 import (
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/google/uuid"
 )
 

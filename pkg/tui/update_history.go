@@ -1,5 +1,7 @@
 package tui
 
+// This file handles input history navigation for the TUI.
+
 import tea "github.com/charmbracelet/bubbletea"
 
 // handleHistoryNavigation handles up/down arrow for input history.

@@ -1,5 +1,7 @@
 package tui
 
+// This file handles multi-line input mode for the TUI.
+
 import (
 	"strings"
 
