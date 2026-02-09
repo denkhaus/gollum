@@ -3,7 +3,6 @@ package tui
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -504,39 +503,6 @@ func (m Model) handleSearchKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 }
 
-// submitMultiLineInput submits the multi-line buffer as a single message.
-func (m Model) submitMultiLineInput() (tea.Model, tea.Cmd) {
-	currentInput := m.textInput.Value()
-	if currentInput != "" {
-		m.multiLineBuffer = append(m.multiLineBuffer, currentInput)
-	}
-
-	// Join all lines with newlines
-	input := strings.Join(m.multiLineBuffer, "\n")
-	input = strings.TrimSpace(input)
-
-	if input == "" {
-		return m.exitMultiLineMode()
-	}
-
-	// Exit multi-line mode first
-	m.multiLineInput = false
-	m.multiLineBuffer = []string{}
-	m.textInput.SetValue(input)
-
-	// Now submit as regular input
-	return m.handleKeyMsg(tea.KeyMsg{Type: tea.KeyEnter})
-}
-
-// exitMultiLineMode exits multi-line input mode, discarding the buffer.
-func (m Model) exitMultiLineMode() (tea.Model, tea.Cmd) {
-	m.multiLineInput = false
-	m.multiLineBuffer = []string{}
-	m.textInput.SetValue("")
-	return m, nil
-}
-
-
 // handleHistoryNavigation handles up/down arrow for input history.
 func (m Model) handleHistoryNavigation(keyType tea.KeyType) (tea.Model, tea.Cmd) {
 	if len(m.inputHistory) == 0 {
@@ -595,9 +561,9 @@ func (m Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		// Return a debounce command with the current tag
 		return m, tea.Tick(m.mouseDebounceDuration, func(_ time.Time) tea.Msg {
 			return mouseDebounceMsg{
-				tag:      m.mouseDebounceTag,
+				tag:       m.mouseDebounceTag,
 				direction: direction,
-				viewport: m.activeViewport,
+				viewport:  m.activeViewport,
 			}
 		})
 	}
