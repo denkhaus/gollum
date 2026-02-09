@@ -536,67 +536,6 @@ func (m Model) exitMultiLineMode() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// handleExport handles conversation export to a file.
-func (m Model) handleExport() (tea.Model, tea.Cmd) {
-	// Generate filename with timestamp
-	timestamp := time.Now().Format("20060102_150405")
-	filename := fmt.Sprintf("gollum_export_%s.txt", timestamp)
-
-	// Build export content
-	var content strings.Builder
-	content.WriteString("# Gollum Conversation Export\n")
-	content.WriteString(fmt.Sprintf("# Exported: %s\n", time.Now().Format(time.RFC3339)))
-	content.WriteString(fmt.Sprintf("# Total Messages: %d\n", len(m.messages)))
-	content.WriteString(strings.Repeat("=", 60) + "\n\n")
-
-	for _, msg := range m.messages {
-		timestamp := msg.Timestamp.Format("2006-01-02 15:04:05")
-		var prefix string
-
-		switch msg.Type {
-		case MessageTypeUser:
-			prefix = fmt.Sprintf("[%s] 👤 You:", timestamp)
-		case MessageTypeAgent:
-			prefix = fmt.Sprintf("[%s] 🤖 Agent:", timestamp)
-		case MessageTypeTool:
-			prefix = fmt.Sprintf("[%s] ⚡ Tool:", timestamp)
-		case MessageTypeSystem:
-			prefix = fmt.Sprintf("[%s] 🚀 System:", timestamp)
-		case MessageTypeError:
-			prefix = fmt.Sprintf("[%s] ❌ Error:", timestamp)
-		default:
-			prefix = fmt.Sprintf("[%s] ❓ Unknown:", timestamp)
-		}
-
-		content.WriteString(prefix + "\n")
-		content.WriteString(msg.Content)
-		content.WriteString("\n\n")
-	}
-
-	// Write to file
-	err := os.WriteFile(filename, []byte(content.String()), 0644)
-	if err != nil {
-		errorMsg := Message{
-			ID:        uuid.New(),
-			Type:      MessageTypeError,
-			Content:   fmt.Sprintf("Failed to export conversation: %v", err),
-			Timestamp: time.Now(),
-		}
-		m.messages = append(m.messages, errorMsg)
-	} else {
-		successMsg := Message{
-			ID:        uuid.New(),
-			Type:      MessageTypeSystem,
-			Content:   fmt.Sprintf("Conversation exported to: %s", filename),
-			Timestamp: time.Now(),
-		}
-		m.messages = append(m.messages, successMsg)
-	}
-
-	m.viewport.SetContent(m.updateViewportContent())
-	m.viewport.GotoTop()
-	return m, nil
-}
 
 // handleHistoryNavigation handles up/down arrow for input history.
 func (m Model) handleHistoryNavigation(keyType tea.KeyType) (tea.Model, tea.Cmd) {
