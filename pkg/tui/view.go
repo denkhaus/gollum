@@ -170,10 +170,13 @@ func (m Model) renderFooter() string {
 	activeViewportStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#F39C12")). // Orange
 		Bold(true)
-	if m.activeViewport == "logs" {
+	switch m.activeViewport {
+	case "logs":
 		shortcuts = append(shortcuts, activeViewportStyle.Render("● Logs: Ctrl+L|PgUp/Down"))
-	} else {
-		shortcuts = append(shortcuts, "● Main: Ctrl+L|PgUp/Down")
+	case "input":
+		shortcuts = append(shortcuts, activeViewportStyle.Render("● Input: Ctrl+L|↑/↓ History"))
+	default: // "main"
+		shortcuts = append(shortcuts, activeViewportStyle.Render("● Main: Ctrl+L|PgUp/Down"))
 	}
 
 	// Add multi-line specific shortcut if in multi-line mode

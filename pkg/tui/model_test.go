@@ -310,8 +310,9 @@ func TestUpdate_AgentCompleteMsg(t *testing.T) {
 	response := &gollem.ExecuteResponse{Texts: []string{"test response"}}
 	newModel, cmd := m.Update(agentCompleteMsg{response: response, err: nil})
 
-	if cmd != nil {
-		t.Error("agentCompleteMsg should not return a command")
+	// Blink command should be returned to restore cursor
+	if cmd == nil {
+		t.Error("agentCompleteMsg should return a command (textinput.Blink)")
 	}
 
 	newM := newModel.(Model)
@@ -344,8 +345,9 @@ func TestUpdate_AgentCompleteMsgWithError(t *testing.T) {
 	testErr := fmt.Errorf("test error")
 	newModel, cmd := m.Update(agentCompleteMsg{response: nil, err: testErr})
 
-	if cmd != nil {
-		t.Error("agentCompleteMsg with error should not return a command")
+	// Blink command should be returned to restore cursor
+	if cmd == nil {
+		t.Error("agentCompleteMsg with error should return a command (textinput.Blink)")
 	}
 
 	newM := newModel.(Model)

@@ -2,3 +2,4 @@ coverage.out
 
 # Git worktrees for isolated development
 .worktrees/
+snippets.md

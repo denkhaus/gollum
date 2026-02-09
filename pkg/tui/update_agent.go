@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 )
@@ -26,14 +27,15 @@ func (m Model) handleAgentCompleteMsg(msg agentCompleteMsg) (Model, tea.Cmd) {
 	// Restore preserved input if user canceled during execution
 	m = m.restorePreservedInput()
 
-	return m, nil
+	// Return Blink command to restore cursor blinking
+	return m, textinput.Blink
 }
 
 // handleNewMessageMsg handles new messages from AgentMessenger.
 func (m Model) handleNewMessageMsg(msg newMessageMsg) (Model, tea.Cmd) {
 	m.messages = append(m.messages, msg.message)
 	m.viewport.SetContent(m.updateViewportContent())
-	m.viewport.GotoTop()
+	m.viewport.GotoBottom()
 	return m, m.waitForMessages()
 }
 
@@ -52,7 +54,7 @@ func (m Model) handleAgentError(err error) Model {
 
 	// Update viewport with error message
 	m.viewport.SetContent(m.updateViewportContent())
-	m.viewport.GotoTop()
+	m.viewport.GotoBottom()
 
 	return m
 }
@@ -77,7 +79,7 @@ func (m Model) handleAgentResponse(response *gollem.ExecuteResponse) Model {
 		}
 		// Update viewport with new messages
 		m.viewport.SetContent(m.updateViewportContent())
-		m.viewport.GotoTop()
+		m.viewport.GotoBottom()
 	}
 	// When messageChan is active, messages were already added via newMessageMsg
 	// during execution, so no viewport update needed here
