@@ -503,38 +503,6 @@ func (m Model) handleSearchKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 }
 
-// handleHistoryNavigation handles up/down arrow for input history.
-func (m Model) handleHistoryNavigation(keyType tea.KeyType) (tea.Model, tea.Cmd) {
-	if len(m.inputHistory) == 0 {
-		var cmd tea.Cmd
-		m.textInput, cmd = m.textInput.Update(tea.KeyMsg{Type: keyType})
-		return m, cmd
-	}
-
-	switch keyType {
-	case tea.KeyUp:
-		// Navigate to older history
-		if m.inputHistoryIndex > 0 {
-			m.inputHistoryIndex--
-			m.textInput.SetValue(m.inputHistory[m.inputHistoryIndex])
-			m.textInput.CursorEnd()
-		}
-	case tea.KeyDown:
-		// Navigate to newer history
-		if m.inputHistoryIndex < len(m.inputHistory)-1 {
-			m.inputHistoryIndex++
-			m.textInput.SetValue(m.inputHistory[m.inputHistoryIndex])
-			m.textInput.CursorEnd()
-		} else if m.inputHistoryIndex == len(m.inputHistory)-1 {
-			// Clear input when going past the newest history item
-			m.inputHistoryIndex = len(m.inputHistory)
-			m.textInput.SetValue("")
-		}
-	}
-
-	return m, nil
-}
-
 // handleMouseMsg handles mouse events with debouncing for smooth scrolling.
 //
 // This function implements the debounce pattern from Charmbracelet's example:
