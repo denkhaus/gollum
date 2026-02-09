@@ -36,7 +36,7 @@ func (m Model) handleExport() (tea.Model, tea.Cmd) {
 	}
 
 	m.viewport.SetContent(m.updateViewportContent())
-	m.viewport.GotoTop()
+	m.viewport.GotoBottom()
 	return m, nil
 }
 

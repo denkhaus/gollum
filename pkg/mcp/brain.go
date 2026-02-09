@@ -26,3 +26,15 @@ func NewTavilySearchMCPClient(ctx context.Context) (*mcp.Client, error) {
 	)
 
 }
+
+func NewForgejoMCPClient(ctx context.Context) (*mcp.Client, error) {
+	return mcp.NewStdio(ctx, "forgejo-mcp", []string{
+		"--transport",
+		"stdio",
+		"--url",
+		"https://git.cluster.mirtuell.net",
+	},
+		mcp.WithStdioClientInfo("forgejo-client", "1.0.0"),
+		mcp.WithEnvVars([]string{"FORGEJO_ACCESS_TOKEN=b415ffa48423f9c6ad82197c9e487723af505525"}),
+	)
+}

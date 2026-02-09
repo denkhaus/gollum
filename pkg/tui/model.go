@@ -302,7 +302,7 @@ func NewModel(ctx context.Context, agent AgentExecutor) Model {
 		searchState:           searchState{},
 		multiLineInput:        false,
 		multiLineBuffer:       []string{},
-		activeViewport:        "main", // Start with main viewport active
+		activeViewport:        "input", // Start with input focus for history navigation
 		mouseDebounceTag:      0,
 		mouseDebounceDuration: 130 * time.Millisecond, // 30ms debounce for smooth scrolling
 	}

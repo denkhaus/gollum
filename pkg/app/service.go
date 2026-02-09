@@ -29,12 +29,12 @@ type ApplicationService interface {
 
 // applicationServiceImpl implements the ApplicationService interface
 type applicationServiceImpl struct {
-	logService      logger.LoggerService
-	fsm             state.FileStateManager
-	agentRegistry   registry.AgentRegistry
-	promptMgr       manager.PromptManager
-	displayProv     middleware.DisplayMiddlewareProvider
-	agentFactory    shared.AgentFactory
+	logService       logger.LoggerService
+	fsm              state.FileStateManager
+	agentRegistry    registry.AgentRegistry
+	promptMgr        manager.PromptManager
+	displayProv      middleware.DisplayMiddlewareProvider
+	agentFactory     shared.AgentFactory
 	markdownRenderer markdown.Renderer
 }
 
@@ -52,12 +52,12 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 	markdownRenderer := do.MustInvoke[markdown.Renderer](injector)
 
 	return &applicationServiceImpl{
-		logService:      logService,
-		fsm:             fsm,
-		agentRegistry:   agentRegistry,
-		promptMgr:       promptMgr,
-		displayProv:     displayProv,
-		agentFactory:    agentFactory,
+		logService:       logService,
+		fsm:              fsm,
+		agentRegistry:    agentRegistry,
+		promptMgr:        promptMgr,
+		displayProv:      displayProv,
+		agentFactory:     agentFactory,
 		markdownRenderer: markdownRenderer,
 	}, nil
 }
@@ -118,6 +118,14 @@ func (p *applicationServiceImpl) createToolSet(ctx context.Context) ([]gollem.To
 	}
 
 	toolSet = append(toolSet, tavilySearachMCP)
+
+	forgejoMCP, err := mcp.NewForgejoMCPClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create forgejo MCP client: %w", err)
+	}
+
+	toolSet = append(toolSet, forgejoMCP)
+
 	return toolSet, nil
 }
 

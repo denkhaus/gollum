@@ -143,7 +143,7 @@ func (m Model) handleSubmitInput() (tea.Model, tea.Cmd) {
 	}
 	m.messages = append(m.messages, userMsg)
 	m.viewport.SetContent(m.updateViewportContent())
-	m.viewport.GotoTop() // Start from top to show conversation from beginning
+	m.viewport.GotoBottom() // Show latest message at bottom
 
 	// Add to history with size limit
 	m.addToHistory(input)
@@ -172,9 +172,14 @@ func (m Model) handleQuitCommand() (tea.Model, tea.Cmd) {
 	return m, tea.Quit
 }
 
-// handleArrowKeys handles arrow keys for viewport scrolling.
+// handleArrowKeys handles arrow keys for viewport scrolling or input history.
 func (m Model) handleArrowKeys(keyType tea.KeyType) (tea.Model, tea.Cmd) {
-	// Arrow keys always scroll the active viewport
+	// If input focus is active, use arrow keys for history navigation
+	if m.activeViewport == "input" {
+		return m.handleHistoryNavigation(keyType)
+	}
+
+	// Otherwise, scroll the active viewport
 	// Scroll multiple lines at once for better performance
 	scrollLines := 5 // Scroll 5 lines per keypress
 	if m.activeViewport == "logs" {
@@ -216,11 +221,14 @@ func (m Model) handleCtrlR() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// handleCtrlL toggles between main and log viewport.
+// handleCtrlL cycles through main viewport → log viewport → input focus (for history).
 func (m Model) handleCtrlL() (tea.Model, tea.Cmd) {
-	if m.activeViewport == "main" {
+	switch m.activeViewport {
+	case "main":
 		m.activeViewport = "logs"
-	} else {
+	case "logs":
+		m.activeViewport = "input"
+	case "input":
 		m.activeViewport = "main"
 	}
 	return m, nil
@@ -228,6 +236,14 @@ func (m Model) handleCtrlL() (tea.Model, tea.Cmd) {
 
 // handlePageKeys handles page up/down keys.
 func (m Model) handlePageKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// If input focus is active, use page keys for faster history navigation
+	if m.activeViewport == "input" {
+		if msg.Type == tea.KeyPgUp {
+			return m.navigateHistory(tea.KeyUp), nil
+		}
+		return m.navigateHistory(tea.KeyDown), nil
+	}
+
 	// Scroll the active viewport
 	if m.activeViewport == "logs" {
 		var cmd tea.Cmd
@@ -241,6 +257,11 @@ func (m Model) handlePageKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // handleShiftArrows handles shift+arrow keys for faster scrolling.
 func (m Model) handleShiftArrows(keyType tea.KeyType) (tea.Model, tea.Cmd) {
+	// If input focus is active, use shift+arrows for faster history navigation
+	if m.activeViewport == "input" {
+		return m.navigateHistory(keyType), nil
+	}
+
 	// Scroll the active viewport (faster, alternative to Page Up/Down)
 	scrollLines := 10 // Scroll 10 lines for faster navigation
 	if m.activeViewport == "logs" {
