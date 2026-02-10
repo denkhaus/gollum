@@ -60,7 +60,9 @@
       "mcp__vestige__intention",
       "mcp__forgejo__list_repo_commits",
       "mcp__tavily__tavily-search",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "mcp__tavily__tavily_search",
+      "mcp__tavily__tavily_extract"
     ],
     "deny": [],
     "ask": []
