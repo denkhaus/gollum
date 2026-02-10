@@ -37,8 +37,10 @@ func TestMarkdownRendering(t *testing.T) {
 	}
 
 	// Expect the renderer to be called
+	// New layout: totalWidth = 80-2 = 78, col1Width=14, col2Width=10, col3Width=52
+	// contentWidth = col1Width + col2Width + col3Width + 2 = 14 + 10 + 52 + 2 = 78
 	mockRenderer.EXPECT().
-		Render(gomock.Any(), "# Test Heading\n\nThis is **bold** text.", 74). // 80 - 6 for borders/gutter
+		Render(gomock.Any(), "# Test Heading\n\nThis is **bold** text.", 78).
 		Return("RENDERED_MARKDOWN_OUTPUT", nil)
 
 	// Format the message

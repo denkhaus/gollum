@@ -98,12 +98,12 @@ func (p *applicationServiceImpl) createToolSet(ctx context.Context) ([]gollem.To
 
 	toolSet := []gollem.ToolSet{}
 	// Create brain MCP toolset
-	brainMCP, err := mcp.NewBrainMCPClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create brain MCP client: %w", err)
-	}
+	// brainMCP, err := mcp.NewBrainMCPClient(ctx)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to create brain MCP client: %w", err)
+	// }
 
-	toolSet = append(toolSet, brainMCP)
+	// toolSet = append(toolSet, brainMCP)
 
 	exaSearchMCP, err := mcp.NewExaSearchMCPClient(ctx)
 	if err != nil {

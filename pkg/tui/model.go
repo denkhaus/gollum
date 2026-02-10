@@ -36,7 +36,6 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 
@@ -389,179 +388,241 @@ func (m Model) updateViewportContent() string {
 // Uses lipgloss styling to match the AgentMessenger appearance.
 // For agent messages, it uses the markdown renderer if available.
 //
-// The message is displayed with a unified frame using a custom border:
-//   ╭──────────┬──────────┬──────────────────────────────────────╮
-//   │ 🤖 7ac5  │ Response │ 23:10:16                               │
-//   ├──────────┴──────────┴──────────────────────────────────────┤
-//   │                                                              │
-//   │ Hello! How can I help you today?                             │
-//   │                                                              │
-//   ╰──────────────────────────────────────────────────────────────╯
+// The message is displayed with a unified frame with 3-column header:
+//
+//	╭──────────┬──────────┬──────────────────────────────────────╮
+//	│ 🤖 7ac5  │ Response │ 23:10:16                            │
+//	├──────────┴──────────┴──────────────────────────────────────┤
+//	│                                                            │
+//	│ Hello! How can I help you today?                           │
+//	│                                                            │
+//	╰────────────────────────────────────────────────────────────╯
 func (m Model) formatMessage(msg Message) string {
-	// Custom border with integrated header separator
-	// Note: Lipgloss Border does NOT support vertical separators (│) within a single row
-	// The 3-column header uses spaces instead of │ separators
-	messageBorder := lipgloss.Border{
-		Top:         "─",
-		Bottom:      "─",
-		Left:        "│",
-		Right:       "│",
-		TopLeft:     "╭",
-		TopRight:    "╮",
-		BottomLeft:  "╰",
-		BottomRight: "╯",
-		MiddleLeft:  "├",
-		MiddleRight: "┤",
-		Middle:      "─",
-	}
-
 	timestamp := msg.Timestamp.Format("15:04:05")
 
-	// Build header row with 3 columns
-	// Column 1: Icon + Agent/Type identifier
+	// Build header row content with 3 columns
+	// Column 1: Agent/User identifier (text format, no emoji)
 	// Column 2: Message type (Response, Tool, etc.)
-	// Column 3: Timestamp
+	// Column 3: Timestamp (left-aligned as per plan)
 	var col1, col2, col3 string
-	var borderColor lipgloss.Color
 
 	switch msg.Type {
 	case MessageTypeUser:
-		col1 = "👤 You"
+		col1 = "You"
 		col2 = "User"
 		col3 = timestamp
-		borderColor = lipgloss.Color("#3498DB") // Blue
 
 	case MessageTypeAgent, MessageTypeTool:
 		agentName := formatAgentName(msg.AgentID, msg.AgentRole)
 		if msg.IsTool || msg.Type == MessageTypeTool {
-			col1 = fmt.Sprintf("⚡ %s", agentName)
+			col1 = fmt.Sprintf("Agent: %s", agentName)
 			col2 = "Tool"
 		} else {
-			col1 = fmt.Sprintf("🤖 %s", agentName)
+			col1 = fmt.Sprintf("Agent: %s", agentName)
 			col2 = "Response"
 		}
 		col3 = timestamp
-		borderColor = lipgloss.Color("#2ECC71") // Green
 
 	case MessageTypeSystem:
-		col1 = "🚀 System"
+		col1 = "System"
 		col2 = "Info"
 		col3 = timestamp
-		borderColor = lipgloss.Color("#F39C12") // Orange
 
 	case MessageTypeError:
-		col1 = "❌ Error"
+		col1 = "Error"
 		col2 = "Error"
 		col3 = timestamp
-		borderColor = lipgloss.Color("#E74C3C") // Red
 
 	default:
-		col1 = "❓ Unknown"
+		col1 = "Unknown"
 		col2 = "Unknown"
 		col3 = timestamp
-		borderColor = lipgloss.Color("#95A5A6") // Gray
 	}
 
-	// Calculate column widths for proper alignment
-	// Total width minus border chars (2 left + 2 right = 4)
-	totalWidth := max(m.width-4, 40) // Minimum width 40
+	// Calculate total width and column widths
+	// Total width minus margin (2 chars) to avoid edge overflow
+	const minWidth = 50
+	totalWidth := max(m.width-2, minWidth)
 
-	// Allocate space for columns:
-	// - Column 1: Fixed ~14 chars for icon + ID/Name
-	// - Column 2: Fixed ~10 chars for message type
-	// - Column 3: Remaining space for timestamp (right-aligned)
-	col1Width := 14
-	col2Width := 10
-	col3Width := totalWidth - col1Width - col2Width
-	if col3Width < 8 {
-		col3Width = 8 // Minimum for timestamp
-		col1Width = totalWidth - col2Width - col3Width
+	// Column widths for the 3-column header
+	// We need: totalWidth >= col1Width + col2Width + col3Width + 2
+	col2Width := 10 // Message type (fixed)
+	col3MinWidth := 8 // Minimum for timestamp
+	col1MinWidth := 14 // Minimum for icon + agent ID
+
+	// Calculate col3Width first (remaining space after col1 and col2)
+	col3Width := totalWidth - col1MinWidth - col2Width - 2
+	col3Width = max(col3Width, col3MinWidth)
+
+	// Now calculate col1Width with remaining space
+	col1Width := totalWidth - col2Width - col3Width - 2
+	if col1Width < col1MinWidth {
+		// If still too small, scale down proportionally
+		excess := col1MinWidth - col1Width
+		col1Width = col1MinWidth
+		col3Width = max(col3Width-excess, col3MinWidth)
 	}
 
-	// Style each column
-	col1Style := lipgloss.NewStyle().
-		Width(col1Width).
-		MaxWidth(col1Width).
-		Bold(true)
+	// Ensure all widths are positive
+	col1Width = max(col1Width, 1)
+	col2Width = max(col2Width, 1)
+	col3Width = max(col3Width, 1)
 
-	col2Style := lipgloss.NewStyle().
-		Width(col2Width).
-		MaxWidth(col2Width).
-		Foreground(borderColor).
-		Bold(true)
-
-	col3Style := lipgloss.NewStyle().
-		Width(col3Width).
-		MaxWidth(col3Width).
-		Foreground(lipgloss.Color("#7F8C8D")). // Gray
-		Faint(true).
-		Align(lipgloss.Right) // Right-align timestamp
-
-	// Render header row
-	headerRow := lipgloss.JoinHorizontal(
-		lipgloss.Top,
-		col1Style.Render(col1),
-		col2Style.Render(col2),
-		col3Style.Render(col3),
-	)
-
-	// Calculate content width accounting for border chars and glamour gutter.
-	// Following Charmbracelet best practices:
-	// https://github.com/charmbracelet/bubbletea/blob/main/examples/glamour/main.go
-	//
-	// The border uses 2 chars on each side (left + right = 4)
-	// Glamour also adds a 2-char gutter for line numbers/indentation
-	const (
-		glamourGutter = 2 // Glamour's internal left gutter
-		borderPadding = 4 // 2 left + 2 right for border
-	)
-
-	contentWidth := max(m.width-borderPadding-glamourGutter, 20) // Minimum width 20
+	// Content width should use the same width as the border total
+	// The border total is col1Width + col2Width + col3Width (for the dashes)
+	// Content width = border total + 2 (for the │ on each side)
+	contentWidth := col1Width + col2Width + col3Width + 2
+	contentWidth = max(contentWidth, 20)
 
 	// For agent messages, use markdown renderer if available
-	// Tool messages and other types use plain word wrapping
-	var contentText string
+	var contentLines []string
 	if msg.Type == MessageTypeAgent && m.markdownRenderer != nil {
-		// Use markdown renderer for rich agent responses
 		rendered, err := m.markdownRenderer.Render(context.Background(), msg.Content, contentWidth)
 		if err != nil {
-			// Fallback to plain text if rendering fails
-			contentText = msg.Content
+			contentLines = wrapText(msg.Content, contentWidth)
 		} else {
-			contentText = rendered
+			contentLines = strings.Split(rendered, "\n")
 		}
 	} else {
-		// Use plain text with word wrapping for other message types
-		contentText = msg.Content
+		contentLines = wrapText(msg.Content, contentWidth)
 	}
 
-	// Apply word wrapping for plain text content
-	// (markdown content is already wrapped by the renderer)
-	contentStyle := lipgloss.NewStyle().
-		Width(contentWidth).
-		MaxWidth(contentWidth)
-
-	var wrappedContent string
-	if msg.Type == MessageTypeAgent && m.markdownRenderer != nil {
-		// Markdown renderer already handles wrapping
-		wrappedContent = contentText
-	} else {
-		// Apply word wrapping for plain text
-		wrappedContent = contentStyle.Render(contentText)
+	// If no content, add an empty line for spacing
+	if len(contentLines) == 0 {
+		contentLines = []string{""}
 	}
 
-	// Build the complete message with header, separator, and content
-	// Using lipgloss.Place with custom border for unified frame
-	borderStyle := lipgloss.NewStyle().
-		Border(messageBorder).
-		BorderForeground(borderColor).
-		Width(totalWidth).
-		MaxWidth(totalWidth)
+	// Build the border string manually to get proper T-junctions
+	var b strings.Builder
 
-	// Create the full content: header + separator + content
-	fullContent := headerRow + "\n" + wrappedContent
+	// Helper to repeat a string (with safety check)
+	repeat := func(s string, count int) string {
+		if count <= 0 {
+			return ""
+		}
+		return strings.Repeat(s, count)
+	}
 
-	return borderStyle.Render(fullContent)
+	// Top border with T-junctions for column separators
+	b.WriteString(fmt.Sprintf("╭%s┬%s┬%s╮\n",
+		repeat("─", col1Width), repeat("─", col2Width), repeat("─", col3Width)))
+
+	// Pad and truncate columns to fit
+	// Adds 1 space of padding on each side of the text
+	padCol := func(text string, width int, alignRight bool) string {
+		// Use rune count for proper width calculation with emojis
+		runes := []rune(text)
+		textLen := len(runes)
+
+		// Account for 1 space padding on each side
+		availableWidth := max(width-2, 1)
+
+		if textLen > availableWidth {
+			// Truncate by runes (not bytes) to preserve emoji
+			return " " + string(runes[:availableWidth]) + " "
+		}
+
+		padding := max(availableWidth-textLen, 0)
+
+		if alignRight {
+			return " " + strings.Repeat(" ", padding) + text + " "
+		}
+		return " " + text + strings.Repeat(" ", padding) + " "
+	}
+
+	// Header row with vertical separators
+	// IMPORTANT: Apply padding first, then write the raw string with borders
+	// Do NOT use lipgloss styles on the header row as they can interfere with alignment
+	paddedCol1 := padCol(col1, col1Width, false)
+	paddedCol2 := padCol(col2, col2Width, false)
+	paddedCol3 := padCol(col3, col3Width, false) // LEFT-align timestamp (not right)
+
+	// Write the header row with proper borders
+	b.WriteString(fmt.Sprintf("│%s│%s│%s│\n", paddedCol1, paddedCol2, paddedCol3))
+
+	// Separator line with ├ ┴ ┤
+	b.WriteString(fmt.Sprintf("├%s┴%s┴%s┤\n",
+		repeat("─", col1Width), repeat("─", col2Width), repeat("─", col3Width)))
+
+	// Content rows with border
+	// Add 1 space of padding on each side for content
+	const contentPadding = 1
+	availableContentWidth := max(contentWidth-2*contentPadding, 1)
+
+	for _, line := range contentLines {
+		// Use rune count for proper width calculation
+		lineRunes := []rune(line)
+		lineLen := len(lineRunes)
+
+		if lineLen > availableContentWidth {
+			// Truncate long lines by runes
+			truncated := string(lineRunes[:availableContentWidth])
+			b.WriteString(fmt.Sprintf("│ %s │\n", truncated))
+		} else {
+			// Pad short lines with spaces on the right
+			padding := availableContentWidth - lineLen
+			b.WriteString(fmt.Sprintf("│ %s%s │\n", line, strings.Repeat(" ", padding)))
+		}
+	}
+
+	// Bottom border - needs to match top border width
+	// Top border: ╭ + col1Width + ┬ + col2Width + ┬ + col3Width + ╮ = 4 + col1Width + col2Width + col3Width
+	// Bottom border: ╰ + dashes + ╯ = 2 + borderWidth
+	// So borderWidth should be col1Width + col2Width + col3Width + 2
+	borderLineWidth := col1Width + col2Width + col3Width + 2
+	b.WriteString(fmt.Sprintf("╰%s╯", repeat("─", borderLineWidth)))
+
+	return b.String()
+}
+
+// wrapText wraps text to fit within the specified width.
+func wrapText(text string, width int) []string {
+	if width <= 0 {
+		return []string{text}
+	}
+
+	var lines []string
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return []string{text}
+	}
+
+	currentLine := ""
+	for _, word := range words {
+		testLine := currentLine
+		if testLine == "" {
+			testLine = word
+		} else {
+			testLine = testLine + " " + word
+		}
+
+		// Handle words longer than width
+		if len(word) > width {
+			if currentLine != "" {
+				lines = append(lines, currentLine)
+				currentLine = ""
+			}
+			// Split long word
+			for i := 0; i < len(word); i += width {
+				end := min(i+width, len(word))
+				lines = append(lines, word[i:end])
+			}
+			continue
+		}
+
+		if len(testLine) <= width {
+			currentLine = testLine
+		} else {
+			lines = append(lines, currentLine)
+			currentLine = word
+		}
+	}
+
+	if currentLine != "" {
+		lines = append(lines, currentLine)
+	}
+
+	return lines
 }
 
 // formatAgentName creates a short display name for agents.
