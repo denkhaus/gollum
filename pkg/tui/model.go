@@ -388,97 +388,142 @@ func (m Model) updateViewportContent() string {
 // formatMessage formats a single message for display in the viewport.
 // Uses lipgloss styling to match the AgentMessenger appearance.
 // For agent messages, it uses the markdown renderer if available.
+//
+// The message is displayed with a unified frame using a custom border:
+//   ╭──────────┬──────────┬──────────────────────────────────────╮
+//   │ 🤖 7ac5  │ Response │ 23:10:16                               │
+//   ├──────────┴──────────┴──────────────────────────────────────┤
+//   │                                                              │
+//   │ Hello! How can I help you today?                             │
+//   │                                                              │
+//   ╰──────────────────────────────────────────────────────────────╯
 func (m Model) formatMessage(msg Message) string {
+	// Custom border with integrated header separator
+	// Note: Lipgloss Border does NOT support vertical separators (│) within a single row
+	// The 3-column header uses spaces instead of │ separators
+	messageBorder := lipgloss.Border{
+		Top:         "─",
+		Bottom:      "─",
+		Left:        "│",
+		Right:       "│",
+		TopLeft:     "╭",
+		TopRight:    "╮",
+		BottomLeft:  "╰",
+		BottomRight: "╯",
+		MiddleLeft:  "├",
+		MiddleRight: "┤",
+		Middle:      "─",
+	}
+
 	timestamp := msg.Timestamp.Format("15:04:05")
 
-	var header string
+	// Build header row with 3 columns
+	// Column 1: Icon + Agent/Type identifier
+	// Column 2: Message type (Response, Tool, etc.)
+	// Column 3: Timestamp
+	var col1, col2, col3 string
+	var borderColor lipgloss.Color
+
 	switch msg.Type {
 	case MessageTypeUser:
-		userStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#3498DB")). // Blue
-			Bold(true)
-		header = lipgloss.JoinHorizontal(
-			lipgloss.Top,
-			userStyle.Render("👤 You"),
-			lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#7F8C8D")). // Gray
-				Faint(true).
-				Render(" "+timestamp),
-		)
+		col1 = "👤 You"
+		col2 = "User"
+		col3 = timestamp
+		borderColor = lipgloss.Color("#3498DB") // Blue
 
 	case MessageTypeAgent, MessageTypeTool:
 		agentName := formatAgentName(msg.AgentID, msg.AgentRole)
-		var icon, messageType string
 		if msg.IsTool || msg.Type == MessageTypeTool {
-			messageType = "Tool"
-			icon = "⚡"
+			col1 = fmt.Sprintf("⚡ %s", agentName)
+			col2 = "Tool"
 		} else {
-			messageType = "Response"
-			icon = "🤖"
+			col1 = fmt.Sprintf("🤖 %s", agentName)
+			col2 = "Response"
 		}
-
-		// Match AgentMessenger styling
-		messageTypeStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#9B59B6")). // Purple
-			Bold(true).
-			Padding(0, 1)
-
-		headerLeft := lipgloss.JoinHorizontal(
-			lipgloss.Top,
-			lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#2ECC71")). // Green
-				Bold(true).
-				Render(fmt.Sprintf("%s %s", icon, agentName)),
-			messageTypeStyle.Render(messageType),
-		)
-
-		header = lipgloss.JoinHorizontal(
-			lipgloss.Top,
-			headerLeft,
-			lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#7F8C8D")). // Gray
-				Faint(true).
-				Render(" "+timestamp),
-		)
+		col3 = timestamp
+		borderColor = lipgloss.Color("#2ECC71") // Green
 
 	case MessageTypeSystem:
-		header = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#F39C12")). // Orange
-			Bold(true).
-			Render("🚀 System " + timestamp)
+		col1 = "🚀 System"
+		col2 = "Info"
+		col3 = timestamp
+		borderColor = lipgloss.Color("#F39C12") // Orange
 
 	case MessageTypeError:
-		header = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#E74C3C")). // Red
-			Bold(true).
-			Render("❌ Error " + timestamp)
+		col1 = "❌ Error"
+		col2 = "Error"
+		col3 = timestamp
+		borderColor = lipgloss.Color("#E74C3C") // Red
 
 	default:
-		header = fmt.Sprintf("❓ Unknown %s", timestamp)
+		col1 = "❓ Unknown"
+		col2 = "Unknown"
+		col3 = timestamp
+		borderColor = lipgloss.Color("#95A5A6") // Gray
 	}
 
-	// Calculate render width accounting for borders and glamour gutter.
+	// Calculate column widths for proper alignment
+	// Total width minus border chars (2 left + 2 right = 4)
+	totalWidth := max(m.width-4, 40) // Minimum width 40
+
+	// Allocate space for columns:
+	// - Column 1: Fixed ~14 chars for icon + ID/Name
+	// - Column 2: Fixed ~10 chars for message type
+	// - Column 3: Remaining space for timestamp (right-aligned)
+	col1Width := 14
+	col2Width := 10
+	col3Width := totalWidth - col1Width - col2Width
+	if col3Width < 8 {
+		col3Width = 8 // Minimum for timestamp
+		col1Width = totalWidth - col2Width - col3Width
+	}
+
+	// Style each column
+	col1Style := lipgloss.NewStyle().
+		Width(col1Width).
+		MaxWidth(col1Width).
+		Bold(true)
+
+	col2Style := lipgloss.NewStyle().
+		Width(col2Width).
+		MaxWidth(col2Width).
+		Foreground(borderColor).
+		Bold(true)
+
+	col3Style := lipgloss.NewStyle().
+		Width(col3Width).
+		MaxWidth(col3Width).
+		Foreground(lipgloss.Color("#7F8C8D")). // Gray
+		Faint(true).
+		Align(lipgloss.Right) // Right-align timestamp
+
+	// Render header row
+	headerRow := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		col1Style.Render(col1),
+		col2Style.Render(col2),
+		col3Style.Render(col3),
+	)
+
+	// Calculate content width accounting for border chars and glamour gutter.
 	// Following Charmbracelet best practices:
 	// https://github.com/charmbracelet/bubbletea/blob/main/examples/glamour/main.go
 	//
-	// The border style uses RoundedBorder() which adds 2 chars on each side.
-	// Glamour also adds a 2-char gutter for line numbers/indentation.
+	// The border uses 2 chars on each side (left + right = 4)
+	// Glamour also adds a 2-char gutter for line numbers/indentation
 	const (
 		glamourGutter = 2 // Glamour's internal left gutter
-		borderPadding = 4 // RoundedBorder: 2 left + 2 right
+		borderPadding = 4 // 2 left + 2 right for border
 	)
 
-	width := m.width - borderPadding - glamourGutter
-	if width < 20 {
-		width = 20 // Minimum width
-	}
+	contentWidth := max(m.width-borderPadding-glamourGutter, 20) // Minimum width 20
 
 	// For agent messages, use markdown renderer if available
 	// Tool messages and other types use plain word wrapping
 	var contentText string
 	if msg.Type == MessageTypeAgent && m.markdownRenderer != nil {
 		// Use markdown renderer for rich agent responses
-		rendered, err := m.markdownRenderer.Render(context.Background(), msg.Content, width)
+		rendered, err := m.markdownRenderer.Render(context.Background(), msg.Content, contentWidth)
 		if err != nil {
 			// Fallback to plain text if rendering fails
 			contentText = msg.Content
@@ -493,8 +538,8 @@ func (m Model) formatMessage(msg Message) string {
 	// Apply word wrapping for plain text content
 	// (markdown content is already wrapped by the renderer)
 	contentStyle := lipgloss.NewStyle().
-		Width(width).
-		MaxWidth(width)
+		Width(contentWidth).
+		MaxWidth(contentWidth)
 
 	var wrappedContent string
 	if msg.Type == MessageTypeAgent && m.markdownRenderer != nil {
@@ -505,14 +550,18 @@ func (m Model) formatMessage(msg Message) string {
 		wrappedContent = contentStyle.Render(contentText)
 	}
 
-	// Apply minimal border (no padding to save space)
+	// Build the complete message with header, separator, and content
+	// Using lipgloss.Place with custom border for unified frame
 	borderStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#3498DB")) // Blue border
+		Border(messageBorder).
+		BorderForeground(borderColor).
+		Width(totalWidth).
+		MaxWidth(totalWidth)
 
-	content := borderStyle.Render(wrappedContent)
+	// Create the full content: header + separator + content
+	fullContent := headerRow + "\n" + wrappedContent
 
-	return header + "\n" + content
+	return borderStyle.Render(fullContent)
 }
 
 // formatAgentName creates a short display name for agents.
