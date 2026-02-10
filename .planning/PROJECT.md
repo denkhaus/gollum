@@ -1,81 +1,122 @@
-# Prompt Optimizer for Gollum
+# Gollum Agent Framework
 
 ## What This Is
 
-A Prompt Optimizer system for the Gollum agent framework that automatically improves agent prompts using execution trajectory feedback. Inspired by LangMEM's procedural memory approach, the system analyzes agent sessions to identify pain points and iteratively refine prompts for better performance.
+A Go-based agent framework with comprehensive observability, prompt management, and optimization capabilities. The framework provides extensible hooks for tracing, integrates with Langfuse for LLM observability, and includes automatic prompt optimization based on execution feedback.
 
 ## Core Value
 
-**Agent quality improves iteratively through automatic prompt optimization based on execution feedback.**
+**Full observability and prompt management enable understanding, debugging, and continuous improvement of agent behavior.**
 
-Every session makes agents better — they gather new facts from feedback and learn from their own trajectories.
+Every operation is traceable, every prompt is versioned, and every session contributes to making agents better.
+
+## Current Milestone: v1.1 Langfuse Integration
+
+**Goal:** Integrate Langfuse SDK for comprehensive tracing and prompt management through the hook system.
+
+**Target features:**
+- LLM request/response tracing with token counts and latency
+- Tool execution tracing with inputs, outputs, and errors
+- Agent lifecycle tracking (spawn, remove, session events)
+- Langfuse prompt library integration
+- Hook-based implementation following the logging_hook.go pattern
+- Configuration via environment variables
+- Opt-in tracing with minimal performance overhead when disabled
 
 ## Requirements
 
 ### Validated
 
-(N/A — building new feature for existing Gollum codebase)
+**v1.0 Prompt Optimizer** (Complete — 2026-02-02):
+- ✓ Prompt Store with SemVer versioning (memory/file backends)
+- ✓ Prompt Manager with lazy loading and template rendering
+- ✓ Three optimization strategies (gradient, meta-prompt, prompt memory)
+- ✓ Trajectory capture and storage
+- ✓ LLM provider integration (Anthropic, OpenAI, Gemini)
+- ✓ Configuration and DI integration
+- ✓ Documentation and knowledge base guidance
+
+**Existing Gollum Features**:
+- ✓ Agent registry with parent-child relationships
+- ✓ Tool system for agent capabilities
+- ✓ Hook system for extensible lifecycle events
+- ✓ MCP integration at localhost:8555/mcp
+- ✓ Centralized testing patterns with uber.org/mock
+- ✓ File watching and state management
+- ✓ LoggingHook built-in implementation
 
 ### Active
 
-- [ ] **PROMPT-01**: System supports three optimization strategies (Gradient, Meta-Prompt, Prompt Memory)
-- [ ] **PROMPT-02**: Session-end feedback loop collects user feedback OR analyzes session automatically
-- [ ] **PROMPT-03**: Prompt Store with File-based backend (in-memory available for testing)
-- [ ] **PROMPT-04**: Prompt versioning with SemVer (e.g., `supervisor@1.0.0`) and alias support
-- [ ] **PROMPT-05**: Integration with Supervisor agent initially (other agents follow)
-- [ ] **PROMPT-06**: Trajectory capture and storage for optimization input
-- [ ] **PROMPT-07**: LLM provider integration uses existing Anthropic/OpenAI/Gemini providers
-- [ ] **PROMPT-08**: Lazy initialization pattern for Prompt Store (created on first use)
-- [ ] **PROMPT-09**: Centralized mock generation with go.uber.org/mock for testing
-- [ ] **PROMPT-10**: Proper Go package structure following Gollum conventions
+- [ ] **LANG-01**: LangfuseHook implements hook pattern from logging_hook.go
+- [ ] **LANG-02**: LLM tracing captures requests, responses, tokens, latency, models
+- [ ] **LANG-03**: Tool execution tracing captures tool calls, inputs, outputs, errors
+- [ ] **LANG-04**: Agent lifecycle tracking captures spawn/remove events
+- [ ] **LANG-05**: Session tracing with Langfuse observation spans
+- [ ] **LANG-06**: LangfuseConfig with host, public key, secret key, enabled flag
+- [ ] **LANG-07**: Langfuse client initialization with git-hulk/langfuse-go SDK
+- [ ] **LANG-08**: Flush/shutdown handling for buffered traces
+- [ ] **LANG-09**: Thread-safe trace context management
+- [ ] **LANG-10**: Prompt library integration for Langfuse-hosted prompts
 
 ### Out of Scope
 
-- **Other storage backends** (Langfuse, etc.) — File backend first, expand in v2 based on learnings
-- **All agents from day one** — Start with Supervisor agent, extend to other agents after validation
-- **Real-time optimization** — Optimization happens at session end, not during execution
-- **Multi-tenant prompt sharing** — Single-tenant initially, sharing is v2+
-- **Prompt A/B testing** — Focus on single-strategy optimization first
-- **Optimization strategy routing** — All strategies available initially, learn which applies where
+- **Other observability backends** (OpenTelemetry, Prometheus) — Langfuse first, others in future milestones
+- **Real-time streaming** — Tracing buffered and flushed on completion, not real-time
+- **Langfuse prompt versioning** — Using existing Gollum prompt store for v1.1
+- **Automatic instrumentation** — Manual hook registration, not compile-time injection
+- **Custom span propagation** — Using Langfuse SDK's built-in context management
+- **Advanced prompt features** — Prompt templates, A/B testing deferred to v1.2+
 
 ## Context
 
 **Existing Gollum Codebase:**
 - Go-based agent framework with dependency injection (samber/do/v2)
 - LLM abstraction via m-mizutani/gollem (supports Anthropic, OpenAI, Gemini)
-- Agent registry with parent-child relationships
-- Tool system for agent capabilities
-- MCP integration at localhost:8555/mcp
-- Centralized testing patterns with uber.org/mock
+- Hook system with middleware-style execution pattern
+- HookManager interface for registering custom hooks
+- Built-in hooks: LoggingHook (reference implementation)
+- Hook points: session, agent, tool, file, LLM operations
 
-**Reference Implementation:**
-- LangMEM (https://github.com/langchain-ai/langmem) provides the architectural pattern
-- Prompt templates and optimizer API documented in `docs/prompt-optimizer/`
-- Complete implementation plan in `PROMPT_OPTIMIZER_PLAN.md`
+**Hook Pattern Reference** (`pkg/builtin/logging_hook.go`):
+- Hook struct with dependencies (log service, config)
+- `NewHook(injector do.Injector)` for DI injection
+- `NewHookProvider(injector)` returns `hooks.HookFunc`
+- `Register*Hooks(hm hooks.HookManager, hook *Hook)` registers at all hook points
+- Priority-based execution order
+- FatalError flag for error handling behavior
+
+**Langfuse SDK** (https://github.com/git-hulk/langfuse-go):
+- Go client for Langfuse tracing and prompt management
+- Support for observation spans (LLM, tool, custom)
+- Automatic token counting and latency tracking
+- Buffered flushing for performance
+- Configuration via host, public key, secret key
 
 **Domain Knowledge:**
-- Procedural memory: using execution trajectories to improve prompts
-- Trajectory structure captures inputs, outputs, intermediate states
-- SemVer versioning allows rollback and comparison
-- Lazy init avoids unnecessary resource allocation
+- OpenTelemetry-style span hierarchy for trace context
+- Hooks provide natural injection points for span creation
+- Lazy initialization avoids resource allocation when tracing disabled
+- Thread-safe trace context required for concurrent agent execution
 
 ## Constraints
 
-- **LLM Providers**: Must use existing Anthropic/OpenAI/Gemini providers in Gollum — no new provider dependencies
-- **Go Guidance**: CRITICAL — `/home/denkhaus/dev/kb/guides/guide.golang.*.md` files MUST be read and understood in every phase
+- **SDK Source**: Must use git-hulk/langfuse-go (fork of official SDK with Go idioms)
+- **Hook Pattern**: MUST follow logging_hook.go pattern exactly for consistency
+- **Go Guidance**: CRITICAL — `/home/denkhaus/dev/kb/guides/guide.golang.*.md` files MUST be read in every phase
 - **Testing**: All code must include tests using centralized mocks from `pkg/mocks/`
 - **Package Structure**: Follow Gollum conventions (pkg/ structure, DI patterns, naming)
-- **Breaking Changes**: Minimize disruption to existing agents; integration should be opt-in initially
+- **Performance**: Tracing must have minimal overhead when disabled (lazy init, no-op hooks)
+- **Breaking Changes**: Must not break existing hooks or hook users
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| File-based storage first | Simple, reliable, no external dependencies; learn patterns before complex backends | — Pending |
-| Supervisor agent as initial target | Main user interaction point; high-value optimization target; patterns extend to other agents | — Pending |
-| All three strategies from v1 | Don't know which strategy works best for which use case until we have real data | — Pending |
-| Session-end optimization only | Avoids performance impact during execution; feedback is most valuable after completion | — Pending |
-| Lazy init for Prompt Store | Resources only allocated when needed; follows Go best practices | — Pending |
+| Hook-based tracing | Follows existing pattern; non-invasive; consistent with codebase | — Pending |
+| Opt-in via config | Default disabled; users explicitly enable tracing | — Pending |
+| Buffered flushing | Better performance; traces sent in batches | — Pending |
+| git-hulk/langfuse-go | Maintained fork with better Go idioms | — Pending |
+| Lazy client init | No overhead when tracing disabled | — Pending |
 
 ---
-*Last updated: 2025-02-01 after initialization*
+*Last updated: 2026-02-10 after milestone v1.1 initialization*
