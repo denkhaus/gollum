@@ -59,14 +59,14 @@ func TestFixFirstUserMessageHasTopBorder(t *testing.T) {
 	view := m.viewport.View()
 
 	// Verify the fix: both messages should be visible with headers
-	if !contains(view, "👤 You") {
+	if !contains(view, "You") {
 		t.Error("FAILED: User message header is NOT visible (bug still present)")
 		t.Logf("Viewport view:\n%s", view)
 	} else {
 		t.Log("SUCCESS: User message header IS visible")
 	}
 
-	if !contains(view, "🤖") {
+	if !contains(view, "Agent:") {
 		t.Error("FAILED: Agent message is NOT visible")
 	} else {
 		t.Log("SUCCESS: Agent message IS visible")
@@ -125,7 +125,7 @@ func TestFixPreservesScrolling(t *testing.T) {
 
 	// Verify we can see the first message
 	view := m.viewport.View()
-	if !contains(view, "👤 You") {
+	if !contains(view, "You") {
 		t.Error("FAILED: Cannot see first message after GotoTop")
 	} else {
 		t.Log("SUCCESS: Can see first message after GotoTop")

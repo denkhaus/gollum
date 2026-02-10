@@ -23,12 +23,12 @@ func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 // calculateViewportDimensions returns the height for main viewport, log panel,
 // and the number of reserved lines.
 func (m Model) calculateViewportDimensions() (mainHeight int, logHeight int) {
-	reservedLines := 4 // status bar + prompt + footer
+	reservedLines := 6 // status bar + prompt + footer
 	if m.config.StatusEnabled {
 		reservedLines++ // Extra line for status bar
 	}
 
-	logHeight = 6 // Default log panel height
+	logHeight = 6                  // Default log panel height
 	reservedLines += logHeight + 1 // +1 for log separator
 
 	mainHeight = m.height - reservedLines
