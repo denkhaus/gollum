@@ -3,6 +3,7 @@ package builtin
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/mocks"
@@ -291,5 +292,33 @@ func TestLangfuseHook_TraceContextOperations(t *testing.T) {
 		assert.NotNil(t, hook.getTraceContext(session1))
 		assert.NotNil(t, hook.getTraceContext(session2))
 		assert.NotNil(t, hook.getTraceContext(session3))
+	})
+}
+
+func TestTraceContext_Struct(t *testing.T) {
+	t.Run("TraceContext has all required fields", func(t *testing.T) {
+		tc := &TraceContext{
+			TraceID:   "test-trace-123",
+			RootSpan:  nil,
+			Spans:     make(map[string]interface{}),
+			SessionID:  uuid.New(),
+			CreatedAt:  time.Now(),
+		}
+
+		assert.Equal(t, "test-trace-123", tc.TraceID)
+		assert.Nil(t, tc.RootSpan)
+		assert.NotNil(t, tc.Spans)
+		assert.NotEqual(t, uuid.Nil, tc.SessionID)
+		assert.False(t, tc.CreatedAt.IsZero())
+	})
+
+	t.Run("TraceContext initializes with zero values", func(t *testing.T) {
+		tc := &TraceContext{}
+
+		assert.Empty(t, tc.TraceID)
+		assert.Nil(t, tc.RootSpan)
+		assert.Nil(t, tc.Spans)
+		assert.Equal(t, uuid.Nil, tc.SessionID)
+		assert.True(t, tc.CreatedAt.IsZero())
 	})
 }
