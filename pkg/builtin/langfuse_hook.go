@@ -10,7 +10,8 @@ import (
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/git-hulk/langfuse-go"
+	langfuse "github.com/git-hulk/langfuse-go"
+	"github.com/git-hulk/langfuse-go/pkg/traces"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -349,8 +350,72 @@ func (h *LangfuseHook) afterFileModifyHook(_ context.Context, hookCtx *hooks.Hoo
 	return next()
 }
 
+// LLMSpanContext holds LLM span data for correlation between before/after hooks.
+// This placeholder struct stores span data until actual Langfuse SDK spans are created in Phase 10.
+type LLMSpanContext struct {
+	StartTime     time.Time
+	Model         string
+	Input         string
+	Output        string
+	Usage         *traces.Usage
+	Level         traces.ObservationLevel
+	StatusMessage string
+}
+
 // LLM hook methods (span creation in Phase 8)
 func (h *LangfuseHook) beforeLLMRequestHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+	// Only create spans if Langfuse is enabled and client is available
+	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
+		h.propagateTraceID(hookCtx)
+		return next()
+	}
+
+	// Get Langfuse client (lazy init)
+	_, err := h.getClient()
+	if err != nil {
+		// Client not configured - log debug and continue
+		h.log.Debug("Langfuse client not available, skipping LLM span creation", zap.Error(err))
+		h.propagateTraceID(hookCtx)
+		return next()
+	}
+
+	// Get or create trace context for this session
+	tc := h.getTraceContext(hookCtx.SessionID)
+	if tc == nil {
+		// No trace context exists - create one for ad-hoc tracing
+		tc = h.createTraceContext(hookCtx.SessionID)
+	}
+
+	// Create LLM Generation span using Langfuse SDK
+	// StartGeneration creates a child observation for LLM interactions
+	spanName := "llm-" + hookCtx.LLMModel
+	if spanName == "llm-" {
+		spanName = "llm-request" // Fallback if model is empty
+	}
+
+	// Store span metadata in HookContext for AfterLLMResponse to complete
+	hookCtx.Data["langfuse_llm_start"] = time.Now()
+	hookCtx.Data["langfuse_llm_model"] = hookCtx.LLMModel
+	hookCtx.Data["langfuse_llm_input"] = hookCtx.LLMInput
+
+	// For Phase 8, we'll create the actual span when session tracing is ready
+	// Store span reference in TraceContext for AfterLLMResponse
+	spanID := uuid.New().String()
+	hookCtx.Data["langfuse_span_id"] = spanID
+
+	// Store incomplete span in TraceContext
+	h.traceCtxsMu.Lock()
+	if tc.Spans == nil {
+		tc.Spans = make(map[string]interface{})
+	}
+	// Create placeholder span object (will be replaced with actual SDK span in Phase 10)
+	tc.Spans[spanID] = &LLMSpanContext{
+		StartTime: time.Now(),
+		Model:     hookCtx.LLMModel,
+		Input:     hookCtx.LLMInput,
+	}
+	h.traceCtxsMu.Unlock()
+
 	h.propagateTraceID(hookCtx)
 	return next()
 }
