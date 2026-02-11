@@ -536,6 +536,11 @@ func (h *LangfuseHook) onLLMErrorHook(_ context.Context, hookCtx *hooks.HookCont
 		spanCtx.StatusMessage = "unknown error"
 	}
 
+	// Preserve partial response if available (e.g., streaming error mid-response)
+	if hookCtx.LLMResponse != "" {
+		spanCtx.Output = hookCtx.LLMResponse
+	}
+
 	// Calculate latency (time from start to error)
 	latency := time.Since(spanCtx.StartTime)
 
@@ -547,7 +552,7 @@ func (h *LangfuseHook) onLLMErrorHook(_ context.Context, hookCtx *hooks.HookCont
 		zap.Error(hookCtx.LLMError))
 	h.traceCtxsMu.Unlock()
 
-	// Note: Output field remains empty or contains partial response if available
+	// Note: Output field may contain partial response if available
 	// The span is marked as ERROR to indicate failure
 
 	h.propagateTraceID(hookCtx)
