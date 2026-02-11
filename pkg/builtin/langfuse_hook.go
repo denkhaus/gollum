@@ -491,8 +491,67 @@ func (h *LangfuseHook) afterLLMResponseHook(_ context.Context, hookCtx *hooks.Ho
 }
 
 func (h *LangfuseHook) onLLMErrorHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+	// Call next first to ensure error chain continues
+	err := next()
+	if err != nil {
+		return err
+	}
+
+	// Only update spans if Langfuse is enabled
+	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Get span ID from HookContext.Data
+	spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
+	if !ok || spanID == "" {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Get trace context
+	tc := h.getTraceContext(hookCtx.SessionID)
+	if tc == nil {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	h.traceCtxsMu.Lock()
+	// Get span from TraceContext
+	spanCtx, ok := tc.Spans[spanID].(*LLMSpanContext)
+	if !ok {
+		h.traceCtxsMu.Unlock()
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Mark span as failed
+	spanCtx.Level = traces.ObservationLevelError
+
+	// Set error message from HookContext.LLMError
+	if hookCtx.LLMError != nil {
+		spanCtx.StatusMessage = hookCtx.LLMError.Error()
+	} else {
+		spanCtx.StatusMessage = "unknown error"
+	}
+
+	// Calculate latency (time from start to error)
+	latency := time.Since(spanCtx.StartTime)
+
+	// Log span error
+	h.log.Debug("LLM span failed",
+		zap.String("span_id", spanID),
+		zap.String("model", spanCtx.Model),
+		zap.Duration("latency", latency),
+		zap.Error(hookCtx.LLMError))
+	h.traceCtxsMu.Unlock()
+
+	// Note: Output field remains empty or contains partial response if available
+	// The span is marked as ERROR to indicate failure
+
 	h.propagateTraceID(hookCtx)
-	return next()
+	return nil
 }
 
 // propagateTraceID sets the langfuse_trace_id in HookContext.Data for span correlation.
