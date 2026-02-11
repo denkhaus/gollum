@@ -28,6 +28,11 @@ func NewBuiltinHooksProvider(injector do.Injector) (func() error, error) {
 		return nil, fmt.Errorf("failed to create security hook: %w", err)
 	}
 
+	langfuseHook, err := NewLangfuseHooksProvider(injector)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Langfuse hook: %w", err)
+	}
+
 	// Register logging hooks
 	if err := RegisterLoggingHooks(hm, loggingHook); err != nil {
 		return nil, fmt.Errorf("failed to register logging hooks: %w", err)
@@ -43,6 +48,12 @@ func NewBuiltinHooksProvider(injector do.Injector) (func() error, error) {
 	} else {
 		log.Info("Builtin hooks: Security not registered (lenient mode)")
 	}
+
+	// Register Langfuse hooks
+	if err := RegisterLangfuseHooks(hm, langfuseHook); err != nil {
+		return nil, fmt.Errorf("failed to register Langfuse hooks: %w", err)
+	}
+	log.Info("Builtin hooks: Langfuse registered")
 
 	// Return a no-op shutdown function
 	return func() error {
