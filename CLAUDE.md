@@ -296,3 +296,9 @@ func main() {
 3. View traces in the "Traces" tab
 4. Filter by session ID, agent ID, or time range
 5. Inspect individual spans for LLM requests, tool calls, and agent events
+
+## See Also
+
+- [Langfuse Tracing Guide](guides/guide.golang.langfuse-tracing.md) - Comprehensive guidance on Langfuse integration patterns
+- [Prompt Optimization](#prompt-optimizer) - Automatic prompt improvement using execution feedback
+- [Go Testing Guide](guides/guide.golang.testing.md) - Unit and integration testing patterns
