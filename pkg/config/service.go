@@ -126,6 +126,9 @@ func (c *HooksConfig) GetSecurityMode() string {
 	}
 }
 
+// LangfuseConfig is an alias for HooksConfig to provide clearer API for tracing config
+type LangfuseConfig = HooksConfig
+
 // PromptStoreType represents the type of prompt store backend.
 type PromptStoreType string
 
@@ -185,6 +188,7 @@ type ConfigService interface {
 	GetHooksConfig() *HooksConfig
 	GetPromptStoreConfig() *PromptStoreConfig
 	GetPromptOptimizerConfig() *PromptOptimizerConfig
+	GetLangfuseConfig() *LangfuseConfig
 }
 
 // serviceImpl implements the ConfigService interface
@@ -269,4 +273,8 @@ func (s *serviceImpl) GetPromptStoreConfig() *PromptStoreConfig {
 
 func (s *serviceImpl) GetPromptOptimizerConfig() *PromptOptimizerConfig {
 	return &s.PromptOptimizer
+}
+
+func (s *serviceImpl) GetLangfuseConfig() *LangfuseConfig {
+	return (*LangfuseConfig)(&s.Hooks)
 }
