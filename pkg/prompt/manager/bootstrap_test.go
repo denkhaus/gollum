@@ -9,29 +9,50 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	promptstore "github.com/denkhaus/gollum/pkg/prompt/store"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
+
+// setupMockConfigService creates a configured mock config service for testing
+// Returns the injector with the mock registered and the controller for cleanup
+func setupMockConfigService(t *testing.T, storeConfig *config.PromptStoreConfig) (do.Injector, *gomock.Controller) {
+	ctrl := gomock.NewController(t)
+
+	injector := do.New()
+
+	// Register mocked config service - setup expectations here
+	mockConfig := mocks.NewMockConfigService(ctrl)
+	mockConfig.EXPECT().GetPromptStoreConfig().Return(storeConfig).AnyTimes()
+	mockConfig.EXPECT().GetLogLevel().Return("info").AnyTimes()
+	mockConfig.EXPECT().IsDevMode().Return(false).AnyTimes()
+	mockConfig.EXPECT().GetLoggingConfig().Return(&config.LoggingConfig{
+		SessionLogBufferSize: 1000,
+		SessionLogEnabled:    false,
+	}).AnyTimes()
+
+	do.Provide[config.ConfigService](injector, func(_ do.Injector) (config.ConfigService, error) {
+		return mockConfig, nil
+	})
+
+	return injector, ctrl
+}
 
 // TestNewPromptManagerProvider_MemoryStore tests DI provider with memory store
 func TestNewPromptManagerProvider_MemoryStore(t *testing.T) {
-	// Create DI injector
-	injector := do.New()
+	storeConfig := &config.PromptStoreConfig{
+		Type:         config.PromptStoreTypeMemory,
+		FilePath:     "",
+		CacheEnabled: false,
+	}
 
-	// Register config service with memory store
-	do.Provide[config.ConfigService](injector, func(_ do.Injector) (config.ConfigService, error) {
-		return &mockConfigService{
-			promptStoreConfig: &config.PromptStoreConfig{
-				Type:         config.PromptStoreTypeMemory,
-				FilePath:     "",
-				CacheEnabled: false,
-			},
-		}, nil
-	})
+	injector, ctrl := setupMockConfigService(t, storeConfig)
+	defer ctrl.Finish()
 
 	// Register logger service
 	do.Provide(injector, logger.NewService)
@@ -65,22 +86,16 @@ func TestNewPromptManagerProvider_MemoryStore(t *testing.T) {
 
 // TestNewPromptManagerProvider_FileStore tests DI provider with file store
 func TestNewPromptManagerProvider_FileStore(t *testing.T) {
-	// Create temporary directory for file store
 	tempDir := t.TempDir()
 
-	// Create DI injector
-	injector := do.New()
+	storeConfig := &config.PromptStoreConfig{
+		Type:         config.PromptStoreTypeFile,
+		FilePath:     tempDir,
+		CacheEnabled: false,
+	}
 
-	// Register config service with file store
-	do.Provide[config.ConfigService](injector, func(_ do.Injector) (config.ConfigService, error) {
-		return &mockConfigService{
-			promptStoreConfig: &config.PromptStoreConfig{
-				Type:         config.PromptStoreTypeFile,
-				FilePath:     tempDir,
-				CacheEnabled: false,
-			},
-		}, nil
-	})
+	injector, ctrl := setupMockConfigService(t, storeConfig)
+	defer ctrl.Finish()
 
 	// Register logger service
 	do.Provide(injector, logger.NewService)
@@ -123,19 +138,14 @@ func TestNewPromptManagerProvider_FileStore(t *testing.T) {
 
 // TestNewPromptManagerProvider_DefaultToMemory tests that empty store type defaults to memory
 func TestNewPromptManagerProvider_DefaultToMemory(t *testing.T) {
-	// Create DI injector
-	injector := do.New()
+	storeConfig := &config.PromptStoreConfig{
+		Type:         "", // Empty type should default to memory
+		FilePath:     "",
+		CacheEnabled: false,
+	}
 
-	// Register config service with empty store type (should default to memory)
-	do.Provide[config.ConfigService](injector, func(_ do.Injector) (config.ConfigService, error) {
-		return &mockConfigService{
-			promptStoreConfig: &config.PromptStoreConfig{
-				Type:         "", // Empty type should default to memory
-				FilePath:     "",
-				CacheEnabled: false,
-			},
-		}, nil
-	})
+	injector, ctrl := setupMockConfigService(t, storeConfig)
+	defer ctrl.Finish()
 
 	// Register logger service
 	do.Provide(injector, logger.NewService)
@@ -160,22 +170,16 @@ func TestNewPromptManagerProvider_DefaultToMemory(t *testing.T) {
 
 // TestNewPromptManagerProvider_CachedFileStore tests file store with caching enabled
 func TestNewPromptManagerProvider_CachedFileStore(t *testing.T) {
-	// Create temporary directory for file store
 	tempDir := t.TempDir()
 
-	// Create DI injector
-	injector := do.New()
+	storeConfig := &config.PromptStoreConfig{
+		Type:         config.PromptStoreTypeFile,
+		FilePath:     tempDir,
+		CacheEnabled: true,
+	}
 
-	// Register config service with cached file store
-	do.Provide[config.ConfigService](injector, func(_ do.Injector) (config.ConfigService, error) {
-		return &mockConfigService{
-			promptStoreConfig: &config.PromptStoreConfig{
-				Type:         config.PromptStoreTypeFile,
-				FilePath:     tempDir,
-				CacheEnabled: true, // Enable caching
-			},
-		}, nil
-	})
+	injector, ctrl := setupMockConfigService(t, storeConfig)
+	defer ctrl.Finish()
 
 	// Register logger service
 	do.Provide(injector, logger.NewService)
@@ -209,19 +213,14 @@ func TestNewPromptManagerProvider_CachedFileStore(t *testing.T) {
 
 // TestNewPromptManagerProvider_UnknownStoreType tests that unknown store type falls back to memory
 func TestNewPromptManagerProvider_UnknownStoreType(t *testing.T) {
-	// Create DI injector
-	injector := do.New()
+	storeConfig := &config.PromptStoreConfig{
+		Type:         "unknown_type", // Unknown type
+		FilePath:     "",
+		CacheEnabled: false,
+	}
 
-	// Register config service with unknown store type (should fallback to memory)
-	do.Provide[config.ConfigService](injector, func(_ do.Injector) (config.ConfigService, error) {
-		return &mockConfigService{
-			promptStoreConfig: &config.PromptStoreConfig{
-				Type:         "unknown_type", // Unknown type
-				FilePath:     "",
-				CacheEnabled: false,
-			},
-		}, nil
-	})
+	injector, ctrl := setupMockConfigService(t, storeConfig)
+	defer ctrl.Finish()
 
 	// Register logger service
 	do.Provide(injector, logger.NewService)
@@ -246,19 +245,14 @@ func TestNewPromptManagerProvider_UnknownStoreType(t *testing.T) {
 
 // TestNewPromptManagerProvider_PromptManagerInterface tests that PromptManager interface is satisfied
 func TestNewPromptManagerProvider_PromptManagerInterface(t *testing.T) {
-	// Create DI injector
-	injector := do.New()
+	storeConfig := &config.PromptStoreConfig{
+		Type:         config.PromptStoreTypeMemory,
+		FilePath:     "",
+		CacheEnabled: false,
+	}
 
-	// Register config service
-	do.Provide[config.ConfigService](injector, func(_ do.Injector) (config.ConfigService, error) {
-		return &mockConfigService{
-			promptStoreConfig: &config.PromptStoreConfig{
-				Type:         config.PromptStoreTypeMemory,
-				FilePath:     "",
-				CacheEnabled: false,
-			},
-		}, nil
-	})
+	injector, ctrl := setupMockConfigService(t, storeConfig)
+	defer ctrl.Finish()
 
 	// Register logger service
 	do.Provide(injector, logger.NewService)
@@ -293,51 +287,4 @@ func TestNewPromptManagerProvider_PromptManagerInterface(t *testing.T) {
 	listed, err := pm.ListPrompts(ctx, &prompt.ListFilter{})
 	assert.NoError(t, err, "ListPrompts should work")
 	assert.NotNil(t, listed, "ListPrompts should return list")
-}
-
-// ============ MOCKS ============
-
-// mockConfigService is a mock implementation of config.ConfigService
-// TODO: eleminate forbidden custom mockConfigService since we use the central mocks
-// from the mocks package as described in the golang testing guideline in the knowledge-base
-
-type mockConfigService struct {
-	promptStoreConfig *config.PromptStoreConfig
-}
-
-func (m *mockConfigService) GetLogLevel() string { return "info" }
-func (m *mockConfigService) IsDevMode() bool     { return false }
-func (m *mockConfigService) GetAnthropicConfig() *config.AnthropicConfig {
-	return nil
-}
-func (m *mockConfigService) GetGeminiConfig() *config.GeminiConfig {
-	return nil
-}
-func (m *mockConfigService) GetOpenAIConfig() *config.OpenAIConfig {
-	return nil
-}
-func (m *mockConfigService) GetAgentLimits() *config.AgentLimitsConfig {
-	return nil
-}
-func (m *mockConfigService) GetFilesConfig() *config.FilesConfig {
-	return nil
-}
-func (m *mockConfigService) GetLoggingConfig() *config.LoggingConfig {
-	// Return valid logging config to avoid nil pointer in logger service
-	return &config.LoggingConfig{
-		SessionLogBufferSize: 1000,
-		SessionLogEnabled:    false,
-	}
-}
-func (m *mockConfigService) GetBashConfig() *config.BashConfig {
-	return nil
-}
-func (m *mockConfigService) GetHooksConfig() *config.HooksConfig {
-	return nil
-}
-func (m *mockConfigService) GetPromptStoreConfig() *config.PromptStoreConfig {
-	return m.promptStoreConfig
-}
-func (m *mockConfigService) GetPromptOptimizerConfig() *config.PromptOptimizerConfig {
-	return nil
 }
