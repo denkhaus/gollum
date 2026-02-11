@@ -132,6 +132,15 @@ func (h *LangfuseHook) createTraceContext(sessionID uuid.UUID) *TraceContext {
 	return tc
 }
 
+// removeTraceContext deletes the TraceContext for a given session ID.
+// Uses Lock to prevent concurrent writes.
+func (h *LangfuseHook) removeTraceContext(sessionID uuid.UUID) {
+	h.traceCtxsMu.Lock()
+	defer h.traceCtxsMu.Unlock()
+
+	delete(h.traceCtxs, sessionID)
+}
+
 // Shutdown flushes any buffered traces and closes the Langfuse client.
 // This should be called during application shutdown or session end.
 func (h *LangfuseHook) Shutdown() error {
