@@ -16,6 +16,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/prompt/optimizer"
 	"github.com/denkhaus/gollum/pkg/prompt/store"
+	"github.com/denkhaus/gollum/pkg/profiling"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/denkhaus/gollum/pkg/tools"
@@ -81,6 +82,9 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 
 	// Register FileStateManager
 	do.Provide(p.injector, state.NewFileStateManager)
+
+	// Register ProfilingService
+	do.Provide(p.injector, profiling.NewProfilingServiceProvider)
 
 	// Register agent factory
 	do.Provide(p.injector, agents.NewAgentFactory)
