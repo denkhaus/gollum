@@ -274,23 +274,213 @@ func (h *LangfuseHook) afterSessionEndHook(_ context.Context, hookCtx *hooks.Hoo
 
 // Agent lifecycle hook methods (span creation in Phase 9)
 func (h *LangfuseHook) beforeAgentSpawnHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+	// Only create spans if Langfuse is enabled and client is available
+	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
+		h.propagateTraceID(hookCtx)
+		return next()
+	}
+
+	// Get Langfuse client (lazy init)
+	_, err := h.getClient()
+	if err != nil {
+		// Client not configured - log debug and continue
+		h.log.Debug("Langfuse client not available, skipping agent span creation", zap.Error(err))
+		h.propagateTraceID(hookCtx)
+		return next()
+	}
+
+	// Get or create trace context for this session
+	tc := h.getTraceContext(hookCtx.SessionID)
+	if tc == nil {
+		// No trace context exists - create one for ad-hoc tracing
+		tc = h.createTraceContext(hookCtx.SessionID)
+	}
+
+	// Generate span ID and store in HookContext for correlation
+	spanID := uuid.New().String()
+	hookCtx.Data["langfuse_span_id"] = spanID
+	hookCtx.Data["langfuse_agent_event_start"] = time.Now()
+
+	// Store incomplete span in TraceContext
+	h.traceCtxsMu.Lock()
+	if tc.Spans == nil {
+		tc.Spans = make(map[string]interface{})
+	}
+	// Create placeholder span object (will be replaced with actual SDK span in Phase 10)
+	tc.Spans[spanID] = &AgentSpanContext{
+		StartTime:     time.Now(),
+		EventType:     "spawn",
+		ParentAgentID: hookCtx.AgentID.String(),
+	}
+	h.traceCtxsMu.Unlock()
+
+	h.log.Debug("Agent spawn span created",
+		zap.String("span_id", spanID),
+		zap.String("parent_agent_id", hookCtx.AgentID.String()))
+
 	h.propagateTraceID(hookCtx)
 	return next()
 }
 
 func (h *LangfuseHook) afterAgentSpawnHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+	// Call next first to let the spawn complete
+	err := next()
+	if err != nil {
+		return err
+	}
+
+	// Only update spans if Langfuse is enabled
+	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Get span ID from HookContext.Data
+	spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
+	if !ok || spanID == "" {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Get trace context
+	tc := h.getTraceContext(hookCtx.SessionID)
+	if tc == nil {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	h.traceCtxsMu.Lock()
+	// Get span from TraceContext
+	spanCtx, ok := tc.Spans[spanID].(*AgentSpanContext)
+	if !ok {
+		h.traceCtxsMu.Unlock()
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Update span with new agent ID if available
+	// The new agent ID should be set by the caller in HookContext.Data
+	if newAgentID, ok := hookCtx.Data["new_agent_id"].(string); ok {
+		spanCtx.NewAgentID = newAgentID
+	}
+
+	// Calculate latency
+	latency := time.Since(spanCtx.StartTime)
+
+	// Set completion status
+	spanCtx.Level = traces.ObservationLevelDefault
+	spanCtx.StatusMessage = "success"
+	h.traceCtxsMu.Unlock()
+
+	// Log span completion
+	h.log.Debug("Agent spawn span completed",
+		zap.String("span_id", spanID),
+		zap.String("parent_agent_id", spanCtx.ParentAgentID),
+		zap.String("new_agent_id", spanCtx.NewAgentID),
+		zap.Duration("latency", latency))
+
 	h.propagateTraceID(hookCtx)
-	return next()
+	return nil
 }
 
 func (h *LangfuseHook) beforeAgentRemoveHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+	// Only create spans if Langfuse is enabled and client is available
+	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
+		h.propagateTraceID(hookCtx)
+		return next()
+	}
+
+	// Get Langfuse client (lazy init)
+	_, err := h.getClient()
+	if err != nil {
+		h.log.Debug("Langfuse client not available, skipping agent removal span creation", zap.Error(err))
+		h.propagateTraceID(hookCtx)
+		return next()
+	}
+
+	// Get or create trace context for this session
+	tc := h.getTraceContext(hookCtx.SessionID)
+	if tc == nil {
+		tc = h.createTraceContext(hookCtx.SessionID)
+	}
+
+	// Generate span ID and store in HookContext for correlation
+	spanID := uuid.New().String()
+	hookCtx.Data["langfuse_span_id"] = spanID
+	hookCtx.Data["langfuse_agent_event_start"] = time.Now()
+
+	// Store incomplete span in TraceContext
+	h.traceCtxsMu.Lock()
+	if tc.Spans == nil {
+		tc.Spans = make(map[string]interface{})
+	}
+	tc.Spans[spanID] = &AgentSpanContext{
+		StartTime: time.Now(),
+		EventType: "remove",
+		AgentID:   hookCtx.AgentID.String(),
+	}
+	h.traceCtxsMu.Unlock()
+
+	h.log.Debug("Agent remove span created",
+		zap.String("span_id", spanID),
+		zap.String("agent_id", hookCtx.AgentID.String()))
+
 	h.propagateTraceID(hookCtx)
 	return next()
 }
 
 func (h *LangfuseHook) afterAgentRemoveHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+	// Call next first to let the removal complete
+	err := next()
+	if err != nil {
+		return err
+	}
+
+	// Only update spans if Langfuse is enabled
+	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Get span ID from HookContext.Data
+	spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
+	if !ok || spanID == "" {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Get trace context
+	tc := h.getTraceContext(hookCtx.SessionID)
+	if tc == nil {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	h.traceCtxsMu.Lock()
+	// Get span from TraceContext
+	spanCtx, ok := tc.Spans[spanID].(*AgentSpanContext)
+	if !ok {
+		h.traceCtxsMu.Unlock()
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Calculate latency
+	latency := time.Since(spanCtx.StartTime)
+
+	// Set completion status
+	spanCtx.Level = traces.ObservationLevelDefault
+	spanCtx.StatusMessage = "success"
+	h.traceCtxsMu.Unlock()
+
+	// Log span completion
+	h.log.Debug("Agent remove span completed",
+		zap.String("span_id", spanID),
+		zap.String("agent_id", spanCtx.AgentID),
+		zap.Duration("latency", latency))
+
 	h.propagateTraceID(hookCtx)
-	return next()
+	return nil
 }
 
 // Tool execution hook methods (span creation in Phase 9)
@@ -519,6 +709,18 @@ type ToolSpanContext struct {
 	ToolName      string
 	Input         map[string]any
 	Output        map[string]any
+	Level         traces.ObservationLevel
+	StatusMessage string
+}
+
+// AgentSpanContext holds agent span data for correlation between before/after hooks.
+// This placeholder struct stores span data until actual Langfuse SDK spans are created in Phase 10.
+type AgentSpanContext struct {
+	StartTime     time.Time
+	EventType     string // "spawn" or "remove"
+	ParentAgentID string // For spawn events, the parent agent ID
+	AgentID       string // The agent being affected
+	NewAgentID    string // For spawn events, the new child agent ID (set in after hook)
 	Level         traces.ObservationLevel
 	StatusMessage string
 }
