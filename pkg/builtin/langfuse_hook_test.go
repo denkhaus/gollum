@@ -1892,6 +1892,103 @@ func TestLangfuseHook_ErrorPath_Integration(t *testing.T) {
 	}
 }
 
+// TestLangfuseHook_ConcurrentAccess_Integration tests concurrent span creation across multiple operations
+func TestLangfuseHook_ConcurrentAccess_Integration(t *testing.T) {
+	sessionID := uuid.New()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockLog := mocks.NewMockLoggerService(ctrl)
+	cfg := &config.LangfuseConfig{
+		LangfuseEnabled:   true,
+		LangfuseHost:      "https://cloud.langfuse.com",
+		LangfusePublicKey: "pk-test-key",
+		LangfuseSecretKey: "sk-test-key",
+	}
+
+	// Expect Info call for client init and Debug for lifecycle events
+	mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+
+	hook := &LangfuseHook{
+		log:         mockLog,
+		config:      cfg,
+		client:      nil,
+		clientMu:    &sync.Mutex{},
+		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxsMu: &sync.RWMutex{},
+	}
+
+	hook.createTraceContext(sessionID)
+	tc := hook.getTraceContext(sessionID)
+
+	// Run multiple goroutines creating different span types concurrently
+	var wg sync.WaitGroup
+	numOperations := 10
+	spanIDs := make([]string, numOperations)
+	spanIDsMu := &sync.Mutex{}
+
+	for i := 0; i < numOperations; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+
+			ctx := &hooks.HookContext{
+				SessionID: sessionID,
+				Data:      make(map[string]any),
+			}
+
+			switch idx % 3 {
+			case 0:
+				// Tool execution
+				ctx.ToolName = fmt.Sprintf("tool-%d", idx)
+				ctx.ToolArgs = map[string]any{"index": idx}
+				hook.beforeToolExecutionHook(context.Background(), ctx, func() error { return nil })
+				ctx.ToolResult = map[string]any{"result": idx}
+				hook.afterToolExecutionHook(context.Background(), ctx, func() error { return nil })
+
+			case 1:
+				// LLM request
+				ctx.LLMModel = "claude-3-5-sonnet"
+				ctx.LLMInput = fmt.Sprintf("prompt-%d", idx)
+				hook.beforeLLMRequestHook(context.Background(), ctx, func() error { return nil })
+				ctx.LLMResponse = fmt.Sprintf("response-%d", idx)
+				hook.afterLLMResponseHook(context.Background(), ctx, func() error { return nil })
+
+			case 2:
+				// Agent spawn
+				ctx.AgentID = uuid.New()
+				hook.beforeAgentSpawnHook(context.Background(), ctx, func() error { return nil })
+				ctx.Data["new_agent_id"] = fmt.Sprintf("agent-%d", idx)
+				hook.afterAgentSpawnHook(context.Background(), ctx, func() error { return nil })
+			}
+
+			if spanID, ok := ctx.Data["langfuse_span_id"].(string); ok {
+				spanIDsMu.Lock()
+				spanIDs[idx] = spanID
+				spanIDsMu.Unlock()
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	// Verify all spans were created
+	tc = hook.getTraceContext(sessionID)
+	require.NotNil(t, tc, "TraceContext should still exist")
+
+	uniqueSpanIDs := make(map[string]bool)
+	for _, id := range spanIDs {
+		if id != "" {
+			uniqueSpanIDs[id] = true
+			assert.Contains(t, tc.Spans, id, "Span should be in TraceContext")
+		}
+	}
+
+	assert.Len(t, uniqueSpanIDs, numOperations, "All spans should have unique IDs")
+	assert.Len(t, tc.Spans, numOperations, "All spans should be stored")
+}
+
 // TestLangfuseHook_AgentSpanLifecycle_Integration tests full agent lifecycle
 func TestLangfuseHook_AgentSpanLifecycle_Integration(t *testing.T) {
 	sessionID := uuid.New()
