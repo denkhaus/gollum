@@ -1473,3 +1473,246 @@ func TestLangfuseHook_ToolSpanLifecycle_Integration(t *testing.T) {
 		})
 	}
 }
+
+// TestLangfuseHook_AgentSpawnSpanLifecycle tests the full agent spawn span lifecycle
+func TestLangfuseHook_AgentSpawnSpanLifecycle(t *testing.T) {
+	sessionID := uuid.New()
+	parentAgentID := uuid.New()
+
+	tests := []struct {
+		name            string
+		langfuseEnabled bool
+		sessionID       uuid.UUID
+		parentAgentID   uuid.UUID
+		newAgentID      string
+		wantSpanCreated bool
+	}{
+		{
+			name:            "creates spawn span when enabled",
+			langfuseEnabled: true,
+			sessionID:       sessionID,
+			parentAgentID:   parentAgentID,
+			newAgentID:      "child-agent-123",
+			wantSpanCreated: true,
+		},
+		{
+			name:            "skips spawn span when disabled",
+			langfuseEnabled: false,
+			sessionID:       sessionID,
+			parentAgentID:   parentAgentID,
+			wantSpanCreated: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockLog := mocks.NewMockLoggerService(ctrl)
+			cfg := &config.LangfuseConfig{
+				LangfuseEnabled:   tt.langfuseEnabled,
+				LangfuseHost:      "https://cloud.langfuse.com",
+				LangfusePublicKey: "pk-test-key",
+				LangfuseSecretKey: "sk-test-key",
+			}
+
+			// Expect Info call for client initialization and Debug for lifecycle
+			mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+			mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+
+			hook := &LangfuseHook{
+				log:         mockLog,
+				config:      cfg,
+				client:      nil,
+				clientMu:    &sync.Mutex{},
+				traceCtxs:   make(map[uuid.UUID]*TraceContext),
+				traceCtxsMu: &sync.RWMutex{},
+			}
+
+			if tt.sessionID != uuid.Nil {
+				hook.createTraceContext(tt.sessionID)
+			}
+
+			hookCtx := &hooks.HookContext{
+				SessionID: tt.sessionID,
+				AgentID:   tt.parentAgentID,
+				Data:      make(map[string]any),
+			}
+
+			// Call before hook
+			err := hook.beforeAgentSpawnHook(context.Background(), hookCtx, func() error { return nil })
+			require.NoError(t, err)
+
+			spanID, hasSpanID := hookCtx.Data["langfuse_span_id"].(string)
+
+			if tt.wantSpanCreated {
+				assert.True(t, hasSpanID, "Should have span ID")
+
+				// Add new agent ID for after hook
+				if tt.newAgentID != "" {
+					hookCtx.Data["new_agent_id"] = tt.newAgentID
+				}
+
+				// Call after hook
+				err = hook.afterAgentSpawnHook(context.Background(), hookCtx, func() error { return nil })
+				require.NoError(t, err)
+
+				tc := hook.getTraceContext(tt.sessionID)
+				spanCtx, ok := tc.Spans[spanID].(*AgentSpanContext)
+				require.True(t, ok, "Span should be AgentSpanContext type")
+				assert.Equal(t, "spawn", spanCtx.EventType)
+				assert.Equal(t, tt.parentAgentID.String(), spanCtx.ParentAgentID)
+				assert.Equal(t, tt.newAgentID, spanCtx.NewAgentID)
+				assert.Equal(t, traces.ObservationLevelDefault, spanCtx.Level)
+				assert.Equal(t, "success", spanCtx.StatusMessage)
+			}
+		})
+	}
+}
+
+// TestLangfuseHook_AgentRemoveSpanLifecycle tests the agent removal span lifecycle
+func TestLangfuseHook_AgentRemoveSpanLifecycle(t *testing.T) {
+	sessionID := uuid.New()
+	agentID := uuid.New()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLog := mocks.NewMockLoggerService(ctrl)
+	cfg := &config.LangfuseConfig{
+		LangfuseEnabled:   true,
+		LangfuseHost:      "https://cloud.langfuse.com",
+		LangfusePublicKey: "pk-test-key",
+		LangfuseSecretKey: "sk-test-key",
+	}
+
+	// Expect Info call for client init and Debug for lifecycle events
+	mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+
+	hook := &LangfuseHook{
+		log:         mockLog,
+		config:      cfg,
+		client:      nil,
+		clientMu:    &sync.Mutex{},
+		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxsMu: &sync.RWMutex{},
+	}
+
+	hook.createTraceContext(sessionID)
+
+	hookCtx := &hooks.HookContext{
+		SessionID: sessionID,
+		AgentID:   agentID,
+		Data:      make(map[string]any),
+	}
+
+	// Call before remove hook
+	err := hook.beforeAgentRemoveHook(context.Background(), hookCtx, func() error { return nil })
+	require.NoError(t, err)
+
+	spanID, hasSpanID := hookCtx.Data["langfuse_span_id"].(string)
+	assert.True(t, hasSpanID, "Should have span ID")
+
+	// Call after remove hook
+	err = hook.afterAgentRemoveHook(context.Background(), hookCtx, func() error { return nil })
+	require.NoError(t, err)
+
+	tc := hook.getTraceContext(sessionID)
+	spanCtx, ok := tc.Spans[spanID].(*AgentSpanContext)
+	require.True(t, ok, "Span should be AgentSpanContext type")
+	assert.Equal(t, "remove", spanCtx.EventType)
+	assert.Equal(t, agentID.String(), spanCtx.AgentID)
+	assert.Equal(t, traces.ObservationLevelDefault, spanCtx.Level)
+	assert.Equal(t, "success", spanCtx.StatusMessage)
+}
+
+// TestLangfuseHook_AgentSpanLifecycle_Integration tests full agent lifecycle
+func TestLangfuseHook_AgentSpanLifecycle_Integration(t *testing.T) {
+	sessionID := uuid.New()
+
+	tests := []struct {
+		name          string
+		parentAgentID uuid.UUID
+		newAgentID    string
+		eventType     string
+	}{
+		{
+			name:          "agent spawn with hierarchy",
+			parentAgentID: uuid.New(),
+			newAgentID:    "child-agent-456",
+			eventType:     "spawn",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockLog := mocks.NewMockLoggerService(ctrl)
+			cfg := &config.LangfuseConfig{
+				LangfuseEnabled:   true,
+				LangfuseHost:      "https://cloud.langfuse.com",
+				LangfusePublicKey: "pk-test-key",
+				LangfuseSecretKey: "sk-test-key",
+			}
+
+			// Expect Debug calls for span lifecycle events and Info for client init
+			mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+			mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+
+			hook := &LangfuseHook{
+				log:         mockLog,
+				config:      cfg,
+				client:      nil,
+				clientMu:    &sync.Mutex{},
+				traceCtxs:   make(map[uuid.UUID]*TraceContext),
+				traceCtxsMu: &sync.RWMutex{},
+			}
+
+			// Create trace context
+			hook.createTraceContext(sessionID)
+			tc := hook.getTraceContext(sessionID)
+
+			// Simulate agent spawn flow
+			hookCtx := &hooks.HookContext{
+				SessionID: sessionID,
+				AgentID:   tt.parentAgentID,
+				Data:      make(map[string]any),
+			}
+
+			// Call beforeAgentSpawnHook (creates span)
+			err := hook.beforeAgentSpawnHook(context.Background(), hookCtx, func() error { return nil })
+			require.NoError(t, err)
+
+			// Get span ID
+			spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
+			require.True(t, ok, "Should have span ID")
+			require.NotEmpty(t, spanID, "Span ID should not be empty")
+
+			// Verify initial span state
+			spanCtx, ok := tc.Spans[spanID].(*AgentSpanContext)
+			require.True(t, ok, "Span should be AgentSpanContext type")
+			assert.Equal(t, "spawn", spanCtx.EventType)
+			assert.Equal(t, tt.parentAgentID.String(), spanCtx.ParentAgentID)
+			assert.False(t, spanCtx.StartTime.IsZero())
+
+			// Set new agent ID (simulating what caller would do)
+			hookCtx.Data["new_agent_id"] = tt.newAgentID
+
+			// Call afterAgentSpawnHook
+			err = hook.afterAgentSpawnHook(context.Background(), hookCtx, func() error { return nil })
+			require.NoError(t, err)
+
+			// Verify final span state
+			spanCtx = tc.Spans[spanID].(*AgentSpanContext)
+			assert.Equal(t, tt.newAgentID, spanCtx.NewAgentID, "NewAgentID should be set")
+			assert.Equal(t, traces.ObservationLevelDefault, spanCtx.Level, "Level should be DEFAULT")
+			assert.Equal(t, "success", spanCtx.StatusMessage, "Status message should be success")
+
+			// Verify hierarchy metadata captured
+			assert.NotEmpty(t, spanCtx.ParentAgentID, "ParentAgentID should be captured")
+			assert.NotEmpty(t, spanCtx.NewAgentID, "NewAgentID should be captured")
+		})
+	}
+}
