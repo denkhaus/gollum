@@ -295,18 +295,168 @@ func (h *LangfuseHook) afterAgentRemoveHook(_ context.Context, hookCtx *hooks.Ho
 
 // Tool execution hook methods (span creation in Phase 9)
 func (h *LangfuseHook) beforeToolExecutionHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+	// Only create spans if Langfuse is enabled and client is available
+	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
+		h.propagateTraceID(hookCtx)
+		return next()
+	}
+
+	// Get Langfuse client (lazy init)
+	_, err := h.getClient()
+	if err != nil {
+		// Client not configured - log debug and continue
+		h.log.Debug("Langfuse client not available, skipping tool span creation", zap.Error(err))
+		h.propagateTraceID(hookCtx)
+		return next()
+	}
+
+	// Get or create trace context for this session
+	tc := h.getTraceContext(hookCtx.SessionID)
+	if tc == nil {
+		// No trace context exists - create one for ad-hoc tracing
+		tc = h.createTraceContext(hookCtx.SessionID)
+	}
+
+	// Store span metadata in HookContext for AfterToolExecution to complete
+	hookCtx.Data["langfuse_tool_start"] = time.Now()
+	hookCtx.Data["langfuse_tool_name"] = hookCtx.ToolName
+
+	// Generate span ID and store in HookContext for correlation
+	spanID := uuid.New().String()
+	hookCtx.Data["langfuse_span_id"] = spanID
+
+	// Store incomplete span in TraceContext
+	h.traceCtxsMu.Lock()
+	if tc.Spans == nil {
+		tc.Spans = make(map[string]interface{})
+	}
+	// Create placeholder span object (will be replaced with actual SDK span in Phase 10)
+	tc.Spans[spanID] = &ToolSpanContext{
+		StartTime: time.Now(),
+		ToolName:  hookCtx.ToolName,
+		Input:     hookCtx.ToolArgs,
+	}
+	h.traceCtxsMu.Unlock()
+
 	h.propagateTraceID(hookCtx)
 	return next()
 }
 
 func (h *LangfuseHook) afterToolExecutionHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+	// Call next first to get the actual tool result
+	err := next()
+	if err != nil {
+		return err
+	}
+
+	// Only update spans if Langfuse is enabled
+	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Get span ID from HookContext.Data
+	spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
+	if !ok || spanID == "" {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Get trace context
+	tc := h.getTraceContext(hookCtx.SessionID)
+	if tc == nil {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	h.traceCtxsMu.Lock()
+	// Get span from TraceContext
+	spanCtx, ok := tc.Spans[spanID].(*ToolSpanContext)
+	if !ok {
+		h.traceCtxsMu.Unlock()
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Update span with result data
+	spanCtx.Output = hookCtx.ToolResult
+
+	// Calculate latency
+	latency := time.Since(spanCtx.StartTime)
+
+	// Set completion status
+	spanCtx.Level = traces.ObservationLevelDefault
+	spanCtx.StatusMessage = "success"
+	h.traceCtxsMu.Unlock()
+
+	// Log span completion (actual span submission to Langfuse in Phase 10)
+	h.log.Debug("Tool span completed",
+		zap.String("span_id", spanID),
+		zap.String("tool_name", spanCtx.ToolName),
+		zap.Duration("latency", latency))
 	h.propagateTraceID(hookCtx)
-	return next()
+	return nil
 }
 
 func (h *LangfuseHook) onToolErrorHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+	// Call next first to ensure error chain continues
+	err := next()
+	if err != nil {
+		return err
+	}
+
+	// Only update spans if Langfuse is enabled
+	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Get span ID from HookContext.Data
+	spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
+	if !ok || spanID == "" {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Get trace context
+	tc := h.getTraceContext(hookCtx.SessionID)
+	if tc == nil {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	h.traceCtxsMu.Lock()
+	// Get span from TraceContext
+	spanCtx, ok := tc.Spans[spanID].(*ToolSpanContext)
+	if !ok {
+		h.traceCtxsMu.Unlock()
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Mark span as failed
+	spanCtx.Level = traces.ObservationLevelError
+
+	// Set error message from HookContext.ToolError
+	if hookCtx.ToolError != nil {
+		spanCtx.StatusMessage = hookCtx.ToolError.Error()
+	} else {
+		spanCtx.StatusMessage = "unknown error"
+	}
+
+	// Calculate latency (time from start to error)
+	latency := time.Since(spanCtx.StartTime)
+
+	// Log span error
+	h.log.Debug("Tool span failed",
+		zap.String("span_id", spanID),
+		zap.String("tool_name", spanCtx.ToolName),
+		zap.Duration("latency", latency),
+		zap.Error(hookCtx.ToolError))
+	h.traceCtxsMu.Unlock()
+
 	h.propagateTraceID(hookCtx)
-	return next()
+	return nil
 }
 
 // File operation hook methods (span creation in Phase 9)
@@ -358,6 +508,17 @@ type LLMSpanContext struct {
 	Input         string
 	Output        string
 	Usage         *traces.Usage
+	Level         traces.ObservationLevel
+	StatusMessage string
+}
+
+// ToolSpanContext holds tool span data for correlation between before/after/error hooks.
+// This placeholder struct stores span data until actual Langfuse SDK spans are created in Phase 10.
+type ToolSpanContext struct {
+	StartTime     time.Time
+	ToolName      string
+	Input         map[string]any
+	Output        map[string]any
 	Level         traces.ObservationLevel
 	StatusMessage string
 }
