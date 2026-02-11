@@ -5,43 +5,44 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Agent quality improves iteratively through automatic prompt optimization based on execution feedback.
-**Current focus:** Phase 7 of 11 — LangfuseHook Struct and Basic Registration
+**Current focus:** Phase 8 of 11 — LLM Tracing
 
 ## Current Position
 
-Phase: 7
-Plan: 03b
+Phase: 8
+Plan: 01
 Status: Milestone v1.1 Langfuse Integration — IN PROGRESS
-Last activity: 2026-02-11 — Completed 07-03b-PLAN.md (Unit Tests for DI Integration)
+Last activity: 2026-02-11 — Completed 08-01-PLAN.md (LLM Span Creation)
 
-Progress: [██████████░░░░░] 55% (6/11 phases complete, 4/5 plans in phase 7)
+Progress: [███████████░░░░] 59% (6/11 phases complete, 1/2 plans in phase 8)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 19 (v1.0: 16, v1.1: 3)
-- Average duration: 8 min
-- Total execution time: 2.5 hours
+- Total plans completed: 20 (v1.0: 16, v1.1: 4)
+- Average duration: 9 min
+- Total execution time: 2.7 hours
 
 **By Milestone:**
 
 | Milestone | Phases | Plans Complete | Status |
 |-----------|--------|----------------|--------|
 | v1.0 Prompt Optimizer | 5 | 16 | Complete |
-| v1.1 Langfuse Integration | 6 | 3 | In Progress |
+| v1.1 Langfuse Integration | 6 | 4 | In Progress |
 
 **Phase Breakdown (v1.1):**
 | Phase | Plans | Complete | Status |
 |-------|-------|----------|--------|
 | 6. Config and Client Init | 2 | 2 | Complete |
-| 7. Hook Struct and Registration | 5 | 4 | In Progress |
-| 8. LLM Tracing | 2 | 0 | Pending |
+| 7. Hook Struct and Registration | 5 | 5 | Complete |
+| 8. LLM Tracing | 2 | 1 | In Progress |
 | 9. Tool and Agent Tracing | 3 | 0 | Pending |
 | 10. Session and Flush | 2 | 0 | Pending |
 | 11. Testing and Documentation | 3 | 0 | Pending |
 
 *Updated after each plan completion*
 | Phase 07 P03b | 122 | 2 tasks | 1 files |
+| Phase 08-llm-tracing P01 | 900 | 3 tasks | 2 files |
 
 ### Recent Plan Executions
 
@@ -52,6 +53,7 @@ Progress: [██████████░░░░░] 55% (6/11 phases compl
 | 07-langfusehook-struct-and-basic-registration | 02 | 10min | 3 | 2 |
 | 07-langfusehook-struct-and-basic-registration | 03 | 1min | 3 | 2 |
 | 07-langfusehook-struct-and-basic-registration | 03b | 2min | 2 | 1 |
+| 08-llm-tracing | 01 | 15min | 3 | 2 |
 
 ## Accumulated Context
 
@@ -124,6 +126,9 @@ Recent decisions affecting current work:
 - **hookRegisterer interface**: Minimal interface with only RegisterHook method allows testing without full HookManager implementation (07-02)
 - **Separate providers for different purposes**: NewLangfuseHookProvider returns hooks.HookFunc for direct DI registration, NewLangfuseHooksProvider returns *LangfuseHook for RegisterLangfuseHooks (07-03)
 - **No type assertion in builtin provider**: NewLangfuseHooksProvider returns *LangfuseHook directly, avoiding interface{} cast in NewBuiltinHooksProvider (07-03)
+- [Phase 08-llm-tracing]: Placeholder span pattern: LLMSpanContext stores span data until SDK spans created in Phase 10
+- [Phase 08-llm-tracing]: HookContext.Data correlation: langfuse_span_id stored for before/after hook correlation
+- [Phase 08-llm-tracing]: Lock ordering: Release traceCtxsMu before calling propagateTraceID to avoid deadlock
 
 ### Pending Todos
 
@@ -135,8 +140,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-11T10:36:04Z
-Stopped at: Completed 07-03b-PLAN.md (Unit Tests for DI Integration)
+Last session: 2026-02-11T11:27:30Z
+Stopped at: Completed 08-01-PLAN.md (LLM Span Creation)
 Resume file: None
 
 ## Milestone Status: v1.0 PROMPT OPTIMIZER - COMPLETE
