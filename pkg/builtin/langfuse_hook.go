@@ -158,10 +158,16 @@ func (h *LangfuseHook) Shutdown() error {
 // Priority 500 runs after LoggingHook (1000) but before custom user hooks.
 const LangfuseHookPriority = 500
 
+// hookRegisterer is a minimal interface for hook registration.
+// This allows RegisterLangfuseHooks to work with any type that implements RegisterHook.
+type hookRegisterer interface {
+	RegisterHook(fn hooks.HookFunc, meta hooks.HookMetadata) error
+}
+
 // RegisterLangfuseHooks registers all Langfuse tracing hooks with HookManager.
 // It creates and manages trace contexts for session-based tracing.
 // Hooks are registered at priority 500 (after logging, before custom hooks).
-func RegisterLangfuseHooks(hm hooks.HookManager, hook *LangfuseHook) error {
+func RegisterLangfuseHooks(hm hookRegisterer, hook *LangfuseHook) error {
 	// Check if Langfuse tracing is enabled
 	if !hook.config.LangfuseEnabled {
 		return nil // Skip registration if tracing is disabled
