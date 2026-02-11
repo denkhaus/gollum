@@ -97,13 +97,13 @@ func (p *applicationServiceImpl) createToolSet(ctx context.Context) ([]gollem.To
 	p.logService.Info("create tool-set for main agent")
 
 	toolSet := []gollem.ToolSet{}
-	// Create brain MCP toolset
-	// brainMCP, err := mcp.NewBrainMCPClient(ctx)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to create brain MCP client: %w", err)
-	// }
 
-	// toolSet = append(toolSet, brainMCP)
+	brainMCP, err := mcp.NewBrainMCPClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create brain MCP client: %w", err)
+	}
+
+	toolSet = append(toolSet, brainMCP)
 
 	exaSearchMCP, err := mcp.NewExaSearchMCPClient(ctx)
 	if err != nil {
@@ -112,12 +112,12 @@ func (p *applicationServiceImpl) createToolSet(ctx context.Context) ([]gollem.To
 
 	toolSet = append(toolSet, exaSearchMCP)
 
-	tavilySearachMCP, err := mcp.NewTavilySearchMCPClient(ctx)
+	tavilySearchMCP, err := mcp.NewTavilySearchMCPClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create tavily search MCP client: %w", err)
 	}
 
-	toolSet = append(toolSet, tavilySearachMCP)
+	toolSet = append(toolSet, tavilySearchMCP)
 
 	forgejoMCP, err := mcp.NewForgejoMCPClient(ctx)
 	if err != nil {
