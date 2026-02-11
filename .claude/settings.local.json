@@ -62,7 +62,10 @@
       "mcp__tavily__tavily-search",
       "Bash(wc:*)",
       "mcp__tavily__tavily_search",
-      "mcp__tavily__tavily_extract"
+      "mcp__tavily__tavily_extract",
+      "mcp__vestige__search",
+      "mcp__vestige__ingest",
+      "mcp__vestige__smart_ingest"
     ],
     "deny": [],
     "ask": []
