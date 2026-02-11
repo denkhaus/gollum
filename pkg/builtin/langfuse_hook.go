@@ -5,11 +5,13 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/git-hulk/langfuse-go"
+	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -17,10 +19,28 @@ import (
 // LangfuseHook provides Langfuse tracing for LLM, tool, and agent operations.
 // It creates observation spans at hook points and flushes traces to Langfuse.
 type LangfuseHook struct {
-	log      logger.LoggerService
-	config   *config.LangfuseConfig
-	client   *langfuse.Langfuse
-	clientMu *sync.Mutex // Protects lazy client initialization
+	log        logger.LoggerService
+	config     *config.LangfuseConfig
+	client     *langfuse.Langfuse
+	clientMu   *sync.Mutex // Protects lazy client initialization
+	traceCtxs  map[uuid.UUID]*TraceContext
+	traceCtxsMu *sync.RWMutex // Protects traceCtxs map for concurrent access
+}
+
+// TraceContext holds Langfuse trace state for a single session.
+// It manages spans hierarchy and trace lifecycle.
+type TraceContext struct {
+	// TraceID is the unique identifier for this trace in Langfuse.
+	TraceID string
+	// RootSpan is the top-level span for this trace.
+	RootSpan interface{}
+	// Spans holds all child spans created during this session.
+	// Keys are span IDs for lookup during trace assembly.
+	Spans map[string]interface{}
+	// SessionID is the Gollum session identifier.
+	SessionID uuid.UUID
+	// CreatedAt is when this trace context was created.
+	CreatedAt time.Time
 }
 
 // NewLangfuseHook creates a new LangfuseHook instance.
@@ -30,10 +50,12 @@ func NewLangfuseHook(injector do.Injector) (*LangfuseHook, error) {
 	cfg := do.MustInvoke[config.ConfigService](injector)
 
 	return &LangfuseHook{
-		log:      log,
-		config:   cfg.GetLangfuseConfig(),
-		client:   nil, // Lazy initialized
-		clientMu: &sync.Mutex{},
+		log:         log,
+		config:      cfg.GetLangfuseConfig(),
+		client:      nil, // Lazy initialized
+		clientMu:    &sync.Mutex{},
+		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxsMu: &sync.RWMutex{},
 	}, nil
 }
 
