@@ -2,40 +2,43 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2025-02-01)
+See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Agent quality improves iteratively through automatic prompt optimization based on execution feedback.
-**Current focus:** MILESTONE COMPLETE - All 5 phases finished
+**Current focus:** Phase 6 of 11 — Configuration and Client Initialization
 
 ## Current Position
 
-Phase: Defining requirements for milestone v1.1
+Phase: 6
 Plan: —
-Status: Milestone v1.1 Langfuse Integration - INITIALIZING
-Last activity: 2026-02-10 — Starting milestone v1.1 Langfuse Integration
+Status: Milestone v1.1 Langfuse Integration — PLANNING
+Last activity: 2026-02-11 — ROADMAP.md created with 6 phases for v1.1
 
-Progress: [████████████] 100%
+Progress: [████████░░░░░░░░] 45% (5/11 phases complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
+- Total plans completed: 16 (v1.0)
 - Average duration: 8 min
 - Total execution time: 2.1 hours
 
-**By Phase:**
+**By Milestone:**
 
-| Phase | Plans | Complete | Total | Avg/Plan |
-|-------|-------|----------|-------|----------|
-| 1     | 2     | 2        | 2     | 9 min    |
-| 2     | 3     | 3        | 3     | 20 min   |
-| 3     | 3     | 3        | 3     | 8 min    |
-| 4     | 3     | 3        | 3     | 7 min    |
-| 5     | 4     | 4        | 4     | 2 min    |
+| Milestone | Phases | Plans Complete | Status |
+|-----------|--------|----------------|--------|
+| v1.0 Prompt Optimizer | 5 | 16 | Complete |
+| v1.1 Langfuse Integration | 6 | 0 | Planning |
 
-**Recent Trend:**
-- Last 5 plans: 3min (04-01), 10min (04-02), 7min (04-03), 1min (05-01), 1min (05-03), 1min (05-02), 1min (05-04)
-- Trend: 2 min average
+**Phase Breakdown (v1.1):**
+| Phase | Plans | Complete | Status |
+|-------|-------|----------|--------|
+| 6. Config and Client Init | 2 | 0 | Pending |
+| 7. Hook Struct and Registration | 3 | 0 | Pending |
+| 8. LLM Tracing | 2 | 0 | Pending |
+| 9. Tool and Agent Tracing | 3 | 0 | Pending |
+| 10. Session and Flush | 2 | 0 | Pending |
+| 11. Testing and Documentation | 3 | 0 | Pending |
 
 *Updated after each plan completion*
 
@@ -46,6 +49,7 @@ Progress: [████████████] 100%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+**v1.0 Decisions (Complete):**
 - File-based storage first: Simple, reliable, no external dependencies; learn patterns before complex backends
 - Supervisor agent as initial target: Main user interaction point; high-value optimization target
 - All three strategies from v1: Don't know which strategy works best until we have real data
@@ -91,6 +95,13 @@ Recent decisions affecting current work:
 - **Universal knowledge capture**: All guidance stored in knowledge base at /home/denkhaus/dev/kb/guides/ for reuse across projects
 - **Project-specific documentation**: CLAUDE.md updated with Prompt Optimizer usage examples and configuration guidance
 
+**v1.1 Decisions (Pending):**
+- Hook-based tracing: Follows existing pattern; non-invasive; consistent with codebase
+- Opt-in via config: Default disabled; users explicitly enable tracing
+- Buffered flushing: Better performance; traces sent in batches
+- git-hulk/langfuse-go: Maintained fork with better Go idioms
+- Lazy client init: No overhead when tracing disabled
+
 ### Pending Todos
 
 None yet.
@@ -101,11 +112,11 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-02T20:30:00Z
-Stopped at: MILESTONE COMPLETE - All 5 phases (16 plans) finished
+Last session: 2026-02-11T12:00:00Z
+Stopped at: ROADMAP.md created, ready to start Phase 6 planning
 Resume file: None
 
-## Milestone Status: PROMPT OPTIMIZER - COMPLETE
+## Milestone Status: v1.0 PROMPT OPTIMIZER - COMPLETE
 
 **Phase Summary:**
 - Phase 1 (Core Types and Store Layer): Complete - 2/2 plans
@@ -121,3 +132,23 @@ Resume file: None
 - Configuration and DI integration
 - Knowledge base guidance files (Go-specific and general)
 - Project documentation (CLAUDE.md updated)
+
+## Milestone Status: v1.1 LANGFUSE INTEGRATION - PLANNING
+
+**Phase Summary:**
+- Phase 6 (Configuration and Client Initialization): Pending - 0/2 plans
+- Phase 7 (LangfuseHook Struct and Basic Registration): Pending - 0/3 plans
+- Phase 8 (LLM Tracing Implementation): Pending - 0/2 plans
+- Phase 9 (Tool and Agent Lifecycle Tracing): Pending - 0/3 plans
+- Phase 10 (Session Tracing and Flush/Shutdown): Pending - 0/2 plans
+- Phase 11 (Testing and Documentation): Pending - 0/3 plans
+
+**Target Deliverables:**
+- LangfuseConfig with environment variable configuration
+- Lazy Langfuse client initialization
+- LangfuseHook following logging_hook.go pattern
+- Thread-safe trace context management
+- LLM, tool, and agent lifecycle tracing
+- Session tracing with flush/shutdown handling
+- Comprehensive test suite
+- Knowledge base guidance for Langfuse tracing
