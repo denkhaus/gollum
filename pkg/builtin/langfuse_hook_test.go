@@ -6,6 +6,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -198,5 +199,97 @@ func TestNewLangfuseHookProvider(t *testing.T) {
 		// Call function (should be no-op for now)
 		err = fn(nil, nil, func() error { return nil })
 		assert.NoError(t, err)
+	})
+}
+
+func TestLangfuseHook_TraceContextOperations(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLog := mocks.NewMockLoggerService(ctrl)
+	cfg := &config.LangfuseConfig{
+		LangfuseEnabled:   false,
+		LangfusePublicKey: "pk-test",
+		LangfuseSecretKey: "sk-test",
+		LangfuseHost:      "https://cloud.langfuse.com",
+	}
+
+	hook := &LangfuseHook{
+		log:        mockLog,
+		config:     cfg,
+		client:     nil,
+		clientMu:   &sync.Mutex{},
+		traceCtxs:  make(map[uuid.UUID]*TraceContext),
+		traceCtxsMu: &sync.RWMutex{},
+	}
+
+	sessionID := uuid.New()
+
+	t.Run("getTraceContext returns nil when not found", func(t *testing.T) {
+		tc := hook.getTraceContext(sessionID)
+		assert.Nil(t, tc, "getTraceContext should return nil for non-existent session")
+	})
+
+	t.Run("createTraceContext creates and stores context", func(t *testing.T) {
+		tc := hook.createTraceContext(sessionID)
+
+		assert.NotNil(t, tc, "createTraceContext should return non-nil TraceContext")
+		assert.Equal(t, sessionID, tc.SessionID, "SessionID should match")
+		assert.NotEmpty(t, tc.TraceID, "TraceID should be generated")
+		assert.NotNil(t, tc.Spans, "Spans map should be initialized")
+		assert.False(t, tc.CreatedAt.IsZero(), "CreatedAt should be set")
+	})
+
+	t.Run("getTraceContext returns created context", func(t *testing.T) {
+		hook.createTraceContext(sessionID)
+		tc := hook.getTraceContext(sessionID)
+
+		assert.NotNil(t, tc, "getTraceContext should return created TraceContext")
+		assert.Equal(t, sessionID, tc.SessionID)
+	})
+
+	t.Run("removeTraceContext deletes context", func(t *testing.T) {
+		hook.createTraceContext(sessionID)
+		hook.removeTraceContext(sessionID)
+
+		// Context should be removed
+		tc := hook.getTraceContext(sessionID)
+		assert.Nil(t, tc, "getTraceContext should return nil after removal")
+	})
+
+	t.Run("concurrent access is thread-safe", func(t *testing.T) {
+		// Create multiple session IDs
+		session1 := uuid.New()
+		session2 := uuid.New()
+		session3 := uuid.New()
+
+		// Run concurrent operations
+		done := make(chan bool)
+		go func() {
+			hook.createTraceContext(session1)
+			done <- true
+		}()
+		go func() {
+			hook.createTraceContext(session2)
+			done <- true
+		}()
+		go func() {
+			hook.createTraceContext(session3)
+			done <- true
+		}()
+		go func() {
+			hook.getTraceContext(session1)
+			done <- true
+		}()
+
+		// Wait for all goroutines
+		for i := 0; i < 4; i++ {
+			<-done
+		}
+
+		// Verify all contexts were created
+		assert.NotNil(t, hook.getTraceContext(session1))
+		assert.NotNil(t, hook.getTraceContext(session2))
+		assert.NotNil(t, hook.getTraceContext(session3))
 	})
 }
