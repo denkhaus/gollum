@@ -182,9 +182,9 @@ Build a Go-based agent framework with comprehensive observability, prompt manage
 4. LLM span stored in TraceContext.Spans for retrieval
 5. Hooks tested with mock LLM client
 
-**Plans**: TBD
-- [ ] 08-01-PLAN.md — BeforeLLMRequest and AfterLLMResponse hooks
-- [ ] 08-02-PLAN.md — OnLLMError hook and LLM span testing
+**Plans**: 2 plans in 2 waves
+- [ ] 08-01-PLAN.md — LLM span creation and update with BeforeLLMRequest/AfterLLMResponse hooks (Wave 1)
+- [ ] 08-02-PLAN.md — OnLLMError hook and integration tests for LLM span lifecycle (Wave 2)
 
 ### Phase 9: Tool and Agent Lifecycle Tracing
 
