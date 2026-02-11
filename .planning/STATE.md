@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 7
-Plan: 02
+Plan: 03
 Status: Milestone v1.1 Langfuse Integration — IN PROGRESS
-Last activity: 2026-02-11 — Completed 07-02-PLAN.md (Hook Registration and Trace ID Propagation)
+Last activity: 2026-02-11 — Completed 07-03-PLAN.md (Builtin Provider Integration)
 
-Progress: [██████████░░░░░] 54% (6/11 phases complete, 2/5 plans in phase 7)
+Progress: [██████████░░░░░] 54% (6/11 phases complete, 3/5 plans in phase 7)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 17 (v1.0: 16, v1.1: 1)
+- Total plans completed: 18 (v1.0: 16, v1.1: 2)
 - Average duration: 8 min
-- Total execution time: 2.2 hours
+- Total execution time: 2.3 hours
 
 **By Milestone:**
 
@@ -34,14 +34,14 @@ Progress: [██████████░░░░░] 54% (6/11 phases compl
 | Phase | Plans | Complete | Status |
 |-------|-------|----------|--------|
 | 6. Config and Client Init | 2 | 2 | Complete |
-| 7. Hook Struct and Registration | 5 | 2 | In Progress |
+| 7. Hook Struct and Registration | 5 | 3 | In Progress |
 | 8. LLM Tracing | 2 | 0 | Pending |
 | 9. Tool and Agent Tracing | 3 | 0 | Pending |
 | 10. Session and Flush | 2 | 0 | Pending |
 | 11. Testing and Documentation | 3 | 0 | Pending |
 
 *Updated after each plan completion*
-| Phase 07-langfusehook-struct-and-basic-registration P02 | 629 | 3 tasks | 2 files |
+| Phase 07-langfusehook-struct-and-basic-registration P03 | 60 | 1min | 3 tasks | 2 files |
 
 ### Recent Plan Executions
 
@@ -50,6 +50,7 @@ Progress: [██████████░░░░░] 54% (6/11 phases compl
 | 07-langfusehook-struct-and-basic-registration | 01 | 2min | 4 | 1 |
 | 07-langfusehook-struct-and-basic-registration | 01b | 6min | 2 | 1 |
 | 07-langfusehook-struct-and-basic-registration | 02 | 10min | 3 | 2 |
+| 07-langfusehook-struct-and-basic-registration | 03 | 1min | 3 | 2 |
 
 ## Accumulated Context
 
@@ -120,6 +121,8 @@ Recent decisions affecting current work:
 - **Thread-safe map access**: sync.RWMutex for traceCtxs map with RLock/RUnlock for reads, Lock/Unlock for writes (07-01)
 - **Hook count correction**: 20 hooks registered (2 session + 4 agent + 3 tool + 8 file + 3 LLM) not 21 (07-02)
 - **hookRegisterer interface**: Minimal interface with only RegisterHook method allows testing without full HookManager implementation (07-02)
+- **Separate providers for different purposes**: NewLangfuseHookProvider returns hooks.HookFunc for direct DI registration, NewLangfuseHooksProvider returns *LangfuseHook for RegisterLangfuseHooks (07-03)
+- **No type assertion in builtin provider**: NewLangfuseHooksProvider returns *LangfuseHook directly, avoiding interface{} cast in NewBuiltinHooksProvider (07-03)
 
 ### Pending Todos
 
@@ -131,8 +134,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-11T10:25:15Z
-Stopped at: Completed 07-02-PLAN.md (Hook Registration and Trace ID Propagation)
+Last session: 2026-02-11T10:31:19Z
+Stopped at: Completed 07-03-PLAN.md (Builtin Provider Integration)
 Resume file: None
 
 ## Milestone Status: v1.0 PROMPT OPTIMIZER - COMPLETE
@@ -156,7 +159,7 @@ Resume file: None
 
 **Phase Summary:**
 - Phase 6 (Configuration and Client Initialization): Complete - 2/2 plans complete
-- Phase 7 (LangfuseHook Struct and Basic Registration): In Progress - 1/5 plans complete
+- Phase 7 (LangfuseHook Struct and Basic Registration): In Progress - 3/5 plans complete
 - Phase 8 (LLM Tracing Implementation): Pending - 0/2 plans
 - Phase 9 (Tool and Agent Lifecycle Tracing): Pending - 0/3 plans
 - Phase 10 (Session Tracing and Flush/Shutdown): Pending - 0/2 plans
