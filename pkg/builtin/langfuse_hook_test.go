@@ -2363,3 +2363,153 @@ func TestLangfuseHook_PropagateTraceID(t *testing.T) {
 	assert.True(t, ok, "Should have langfuse_trace_id")
 	assert.Equal(t, tc.TraceID, traceID, "Trace ID should match TraceContext.TraceID")
 }
+
+// TestLangfuseHook_FullTraceLifecycle tests complete trace lifecycle from session start to shutdown
+func TestLangfuseHook_FullTraceLifecycle(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	sessionID := uuid.New()
+
+	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLog.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
+
+	cfg := &config.LangfuseConfig{
+		LangfuseEnabled:   true,
+		LangfuseHost:      "https://cloud.langfuse.com",
+		LangfusePublicKey: "pk-test-key",
+		LangfuseSecretKey: "sk-test-key",
+	}
+
+	hook := &LangfuseHook{
+		log:         mockLog,
+		config:      cfg,
+		client:      nil, // Will be initialized lazily
+		clientMu:    &sync.Mutex{},
+		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxsMu: &sync.RWMutex{},
+	}
+
+	// Step 1: Create trace context manually (simulating session start)
+	// Note: beforeSessionStartHook requires a real client, so we simulate
+	// the post-session-start state where trace context exists.
+	hook.createTraceContext(sessionID)
+
+	tc := hook.getTraceContext(sessionID)
+	require.NotNil(t, tc, "TraceContext should exist after session start")
+	assert.NotEmpty(t, tc.TraceID, "TraceID should be set")
+
+	// Step 2: LLM span
+	llmCtx := &hooks.HookContext{
+		SessionID: sessionID,
+		LLMModel:  "claude-3-5-sonnet",
+		LLMInput:  "Hello",
+		Data:      make(map[string]any),
+	}
+	err := hook.beforeLLMRequestHook(context.Background(), llmCtx, func() error { return nil })
+	require.NoError(t, err)
+
+	llmSpanID, ok := llmCtx.Data["langfuse_span_id"].(string)
+	require.True(t, ok, "Should have LLM span ID")
+	assert.Contains(t, tc.Spans, llmSpanID, "LLM span should be in TraceContext")
+
+	// Complete LLM span
+	llmCtx.LLMResponse = "Hi there!"
+	err = hook.afterLLMResponseHook(context.Background(), llmCtx, func() error { return nil })
+	require.NoError(t, err)
+
+	// Step 3: Tool span
+	toolCtx := &hooks.HookContext{
+		SessionID: sessionID,
+		ToolName:  "read_file",
+		ToolArgs:  map[string]any{"path": "/test.txt"},
+		Data:      make(map[string]any),
+	}
+	err = hook.beforeToolExecutionHook(context.Background(), toolCtx, func() error { return nil })
+	require.NoError(t, err)
+
+	toolSpanID, ok := toolCtx.Data["langfuse_span_id"].(string)
+	require.True(t, ok, "Should have tool span ID")
+	assert.Contains(t, tc.Spans, toolSpanID, "Tool span should be in TraceContext")
+
+	// Complete tool span
+	toolCtx.ToolResult = map[string]any{"content": "hello"}
+	err = hook.afterToolExecutionHook(context.Background(), toolCtx, func() error { return nil })
+	require.NoError(t, err)
+
+	// Verify span count
+	assert.GreaterOrEqual(t, len(tc.Spans), 2, "Should have at least LLM and tool spans")
+
+	// Step 4: Agent span
+	agentCtx := &hooks.HookContext{
+		SessionID: sessionID,
+		AgentID:   uuid.New(),
+		Data:      make(map[string]any),
+	}
+	err = hook.beforeAgentSpawnHook(context.Background(), agentCtx, func() error { return nil })
+	require.NoError(t, err)
+
+	agentSpanID, ok := agentCtx.Data["langfuse_span_id"].(string)
+	require.True(t, ok, "Should have agent span ID")
+	assert.Contains(t, tc.Spans, agentSpanID, "Agent span should be in TraceContext")
+
+	// Step 5: Session end - simulate by removing trace context
+	// (afterSessionEndHook would do this after flushing)
+	hook.removeTraceContext(sessionID)
+
+	// Verify cleanup
+	tc = hook.getTraceContext(sessionID)
+	assert.Nil(t, tc, "TraceContext should be removed after session end")
+
+	// Step 6: Shutdown
+	err = hook.Shutdown()
+	require.NoError(t, err, "Shutdown should not return error")
+}
+
+// TestLangfuseHook_ShutdownWithOrphanedTraces tests Shutdown cleanup of orphaned traces
+func TestLangfuseHook_ShutdownWithOrphanedTraces(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLog.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
+
+	cfg := &config.LangfuseConfig{
+		LangfuseEnabled: true,
+		LangfuseHost:    "https://cloud.langfuse.com",
+	}
+
+	hook := &LangfuseHook{
+		log:         mockLog,
+		config:      cfg,
+		client:      nil,
+		clientMu:    &sync.Mutex{},
+		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxsMu: &sync.RWMutex{},
+	}
+
+	// Create some orphaned trace contexts (session started but not ended)
+	for i := 0; i < 3; i++ {
+		sessionID := uuid.New()
+		hook.createTraceContext(sessionID)
+	}
+
+	// Verify contexts exist
+	hook.traceCtxsMu.RLock()
+	assert.Equal(t, 3, len(hook.traceCtxs), "Should have 3 trace contexts")
+	hook.traceCtxsMu.RUnlock()
+
+	// Shutdown should clean them up
+	err := hook.Shutdown()
+	require.NoError(t, err)
+
+	// Verify all contexts cleaned up
+	hook.traceCtxsMu.RLock()
+	assert.Equal(t, 0, len(hook.traceCtxs), "Should have 0 trace contexts after shutdown")
+	hook.traceCtxsMu.RUnlock()
+}
+
