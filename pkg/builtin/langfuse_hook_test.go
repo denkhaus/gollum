@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -891,4 +892,117 @@ func TestLangfuseHook_LLMSpanUpdate_NilTraceContext(t *testing.T) {
 	// Should not error, just skip
 	err := hook.afterLLMResponseHook(context.Background(), hookCtx, func() error { return nil })
 	assert.NoError(t, err, "Should not error when trace context is missing")
+}
+
+// TestLangfuseHook_OnLLMError tests error handling in onLLMErrorHook
+func TestLangfuseHook_OnLLMError(t *testing.T) {
+	sessionID := uuid.New()
+
+	tests := []struct {
+		name           string
+		langfuseEnabled bool
+		sessionID      uuid.UUID
+		llmError       error
+		wantErrorLevel bool
+		wantStatusMsg  string
+	}{
+		{
+			name:           "marks span as ERROR with error message",
+			langfuseEnabled: true,
+			sessionID:      sessionID,
+			llmError:       fmt.Errorf("rate limit exceeded"),
+			wantErrorLevel: true,
+			wantStatusMsg:  "rate limit exceeded",
+		},
+		{
+			name:           "skips marking when disabled",
+			langfuseEnabled: false,
+			sessionID:      sessionID,
+			llmError:       fmt.Errorf("rate limit exceeded"),
+			wantErrorLevel: false,
+		},
+		{
+			name:           "handles nil error gracefully",
+			langfuseEnabled: true,
+			sessionID:      sessionID,
+			llmError:       nil,
+			wantErrorLevel: true, // Still marks ERROR level
+			wantStatusMsg:  "unknown error",
+		},
+		{
+			name:           "skips when span ID missing",
+			langfuseEnabled: true,
+			sessionID:      sessionID,
+			llmError:       fmt.Errorf("network error"),
+			wantErrorLevel: false, // Can't mark without span ID
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockLog := mocks.NewMockLoggerService(ctrl)
+			cfg := &config.LangfuseConfig{
+				LangfuseEnabled: tt.langfuseEnabled,
+				LangfuseHost:    "https://cloud.langfuse.com",
+			}
+
+			// Expect Debug call for span failure
+			mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+
+			hook := &LangfuseHook{
+				log:         mockLog,
+				config:      cfg,
+				client:      nil,
+				clientMu:    &sync.Mutex{},
+				traceCtxs:   make(map[uuid.UUID]*TraceContext),
+				traceCtxsMu: &sync.RWMutex{},
+			}
+
+			// Create trace context and span
+			hook.createTraceContext(sessionID)
+			tc := hook.getTraceContext(sessionID)
+			spanID := uuid.New().String()
+
+			startTime := time.Now().Add(-50 * time.Millisecond)
+			tc.Spans[spanID] = &LLMSpanContext{
+				StartTime: startTime,
+				Model:     "claude-3-5-sonnet",
+				Input:     "Test prompt",
+				Level:     traces.ObservationLevelDefault,
+			}
+
+			// Create HookContext
+			hookCtx := &hooks.HookContext{
+				SessionID:  tt.sessionID,
+				LLMError:   tt.llmError,
+				LLMOptions: make(map[string]any),
+				Data:       make(map[string]any),
+			}
+
+			// Add span ID to Data (except for missing span ID test)
+			if tt.name != "skips when span ID missing" {
+				hookCtx.Data["langfuse_span_id"] = spanID
+			}
+
+			// Call onLLMErrorHook
+			err := hook.onLLMErrorHook(context.Background(), hookCtx, func() error { return nil })
+			require.NoError(t, err)
+
+			// Verify error marking
+			spanCtx, ok := tc.Spans[spanID].(*LLMSpanContext)
+
+			if tt.wantErrorLevel {
+				require.True(t, ok, "Span should still exist")
+				assert.Equal(t, traces.ObservationLevelError, spanCtx.Level, "Level should be ERROR")
+				assert.Equal(t, tt.wantStatusMsg, spanCtx.StatusMessage, "Status message should match")
+			} else {
+				// For disabled or missing span ID, span should remain unchanged
+				if ok {
+					assert.NotEqual(t, traces.ObservationLevelError, spanCtx.Level, "Level should not be ERROR")
+				}
+			}
+		})
+	}
 }
