@@ -103,6 +103,16 @@ func (h *LangfuseHook) getClient() (*langfuse.Langfuse, error) {
 	return h.client, nil
 }
 
+// getTraceContext retrieves the TraceContext for a given session ID.
+// Returns nil if no trace context exists for this session.
+// Uses RLock to allow concurrent reads.
+func (h *LangfuseHook) getTraceContext(sessionID uuid.UUID) *TraceContext {
+	h.traceCtxsMu.RLock()
+	defer h.traceCtxsMu.RUnlock()
+
+	return h.traceCtxs[sessionID]
+}
+
 // Shutdown flushes any buffered traces and closes the Langfuse client.
 // This should be called during application shutdown or session end.
 func (h *LangfuseHook) Shutdown() error {
