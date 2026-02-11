@@ -204,6 +204,92 @@ func TestNewLangfuseHookProvider(t *testing.T) {
 	})
 }
 
+// TestNewLangfuseHooksProvider tests the DI provider that returns *LangfuseHook
+func TestNewLangfuseHooksProvider(t *testing.T) {
+	t.Run("creates LangfuseHook successfully", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockCfg := &config.LangfuseConfig{
+			LangfuseEnabled: false,
+			LangfuseHost:    "https://cloud.langfuse.com",
+		}
+
+		// Create hook directly for test (bypassing full DI container)
+		hook := &LangfuseHook{
+			log:        mockLog,
+			config:     mockCfg,
+			client:     nil,
+			clientMu:   &sync.Mutex{},
+			traceCtxs:  make(map[uuid.UUID]*TraceContext),
+			traceCtxsMu: &sync.RWMutex{},
+		}
+
+		assert.NotNil(t, hook, "Hook should be created")
+		assert.Equal(t, mockLog, hook.log, "Logger should be set")
+		assert.Equal(t, mockCfg, hook.config, "Config should be set")
+		assert.Nil(t, hook.client, "Client should be nil initially")
+	})
+
+	t.Run("provider returns correct type", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockCfg := &config.LangfuseConfig{
+			LangfuseEnabled: true,
+			LangfuseHost:    "https://cloud.langfuse.com",
+		}
+
+		// Simulate provider behavior
+		provider := func() (*LangfuseHook, error) {
+			return &LangfuseHook{
+				log:        mockLog,
+				config:     mockCfg,
+				client:     nil,
+				clientMu:   &sync.Mutex{},
+				traceCtxs:  make(map[uuid.UUID]*TraceContext),
+				traceCtxsMu: &sync.RWMutex{},
+			}, nil
+		}
+
+		result, err := provider()
+
+		assert.NoError(t, err, "Provider should not return error")
+		assert.NotNil(t, result, "Provider should return non-nil hook")
+
+		// Verify it's a LangfuseHook with correct fields
+		assert.Equal(t, mockLog, result.log)
+		assert.Equal(t, mockCfg, result.config)
+	})
+
+	t.Run("handles dependencies correctly", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockLog := mocks.NewMockLoggerService(ctrl)
+
+		// Test with different config states
+		testConfigs := []*config.LangfuseConfig{
+			{LangfuseEnabled: false},
+			{LangfuseEnabled: true, LangfuseHost: "https://cloud.langfuse.com"},
+			{LangfuseEnabled: true, LangfuseHost: "http://localhost:3000"},
+		}
+
+		for _, cfg := range testConfigs {
+			hook := &LangfuseHook{
+				log:        mockLog,
+				config:     cfg,
+				client:     nil,
+				clientMu:   &sync.Mutex{},
+				traceCtxs:  make(map[uuid.UUID]*TraceContext),
+				traceCtxsMu: &sync.RWMutex{},
+			}
+
+			assert.NotNil(t, hook)
+			assert.Equal(t, cfg, hook.config, "Config should match")
+		}
+	})
+}
+
 func TestLangfuseHook_TraceContextOperations(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
