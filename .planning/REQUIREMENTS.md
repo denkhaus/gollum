@@ -1,4 +1,4 @@
-# Requirements: Prompt Optimizer for Gollum
+# Requirements: Gollum Agent Framework
 
 **Defined:** 2025-02-01
 **Core Value:** Agent quality improves iteratively through automatic prompt optimization based on execution feedback.
@@ -37,7 +37,84 @@
 - [x] **MGR-06**: Backward compatibility with existing GetCompacterPrompt, GetSystemPrompt, GetSupervisorPrompt, GetSubagentPrompt methods
 - [x] **MGR-07**: IsBuiltin flag prevents deletion of built-in prompts
 
-### Prompt Optimizer
+### Configuration (Langfuse v1.1)
+
+- [ ] **CFG-01**: LangfuseConfig struct with host, public key, secret key, enabled flag
+- [ ] **CFG-02**: LangfuseConfig getter method on ConfigService (GetLangfuseConfig)
+- [ ] **CFG-03**: Environment variable configuration for LANGFUSE_ENABLED, LANGFUSE_HOST, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY
+- [ ] **CFG-04**: Flush settings via LANGFUSE_FLUSH_INTERVAL and LANGFUSE_MAX_QUEUE_SIZE
+
+### Client Initialization (Langfuse v1.1)
+
+- [ ] **CLI-01**: Lazy Langfuse client initialization (no overhead when disabled)
+- [ ] **CLI-02**: Client init failure handling (log warning, disable tracing for session)
+- [ ] **CLI-03**: Thread-safe client initialization with sync.Mutex
+
+### Hook Structure (Langfuse v1.1)
+
+- [ ] **HOOK-01**: LangfuseHook struct following logging_hook.go pattern
+- [ ] **HOOK-02**: NewLangfuseHook with DI injection (injector do.Injector)
+- [ ] **HOOK-03**: NewLangfuseHookProvider returning hooks.HookFunc
+- [ ] **HOOK-04**: RegisterLangfuseHooks function for all hook points
+- [ ] **HOOK-05**: TraceContext struct with TraceID, RootSpan, Spans map, SessionID, CreatedAt
+
+### Trace Context Management (Langfuse v1.1)
+
+- [ ] **CTX-01**: Thread-safe trace context storage with sync.RWMutex
+- [ ] **CTX-02**: Session to trace mapping with UUID keys (map[uuid.UUID]*TraceContext)
+- [ ] **CTX-03**: Trace ID propagation via HookContext.Data["langfuse_trace_id"]
+- [ ] **CTX-04**: getTraceContext method with RLock/RUnlock
+- [ ] **CTX-05**: createTraceContext method with Lock/Unlock
+- [ ] **CTX-06**: removeTraceContext method with Lock/Unlock
+
+### LLM Tracing (Langfuse v1.1)
+
+- [ ] **LLM-01**: BeforeLLMRequest hook creates LLM span with model and input
+- [ ] **LLM-02**: AfterLLMResponse hook updates span with output, tokens, latency
+- [ ] **LLM-03**: OnLLMError hook marks span as failed with error details
+
+### Tool Tracing (Langfuse v1.1)
+
+- [ ] **TOOL-01**: BeforeToolExecution hook creates tool span with name and input
+- [ ] **TOOL-02**: AfterToolExecution hook finalizes tool span with output
+- [ ] **TOOL-03**: OnToolError hook marks tool span as failed
+
+### Agent Lifecycle Tracing (Langfuse v1.1)
+
+- [ ] **AGT-01**: BeforeAgentSpawn hook creates agent span with parent metadata
+- [ ] **AGT-02**: AfterAgentSpawn hook finalizes spawn span with new agent ID
+- [ ] **AGT-03**: BeforeAgentRemove hook creates removal span
+- [ ] **AGT-04**: AfterAgentRemove hook finalizes removal span
+
+### Session Tracing (Langfuse v1.1)
+
+- [ ] **SES-01**: BeforeSessionStart hook creates Langfuse trace and root span
+- [ ] **SES-02**: AfterSessionEnd hook ends root span and flushes traces
+- [ ] **SES-03**: TraceContext stored in map on session start
+- [ ] **SES-04**: TraceContext removed from map on session end
+
+### Flush and Shutdown (Langfuse v1.1)
+
+- [ ] **FLUSH-01**: Shutdown() method flushes buffered traces before exit
+- [ ] **FLUSH-02**: Flush error handling with logging (non-fatal)
+
+### Integration (Langfuse v1.1)
+
+- [ ] **DI-01**: LangfuseHook registration in DI container (pkg/di/container.go)
+- [ ] **DI-02**: Exported NewLangfuseHookProvider in pkg/builtin/provider.go
+
+### Testing (Langfuse v1.1)
+
+- [ ] **TEST-01**: Unit tests with centralized mocks (pkg/mocks/)
+- [ ] **TEST-02**: Concurrent access tests for trace context map
+- [ ] **TEST-03**: Integration tests with mock Langfuse server
+
+### Documentation (Langfuse v1.1)
+
+- [ ] **DOC-01**: CLAUDE.md update with Langfuse configuration examples
+- [ ] **DOC-02**: Knowledge base guidance: guide.golang.langfuse-tracing.md
+
+### Prompt Optimizer (v1.0 - Deferred to v2)
 
 - [ ] **OPT-01**: PromptOptimizer interface with Optimize method taking OptimizerInput and returning OptimizerResult
 - [ ] **OPT-02**: Three optimization strategies: gradient, metaprompt, prompt_memory
@@ -49,44 +126,6 @@
 - [ ] **OPT-08**: Separate strategy files in strategies/ subdirectory
 - [ ] **OPT-09**: Tool registration (think, critique, recommend) for gradient strategy
 - [ ] **OPT-10**: Structured output using Gollem ResponseSchema
-
-### Config Integration
-
-- [x] **CFG-01**: PromptStoreConfig with Type (memory/file), FilePath, CacheEnabled fields
-- [x] **CFG-02**: Langfuse configuration options (deferred to v2, but config structure in place)
-- [x] **CFG-03**: PromptOptimizerConfig with DefaultStrategy, DefaultProvider, MaxReflectionSteps, MinReflectionSteps
-- [x] **CFG-04**: ConfigService extension methods: GetPromptStoreConfig, GetPromptOptimizerConfig
-
-### DI Integration
-
-- [x] **DI-01**: Register PromptStoreProvider in DI container
-- [x] **DI-02**: Register PromptOptimizer in DI container
-- [x] **DI-03**: Update PromptManager registration to use PromptStoreProvider
-
-### Testing
-
-- [ ] **TEST-01**: Store interface tests using table-driven tests
-- [ ] **TEST-02**: Mock generation via centralized pkg/mocks/generate.go
-- [ ] **TEST-03**: Tests for lazy init pattern
-- [ ] **TEST-04**: Tests for file locking behavior
-- [ ] **TEST-05**: Tests for alias resolution
-- [ ] **TEST-06**: Tests for version increment logic
-- [ ] **TEST-07**: Optimizer strategy tests with mocked LLM client
-
-### Documentation
-
-- [ ] **DOC-01**: CLAUDE.md updated with Prompt Optimizer usage
-- [ ] **DOC-02**: guide.golang.prompt-store.md created in knowledge base
-- [ ] **DOC-03**: guide.golang.prompt-optimizer.md created in knowledge base
-- [ ] **DOC-04**: guide.general.prompt-optimization.md created in knowledge base
-
-### Design Constraints
-
-- [ ] **DCON-01**: Follow Go guidance files in /home/denkhaus/dev/kb/guides/guide.golang.*.md for every phase
-- [ ] **DCON-02**: Use existing LLM providers (Anthropic, OpenAI, Gemini) - no new provider dependencies
-- [ ] **DCON-03**: Use centralized mocks from pkg/mocks/ (uber.org/mock)
-- [ ] **DCON-04**: Follow existing Gollum package structure and DI patterns
-- [ ] **DCON-05**: All guidance files must be general/universal (no project-specific paths in KB)
 
 ## v2 Requirements
 
@@ -110,6 +149,13 @@ Deferred to future release. Acknowledged but not in current roadmap.
 - **MEM-V2-01**: Memory Manager for automatic memory extraction
 - **MEM-V2-02**: Vector database integration for semantic memory retrieval
 
+### Advanced Langfuse Features (v1.2+)
+
+- **LANG-V2-01**: Langfuse prompt library integration for hosted prompts
+- **LANG-V2-02**: Prompt versioning via Langfuse
+- **LANG-V2-03**: Real-time streaming traces
+- **LANG-V2-04**: Custom span propagation
+
 ## Out of Scope
 
 | Feature | Reason |
@@ -120,11 +166,55 @@ Deferred to future release. Acknowledged but not in current roadmap.
 | Automatic memory extraction | Separate component; manual trajectory capture sufficient for v1 |
 | Semantic search | Requires vector database; file-based storage sufficient for v1 |
 | Web UI for prompt management | CLI/API sufficient; UI can be added later |
+| Other observability backends (OpenTelemetry, Prometheus) | Langfuse first, others in future milestones |
+| Real-time streaming traces | Tracing buffered and flushed on completion, not real-time |
+| Automatic instrumentation | Manual hook registration, not compile-time injection |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| CFG-01 | Phase 6 | Pending |
+| CFG-02 | Phase 6 | Pending |
+| CFG-03 | Phase 6 | Pending |
+| CFG-04 | Phase 6 | Pending |
+| CLI-01 | Phase 6 | Pending |
+| CLI-02 | Phase 6 | Pending |
+| CLI-03 | Phase 6 | Pending |
+| HOOK-01 | Phase 7 | Pending |
+| HOOK-02 | Phase 7 | Pending |
+| HOOK-03 | Phase 7 | Pending |
+| HOOK-04 | Phase 7 | Pending |
+| HOOK-05 | Phase 7 | Pending |
+| CTX-01 | Phase 7 | Pending |
+| CTX-02 | Phase 7 | Pending |
+| CTX-03 | Phase 7 | Pending |
+| CTX-04 | Phase 7 | Pending |
+| CTX-05 | Phase 7 | Pending |
+| CTX-06 | Phase 7 | Pending |
+| LLM-01 | Phase 8 | Pending |
+| LLM-02 | Phase 8 | Pending |
+| LLM-03 | Phase 8 | Pending |
+| TOOL-01 | Phase 9 | Pending |
+| TOOL-02 | Phase 9 | Pending |
+| TOOL-03 | Phase 9 | Pending |
+| AGT-01 | Phase 9 | Pending |
+| AGT-02 | Phase 9 | Pending |
+| AGT-03 | Phase 9 | Pending |
+| AGT-04 | Phase 9 | Pending |
+| SES-01 | Phase 10 | Pending |
+| SES-02 | Phase 10 | Pending |
+| SES-03 | Phase 10 | Pending |
+| SES-04 | Phase 10 | Pending |
+| FLUSH-01 | Phase 10 | Pending |
+| FLUSH-02 | Phase 10 | Pending |
+| DI-01 | Phase 7 | Pending |
+| DI-02 | Phase 7 | Pending |
+| TEST-01 | Phase 11 | Pending |
+| TEST-02 | Phase 11 | Pending |
+| TEST-03 | Phase 11 | Pending |
+| DOC-01 | Phase 11 | Pending |
+| DOC-02 | Phase 11 | Pending |
 | TYPE-01 | Phase 1 | Complete |
 | TYPE-02 | Phase 1 | Complete |
 | TYPE-03 | Phase 1 | Complete |
@@ -183,18 +273,24 @@ Deferred to future release. Acknowledged but not in current roadmap.
 | DCON-05 | All | Pending |
 
 **Coverage:**
-- v1 requirements: 56 total
-- Mapped to phases: 56
-- Unmapped: 0
+- v1.0 requirements: 56 total (Complete)
+- v1.1 requirements: 39 total (Langfuse integration)
+- Mapped to phases: 95
+- Unmapped: 0 ✓
 
 **Phase Distribution:**
-- Phase 1: 22 requirements (Core Types + Store Layer)
-- Phase 2: 7 requirements (Prompt Manager)
-- Phase 3: 10 requirements (Prompt Optimizer)
-- Phase 4: 7 requirements (Config + DI)
-- Phase 5: 4 requirements (Documentation)
-- All phases: 6 requirements (Testing + Design Constraints)
+- Phase 1: 22 requirements (Core Types + Store Layer) - Complete
+- Phase 2: 7 requirements (Prompt Manager) - Complete
+- Phase 3: 10 requirements (Prompt Optimizer) - Complete
+- Phase 4: 7 requirements (Config + DI) - Complete
+- Phase 5: 4 requirements (Documentation) - Complete
+- Phase 6: 7 requirements (Langfuse Configuration + Client Init)
+- Phase 7: 13 requirements (Langfuse Hook Structure + Trace Context + DI)
+- Phase 8: 3 requirements (LLM Tracing)
+- Phase 9: 7 requirements (Tool + Agent Lifecycle Tracing)
+- Phase 10: 6 requirements (Session Tracing + Flush/Shutdown)
+- Phase 11: 5 requirements (Testing + Documentation)
 
 ---
 *Requirements defined: 2025-02-01*
-*Last updated: 2025-02-01 after roadmap creation*
+*Last updated: 2026-02-11 for milestone v1.1*
