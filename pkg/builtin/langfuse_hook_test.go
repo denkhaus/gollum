@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -219,8 +220,8 @@ func TestLangfuseHook_TraceContextOperations(t *testing.T) {
 		log:        mockLog,
 		config:     cfg,
 		client:     nil,
-		clientMu:   &sync.Mutex{},
-		traceCtxs:  make(map[uuid.UUID]*TraceContext),
+		clientMu:    &sync.Mutex{},
+		traceCtxs:   make(map[uuid.UUID]*TraceContext),
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
@@ -321,4 +322,124 @@ func TestTraceContext_Struct(t *testing.T) {
 		assert.Equal(t, uuid.Nil, tc.SessionID)
 		assert.True(t, tc.CreatedAt.IsZero())
 	})
+}
+
+func TestRegisterLangfuseHooks(t *testing.T) {
+	t.Run("skips registration when Langfuse disabled", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockHM := &mockHookManager{}
+		mockLog := mocks.NewMockLoggerService(ctrl)
+		cfg := &config.LangfuseConfig{
+			LangfuseEnabled: false,
+		}
+		hook := &LangfuseHook{
+			log:        mockLog,
+			config:     cfg,
+			client:      nil,
+			clientMu:    &sync.Mutex{},
+			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxsMu: &sync.RWMutex{},
+		}
+
+		err := RegisterLangfuseHooks(mockHM, hook)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 0, mockHM.registerCount, "No hooks should be registered when disabled")
+	})
+
+	t.Run("registers all hooks when Langfuse enabled", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockHM := &mockHookManager{}
+		mockLog := mocks.NewMockLoggerService(ctrl)
+		cfg := &config.LangfuseConfig{
+			LangfuseEnabled: true,
+		}
+		hook := &LangfuseHook{
+			log:        mockLog,
+			config:     cfg,
+			client:      nil,
+			clientMu:    &sync.Mutex{},
+			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxsMu: &sync.RWMutex{},
+		}
+
+		err := RegisterLangfuseHooks(mockHM, hook)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 20, mockHM.registerCount, "Should register 20 hook points (2 session + 4 agent + 3 tool + 6 file + 3 LLM)")
+	})
+}
+
+func TestLangfuseHook_TraceIDPropagation(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLog := mocks.NewMockLoggerService(ctrl)
+	cfg := &config.LangfuseConfig{
+		LangfuseEnabled: true,
+	}
+	sessionID := uuid.New()
+
+	hook := &LangfuseHook{
+		log:        mockLog,
+		config:     cfg,
+		client:      nil,
+		clientMu:    &sync.Mutex{},
+		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxsMu: &sync.RWMutex{},
+	}
+
+	// Create trace context
+	hook.createTraceContext(sessionID)
+
+	t.Run("propagateTraceID sets trace ID in HookContext.Data", func(t *testing.T) {
+		hookCtx := &hooks.HookContext{
+			SessionID: sessionID,
+			Data:      make(map[string]any),
+		}
+
+		hook.propagateTraceID(hookCtx)
+
+		traceID, exists := hookCtx.Data["langfuse_trace_id"]
+		assert.True(t, exists, "langfuse_trace_id should be set")
+		assert.NotEmpty(t, traceID, "trace ID should not be empty")
+	})
+
+	t.Run("propagateTraceID does nothing when no session", func(t *testing.T) {
+		hookCtx := &hooks.HookContext{
+			SessionID: uuid.Nil,
+			Data:      make(map[string]any),
+		}
+
+		hook.propagateTraceID(hookCtx)
+
+		_, exists := hookCtx.Data["langfuse_trace_id"]
+		assert.False(t, exists, "langfuse_trace_id should not be set for nil session")
+	})
+
+	t.Run("propagateTraceID does nothing when no trace context", func(t *testing.T) {
+		differentSession := uuid.New()
+		hookCtx := &hooks.HookContext{
+			SessionID: differentSession,
+			Data:      make(map[string]any),
+		}
+
+		hook.propagateTraceID(hookCtx)
+
+		_, exists := hookCtx.Data["langfuse_trace_id"]
+		assert.False(t, exists, "langfuse_trace_id should not be set for non-existent trace")
+	})
+}
+
+// mockHookManager is a minimal mock for testing hook registration
+// It only implements RegisterHook since that's all RegisterLangfuseHooks needs
+type mockHookManager struct {
+	registerCount int
+}
+
+func (m *mockHookManager) RegisterHook(fn hooks.HookFunc, meta hooks.HookMetadata) error {
+	m.registerCount++
+	return nil
 }
