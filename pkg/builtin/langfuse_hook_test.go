@@ -1989,6 +1989,112 @@ func TestLangfuseHook_ConcurrentAccess_Integration(t *testing.T) {
 	assert.Len(t, tc.Spans, numOperations, "All spans should be stored")
 }
 
+// TestLangfuseHook_MultipleAgents_Integration tests multiple agents with their own operations
+func TestLangfuseHook_MultipleAgents_Integration(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	sessionID := uuid.New()
+
+	mockLog := mocks.NewMockLoggerService(ctrl)
+	cfg := &config.LangfuseConfig{
+		LangfuseEnabled:   true,
+		LangfuseHost:      "https://cloud.langfuse.com",
+		LangfusePublicKey: "pk-test-key",
+		LangfuseSecretKey: "sk-test-key",
+	}
+
+	// Expect Info call for client init and Debug for lifecycle events
+	mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+
+	hook := &LangfuseHook{
+		log:         mockLog,
+		config:      cfg,
+		client:      nil,
+		clientMu:    &sync.Mutex{},
+		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxsMu: &sync.RWMutex{},
+	}
+
+	hook.createTraceContext(sessionID)
+	tc := hook.getTraceContext(sessionID)
+
+	// Agent 1 spawns and does work
+	agent1ID := uuid.New()
+	spawnCtx1 := &hooks.HookContext{
+		SessionID: sessionID,
+		AgentID:   agent1ID,
+		Data:      make(map[string]any),
+	}
+	hook.beforeAgentSpawnHook(context.Background(), spawnCtx1, func() error { return nil })
+	spawnCtx1.Data["new_agent_id"] = "agent-1"
+	hook.afterAgentSpawnHook(context.Background(), spawnCtx1, func() error { return nil })
+	agent1SpanID := spawnCtx1.Data["langfuse_span_id"].(string)
+
+	// Agent 1 executes a tool
+	toolCtx1 := &hooks.HookContext{
+		SessionID: sessionID,
+		ToolName:  "agent1_tool",
+		ToolArgs:  map[string]any{"agent": "agent-1"},
+		Data:      make(map[string]any),
+	}
+	hook.beforeToolExecutionHook(context.Background(), toolCtx1, func() error { return nil })
+	toolCtx1.ToolResult = map[string]any{"status": "done"}
+	hook.afterToolExecutionHook(context.Background(), toolCtx1, func() error { return nil })
+	tool1SpanID := toolCtx1.Data["langfuse_span_id"].(string)
+
+	// Agent 2 spawns and does work
+	agent2ID := uuid.New()
+	spawnCtx2 := &hooks.HookContext{
+		SessionID: sessionID,
+		AgentID:   agent2ID,
+		Data:      make(map[string]any),
+	}
+	hook.beforeAgentSpawnHook(context.Background(), spawnCtx2, func() error { return nil })
+	spawnCtx2.Data["new_agent_id"] = "agent-2"
+	hook.afterAgentSpawnHook(context.Background(), spawnCtx2, func() error { return nil })
+	agent2SpanID := spawnCtx2.Data["langfuse_span_id"].(string)
+
+	// Agent 2 makes an LLM call
+	llmCtx2 := &hooks.HookContext{
+		SessionID: sessionID,
+		LLMModel:  "claude-3-5-sonnet",
+		LLMInput:  "Agent 2 request",
+		Data:      make(map[string]any),
+	}
+	hook.beforeLLMRequestHook(context.Background(), llmCtx2, func() error { return nil })
+	llmCtx2.LLMResponse = "Agent 2 response"
+	hook.afterLLMResponseHook(context.Background(), llmCtx2, func() error { return nil })
+	llm2SpanID := llmCtx2.Data["langfuse_span_id"].(string)
+
+	// Verify all spans are in the same trace context
+	assert.Len(t, tc.Spans, 4, "Should have 4 spans (2 agents, 1 tool, 1 LLM)")
+	assert.Contains(t, tc.Spans, agent1SpanID)
+	assert.Contains(t, tc.Spans, tool1SpanID)
+	assert.Contains(t, tc.Spans, agent2SpanID)
+	assert.Contains(t, tc.Spans, llm2SpanID)
+
+	// Verify agent 1 span
+	agent1Span := tc.Spans[agent1SpanID].(*AgentSpanContext)
+	assert.Equal(t, "spawn", agent1Span.EventType)
+	assert.Equal(t, "agent-1", agent1Span.NewAgentID)
+
+	// Verify agent 2 span
+	agent2Span := tc.Spans[agent2SpanID].(*AgentSpanContext)
+	assert.Equal(t, "spawn", agent2Span.EventType)
+	assert.Equal(t, "agent-2", agent2Span.NewAgentID)
+
+	// Verify tool span
+	tool1Span := tc.Spans[tool1SpanID].(*ToolSpanContext)
+	assert.Equal(t, "agent1_tool", tool1Span.ToolName)
+
+	// Verify LLM span
+	llm2Span := tc.Spans[llm2SpanID].(*LLMSpanContext)
+	assert.Equal(t, "Agent 2 request", llm2Span.Input)
+	assert.Equal(t, "Agent 2 response", llm2Span.Output)
+}
+
 // TestLangfuseHook_AgentSpanLifecycle_Integration tests full agent lifecycle
 func TestLangfuseHook_AgentSpanLifecycle_Integration(t *testing.T) {
 	sessionID := uuid.New()
