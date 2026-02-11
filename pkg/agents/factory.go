@@ -105,7 +105,6 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 	defaultTools := []gollem.Tool{
 		f.spawnAgentToolProv.CreateTool(config.ID, f),
 		f.agentOutputToolProv.CreateTool(config.ID),
-		// f.sendMessageToolProv.CreateTool(config.ID),
 		f.removeAgentToolProv.CreateTool(config.ID),
 		f.resumeAgentToolProv.CreateTool(config.ID),
 		f.listAgentsToolProv.CreateTool(config.ID),
