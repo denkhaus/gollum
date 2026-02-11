@@ -448,11 +448,10 @@ func (h *LangfuseHook) afterLLMResponseHook(_ context.Context, hookCtx *hooks.Ho
 	}
 
 	h.traceCtxsMu.Lock()
-	defer h.traceCtxsMu.Unlock()
-
 	// Get span from TraceContext
 	spanCtx, ok := tc.Spans[spanID].(*LLMSpanContext)
 	if !ok {
+		h.traceCtxsMu.Unlock()
 		h.propagateTraceID(hookCtx)
 		return nil
 	}
@@ -476,6 +475,7 @@ func (h *LangfuseHook) afterLLMResponseHook(_ context.Context, hookCtx *hooks.Ho
 	// Set completion status
 	spanCtx.Level = traces.ObservationLevelDefault
 	spanCtx.StatusMessage = "success"
+	h.traceCtxsMu.Unlock()
 
 	// Log span completion (actual span submission to Langfuse in Phase 10)
 	_ = endTime // Used for latency calculation
