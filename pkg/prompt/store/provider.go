@@ -37,9 +37,11 @@ func NewPromptStoreProvider(injector do.Injector) (PromptStoreProvider, error) {
 			zap.String("path", cfg.FilePath),
 		)
 	case config.PromptStoreTypeLangfuse:
-		// TODO: Implement Langfuse store
+		// TODO: Implement Langfuse store (deferred to v2)
+		// Langfuse config has been migrated to HooksConfig for tracing
+		hooksCfg := configService.GetLangfuseConfig()
 		logService.Warn("langfuse store not yet implemented, falling back to memory store",
-			zap.String("host", cfg.LangfuseHost),
+			zap.String("host", hooksCfg.LangfuseHost),
 		)
 		s = NewMemoryStore()
 	case config.PromptStoreTypeMemory, "":
