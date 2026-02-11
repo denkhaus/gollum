@@ -2184,3 +2184,182 @@ func TestLangfuseHook_AgentSpanLifecycle_Integration(t *testing.T) {
 		})
 	}
 }
+
+// TestLangfuseHook_SessionTraceLifecycle tests session trace lifecycle
+func TestLangfuseHook_SessionTraceLifecycle(t *testing.T) {
+	sessionID := uuid.New()
+
+	tests := []struct {
+		name            string
+		langfuseEnabled bool
+		sessionID       uuid.UUID
+		wantTraceCreated bool
+	}{
+		{
+			name:            "creates trace when enabled with valid session",
+			langfuseEnabled: true,
+			sessionID:       sessionID,
+			wantTraceCreated: true,
+		},
+		{
+			name:            "skips trace when disabled",
+			langfuseEnabled: false,
+			sessionID:       sessionID,
+			wantTraceCreated: false,
+		},
+		{
+			name:            "skips trace with nil session ID",
+			langfuseEnabled: true,
+			sessionID:       uuid.Nil,
+			wantTraceCreated: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockLog := mocks.NewMockLoggerService(ctrl)
+			cfg := &config.LangfuseConfig{
+				LangfuseEnabled:   tt.langfuseEnabled,
+				LangfuseHost:      "https://cloud.langfuse.com",
+				LangfusePublicKey: "pk-test-key",
+				LangfuseSecretKey: "sk-test-key",
+			}
+
+			// Expect Info call for client initialization and Debug for any issues
+			mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+			mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+			mockLog.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
+
+			hook := &LangfuseHook{
+				log:         mockLog,
+				config:      cfg,
+				client:      nil, // Will be lazily initialized
+				clientMu:    &sync.Mutex{},
+				traceCtxs:   make(map[uuid.UUID]*TraceContext),
+				traceCtxsMu: &sync.RWMutex{},
+			}
+
+			hookCtx := &hooks.HookContext{
+				SessionID: tt.sessionID,
+				Data:      make(map[string]any),
+			}
+
+			// Call beforeSessionStartHook
+			err := hook.beforeSessionStartHook(context.Background(), hookCtx, func() error { return nil })
+			require.NoError(t, err)
+
+			if tt.wantTraceCreated {
+				// Note: Without a real client, we can't test actual SDK trace creation
+				// This tests the hook logic and trace context management
+				tc := hook.getTraceContext(tt.sessionID)
+				assert.NotNil(t, tc, "TraceContext should be created")
+				assert.NotEmpty(t, tc.TraceID, "TraceID should be set")
+				assert.NotNil(t, tc.Spans, "Spans map should be initialized")
+
+				// Verify trace ID propagation
+				traceID, hasTraceID := hookCtx.Data["langfuse_trace_id"].(string)
+				assert.True(t, hasTraceID, "Should have langfuse_trace_id in Data")
+				assert.Equal(t, tc.TraceID, traceID, "Trace ID should match")
+
+				// Call afterSessionEndHook
+				err = hook.afterSessionEndHook(context.Background(), hookCtx, func() error { return nil })
+				require.NoError(t, err)
+
+				// Verify cleanup
+				tc = hook.getTraceContext(tt.sessionID)
+				assert.Nil(t, tc, "TraceContext should be removed after session end")
+			} else {
+				// Verify no trace context created
+				tc := hook.getTraceContext(tt.sessionID)
+				assert.Nil(t, tc, "TraceContext should not be created when disabled or nil session")
+			}
+		})
+	}
+}
+
+// TestLangfuseHook_SessionTraceFlush tests session trace flush behavior
+func TestLangfuseHook_SessionTraceFlush(t *testing.T) {
+	sessionID := uuid.New()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLog := mocks.NewMockLoggerService(ctrl)
+	cfg := &config.LangfuseConfig{
+		LangfuseEnabled:   true,
+		LangfuseHost:      "https://cloud.langfuse.com",
+		LangfusePublicKey: "pk-test-key",
+		LangfuseSecretKey: "sk-test-key",
+	}
+
+	// Expect Info call for client initialization
+	mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLog.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
+
+	hook := &LangfuseHook{
+		log:         mockLog,
+		config:      cfg,
+		client:      nil, // No real client - tests flush error handling
+		clientMu:    &sync.Mutex{},
+		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxsMu: &sync.RWMutex{},
+	}
+
+	// Create trace context manually (simulating session start)
+	hook.createTraceContext(sessionID)
+	tc := hook.getTraceContext(sessionID)
+	require.NotNil(t, tc)
+
+	hookCtx := &hooks.HookContext{
+		SessionID: sessionID,
+		Data:      make(map[string]any),
+	}
+
+	// Call afterSessionEndHook - should not fail even without client
+	err := hook.afterSessionEndHook(context.Background(), hookCtx, func() error { return nil })
+	require.NoError(t, err, "afterSessionEndHook should not return error on flush failure")
+
+	// Verify trace context removed
+	tc = hook.getTraceContext(sessionID)
+	assert.Nil(t, tc, "TraceContext should be removed even if flush fails")
+}
+
+// TestLangfuseHook_PropagateTraceID tests trace ID propagation via propagateTraceID
+func TestLangfuseHook_PropagateTraceID(t *testing.T) {
+	sessionID := uuid.New()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLog := mocks.NewMockLoggerService(ctrl)
+	cfg := &config.LangfuseConfig{
+		LangfuseEnabled: true,
+	}
+
+	hook := &LangfuseHook{
+		log:         mockLog,
+		config:      cfg,
+		client:      nil,
+		clientMu:    &sync.Mutex{},
+		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxsMu: &sync.RWMutex{},
+	}
+
+	hook.createTraceContext(sessionID)
+	tc := hook.getTraceContext(sessionID)
+	require.NotNil(t, tc)
+
+	hookCtx := &hooks.HookContext{
+		SessionID: sessionID,
+		Data:      make(map[string]any),
+	}
+
+	hook.propagateTraceID(hookCtx)
+
+	traceID, ok := hookCtx.Data["langfuse_trace_id"].(string)
+	assert.True(t, ok, "Should have langfuse_trace_id")
+	assert.Equal(t, tc.TraceID, traceID, "Trace ID should match TraceContext.TraceID")
+}

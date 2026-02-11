@@ -255,21 +255,113 @@ func RegisterLangfuseHooks(hm hookRegisterer, hook *LangfuseHook) error {
 	return nil
 }
 
-// Session lifecycle hook methods (actual span creation in Phase 10)
-func (h *LangfuseHook) beforeSessionStartHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
-	// Create trace context on session start
-	if hookCtx.SessionID != uuid.Nil {
-		h.createTraceContext(hookCtx.SessionID)
+// Session lifecycle hook methods - creates actual Langfuse SDK trace
+func (h *LangfuseHook) beforeSessionStartHook(ctx context.Context, hookCtx *hooks.HookContext, next func() error) error {
+	// Only create trace if Langfuse is enabled
+	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
+		return next()
 	}
+
+	// Get Langfuse client (lazy init)
+	client, err := h.getClient()
+	if err != nil {
+		// Client not configured - log debug and continue without tracing
+		h.log.Debug("Langfuse client not available, skipping session trace creation", zap.Error(err))
+		return next()
+	}
+
+	// Create trace name from session ID
+	traceName := "session-" + hookCtx.SessionID.String()[:8]
+
+	// Create actual Langfuse trace using SDK
+	trace := client.StartTrace(ctx, traceName)
+
+	// Create root span for this session
+	rootSpan := trace.StartSpan("session")
+
+	// Create trace context with actual SDK objects
+	h.traceCtxsMu.Lock()
+	tc := &TraceContext{
+		TraceID:   trace.ID,      // Use actual trace ID from SDK
+		RootSpan:  rootSpan,      // Store actual SDK span
+		Spans:     make(map[string]interface{}),
+		SessionID: hookCtx.SessionID,
+		CreatedAt: time.Now(),
+	}
+	h.traceCtxs[hookCtx.SessionID] = tc
+	h.traceCtxsMu.Unlock()
+
+	// Propagate trace ID to HookContext for child spans
+	hookCtx.Data["langfuse_trace_id"] = tc.TraceID
+
+	h.log.Info("Langfuse session trace created",
+		zap.String("trace_id", tc.TraceID),
+		zap.String("session_id", hookCtx.SessionID.String()))
+
 	return next()
 }
 
 func (h *LangfuseHook) afterSessionEndHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
-	// Remove trace context on session end
-	if hookCtx.SessionID != uuid.Nil {
-		h.removeTraceContext(hookCtx.SessionID)
+	// Call next first to let session cleanup complete
+	err := next()
+	if err != nil {
+		return err
 	}
-	return next()
+
+	// Only flush if Langfuse is enabled
+	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
+		return nil
+	}
+
+	// Get trace context
+	tc := h.getTraceContext(hookCtx.SessionID)
+	if tc == nil {
+		return nil
+	}
+
+	// End root span if it exists and has End method
+	if tc.RootSpan != nil {
+		// Type assert to span interface that has End() method
+		if span, ok := tc.RootSpan.(interface{ End() }); ok {
+			span.End()
+			h.log.Debug("Root span ended",
+				zap.String("trace_id", tc.TraceID),
+				zap.String("session_id", hookCtx.SessionID.String()))
+		}
+	}
+
+	// Flush traces to Langfuse backend
+	flushErr := h.flushTraces()
+	if flushErr != nil {
+		// Log warning but don't fail - flush errors are non-fatal
+		h.log.Warn("Failed to flush Langfuse traces (non-fatal)",
+			zap.String("session_id", hookCtx.SessionID.String()),
+			zap.Error(flushErr))
+	}
+
+	// Remove trace context after flush
+	h.removeTraceContext(hookCtx.SessionID)
+
+	h.log.Info("Langfuse session trace completed",
+		zap.String("trace_id", tc.TraceID),
+		zap.String("session_id", hookCtx.SessionID.String()))
+
+	return nil
+}
+
+// flushTraces flushes buffered traces to Langfuse backend.
+// Returns error if flush fails, but caller should treat as non-fatal.
+func (h *LangfuseHook) flushTraces() error {
+	h.clientMu.Lock()
+	defer h.clientMu.Unlock()
+
+	if h.client == nil {
+		return nil // No client, nothing to flush
+	}
+
+	// Langfuse SDK Flush() is void, so we assume success
+	h.client.Flush()
+	return nil
 }
 
 // Agent lifecycle hook methods (span creation in Phase 9)
