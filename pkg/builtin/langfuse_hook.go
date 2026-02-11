@@ -2,10 +2,12 @@
 package builtin
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/git-hulk/langfuse-go"
 	"github.com/samber/do/v2"
@@ -32,6 +34,21 @@ func NewLangfuseHook(injector do.Injector) (*LangfuseHook, error) {
 		config:   cfg.GetLangfuseConfig(),
 		client:   nil, // Lazy initialized
 		clientMu: &sync.Mutex{},
+	}, nil
+}
+
+// NewLangfuseHookProvider creates a LangfuseHook provider for DI registration.
+// This provider function registers LangfuseHook as a singleton in the DI container.
+func NewLangfuseHookProvider(injector do.Injector) (hooks.HookFunc, error) {
+	_, err := NewLangfuseHook(injector)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return a HookFunc that wraps span creation/ending logic
+	// For now, this is a no-op wrapper - actual span handling added in later phases
+	return func(ctx context.Context, hookCtx *hooks.HookContext, next func() error) error {
+		return next() // Just pass through - spans created in later phases
 	}, nil
 }
 
