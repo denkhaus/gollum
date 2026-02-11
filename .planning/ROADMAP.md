@@ -225,9 +225,9 @@ Build a Go-based agent framework with comprehensive observability, prompt manage
 6. Flush failures logged as non-fatal errors
 7. Session end triggers trace cleanup and flush
 
-**Plans**: TBD
-- [ ] 10-01-PLAN.md — Session lifecycle hooks (BeforeSessionStart, AfterSessionEnd)
-- [ ] 10-02-PLAN.md — Shutdown method and flush handling
+**Plans**: 2 plans in 2 waves
+- [ ] 10-01-PLAN.md — Session lifecycle hooks with actual SDK trace creation (Wave 1)
+- [ ] 10-02-PLAN.md — Shutdown method enhancement and integration tests (Wave 2)
 
 ### Phase 11: Testing and Documentation
 
