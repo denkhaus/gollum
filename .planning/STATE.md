@@ -33,7 +33,7 @@ Progress: [█████████░░░░░░░] 50% (6/11 phases co
 **Phase Breakdown (v1.1):**
 | Phase | Plans | Complete | Status |
 |-------|-------|----------|--------|
-| 6. Config and Client Init | 2 | 1 | In Progress |
+| 6. Config and Client Init | 2 | 2 | Complete |
 | 7. Hook Struct and Registration | 3 | 0 | Pending |
 | 8. LLM Tracing | 2 | 0 | Pending |
 | 9. Tool and Agent Tracing | 3 | 0 | Pending |

@@ -174,13 +174,13 @@ Deferred to future release. Acknowledged but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CFG-01 (v1.1) | Phase 6 | Pending |
-| CFG-02 (v1.1) | Phase 6 | Pending |
-| CFG-03 (v1.1) | Phase 6 | Pending |
-| CFG-04 (v1.1) | Phase 6 | Pending |
-| CLI-01 | Phase 6 | Pending |
-| CLI-02 | Phase 6 | Pending |
-| CLI-03 | Phase 6 | Pending |
+| CFG-01 (v1.1) | Phase 6 | Complete |
+| CFG-02 (v1.1) | Phase 6 | Complete |
+| CFG-03 (v1.1) | Phase 6 | Complete |
+| CFG-04 (v1.1) | Phase 6 | Complete |
+| CLI-01 | Phase 6 | Complete |
+| CLI-02 | Phase 6 | Complete |
+| CLI-03 | Phase 6 | Complete |
 | HOOK-01 | Phase 7 | Pending |
 | HOOK-02 | Phase 7 | Pending |
 | HOOK-03 | Phase 7 | Pending |
