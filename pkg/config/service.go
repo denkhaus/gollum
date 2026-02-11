@@ -100,6 +100,20 @@ type HooksConfig struct {
 	MetricsEnabled bool `envconfig:"METRICS_ENABLED" default:"false"`
 	// AuditEnabled enables the AuditHook for append-only audit trail
 	AuditEnabled bool `envconfig:"AUDIT_ENABLED" default:"false"`
+
+	// Langfuse tracing configuration
+	// LangfuseEnabled enables Langfuse tracing for LLM, tool, and agent operations
+	LangfuseEnabled bool `envconfig:"LANGFUSE_ENABLED" default:"false"`
+	// LangfuseHost is the Langfuse server host URL
+	LangfuseHost string `envconfig:"LANGFUSE_HOST" default:"https://cloud.langfuse.com"`
+	// LangfusePublicKey is the Langfuse public key for authentication
+	LangfusePublicKey string `envconfig:"LANGFUSE_PUBLIC_KEY"`
+	// LangfuseSecretKey is the Langfuse secret key for authentication
+	LangfuseSecretKey string `envconfig:"LANGFUSE_SECRET_KEY"`
+	// LangfuseFlushInterval is the flush interval in milliseconds
+	LangfuseFlushInterval int `envconfig:"LANGFUSE_FLUSH_INTERVAL" default:"1000"`
+	// LangfuseMaxQueueSize is the maximum queue size for buffered traces
+	LangfuseMaxQueueSize int `envconfig:"LANGFUSE_MAX_QUEUE_SIZE" default:"100"`
 }
 
 // GetSecurityMode returns the security mode with validation
@@ -132,10 +146,9 @@ type PromptStoreConfig struct {
 	// FilePath for file-based storage
 	FilePath string `envconfig:"FILE_PATH" default:"./data/prompts"`
 
-	// Langfuse configuration for Langfuse backend
-	LangfusePublicKey string `envconfig:"LANGFUSE_PUBLIC_KEY"`
-	LangfuseSecretKey string `envconfig:"LANGFUSE_SECRET_KEY"`
-	LangfuseHost      string `envconfig:"LANGFUSE_HOST" default:"https://cloud.langfuse.com"`
+	// NOTE: Langfuse configuration fields (LangfusePublicKey, LangfuseSecretKey, LangfuseHost)
+	// were previously here but have been migrated to HooksConfig for tracing purposes.
+	// Langfuse prompt store integration is deferred to v2 scope.
 
 	// CacheEnabled enables caching for store operations
 	CacheEnabled bool `envconfig:"CACHE_ENABLED" default:"false"`
