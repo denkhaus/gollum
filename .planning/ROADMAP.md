@@ -141,8 +141,8 @@ Build a Go-based agent framework with comprehensive observability, prompt manage
 6. Client init failure logs warning and disables tracing gracefully
 
 **Plans**: 2 plans in 2 waves
-- [ ] 06-01-PLAN.md — LangfuseConfig structure and environment variable loading
-- [ ] 06-02-PLAN.md — Lazy client initialization with thread safety
+- [x] 06-01-PLAN.md — LangfuseConfig structure and environment variable loading
+- [x] 06-02-PLAN.md — Lazy client initialization with thread safety
 
 ### Phase 7: LangfuseHook Struct and Basic Registration
 
@@ -261,7 +261,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 3. Prompt Optimizer | 3/3 | Complete | 2026-02-02 |
 | 4. Configuration and DI Integration | 3/3 | Complete | 2026-02-02 |
 | 5. Documentation and Knowledge Capture | 4/4 | Complete | 2026-02-02 |
-| 6. Configuration and Client Initialization | 0/2 | Pending | — |
+| 6. Configuration and Client Initialization | 2/2 | Complete | 2026-02-11 |
 | 7. LangfuseHook Struct and Basic Registration | 0/3 | Pending | — |
 | 8. LLM Tracing Implementation | 0/2 | Pending | — |
 | 9. Tool and Agent Lifecycle Tracing | 0/3 | Pending | — |
@@ -274,3 +274,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 - **Milestone v1.1 — Langfuse Integration: IN PROGRESS**
   - 6 phases planned with 15 plans estimated
   - 39 requirements to implement
+  - Phase 6 complete (2/2 plans) ✓
