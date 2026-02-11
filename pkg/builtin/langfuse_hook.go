@@ -113,6 +113,25 @@ func (h *LangfuseHook) getTraceContext(sessionID uuid.UUID) *TraceContext {
 	return h.traceCtxs[sessionID]
 }
 
+// createTraceContext creates a new TraceContext for a given session ID.
+// Generates a unique TraceID and initializes all fields.
+// Uses Lock to prevent concurrent writes.
+func (h *LangfuseHook) createTraceContext(sessionID uuid.UUID) *TraceContext {
+	h.traceCtxsMu.Lock()
+	defer h.traceCtxsMu.Unlock()
+
+	tc := &TraceContext{
+		TraceID:   uuid.New().String(), // Generate unique trace ID for Langfuse
+		RootSpan:  nil,                  // Will be set in Phase 10 when root span created
+		Spans:     make(map[string]interface{}), // Initialize empty spans map
+		SessionID: sessionID,
+		CreatedAt: time.Now(),
+	}
+
+	h.traceCtxs[sessionID] = tc
+	return tc
+}
+
 // Shutdown flushes any buffered traces and closes the Langfuse client.
 // This should be called during application shutdown or session end.
 func (h *LangfuseHook) Shutdown() error {
