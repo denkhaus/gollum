@@ -174,10 +174,10 @@ Deferred to future release. Acknowledged but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CFG-01 | Phase 6 | Pending |
-| CFG-02 | Phase 6 | Pending |
-| CFG-03 | Phase 6 | Pending |
-| CFG-04 | Phase 6 | Pending |
+| CFG-01 (v1.1) | Phase 6 | Pending |
+| CFG-02 (v1.1) | Phase 6 | Pending |
+| CFG-03 (v1.1) | Phase 6 | Pending |
+| CFG-04 (v1.1) | Phase 6 | Pending |
 | CLI-01 | Phase 6 | Pending |
 | CLI-02 | Phase 6 | Pending |
 | CLI-03 | Phase 6 | Pending |
@@ -208,13 +208,13 @@ Deferred to future release. Acknowledged but not in current roadmap.
 | SES-04 | Phase 10 | Pending |
 | FLUSH-01 | Phase 10 | Pending |
 | FLUSH-02 | Phase 10 | Pending |
-| DI-01 | Phase 7 | Pending |
-| DI-02 | Phase 7 | Pending |
-| TEST-01 | Phase 11 | Pending |
-| TEST-02 | Phase 11 | Pending |
-| TEST-03 | Phase 11 | Pending |
-| DOC-01 | Phase 11 | Pending |
-| DOC-02 | Phase 11 | Pending |
+| DI-01 (v1.1) | Phase 7 | Pending |
+| DI-02 (v1.1) | Phase 7 | Pending |
+| TEST-01 (v1.1) | Phase 11 | Pending |
+| TEST-02 (v1.1) | Phase 11 | Pending |
+| TEST-03 (v1.1) | Phase 11 | Pending |
+| DOC-01 (v1.1) | Phase 11 | Pending |
+| DOC-02 (v1.1) | Phase 11 | Pending |
 | TYPE-01 | Phase 1 | Complete |
 | TYPE-02 | Phase 1 | Complete |
 | TYPE-03 | Phase 1 | Complete |
