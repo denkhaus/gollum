@@ -421,8 +421,73 @@ func (h *LangfuseHook) beforeLLMRequestHook(_ context.Context, hookCtx *hooks.Ho
 }
 
 func (h *LangfuseHook) afterLLMResponseHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+	// Call next first to get the actual LLM response
+	err := next()
+	if err != nil {
+		return err
+	}
+
+	// Only update spans if Langfuse is enabled
+	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Get span ID from HookContext.Data
+	spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
+	if !ok || spanID == "" {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Get trace context
+	tc := h.getTraceContext(hookCtx.SessionID)
+	if tc == nil {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	h.traceCtxsMu.Lock()
+	defer h.traceCtxsMu.Unlock()
+
+	// Get span from TraceContext
+	spanCtx, ok := tc.Spans[spanID].(*LLMSpanContext)
+	if !ok {
+		h.propagateTraceID(hookCtx)
+		return nil
+	}
+
+	// Update span with response data
+	spanCtx.Output = hookCtx.LLMResponse
+
+	// Calculate latency
+	latency := time.Since(spanCtx.StartTime)
+	endTime := spanCtx.StartTime.Add(latency)
+
+	// Create Usage struct (token counts not available in HookContext yet)
+	// In Phase 9/10, we'll extract token counts from actual LLM responses
+	spanCtx.Usage = &traces.Usage{
+		Input:  0, // Will be populated from actual LLM response
+		Output: 0, // Will be populated from actual LLM response
+		Total:  0,
+		Unit:   "TOKENS",
+	}
+
+	// Set completion status
+	spanCtx.Level = traces.ObservationLevelDefault
+	spanCtx.StatusMessage = "success"
+
+	// Log span completion (actual span submission to Langfuse in Phase 10)
+	_ = endTime // Used for latency calculation
+	h.log.Debug("LLM span completed",
+		zap.String("span_id", spanID),
+		zap.String("model", spanCtx.Model),
+		zap.Duration("latency", latency),
+		zap.Int("input_length", len(spanCtx.Input)),
+		zap.Int("output_length", len(spanCtx.Output)))
+
 	h.propagateTraceID(hookCtx)
-	return next()
+	return nil
 }
 
 func (h *LangfuseHook) onLLMErrorHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
