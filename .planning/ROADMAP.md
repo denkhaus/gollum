@@ -203,10 +203,10 @@ Build a Go-based agent framework with comprehensive observability, prompt manage
 6. Agent spans include parent-child metadata
 7. Span hierarchy tested (root -> agent -> tool/LLM children)
 
-**Plans**: TBD
-- [ ] 09-01-PLAN.md — Tool execution hooks (BeforeToolExecution, AfterToolExecution, OnToolError)
-- [ ] 09-02-PLAN.md — Agent lifecycle hooks (spawn and remove)
-- [ ] 09-03-PLAN.md — Span hierarchy testing
+**Plans**: 3 plans in 3 waves
+- [ ] 09-01-PLAN.md — ToolSpanContext and tool execution hooks (BeforeToolExecution, AfterToolExecution, OnToolError) (Wave 1)
+- [ ] 09-02-PLAN.md — AgentSpanContext and agent lifecycle hooks (spawn and remove) (Wave 2)
+- [ ] 09-03-PLAN.md — Span hierarchy and integration testing (Wave 3)
 
 ### Phase 10: Session Tracing and Flush/Shutdown
 
