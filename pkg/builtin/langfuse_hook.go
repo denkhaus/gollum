@@ -74,6 +74,20 @@ func NewLangfuseHookProvider(injector do.Injector) (hooks.HookFunc, error) {
 	}, nil
 }
 
+// NewLangfuseHooksProvider creates a LangfuseHook provider for builtin registration.
+// This provider function returns the LangfuseHook instance directly (not a HookFunc)
+// for use by NewBuiltinHooksProvider to register individual hooks via RegisterLangfuseHooks.
+func NewLangfuseHooksProvider(injector do.Injector) (*LangfuseHook, error) {
+	hook, err := NewLangfuseHook(injector)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Langfuse hook: %w", err)
+	}
+
+	// Return the hook instance directly
+	// The RegisterLangfuseHooks will be called by NewBuiltinHooksProvider
+	return hook, nil
+}
+
 // getClient lazily initializes and returns the Langfuse client.
 // Returns error if credentials are not configured or client initialization fails.
 func (h *LangfuseHook) getClient() (*langfuse.Langfuse, error) {
