@@ -162,10 +162,10 @@ Build a Go-based agent framework with comprehensive observability, prompt manage
 7. LangfuseHook registered in DI container via provider
 8. Exported in pkg/builtin/provider.go
 
-**Plans**: TBD
-- [ ] 07-01-PLAN.md — LangfuseHook struct and constructor
-- [ ] 07-02-PLAN.md — TraceContext struct and thread-safe operations
-- [ ] 07-03-PLAN.md — Hook registration and DI integration
+**Plans**: 3 plans in 2 waves
+- [x] 07-01-PLAN.md — LangfuseHook struct with TraceContext and thread-safe operations (Wave 1)
+- [x] 07-02-PLAN.md — Hook registration at all hook points (Wave 2)
+- [x] 07-03-PLAN.md — DI integration and export via provider (Wave 2)
 
 ### Phase 8: LLM Tracing Implementation
 
@@ -262,7 +262,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 4. Configuration and DI Integration | 3/3 | Complete | 2026-02-02 |
 | 5. Documentation and Knowledge Capture | 4/4 | Complete | 2026-02-02 |
 | 6. Configuration and Client Initialization | 2/2 | Complete | 2026-02-11 |
-| 7. LangfuseHook Struct and Basic Registration | 0/3 | Pending | — |
+| 7. LangfuseHook Struct and Basic Registration | 3/3 | Pending | — |
 | 8. LLM Tracing Implementation | 0/2 | Pending | — |
 | 9. Tool and Agent Lifecycle Tracing | 0/3 | Pending | — |
 | 10. Session Tracing and Flush/Shutdown | 0/2 | Pending | — |
