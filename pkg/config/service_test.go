@@ -363,3 +363,125 @@ func TestNewService_PromptStoreConfigIntegration(t *testing.T) {
 	assert.Equal(t, "/tmp/prompts", config2.FilePath)
 	assert.True(t, config2.CacheEnabled)
 }
+
+// TestLangfuseConfig tests Langfuse configuration loading via environment variables
+func TestLangfuseConfig(t *testing.T) {
+	tests := []struct {
+		name     string
+		env      map[string]string
+		want     LangfuseConfig
+		wantErr  bool
+	}{
+		{
+			name: "default values",
+			env:  map[string]string{},
+			want: LangfuseConfig{
+				LangfuseEnabled:      false,
+				LangfuseHost:         "https://cloud.langfuse.com",
+				LangfusePublicKey:    "",
+				LangfuseSecretKey:    "",
+				LangfuseFlushInterval: 1000,
+				LangfuseMaxQueueSize:  100,
+			},
+		},
+		{
+			name: "custom values",
+			env: map[string]string{
+				"GOLLUM_HOOKS_LANGFUSE_ENABLED":        "true",
+				"GOLLUM_HOOKS_LANGFUSE_HOST":           "https://custom.langfuse.com",
+				"GOLLUM_HOOKS_LANGFUSE_PUBLIC_KEY":     "pk-test-123",
+				"GOLLUM_HOOKS_LANGFUSE_SECRET_KEY":     "sk-test-456",
+				"GOLLUM_HOOKS_LANGFUSE_FLUSH_INTERVAL": "2000",
+				"GOLLUM_HOOKS_LANGFUSE_MAX_QUEUE_SIZE":  "200",
+			},
+			want: LangfuseConfig{
+				LangfuseEnabled:      true,
+				LangfuseHost:         "https://custom.langfuse.com",
+				LangfusePublicKey:    "pk-test-123",
+				LangfuseSecretKey:    "sk-test-456",
+				LangfuseFlushInterval: 2000,
+				LangfuseMaxQueueSize:  200,
+			},
+		},
+		{
+			name: "partial config with defaults",
+			env: map[string]string{
+				"GOLLUM_HOOKS_LANGFUSE_ENABLED":    "true",
+				"GOLLUM_HOOKS_LANGFUSE_PUBLIC_KEY": "pk-test-789",
+			},
+			want: LangfuseConfig{
+				LangfuseEnabled:      true,
+				LangfuseHost:         "https://cloud.langfuse.com", // default
+				LangfusePublicKey:    "pk-test-789",
+				LangfuseSecretKey:    "",
+				LangfuseFlushInterval: 1000, // default
+				LangfuseMaxQueueSize:  100,  // default
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Clear Langfuse environment variables
+			unsetEnv(t, "GOLLUM_HOOKS_LANGFUSE_ENABLED")
+			unsetEnv(t, "GOLLUM_HOOKS_LANGFUSE_HOST")
+			unsetEnv(t, "GOLLUM_HOOKS_LANGFUSE_PUBLIC_KEY")
+			unsetEnv(t, "GOLLUM_HOOKS_LANGFUSE_SECRET_KEY")
+			unsetEnv(t, "GOLLUM_HOOKS_LANGFUSE_FLUSH_INTERVAL")
+			unsetEnv(t, "GOLLUM_HOOKS_LANGFUSE_MAX_QUEUE_SIZE")
+
+			// Set environment variables
+			for k, v := range tt.env {
+				require.NoError(t, os.Setenv(k, v))
+			}
+
+			// Create service via DI injector
+			injector := do.New()
+			svc, err := NewService(injector)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewService() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			got := svc.GetLangfuseConfig()
+			if got.LangfuseEnabled != tt.want.LangfuseEnabled {
+				t.Errorf("LangfuseEnabled = %v, want %v", got.LangfuseEnabled, tt.want.LangfuseEnabled)
+			}
+			if got.LangfuseHost != tt.want.LangfuseHost {
+				t.Errorf("LangfuseHost = %v, want %v", got.LangfuseHost, tt.want.LangfuseHost)
+			}
+			if got.LangfusePublicKey != tt.want.LangfusePublicKey {
+				t.Errorf("LangfusePublicKey = %v, want %v", got.LangfusePublicKey, tt.want.LangfusePublicKey)
+			}
+			if got.LangfuseSecretKey != tt.want.LangfuseSecretKey {
+				t.Errorf("LangfuseSecretKey = %v, want %v", got.LangfuseSecretKey, tt.want.LangfuseSecretKey)
+			}
+			if got.LangfuseFlushInterval != tt.want.LangfuseFlushInterval {
+				t.Errorf("LangfuseFlushInterval = %v, want %v", got.LangfuseFlushInterval, tt.want.LangfuseFlushInterval)
+			}
+			if got.LangfuseMaxQueueSize != tt.want.LangfuseMaxQueueSize {
+				t.Errorf("LangfuseMaxQueueSize = %v, want %v", got.LangfuseMaxQueueSize, tt.want.LangfuseMaxQueueSize)
+			}
+		})
+	}
+}
+
+// TestGetLangfuseConfig_ReturnsPointer tests that GetLangfuseConfig returns a stable pointer
+func TestGetLangfuseConfig_ReturnsPointer(t *testing.T) {
+	unsetEnv(t, "GOLLUM_HOOKS_LANGFUSE_ENABLED")
+	unsetEnv(t, "GOLLUM_HOOKS_LANGFUSE_HOST")
+	unsetEnv(t, "GOLLUM_HOOKS_LANGFUSE_PUBLIC_KEY")
+	unsetEnv(t, "GOLLUM_HOOKS_LANGFUSE_SECRET_KEY")
+	unsetEnv(t, "GOLLUM_HOOKS_LANGFUSE_FLUSH_INTERVAL")
+	unsetEnv(t, "GOLLUM_HOOKS_LANGFUSE_MAX_QUEUE_SIZE")
+
+	injector := do.New()
+	service, err := NewService(injector)
+	require.NoError(t, err)
+
+	config1 := service.GetLangfuseConfig()
+	config2 := service.GetLangfuseConfig()
+
+	// Should return the same pointer (stable reference)
+	assert.Same(t, config1, config2, "GetLangfuseConfig should return stable pointer")
+}
