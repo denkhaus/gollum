@@ -124,6 +124,20 @@ func (mr *MockConfigServiceMockRecorder) GetHooksConfig() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHooksConfig", reflect.TypeOf((*MockConfigService)(nil).GetHooksConfig))
 }
 
+// GetLangfuseConfig mocks base method.
+func (m *MockConfigService) GetLangfuseConfig() *config.LangfuseConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLangfuseConfig")
+	ret0, _ := ret[0].(*config.LangfuseConfig)
+	return ret0
+}
+
+// GetLangfuseConfig indicates an expected call of GetLangfuseConfig.
+func (mr *MockConfigServiceMockRecorder) GetLangfuseConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLangfuseConfig", reflect.TypeOf((*MockConfigService)(nil).GetLangfuseConfig))
+}
+
 // GetLogLevel mocks base method.
 func (m *MockConfigService) GetLogLevel() string {
 	m.ctrl.T.Helper()

@@ -298,6 +298,9 @@ func TestNewPromptManagerProvider_PromptManagerInterface(t *testing.T) {
 // ============ MOCKS ============
 
 // mockConfigService is a mock implementation of config.ConfigService
+// TODO: eleminate forbidden custom mockConfigService since we use the central mocks
+// from the mocks package as described in the golang testing guideline in the knowledge-base
+
 type mockConfigService struct {
 	promptStoreConfig *config.PromptStoreConfig
 }
