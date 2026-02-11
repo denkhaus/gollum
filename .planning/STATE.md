@@ -12,9 +12,9 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 Phase: 7
 Plan: 02
 Status: Milestone v1.1 Langfuse Integration — IN PROGRESS
-Last activity: 2026-02-11 — Completed 07-01b-PLAN.md (TraceContext Unit Tests)
+Last activity: 2026-02-11 — Completed 07-02-PLAN.md (Hook Registration and Trace ID Propagation)
 
-Progress: [██████████░░░░░░] 54% (6/11 phases complete, 2/5 plans in phase 7)
+Progress: [██████████░░░░░] 54% (6/11 phases complete, 2/5 plans in phase 7)
 
 ## Performance Metrics
 
@@ -34,13 +34,14 @@ Progress: [██████████░░░░░░] 54% (6/11 phases co
 | Phase | Plans | Complete | Status |
 |-------|-------|----------|--------|
 | 6. Config and Client Init | 2 | 2 | Complete |
-| 7. Hook Struct and Registration | 5 | 1 | In Progress |
+| 7. Hook Struct and Registration | 5 | 2 | In Progress |
 | 8. LLM Tracing | 2 | 0 | Pending |
 | 9. Tool and Agent Tracing | 3 | 0 | Pending |
 | 10. Session and Flush | 2 | 0 | Pending |
 | 11. Testing and Documentation | 3 | 0 | Pending |
 
 *Updated after each plan completion*
+| Phase 07-langfusehook-struct-and-basic-registration P02 | 629 | 3 tasks | 2 files |
 
 ### Recent Plan Executions
 
@@ -48,6 +49,7 @@ Progress: [██████████░░░░░░] 54% (6/11 phases co
 |-------|------|----------|-------|-------|
 | 07-langfusehook-struct-and-basic-registration | 01 | 2min | 4 | 1 |
 | 07-langfusehook-struct-and-basic-registration | 01b | 6min | 2 | 1 |
+| 07-langfusehook-struct-and-basic-registration | 02 | 10min | 3 | 2 |
 
 ## Accumulated Context
 
@@ -116,6 +118,8 @@ Recent decisions affecting current work:
 - **TraceID generation**: Uses uuid.New().String() for Langfuse correlation, separate from SessionID (07-01)
 - **Nil returns for getTraceContext**: Returns nil (not error) to distinguish no-context from empty-context (07-01)
 - **Thread-safe map access**: sync.RWMutex for traceCtxs map with RLock/RUnlock for reads, Lock/Unlock for writes (07-01)
+- **Hook count correction**: 20 hooks registered (2 session + 4 agent + 3 tool + 8 file + 3 LLM) not 21 (07-02)
+- **hookRegisterer interface**: Minimal interface with only RegisterHook method allows testing without full HookManager implementation (07-02)
 
 ### Pending Todos
 
@@ -127,8 +131,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-11T10:24:25Z
-Stopped at: Completed 07-01b-PLAN.md (TraceContext Unit Tests)
+Last session: 2026-02-11T10:25:15Z
+Stopped at: Completed 07-02-PLAN.md (Hook Registration and Trace ID Propagation)
 Resume file: None
 
 ## Milestone Status: v1.0 PROMPT OPTIMIZER - COMPLETE
