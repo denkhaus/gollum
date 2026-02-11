@@ -47,6 +47,7 @@ Progress: [██████████████░] 73% (7/11 phases compl
 | Phase 08-llm-tracing P02 | 8min | 3 tasks | 2 files |
 | Phase 10 P01 | 6min | 3 tasks | 2 files |
 | Phase 10 P02 | 18min | 3 tasks | 2 files |
+| Phase 011-testing-documentation P02 | 5 | 2 tasks | 1 files |
 
 ### Recent Plan Executions
 
@@ -170,6 +171,8 @@ Recent decisions affecting current work:
 - [Phase 011-testing-documentation-01]: DI provider tests use direct construction: Provider functions tested via direct initialization rather than full DI container due to type inference issues
 - [Phase 011-testing-documentation-01]: File operation hooks as stubs: Eight file operation hooks documented as stubs with 100% coverage but minimal functionality (only trace ID propagation)
 - [Phase 011-testing-documentation-01]: Coverage improved from 51.8% to 56.0%: Unit test coverage increased by 4.2% through targeted gap testing
+- [Phase 011-testing-documentation]: Used nopLogger instead of gomock for simpler test setup without controller lifecycle management
+- [Phase 011-testing-documentation]: Test credentials (pk-test/sk-test) satisfy TEST-03 mock server requirement via SDK Flush() verification
 
 ### Pending Todos
 
