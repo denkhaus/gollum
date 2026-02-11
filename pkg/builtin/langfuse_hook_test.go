@@ -1767,6 +1767,131 @@ func TestLangfuseHook_SpanHierarchy_Integration(t *testing.T) {
 	assert.Nil(t, tc, "TraceContext should be removed after session end")
 }
 
+// TestLangfuseHook_ErrorPath_Integration tests error handling at each level of the span hierarchy
+func TestLangfuseHook_ErrorPath_Integration(t *testing.T) {
+	sessionID := uuid.New()
+
+	tests := []struct {
+		name          string
+		setupFn       func(*LangfuseHook, *hooks.HookContext)
+		errorFn       func(*LangfuseHook, *hooks.HookContext) error
+		wantSpanType  string
+		wantLevel     traces.ObservationLevel
+		wantStatusMsg string
+	}{
+		{
+			name: "tool execution error",
+			setupFn: func(h *LangfuseHook, ctx *hooks.HookContext) {
+				ctx.ToolName = "read_file"
+				ctx.ToolArgs = map[string]any{"path": "/nonexistent.txt"}
+				h.beforeToolExecutionHook(context.Background(), ctx, func() error { return nil })
+			},
+			errorFn: func(h *LangfuseHook, ctx *hooks.HookContext) error {
+				ctx.ToolError = fmt.Errorf("file not found")
+				return h.onToolErrorHook(context.Background(), ctx, func() error { return nil })
+			},
+			wantSpanType:  "tool",
+			wantLevel:     traces.ObservationLevelError,
+			wantStatusMsg: "file not found",
+		},
+		{
+			name: "LLM request error",
+			setupFn: func(h *LangfuseHook, ctx *hooks.HookContext) {
+				ctx.LLMModel = "claude-3-5-sonnet"
+				ctx.LLMInput = "Test prompt"
+				h.beforeLLMRequestHook(context.Background(), ctx, func() error { return nil })
+			},
+			errorFn: func(h *LangfuseHook, ctx *hooks.HookContext) error {
+				ctx.LLMError = fmt.Errorf("rate limit exceeded")
+				ctx.LLMResponse = "" // No response on error
+				return h.onLLMErrorHook(context.Background(), ctx, func() error { return nil })
+			},
+			wantSpanType:  "llm",
+			wantLevel:     traces.ObservationLevelError,
+			wantStatusMsg: "rate limit exceeded",
+		},
+		{
+			name: "LLM partial response error",
+			setupFn: func(h *LangfuseHook, ctx *hooks.HookContext) {
+				ctx.LLMModel = "claude-3-5-sonnet"
+				ctx.LLMInput = "Generate story"
+				h.beforeLLMRequestHook(context.Background(), ctx, func() error { return nil })
+			},
+			errorFn: func(h *LangfuseHook, ctx *hooks.HookContext) error {
+				ctx.LLMError = fmt.Errorf("stream interrupted")
+				ctx.LLMResponse = "Once upon a time..." // Partial response
+				return h.onLLMErrorHook(context.Background(), ctx, func() error { return nil })
+			},
+			wantSpanType:  "llm",
+			wantLevel:     traces.ObservationLevelError,
+			wantStatusMsg: "stream interrupted",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockLog := mocks.NewMockLoggerService(ctrl)
+			cfg := &config.LangfuseConfig{
+				LangfuseEnabled:   true,
+				LangfuseHost:      "https://cloud.langfuse.com",
+				LangfusePublicKey: "pk-test-key",
+				LangfuseSecretKey: "sk-test-key",
+			}
+
+			// Expect Info call for client init and Debug for error events
+			mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+			mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+
+			hook := &LangfuseHook{
+				log:         mockLog,
+				config:      cfg,
+				client:      nil,
+				clientMu:    &sync.Mutex{},
+				traceCtxs:   make(map[uuid.UUID]*TraceContext),
+				traceCtxsMu: &sync.RWMutex{},
+			}
+
+			hook.createTraceContext(sessionID)
+			tc := hook.getTraceContext(sessionID)
+
+			ctx := &hooks.HookContext{
+				SessionID: sessionID,
+				Data:      make(map[string]any),
+			}
+
+			// Setup: Create span via before hook
+			tt.setupFn(hook, ctx)
+
+			spanID := ctx.Data["langfuse_span_id"].(string)
+			require.NotEmpty(t, spanID, "Should have span ID")
+
+			// Execute error hook
+			err := tt.errorFn(hook, ctx)
+			require.NoError(t, err)
+
+			// Verify error state
+			switch tt.wantSpanType {
+			case "tool":
+				span, ok := tc.Spans[spanID].(*ToolSpanContext)
+				require.True(t, ok, "Should be ToolSpanContext")
+				assert.Equal(t, tt.wantLevel, span.Level)
+				assert.Equal(t, tt.wantStatusMsg, span.StatusMessage)
+			case "llm":
+				span, ok := tc.Spans[spanID].(*LLMSpanContext)
+				require.True(t, ok, "Should be LLMSpanContext")
+				assert.Equal(t, tt.wantLevel, span.Level)
+				assert.Equal(t, tt.wantStatusMsg, span.StatusMessage)
+				// For partial response test, verify output is preserved
+				if tt.name == "LLM partial response error" {
+					assert.Equal(t, "Once upon a time...", span.Output, "Partial response should be preserved")
+				}
+			}
+		})
+	}
+}
+
 // TestLangfuseHook_AgentSpanLifecycle_Integration tests full agent lifecycle
 func TestLangfuseHook_AgentSpanLifecycle_Integration(t *testing.T) {
 	sessionID := uuid.New()
