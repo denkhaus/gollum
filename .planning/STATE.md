@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 6
-Plan: 01
+Plan: 02
 Status: Milestone v1.1 Langfuse Integration — IN PROGRESS
-Last activity: 2026-02-11 — Completed 06-01-PLAN.md (Langfuse Configuration)
+Last activity: 2026-02-11 — Completed 06-02-PLAN.md (Lazy Langfuse Client Initialization)
 
-Progress: [████████░░░░░░░░] 45% (5/11 phases complete, 1/2 plans in phase 6)
+Progress: [█████████░░░░░░░] 50% (6/11 phases complete, 2/2 plans in phase 6)
 
 ## Performance Metrics
 
@@ -28,7 +28,7 @@ Progress: [████████░░░░░░░░] 45% (5/11 phases co
 | Milestone | Phases | Plans Complete | Status |
 |-----------|--------|----------------|--------|
 | v1.0 Prompt Optimizer | 5 | 16 | Complete |
-| v1.1 Langfuse Integration | 6 | 1 | In Progress |
+| v1.1 Langfuse Integration | 6 | 2 | In Progress |
 
 **Phase Breakdown (v1.1):**
 | Phase | Plans | Complete | Status |
@@ -103,6 +103,8 @@ Recent decisions affecting current work:
 - Lazy client init: No overhead when tracing disabled
 - **Type alias for LangfuseConfig**: Use `type LangfuseConfig = HooksConfig` to avoid duplication while providing clear API naming
 - **Langfuse config in HooksConfig**: Tracing configuration belongs in hooks system, not prompt store (Langfuse store deferred to v2)
+- **Langfuse SDK API**: Uses `langfuse.NewClient(host, publicKey, secretKey)` (no options), `langfuse.Langfuse` struct, and void `Flush()` method
+- **Mock controller cleanup**: Always add `defer ctrl.Finish()` in GoMock tests for proper cleanup
 
 ### Pending Todos
 
@@ -114,8 +116,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2025-02-11T07:10:12Z
-Stopped at: Completed 06-01-PLAN.md (Langfuse Configuration)
+Last session: 2026-02-11T07:26:36Z
+Stopped at: Completed 06-02-PLAN.md (Lazy Langfuse Client Initialization)
 Resume file: None
 
 ## Milestone Status: v1.0 PROMPT OPTIMIZER - COMPLETE
@@ -138,7 +140,7 @@ Resume file: None
 ## Milestone Status: v1.1 LANGFUSE INTEGRATION - IN PROGRESS
 
 **Phase Summary:**
-- Phase 6 (Configuration and Client Initialization): In Progress - 1/2 plans complete
+- Phase 6 (Configuration and Client Initialization): Complete - 2/2 plans complete
 - Phase 7 (LangfuseHook Struct and Basic Registration): Pending - 0/3 plans
 - Phase 8 (LLM Tracing Implementation): Pending - 0/2 plans
 - Phase 9 (Tool and Agent Lifecycle Tracing): Pending - 0/3 plans
