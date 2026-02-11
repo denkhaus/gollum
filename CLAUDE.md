@@ -233,3 +233,66 @@ export GOLLUM_OPTIMIZER_MIN_REFLECTION=2  # Min reflection steps
 - Provide clear UpdateInstructions to guide optimization direction
 - Use structured Feedback (with scores) for more consistent results
 - Test optimized prompts before deploying to production
+
+## Langfuse Tracing
+
+The LangfuseHook provides comprehensive tracing for LLM interactions, tool executions, and agent lifecycle events through Langfuse SDK integration.
+
+### Configuration
+
+Environment variables for Langfuse tracing:
+
+- `GOLLUM_LANGFUSE_ENABLED`: Enable/disable tracing (default: "false")
+- `GOLLUM_LANGFUSE_HOST`: Langfuse server URL (default: "https://cloud.langfuse.com")
+- `GOLLUM_LANGFUSE_PUBLIC_KEY`: Langfuse public key for authentication
+- `GOLLUM_LANGFUSE_SECRET_KEY`: Langfuse secret key for authentication
+- `GOLLUM_LANGFUSE_FLUSH_INTERVAL`: Flush interval in milliseconds (default: "1000")
+- `GOLLUM_LANGFUSE_MAX_QUEUE_SIZE`: Max queue size before flush (default: "100")
+
+Example:
+```bash
+export GOLLUM_LANGFUSE_ENABLED=true
+export GOLLUM_LANGFUSE_HOST=https://cloud.langfuse.com
+export GOLLUM_LANGFUSE_PUBLIC_KEY=pk-lf-...
+export GOLLUM_LANGFUSE_SECRET_KEY=sk-lf-...
+```
+
+### Hook Registration in main.go
+
+Register LangfuseHook with HookManager during initialization:
+
+```go
+import (
+    "github.com/denkhaus/gollum/pkg/builtin"
+    "github.com/denkhaus/gollum/pkg/hooks"
+)
+
+func main() {
+    // ... DI container setup ...
+
+    // Get LangfuseHook from DI
+    langfuseHook := do.MustInvoke[*builtin.LangfuseHook](injector)
+
+    // Get HookManager from DI
+    hm := do.MustInvoke[HookManager](injector)
+
+    // Register all Langfuse tracing hooks
+    if err := builtin.RegisterLangfuseHooks(hm, langfuseHook); err != nil {
+        log.Fatal("Failed to register Langfuse hooks", zap.Error(err))
+    }
+}
+```
+
+### Tracing Enable/Disable Control
+
+- Set `GOLLUM_LANGFUSE_ENABLED=false` to disable tracing
+- When disabled, hooks are no-ops (no performance overhead)
+- Enable at runtime by updating config (if supported)
+
+### Viewing Traces in Langfuse UI
+
+1. Navigate to your Langfuse instance (e.g., https://cloud.langfuse.com)
+2. Select your project/org
+3. View traces in the "Traces" tab
+4. Filter by session ID, agent ID, or time range
+5. Inspect individual spans for LLM requests, tool calls, and agent events
