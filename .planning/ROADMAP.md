@@ -244,10 +244,15 @@ Build a Go-based agent framework with comprehensive observability, prompt manage
 4. CLAUDE.md updated with Langfuse configuration examples
 5. guide.golang.langfuse-tracing.md created in knowledge base
 
-**Plans**: TBD
-- [ ] 11-01-PLAN.md — Unit tests with centralized mocks
-- [ ] 11-02-PLAN.md — Concurrent access and integration tests
-- [ ] 11-03-PLAN.md — CLAUDE.md and knowledge base documentation
+**Plans**: 3 plans in 2 waves
+- [ ] 011-testing-documentation-01-PLAN.md — Unit test coverage gap analysis and targeted improvements (Wave 1)
+- [ ] 011-testing-documentation-02-PLAN.md — Integration tests for full trace lifecycle (Wave 2)
+- [ ] 011-testing-documentation-03-PLAN.md — CLAUDE.md and knowledge base documentation (Wave 1)
+
+**Notes:**
+- Plan 01: Focuses on targeted coverage gap analysis; concurrent test already exists (TestLangfuseHook_ConcurrentAccess_Integration)
+- Plan 02: Creates new integration test file; documents test credentials vs mock server approach
+- Plan 03: Wave 1 (can be done in parallel with Plan 01); uses project-relative paths
 
 ## Progress
 

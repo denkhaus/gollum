@@ -1,8 +1,6 @@
 // Package registry provides agent registry and management functionality.
 package registry
 
-//go:generate mockgen -source=registry.go -destination=../mocks/mock_registry.go -package=mocks
-
 import (
 	"context"
 	"sync"
