@@ -140,7 +140,7 @@ Build a Go-based agent framework with comprehensive observability, prompt manage
 5. Lazy Langfuse client initialization with sync.Mutex for thread safety
 6. Client init failure logs warning and disables tracing gracefully
 
-**Plans**: TBD
+**Plans**: 2 plans in 2 waves
 - [ ] 06-01-PLAN.md — LangfuseConfig structure and environment variable loading
 - [ ] 06-02-PLAN.md — Lazy client initialization with thread safety
 
