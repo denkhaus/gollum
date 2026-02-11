@@ -156,16 +156,49 @@ func (h *LangfuseHook) removeTraceContext(sessionID uuid.UUID) {
 	delete(h.traceCtxs, sessionID)
 }
 
-// Shutdown flushes any buffered traces and closes the Langfuse client.
-// This should be called during application shutdown or session end.
-func (h *LangfuseHook) Shutdown() error {
-	h.clientMu.Lock()
-	defer h.clientMu.Unlock()
+// cleanupAllTraceContexts removes all trace contexts from memory.
+// This is called during shutdown to release resources.
+func (h *LangfuseHook) cleanupAllTraceContexts() {
+	h.traceCtxsMu.Lock()
+	defer h.traceCtxsMu.Unlock()
 
-	if h.client != nil {
-		h.client.Flush()
+	count := len(h.traceCtxs)
+	if count > 0 {
+		h.log.Debug("Cleaning up trace contexts",
+			zap.Int("count", count))
+
+		// Clear all trace contexts
+		for sessionID, tc := range h.traceCtxs {
+			// End any root spans that haven't been ended
+			if tc.RootSpan != nil {
+				if span, ok := tc.RootSpan.(interface{ End() }); ok {
+					span.End()
+				}
+			}
+			delete(h.traceCtxs, sessionID)
+		}
+	}
+}
+
+// Shutdown flushes all buffered traces and cleans up resources.
+// This should be called during application shutdown.
+// Flush errors are logged as warnings but don't prevent shutdown.
+func (h *LangfuseHook) Shutdown() error {
+	h.log.Info("Shutting down Langfuse hook")
+
+	// Clean up all trace contexts first
+	h.cleanupAllTraceContexts()
+
+	// Flush buffered traces to Langfuse
+	flushErr := h.flushTraces()
+	if flushErr != nil {
+		// Log warning but don't fail - shutdown should complete
+		h.log.Warn("Failed to flush Langfuse traces during shutdown (non-fatal)",
+			zap.Error(flushErr))
+	} else {
 		h.log.Info("Langfuse traces flushed successfully")
 	}
+
 	return nil
 }
 
