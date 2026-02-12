@@ -473,3 +473,73 @@ func TestSpawnAgentToolProvider_CreateTool(t *testing.T) {
 	assert.Equal(t, logService, tool.logService)
 	assert.Equal(t, mockHookManager, tool.hookManager)
 }
+
+// TestSpawnAgentTool_WithShareContext_NoParent tests that share_context works when there is no parent agent
+func TestSpawnAgentTool_WithShareContext_NoParent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+
+	senderID := uuid.New()
+
+	// Setup mocks - no parent agent
+	mockFactory := mocks.NewMockAgentFactory(ctrl)
+	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockConfigService := setupMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	tool := &SpawnAgentTool{
+		logService:      logService,
+		agentFactory:    mockFactory,
+		registry:        mockRegistry,
+		promptManager:   mockPromptMgr,
+		executionHelper: mockExecHelper,
+		configService:   mockConfigService,
+		hookManager:     mockHookManager,
+		senderID:        senderID,
+	}
+
+	ctx := context.Background()
+
+	// No parent agent exists
+	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
+	mockPromptMgr.EXPECT().GetSubagentPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
+
+	// Create the mock agent that will be returned by CreateAgent
+	mockSubagent := mocks.NewMockAgent(ctrl)
+	mockSubagent.EXPECT().GetID().Return(uuid.New()).Times(4) // GetID is called at lines 211, 215, 251, 258
+
+	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Do(func(_ context.Context, cfg *shared.AgentConfig) {
+		// Verify message history is nil when no parent exists
+		assert.Nil(t, cfg.History)
+	}).Return(mockSubagent, nil)
+
+	mockRegistry.EXPECT().StoreAgentResult(gomock.Any()).Return(nil).Times(1)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).Return(nil)
+
+	// Mock execution helper
+	expectedResponse := map[string]any{
+		"success":  true,
+		"agent_id": gomock.Any().String(),
+		"response": "Task completed",
+		"status":   "completed",
+		"message":  "Agent completed",
+	}
+	mockExecHelper.EXPECT().ExecuteSynchronously(ctx, gomock.Any(), gomock.Any()).Return(expectedResponse, nil)
+
+	result, err := tool.Run(ctx, map[string]any{
+		"role":          "Tester",
+		"description":   "Test task",
+		"prompt":        "Do something",
+		"share_context": true,
+	})
+
+	require.NoError(t, err)
+	assert.True(t, result["success"].(bool))
+	assert.Equal(t, "completed", result["status"].(string))
+}
