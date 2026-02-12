@@ -59,19 +59,6 @@ func TestAgentMessenger_DisplaySystemInfo(t *testing.T) {
 	impl.DisplaySystemInfo("System info message")
 }
 
-// TestAgentMessenger_DisplayWelcome tests welcome message
-func TestAgentMessenger_DisplayWelcome(t *testing.T) {
-	injector := do.New()
-
-	messenger, err := NewAgentMessenger(injector)
-	assert.NoError(t, err)
-
-	impl := messenger.(*agentMessengerImpl)
-
-	// This should not panic - it outputs to stdout
-	impl.DisplayWelcome()
-}
-
 // TestAgentMessenger_ShortenAgentName tests agent name shortening
 func TestAgentMessenger_ShortenAgentName(t *testing.T) {
 	injector := do.New()

@@ -255,34 +255,6 @@ func TestDisplayMiddleware_ToolMiddleware_NoResult(t *testing.T) {
 	}
 }
 
-// TestDisplayMiddleware_DisplayWelcome tests welcome message display
-func TestDisplayMiddleware_DisplayWelcome(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	// Setup mocks
-	mockMessenger := mocks.NewMockAgentMessenger(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-
-	// Create injector with mocks
-	injector := do.New()
-	do.ProvideValue[ui.AgentMessenger](injector, mockMessenger)
-	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
-
-	provider, err := middleware.NewDisplayMiddlewareProvider(injector)
-	if err != nil {
-		t.Fatalf("NewDisplayMiddlewareProvider failed: %v", err)
-	}
-
-	dm := provider.CreateDisplayMiddleware(uuid.New(), testAgentRole)
-
-	// Setup mock expectation
-	mockMessenger.EXPECT().DisplayWelcome().Times(1)
-
-	// Execute
-	dm.DisplayWelcome()
-}
-
 // TestDisplayMiddleware_DisplaySystemInfo tests system info display
 func TestDisplayMiddleware_DisplaySystemInfo(t *testing.T) {
 	ctrl := gomock.NewController(t)
