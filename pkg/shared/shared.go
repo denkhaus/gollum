@@ -54,6 +54,7 @@ type AgentConfig struct {
 	LLMProvider     LLMProvider      `json:"llm_provider"`
 	OutputMode      OutputMode       `json:"output_mode"`
 	AllowCompaction bool             `json:"allow_compaction"`
+	History         *gollem.History  `json:"history,omitempty"` // Optional parent message history for context awareness
 }
 
 // AgentStatus represents the execution status of a background agent.

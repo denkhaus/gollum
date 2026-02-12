@@ -42,7 +42,7 @@ func (p *defaultAgent) GetConfig() *shared.AgentConfig {
 }
 
 // GetMessageHistory retrieves the agent's message history from its session
-func (p *defaultAgent) GetMessageHistory(ctx context.Context) ([]gollem.Message, error) {
+func (p *defaultAgent) GetMessageHistory(ctx context.Context) (*gollem.History, error) {
 	// Handle nil base agent
 	if p.base == nil {
 		return nil, nil
@@ -58,10 +58,5 @@ func (p *defaultAgent) GetMessageHistory(ctx context.Context) ([]gollem.Message,
 		return nil, err
 	}
 
-	// Return messages from history
-	if history != nil {
-		return history.Messages, nil
-	}
-
-	return nil, nil
+	return history, nil
 }
