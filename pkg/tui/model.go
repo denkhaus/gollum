@@ -60,9 +60,9 @@ type logTickMsg time.Time
 // mouseDebounceMsg is sent after mouse wheel debouncing to perform the actual scroll.
 // This prevents the UI from being overwhelmed by rapid mouse events.
 type mouseDebounceMsg struct {
-	tag       int    // Unique ID to identify this debounce batch
-	direction int    // -1 for up, 1 for down
-	viewport  string // "main" or "logs"
+	tag       int      // Unique ID to identify this debounce batch
+	direction int      // -1 for up, 1 for down
+	viewport  Viewport // ViewportMain or ViewportLogs
 }
 
 // agentCompleteMsg is sent when agent execution completes.
@@ -221,8 +221,7 @@ type Model struct {
 	height int
 
 	// activeViewport indicates which viewport receives keyboard scroll events
-	// "main" or "logs"
-	activeViewport string
+	activeViewport Viewport
 
 	// messageChan receives messages from AgentMessenger (optional, for TUI mode)
 	messageChan chan Message
@@ -305,7 +304,7 @@ func NewModel(ctx context.Context, agent AgentExecutor) Model {
 		searchState:           searchState{},
 		multiLineInput:        false,
 		multiLineBuffer:       []string{},
-		activeViewport:        "input", // Start with input focus for history navigation
+		activeViewport:        ViewportInput, // Start with input focus for history navigation
 		mouseDebounceTag:      0,
 		mouseDebounceDuration: 130 * time.Millisecond, // 30ms debounce for smooth scrolling
 	}

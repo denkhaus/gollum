@@ -171,11 +171,11 @@ func (m Model) renderFooter() string {
 		Foreground(lipgloss.Color("#F39C12")). // Orange
 		Bold(true)
 	switch m.activeViewport {
-	case "logs":
+	case ViewportLogs:
 		shortcuts = append(shortcuts, activeViewportStyle.Render("● Logs: Ctrl+L|PgUp/Down"))
-	case "input":
+	case ViewportInput:
 		shortcuts = append(shortcuts, activeViewportStyle.Render("● Input: Ctrl+L|↑/↓ History"))
-	default: // "main"
+	default: // ViewportMain
 		shortcuts = append(shortcuts, activeViewportStyle.Render("● Main: Ctrl+L|PgUp/Down"))
 	}
 
