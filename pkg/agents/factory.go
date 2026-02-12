@@ -155,6 +155,12 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 		gollem.WithSystemPrompt(config.SystemPrompt),
 	}
 
+	if config.History != nil {
+		baseOptions = append(baseOptions,
+			gollem.WithHistory(config.History),
+		)
+	}
+
 	if config.AllowCompaction {
 		// Create context compacter
 		compacterPrompt, err := f.promptManager.GetCompacterPrompt(nil)

@@ -108,6 +108,10 @@ func (t *SpawnAgentTool) Spec() gollem.ToolSpec {
 				Type:        gollem.TypeBoolean,
 				Description: fmt.Sprintf("If true, executes asynchronously. Use %s tool to retrieve results. If false or omitted, waits for completion and returns result directly.", shared.ToolNameAgentOutput),
 			},
+			"share_context": {
+				Type:        gollem.TypeBoolean,
+				Description: "If true, includes parent agent's message history in subagent configuration for context awareness. Default is false.",
+			},
 		},
 	}
 }
@@ -146,7 +150,15 @@ func (t *SpawnAgentTool) runSpawnAgent(ctx context.Context, args map[string]any)
 		}
 	}
 
-	t.logService.Infof("Spawning subagent: role=%s description=%s background=%v", role, description, runInBackground)
+	// Check share_context parameter (defaults to false)
+	shareContext := false
+	if scVal, exists := args["share_context"]; exists {
+		if scBool, ok := scVal.(bool); ok {
+			shareContext = scBool
+		}
+	}
+
+	t.logService.Infof("Spawning subagent: role=%s description=%s background=%v share_context=%v", role, description, runInBackground, shareContext)
 
 	// Get specialized subagent prompt from PromptManager (includes role, description, and tool names)
 	systemPrompt, err := t.promptManager.GetSubagentPrompt(role, description)
@@ -155,7 +167,7 @@ func (t *SpawnAgentTool) runSpawnAgent(ctx context.Context, args map[string]any)
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to get subagent prompt: %v", err)), nil
 	}
 
-	// Get parent agent to inherit LLM provider
+	// Get parent agent to inherit LLM provider and optionally message history
 	parentAgent, hasParent := t.registry.GetAgent(t.senderID)
 	var llmProvider shared.LLMProvider
 	if hasParent {
@@ -164,6 +176,15 @@ func (t *SpawnAgentTool) runSpawnAgent(ctx context.Context, args map[string]any)
 	} else {
 		llmProvider = shared.LLMProviderAnthropic // Default fallback
 		t.logService.Debugf("Using default LLM provider (no parent agent found)")
+	}
+
+	var history *gollem.History
+	if shareContext && hasParent {
+		history, err = parentAgent.GetMessageHistory(ctx)
+		if err != nil {
+			t.logService.Warnf("Failed to get message history from parent agent: %v", err)
+			// Continue without history - non-fatal error
+		}
 	}
 
 	// Create subagent configuration
@@ -177,6 +198,7 @@ func (t *SpawnAgentTool) runSpawnAgent(ctx context.Context, args map[string]any)
 		Description:     description,
 		LLMProvider:     llmProvider,
 		OutputMode:      shared.OutputModeSummary, // Sub-agents use summary mode
+		History:         history,                  // Include parent message history for context awareness
 	}
 
 	// Create the subagent using the factory (which now adds default tools)

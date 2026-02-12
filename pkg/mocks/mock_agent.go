@@ -92,10 +92,10 @@ func (mr *MockAgentMockRecorder) GetID() *gomock.Call {
 }
 
 // GetMessageHistory mocks base method.
-func (m *MockAgent) GetMessageHistory(ctx context.Context) ([]gollem.Message, error) {
+func (m *MockAgent) GetMessageHistory(ctx context.Context) (*gollem.History, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMessageHistory", ctx)
-	ret0, _ := ret[0].([]gollem.Message)
+	ret0, _ := ret[0].(*gollem.History)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
