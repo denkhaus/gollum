@@ -37,7 +37,7 @@ func (m Model) View() string {
 	// Render viewport (content is set in Update handlers)
 	b.WriteString(m.viewport.View())
 
-	// Render seperator
+	// Render separator
 	b.WriteString("\n" + separatorStyle.Render(strings.Repeat("─", m.width)))
 
 	// Render input section based on current mode
@@ -94,7 +94,7 @@ func (m Model) View() string {
 
 	// Status bar (if enabled)
 	if m.config.StatusEnabled {
-		// Render seperator
+		// Render separator
 		b.WriteString("\n" + separatorStyle.Render(strings.Repeat("─", m.width)))
 		// Render Statusbar
 		b.WriteString("\n" + m.renderStatusBar())
@@ -144,7 +144,7 @@ func (m Model) renderStatusBar() string {
 
 	// Apply status bar styling
 	statusBarStyle := lipgloss.NewStyle().
-		//Background(lipgloss.Color("#2C3E50")). // Dark blue-gray
+		// Background(lipgloss.Color("#2C3E50")) // Dark blue-gray
 		Foreground(lipgloss.Color("#ECF0F1")). // Light gray
 		Padding(0, 1).
 		Width(m.width)
@@ -239,14 +239,37 @@ func WithMessageChannel() func(*Model) {
 		// This allows AgentMessenger to send messages to the TUI
 		adapterChan := make(chan MessageAdapter, 100)
 		SetMessengerChannel(adapterChan)
+		m.SetMessengerChannel(adapterChan) // Store for cleanup
 
 		// Start a goroutine to bridge MessageAdapter to Message
+		// The goroutine exits when either the context is cancelled or adapterChan is closed
 		go func() {
-			for adapterMsg := range adapterChan {
-				msg := adapterMsg.ToMessage()
-				ch <- msg
+			defer close(ch) // Ensure message channel is closed on exit
+
+			for {
+				select {
+				case <-m.ctx.Done():
+					// Context cancelled - drain remaining messages and exit
+					for range adapterChan {
+						// Drain channel without processing
+					}
+					return
+
+				case adapterMsg, ok := <-adapterChan:
+					if !ok {
+						// adapterChan closed, exit cleanly
+						return
+					}
+					msg := adapterMsg.ToMessage()
+					select {
+					case ch <- msg:
+						// Message sent successfully
+					case <-m.ctx.Done():
+						// Context cancelled while sending, exit
+						return
+					}
+				}
 			}
-			close(ch)
 		}()
 	}
 }

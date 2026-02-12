@@ -227,6 +227,10 @@ type Model struct {
 	// messageChan receives messages from AgentMessenger (optional, for TUI mode)
 	messageChan chan Message
 
+	// messengerChan is the adapter channel for AgentMessenger integration
+	// This must be stored for cleanup when the TUI shuts down
+	messengerChan chan MessageAdapter
+
 	// viewport manages scrollable message display
 	viewport viewport.Model
 
@@ -359,6 +363,17 @@ func (m Model) GetMessageChannel() chan Message {
 	return m.messageChan
 }
 
+// SetMessengerChannel sets the adapter channel for AgentMessenger integration.
+// This stores the channel for cleanup when the TUI shuts down.
+func (m *Model) SetMessengerChannel(ch chan MessageAdapter) {
+	m.messengerChan = ch
+}
+
+// GetMessengerChannel returns the adapter channel for AgentMessenger integration.
+func (m Model) GetMessengerChannel() chan MessageAdapter {
+	return m.messengerChan
+}
+
 // waitForMessages returns a command that waits for messages on the message channel.
 // This should be included in tea.Batch to listen for incoming messages.
 func (m Model) waitForMessages() tea.Cmd {
@@ -446,8 +461,8 @@ func (m Model) formatMessage(msg Message) string {
 
 	// Column widths for the 3-column header
 	// We need: totalWidth >= col1Width + col2Width + col3Width + 2
-	col2Width := 10 // Message type (fixed)
-	col3MinWidth := 8 // Minimum for timestamp
+	col2Width := 10    // Message type (fixed)
+	col3MinWidth := 8  // Minimum for timestamp
 	col1MinWidth := 14 // Minimum for icon + agent ID
 
 	// Calculate col3Width first (remaining space after col1 and col2)
