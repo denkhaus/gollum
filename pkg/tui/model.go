@@ -32,6 +32,7 @@ package tui
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -621,17 +622,17 @@ func (m *Model) formatMessageImpl(msg Message) string {
 	availableContentWidth := max(contentWidth-2*contentPadding, 1)
 
 	for _, line := range contentLines {
-		// Use rune count for proper width calculation
-		lineRunes := []rune(line)
-		lineLen := len(lineRunes)
+		// Use visual width (ignoring ANSI escape codes) for proper alignment
+		// This is critical for markdown-rendered content that contains color codes
+		lineVisWidth := visualWidth(line)
 
-		if lineLen > availableContentWidth {
-			// Truncate long lines by runes
-			truncated := string(lineRunes[:availableContentWidth])
-			b.WriteString(fmt.Sprintf("│ %s │\n", truncated))
+		if lineVisWidth > availableContentWidth {
+			// Truncate long lines by visual width (preserving ANSI codes at start)
+			truncated := truncateVisual(line, availableContentWidth)
+			b.WriteString(fmt.Sprintf("│ %s%s │\n", truncated, strings.Repeat(" ", availableContentWidth-visualWidth(truncated))))
 		} else {
 			// Pad short lines with spaces on the right
-			padding := availableContentWidth - lineLen
+			padding := availableContentWidth - lineVisWidth
 			b.WriteString(fmt.Sprintf("│ %s%s │\n", line, strings.Repeat(" ", padding)))
 		}
 	}
@@ -707,6 +708,42 @@ func formatAgentName(agentID uuid.UUID, role string) string {
 		return idStr[:4]
 	}
 	return "agent"
+}
+
+// ansiRegex matches ANSI escape sequences
+var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]|\x1b\][^\x07]*\x07|\x1b[()][AB012]`)
+
+// visualWidth returns the visual/display width of a string, ignoring ANSI escape codes.
+// This is needed because glamour returns text with ANSI color codes that shouldn't
+// be counted when calculating padding and alignment.
+func visualWidth(s string) int {
+	// Strip ANSI escape sequences
+	stripped := ansiRegex.ReplaceAllString(s, "")
+	// Count runes (not bytes) for proper Unicode handling
+	return len([]rune(stripped))
+}
+
+// truncateVisual truncates a string to fit within the given visual width.
+// Preserves ANSI escape codes at the start of the string.
+func truncateVisual(s string, maxVisualWidth int) string {
+	if maxVisualWidth <= 0 {
+		return ""
+	}
+
+	// Find leading ANSI codes (to preserve colors at the start)
+	leadingANSI := ansiRegex.FindStringIndex(s)
+	ansiPrefix := ""
+	if leadingANSI != nil && leadingANSI[0] == 0 {
+		ansiPrefix = s[:leadingANSI[1]]
+		s = s[leadingANSI[1]:]
+	}
+
+	runes := []rune(s)
+	if len(runes) <= maxVisualWidth {
+		return ansiPrefix + s
+	}
+
+	return ansiPrefix + string(runes[:maxVisualWidth])
 }
 
 // addToHistory adds input to history with size limit enforcement.
