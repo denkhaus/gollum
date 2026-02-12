@@ -1096,3 +1096,43 @@ func BenchmarkRenderStatusBar(b *testing.B) {
 		b.Fatal("Status bar should show idle status")
 	}
 }
+
+// BenchmarkUpdateViewportContentWithScrolling tests realistic TUI scrolling behavior
+// In real usage: 100+ messages in history, viewport shows ~20-30 messages
+// User scrolls → updateViewportContent() called repeatedly (hot path!)
+func BenchmarkUpdateViewportContentWithScrolling(b *testing.B) {
+	ctrl := gomock.NewController(b)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+
+	// Realistic TUI session: 100 messages in history
+	m.messages = make([]Message, 100)
+	for i := range m.messages {
+		m.messages[i] = Message{
+			ID:        uuid.New(),
+			Type:      MessageTypeAgent,
+			Content:   fmt.Sprintf("Agent response message %d", i),
+			Timestamp: time.Now(),
+		}
+	}
+
+	// Initialize viewport once
+	m.viewport.SetContent(m.updateViewportContent())
+
+	b.ResetTimer()
+
+	// Simulate realistic scrolling: updateViewportContent called multiple times per "scroll" event
+	// This measures the hot path cost that occurs during actual TUI usage
+	for i := 0; i < b.N; i++ {
+		m.updateViewportContent()
+	}
+
+	b.StopTimer()
+
+	// Report metrics
+	b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N), "ns/op")
+	b.Logf("BenchmarkUpdateViewportContentWithScrolling: 100 messages, %d scroll updates", len(m.messages))
+}
