@@ -6,8 +6,17 @@ import tea "github.com/charmbracelet/bubbletea"
 
 // handleWindowSizeMsg handles terminal resize events.
 func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
+	widthChanged := m.width != msg.Width
 	m.width = msg.Width
 	m.height = msg.Height
+
+	// Clear format cache when width changes (formatting depends on terminal width)
+	// Note: We need to modify m, so we use pointer receiver for cache clearing
+	if widthChanged {
+		// Get pointer to model for cache operations
+		mp := &m
+		mp.clearFormatCache()
+	}
 
 	// Update viewport size (reserve space for input, footer, status bar, and log panel)
 	mainHeight, logHeight := m.calculateViewportDimensions()

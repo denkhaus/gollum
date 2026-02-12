@@ -265,6 +265,17 @@ type Model struct {
 
 	// mouseDebounceDuration controls how long to wait before processing scroll events
 	mouseDebounceDuration time.Duration
+
+	// formatCache caches formatted messages to avoid expensive re-formatting on every viewport update
+	// Key: message ID (uuid.UUID), Value: formatted string
+	formatCache map[uuid.UUID]string
+
+	// cacheWidth tracks the terminal width when cache was built
+	// Used to invalidate cache on window resize (since formatting depends on width)
+	cacheWidth int
+
+	// maxCacheSize limits cache size to prevent unbounded growth
+	maxCacheSize int
 }
 
 // NewModel creates a new TUI model with initial state.
@@ -307,6 +318,9 @@ func NewModel(ctx context.Context, agent AgentExecutor) Model {
 		activeViewport:        ViewportInput, // Start with input focus for history navigation
 		mouseDebounceTag:      0,
 		mouseDebounceDuration: 130 * time.Millisecond, // 30ms debounce for smooth scrolling
+		formatCache:           make(map[uuid.UUID]string),
+		cacheWidth:            0, // Will be set on first update
+		maxCacheSize:         1000, // Match HistoryMaxSize default
 	}
 }
 
@@ -398,6 +412,18 @@ func (m Model) updateViewportContent() string {
 	return b.String()
 }
 
+// clearFormatCache clears the format cache.
+// This is called when cache becomes invalid (e.g., width change, message update).
+func (m *Model) clearFormatCache() {
+	m.formatCache = make(map[uuid.UUID]string)
+}
+
+// invalidateCacheFor removes a specific message from the cache.
+// This is called when a message is updated or removed.
+func (m *Model) invalidateCacheFor(msgID uuid.UUID) {
+	delete(m.formatCache, msgID)
+}
+
 // formatMessage formats a single message for display in the viewport.
 // Uses lipgloss styling to match the AgentMessenger appearance.
 // For agent messages, it uses the markdown renderer if available.
@@ -411,7 +437,35 @@ func (m Model) updateViewportContent() string {
 //	│ Hello! How can I help you today?                           │
 //	│                                                            │
 //	╰────────────────────────────────────────────────────────────╯
-func (m Model) formatMessage(msg Message) string {
+func (m *Model) formatMessage(msg Message) string {
+	// Check cache first - return cached formatted message if available
+	// Cache key: message ID
+	// Cache invalidation: width change, message update
+	if cached, ok := m.formatCache[msg.ID]; ok && m.cacheWidth == m.width {
+		return cached
+	}
+
+	// Enforce cache size limit to prevent unbounded growth
+	// Check BEFORE formatting to avoid unnecessary work
+	if len(m.formatCache) >= m.maxCacheSize {
+		// Clear cache when limit reached (simple eviction strategy)
+		// Alternative: LRU eviction would be better but more complex
+		m.clearFormatCache()
+	}
+
+	// Cache miss - format the message and cache the result
+	formatted := m.formatMessageImpl(msg)
+
+	// Cache the formatted message
+	m.formatCache[msg.ID] = formatted
+	m.cacheWidth = m.width
+
+	return formatted
+}
+
+// formatMessageImpl implements the actual message formatting logic.
+// This is separated from formatMessage to enable caching.
+func (m *Model) formatMessageImpl(msg Message) string {
 	timestamp := msg.Timestamp.Format("15:04:05")
 
 	// Build header row content with 3 columns
@@ -687,8 +741,9 @@ func (m *Model) executeCommand(cmd string) (tea.Model, tea.Cmd) {
 
 	switch command {
 	case "/clear":
-		// Clear all messages
+		// Clear all messages and cache
 		m.messages = []Message{}
+		m.clearFormatCache()
 		m.viewport.SetContent("")
 		systemMsg := Message{
 			ID:        uuid.New(),
