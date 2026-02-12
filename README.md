@@ -110,6 +110,7 @@ gollum/
 │   ├── hooks/            # Hook system and manager
 │   ├── llm/              # LLM client providers
 │   ├── mcp/              # MCP server integration
+│   ├── profiling/         # Performance profiling tools
 │   ├── registry/         # Agent registry
 │   ├── state/            # File state management
 │   ├── tools/            # Tool implementations
@@ -118,6 +119,72 @@ gollum/
 ├── docs/                 # Additional documentation
 └── go.mod
 ```
+
+## Profiling
+
+Gollum includes built-in profiling support for performance investigation and optimization.
+
+### Profiling Modes
+
+#### HTTP pprof Endpoint
+Run with HTTP profiling endpoint enabled for interactive profiling:
+
+```bash
+# Start with pprof endpoint on default port (localhost:6060)
+./gollum --pprof-addr=localhost:6060
+
+# In another terminal, analyze profiling data
+go tool pprof http://localhost:6060/debug/pprof/heap
+go tool pprof http://localhost:6060/debug/pprof/profile?seconds=30
+```
+
+#### CPU Profiling to File
+Generate CPU profile for offline analysis:
+
+```bash
+# Run with CPU profiling
+./gollum --cpuprofile=cpu.prof
+
+# Analyze the profile after the program exits
+go tool pprof cpu.prof
+```
+
+#### Memory Profiling to File
+Generate heap profile for offline analysis:
+
+```bash
+# Run with memory profiling
+./gollum --memprofile=mem.prof
+
+# Analyze the profile after the program exits
+go tool pprof mem.prof
+```
+
+### Benchmark Tests
+
+Run benchmark tests to measure performance of critical paths:
+
+```bash
+# Run all benchmarks
+go test ./pkg/tui/... -bench=. -benchmem
+
+# Run specific benchmark
+go test ./pkg/tui/... -run=^$ -bench=BenchmarkUpdateViewportContent -benchtime=10s
+```
+
+Available benchmarks:
+- `BenchmarkUpdateViewportContent` - Viewport rendering performance
+- `BenchmarkFormatMessage` - Message formatting performance
+- `BenchmarkModelUpdate` - Model update with message append
+- `BenchmarkRenderStatusBar` - Status bar rendering performance
+
+### Profiling Flags
+
+| Flag | Description | Default |
+|-------|-------------|-----------|
+| `--pprof-addr` | HTTP pprof server address | `localhost:6060` |
+| `--cpuprofile` | CPU profile output file | (none) |
+| `--memprofile` | Memory profile output file | (none) |
 
 ### Running Tests
 
