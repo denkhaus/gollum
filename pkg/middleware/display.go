@@ -109,11 +109,6 @@ func (d *DisplayMiddleware) ToolMiddleware(next gollem.ToolHandler) gollem.ToolH
 	}
 }
 
-// DisplayWelcome shows the welcome message
-func (d *DisplayMiddleware) DisplayWelcome() {
-	d.messenger.DisplayWelcome()
-}
-
 // DisplayUserMessage shows a user's input message
 func (d *DisplayMiddleware) DisplayUserMessage(message string) {
 	d.messenger.DisplayUserMessage(message)

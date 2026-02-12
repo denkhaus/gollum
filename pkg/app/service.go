@@ -70,13 +70,10 @@ func (p *applicationServiceImpl) Run(ctx context.Context) error {
 	}
 
 	// Create and register Supervisor agent
-	agent, agentConfig, err := p.createSupervisorAgent(ctx)
+	agent, _, err := p.createSupervisorAgent(ctx)
 	if err != nil {
 		return err
 	}
-
-	// Display welcome message
-	p.displayWelcome(agentConfig)
 
 	// Run interactive loop
 	return p.runInteractiveLoop(ctx, agent)
@@ -164,12 +161,6 @@ func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (sha
 	p.logService.Infof("Supervisor agent %s registered", agent.GetID())
 
 	return agent, agentConfig, nil
-}
-
-// displayWelcome displays the welcome message
-func (p *applicationServiceImpl) displayWelcome(config *shared.AgentConfig) {
-	displayMiddleware := p.displayProv.CreateDisplayMiddleware(config.ID, config.Role)
-	displayMiddleware.DisplayWelcome()
 }
 
 // runInteractiveLoop runs the main CLI interactive loop using Bubbletea TUI

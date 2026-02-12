@@ -47,8 +47,6 @@ type (
 		DisplayUserMessage(message string)
 		// DisplaySystemInfo shows system-level information
 		DisplaySystemInfo(message string)
-		// DisplayWelcome shows the welcome message
-		DisplayWelcome()
 	}
 
 	// agentMessengerImpl is the private implementation of AgentMessenger
@@ -228,14 +226,4 @@ func (p *agentMessengerImpl) shortenAgentName(agentID uuid.UUID, role string) st
 	// Use first 4 characters of ID as fallback
 	idStr := agentID.String()
 	return idStr[:4]
-}
-
-// DisplayWelcome shows the welcome message
-func (p *agentMessengerImpl) DisplayWelcome() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	// Welcome message removed - TUI displays everything
-	// The stdout-based welcome was causing text to appear before TUI starts
-	// Since we use AltScreen mode, this text is immediately covered anyway
 }
