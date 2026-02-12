@@ -23,9 +23,6 @@ func startup(startupCtx context.Context) error {
 	ctx, cancel := context.WithCancel(startupCtx)
 	defer cancel()
 
-	// Parse profiling configuration
-	profilingConfig := profiling.ParseFlags()
-
 	// Setup container and services
 	container := di.NewContainer()
 	injector := container.RegisterServices(ctx)
@@ -45,6 +42,9 @@ func startup(startupCtx context.Context) error {
 
 	// Invoke application service from DI container
 	applicationService := do.MustInvoke[app.ApplicationService](injector)
+
+	// Parse profiling configuration
+	profilingConfig := profiling.ParseFlags()
 
 	// Enable profiling if configured
 	if profilingConfig.Enable {
