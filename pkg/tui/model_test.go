@@ -1055,9 +1055,9 @@ func BenchmarkModelUpdate(b *testing.B) {
 	baseMessageCount := 100
 	for i := 0; i < baseMessageCount; i++ {
 		msg := Message{
-			ID:       uuid.New(),
-			Type:     MessageTypeAgent,
-			Content:  fmt.Sprintf("Agent response message %d", i),
+			ID:        uuid.New(),
+			Type:      MessageTypeAgent,
+			Content:   fmt.Sprintf("Agent response message %d", i),
 			Timestamp: time.Now(),
 		}
 		m.messages = append(m.messages, msg)
@@ -1360,9 +1360,9 @@ func TestFormatCacheSizeLimit(t *testing.T) {
 	// Add messages up to the limit
 	for i := 0; i < 5; i++ {
 		msg := Message{
-			ID:      uuid.New(),
-			Type:    MessageTypeAgent,
-			Content: fmt.Sprintf("Message %d", i),
+			ID:        uuid.New(),
+			Type:      MessageTypeAgent,
+			Content:   fmt.Sprintf("Message %d", i),
 			Timestamp: time.Now(),
 		}
 		_ = m.formatMessage(msg)
@@ -1375,9 +1375,9 @@ func TestFormatCacheSizeLimit(t *testing.T) {
 
 	// Add one more message (should trigger cache clear)
 	msg := Message{
-		ID:      uuid.New(),
-		Type:    MessageTypeAgent,
-		Content: "Message 6",
+		ID:        uuid.New(),
+		Type:      MessageTypeAgent,
+		Content:   "Message 6",
 		Timestamp: time.Now(),
 	}
 	_ = m.formatMessage(msg)

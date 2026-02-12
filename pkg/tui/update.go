@@ -59,6 +59,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case mouseDebounceMsg:
 		return m.handleMouseDebounceMsg(msg)
 
+	case keyDebounceMsg:
+		return m.handleKeyDebounceMsg(msg)
+
 	default:
 		// Update text input component with remaining messages (unless in search mode)
 		if !m.searchState.active {

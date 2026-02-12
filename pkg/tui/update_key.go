@@ -188,30 +188,58 @@ func (m Model) handleQuitCommand() (tea.Model, tea.Cmd) {
 }
 
 // handleArrowKeys handles arrow keys for viewport scrolling or input history.
+// Uses debouncing to prevent UI flooding from key repeat.
 func (m Model) handleArrowKeys(keyType tea.KeyType) (tea.Model, tea.Cmd) {
-	// If input focus is active, use arrow keys for history navigation
+	// If input focus is active, use arrow keys for history navigation (no debouncing)
 	if m.activeViewport == ViewportInput {
 		return m.handleHistoryNavigation(keyType)
 	}
 
-	// Otherwise, scroll the active viewport
-	// Scroll multiple lines at once for better performance
-	scrollLines := 5 // Scroll 5 lines per keypress
-	if m.activeViewport == ViewportLogs {
-		if keyType == tea.KeyUp {
-			m.logViewport.LineUp(scrollLines)
-		} else {
-			m.logViewport.LineDown(scrollLines)
-		}
-		return m, nil
+	// Increment tag to invalidate any pending debounce commands
+	m.keyDebounceTag++
+
+	// Determine scroll direction (-1 for up, 1 for down)
+	direction := -1
+	if keyType == tea.KeyDown {
+		direction = 1
 	}
-	// Main viewport
-	if keyType == tea.KeyUp {
-		m.viewport.LineUp(scrollLines)
-	} else {
-		m.viewport.LineDown(scrollLines)
+
+	// Return a debounce command with the current tag
+	return m, m.createKeyDebounceCommand(m.keyDebounceTag, direction, m.activeViewport)
+}
+
+// handleKeyDebounceMsg processes debounced keyboard scroll events.
+func (m Model) handleKeyDebounceMsg(msg keyDebounceMsg) (tea.Model, tea.Cmd) {
+	// Only apply if the tag matches (this is the latest key event)
+	if msg.tag == m.keyDebounceTag {
+		scrollLines := 5 // Scroll 5 lines per keypress
+		if msg.viewport == ViewportLogs {
+			if msg.direction < 0 {
+				m.logViewport.LineUp(scrollLines)
+			} else {
+				m.logViewport.LineDown(scrollLines)
+			}
+		} else {
+			// Main viewport
+			if msg.direction < 0 {
+				m.viewport.LineUp(scrollLines)
+			} else {
+				m.viewport.LineDown(scrollLines)
+			}
+		}
 	}
 	return m, nil
+}
+
+// createKeyDebounceCommand creates a debounce command for keyboard scrolling.
+func (m Model) createKeyDebounceCommand(tag int, direction int, viewportName Viewport) tea.Cmd {
+	return tea.Tick(m.keyDebounceDuration, func(_ time.Time) tea.Msg {
+		return keyDebounceMsg{
+			tag:       tag,
+			direction: direction,
+			viewport:  viewportName,
+		}
+	})
 }
 
 // handleCtrlR starts history search mode.
