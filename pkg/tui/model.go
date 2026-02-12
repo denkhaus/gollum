@@ -60,9 +60,9 @@ type logTickMsg time.Time
 // mouseDebounceMsg is sent after mouse wheel debouncing to perform the actual scroll.
 // This prevents the UI from being overwhelmed by rapid mouse events.
 type mouseDebounceMsg struct {
-	tag       int    // Unique ID to identify this debounce batch
-	direction int    // -1 for up, 1 for down
-	viewport  string // "main" or "logs"
+	tag       int      // Unique ID to identify this debounce batch
+	direction int      // -1 for up, 1 for down
+	viewport  Viewport // ViewportMain or ViewportLogs
 }
 
 // agentCompleteMsg is sent when agent execution completes.
@@ -221,11 +221,14 @@ type Model struct {
 	height int
 
 	// activeViewport indicates which viewport receives keyboard scroll events
-	// "main" or "logs"
-	activeViewport string
+	activeViewport Viewport
 
 	// messageChan receives messages from AgentMessenger (optional, for TUI mode)
 	messageChan chan Message
+
+	// messengerChan is the adapter channel for AgentMessenger integration
+	// This must be stored for cleanup when the TUI shuts down
+	messengerChan chan MessageAdapter
 
 	// viewport manages scrollable message display
 	viewport viewport.Model
@@ -301,7 +304,7 @@ func NewModel(ctx context.Context, agent AgentExecutor) Model {
 		searchState:           searchState{},
 		multiLineInput:        false,
 		multiLineBuffer:       []string{},
-		activeViewport:        "input", // Start with input focus for history navigation
+		activeViewport:        ViewportInput, // Start with input focus for history navigation
 		mouseDebounceTag:      0,
 		mouseDebounceDuration: 130 * time.Millisecond, // 30ms debounce for smooth scrolling
 	}
@@ -357,6 +360,17 @@ func (m *Model) SetMessageChannel(ch chan Message) {
 // GetMessageChannel returns the message channel for AgentMessenger to send messages.
 func (m Model) GetMessageChannel() chan Message {
 	return m.messageChan
+}
+
+// SetMessengerChannel sets the adapter channel for AgentMessenger integration.
+// This stores the channel for cleanup when the TUI shuts down.
+func (m *Model) SetMessengerChannel(ch chan MessageAdapter) {
+	m.messengerChan = ch
+}
+
+// GetMessengerChannel returns the adapter channel for AgentMessenger integration.
+func (m Model) GetMessengerChannel() chan MessageAdapter {
+	return m.messengerChan
 }
 
 // waitForMessages returns a command that waits for messages on the message channel.
@@ -446,8 +460,8 @@ func (m Model) formatMessage(msg Message) string {
 
 	// Column widths for the 3-column header
 	// We need: totalWidth >= col1Width + col2Width + col3Width + 2
-	col2Width := 10 // Message type (fixed)
-	col3MinWidth := 8 // Minimum for timestamp
+	col2Width := 10    // Message type (fixed)
+	col3MinWidth := 8  // Minimum for timestamp
 	col1MinWidth := 14 // Minimum for icon + agent ID
 
 	// Calculate col3Width first (remaining space after col1 and col2)

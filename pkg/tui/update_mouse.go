@@ -51,10 +51,10 @@ func (m Model) handleMouseDebounceMsg(msg mouseDebounceMsg) (tea.Model, tea.Cmd)
 }
 
 // scrollViewport scrolls the specified viewport by the given direction.
-func (m Model) scrollViewport(viewportName string, direction int) Model {
+func (m Model) scrollViewport(viewportName Viewport, direction int) Model {
 	scrollLines := 3 // Scroll 3 lines per debounced event for smooth scrolling
 
-	if viewportName == "logs" {
+	if viewportName == ViewportLogs {
 		m = m.scrollLogViewport(direction, scrollLines)
 	} else {
 		m = m.scrollMainViewport(direction, scrollLines)
@@ -90,7 +90,7 @@ func (m Model) incrementDebounceTag() (Model, int) {
 }
 
 // createDebounceCommand creates a debounce command for mouse scrolling.
-func (m Model) createDebounceCommand(tag int, direction int, viewportName string) tea.Cmd {
+func (m Model) createDebounceCommand(tag int, direction int, viewportName Viewport) tea.Cmd {
 	return tea.Tick(m.mouseDebounceDuration, func(_ time.Time) tea.Msg {
 		return mouseDebounceMsg{
 			tag:       tag,
