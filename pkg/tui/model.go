@@ -403,7 +403,8 @@ func (m Model) waitForMessages() tea.Cmd {
 }
 
 // updateViewportContent updates the viewport with the current messages.
-func (m Model) updateViewportContent() string {
+// Uses pointer receiver to ensure formatMessage cache modifications persist.
+func (m *Model) updateViewportContent() string {
 	var b strings.Builder
 	for _, msg := range m.messages {
 		b.WriteString(m.formatMessage(msg))
@@ -419,7 +420,9 @@ func (m *Model) clearFormatCache() {
 }
 
 // invalidateCacheFor removes a specific message from the cache.
-// This is called when a message is updated or removed.
+// This is designed for future use when messages can be updated or deleted.
+// Currently not called in the main code path but kept for API completeness
+// and tested in TestFormatCacheInvalidationOnMessageUpdate.
 func (m *Model) invalidateCacheFor(msgID uuid.UUID) {
 	delete(m.formatCache, msgID)
 }
