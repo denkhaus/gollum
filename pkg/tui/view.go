@@ -268,9 +268,6 @@ func WithMessageChannel() func(*Model) {
 						// Context cancelled while sending, exit
 						return
 					}
-
-				default:
-					time.Sleep(500 * time.Millisecond)
 				}
 			}
 		}()

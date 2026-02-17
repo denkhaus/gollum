@@ -66,6 +66,14 @@ type mouseDebounceMsg struct {
 	viewport  Viewport // ViewportMain or ViewportLogs
 }
 
+// keyDebounceMsg is sent after arrow key debouncing to perform the actual scroll.
+// This prevents the UI from being overwhelmed by rapid keyboard events.
+type keyDebounceMsg struct {
+	tag       int      // Unique ID to identify this debounce batch
+	direction int      // -1 for up, 1 for down
+	viewport  Viewport // ViewportMain or ViewportLogs
+}
+
 // agentCompleteMsg is sent when agent execution completes.
 type agentCompleteMsg struct {
 	response *gollem.ExecuteResponse
@@ -267,6 +275,12 @@ type Model struct {
 	// mouseDebounceDuration controls how long to wait before processing scroll events
 	mouseDebounceDuration time.Duration
 
+	// keyDebounceTag is incremented on each arrow key event for debouncing
+	keyDebounceTag int
+
+	// keyDebounceDuration controls how long to wait before processing arrow key scroll events
+	keyDebounceDuration time.Duration
+
 	// formatCache caches formatted messages to avoid expensive re-formatting on every viewport update
 	// Key: message ID (uuid.UUID), Value: formatted string
 	formatCache map[uuid.UUID]string
@@ -318,7 +332,9 @@ func NewModel(ctx context.Context, agent AgentExecutor) Model {
 		multiLineBuffer:       []string{},
 		activeViewport:        ViewportInput, // Start with input focus for history navigation
 		mouseDebounceTag:      0,
-		mouseDebounceDuration: 130 * time.Millisecond, // 30ms debounce for smooth scrolling
+		mouseDebounceDuration: 130 * time.Millisecond, // 130ms debounce for smooth scrolling
+		keyDebounceTag:        0,
+		keyDebounceDuration:   16 * time.Millisecond, // 16ms debounce for arrow keys (one frame)
 		formatCache:           make(map[uuid.UUID]string),
 		cacheWidth:            0,    // Will be set on first update
 		maxCacheSize:          1000, // Match HistoryMaxSize default
@@ -354,14 +370,14 @@ func (m Model) Init() tea.Cmd {
 
 // tickCmd returns a command that sends tick messages for UI updates.
 func (m Model) tickCmd() tea.Cmd {
-	return tea.Tick(time.Millisecond*100, func(t time.Time) tea.Msg {
+	return tea.Tick(time.Millisecond*250, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
 }
 
 // logTickCmd returns a command that sends log tick messages to fetch new logs.
 func (m Model) logTickCmd() tea.Cmd {
-	return tea.Tick(time.Millisecond*500, func(t time.Time) tea.Msg {
+	return tea.Tick(time.Millisecond*1000, func(t time.Time) tea.Msg {
 		return logTickMsg(t)
 	})
 }

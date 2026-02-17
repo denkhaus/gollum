@@ -188,15 +188,15 @@ func (m Model) handleQuitCommand() (tea.Model, tea.Cmd) {
 }
 
 // handleArrowKeys handles arrow keys for viewport scrolling or input history.
+// For viewport scrolling, uses immediate scroll with debounce protection against rapid key repeat.
 func (m Model) handleArrowKeys(keyType tea.KeyType) (tea.Model, tea.Cmd) {
 	// If input focus is active, use arrow keys for history navigation
 	if m.activeViewport == ViewportInput {
 		return m.handleHistoryNavigation(keyType)
 	}
 
-	// Otherwise, scroll the active viewport
-	// Scroll multiple lines at once for better performance
-	scrollLines := 5 // Scroll 5 lines per keypress
+	// Scroll immediately
+	scrollLines := 5
 	if m.activeViewport == ViewportLogs {
 		if keyType == tea.KeyUp {
 			m.logViewport.LineUp(scrollLines)
@@ -205,6 +205,7 @@ func (m Model) handleArrowKeys(keyType tea.KeyType) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
+
 	// Main viewport
 	if keyType == tea.KeyUp {
 		m.viewport.LineUp(scrollLines)
@@ -212,6 +213,26 @@ func (m Model) handleArrowKeys(keyType tea.KeyType) (tea.Model, tea.Cmd) {
 		m.viewport.LineDown(scrollLines)
 	}
 	return m, nil
+}
+
+// handleKeyDebounceMsg processes debounced arrow key scroll events.
+func (m Model) handleKeyDebounceMsg(msg keyDebounceMsg) (tea.Model, tea.Cmd) {
+	// Only apply if the tag matches (this is the latest key event)
+	if msg.tag == m.keyDebounceTag {
+		m = m.scrollViewport(msg.viewport, msg.direction)
+	}
+	return m, nil
+}
+
+// createKeyDebounceCommand creates a debounce command for arrow key scrolling.
+func (m Model) createKeyDebounceCommand(tag int, direction int, viewportName Viewport) tea.Cmd {
+	return tea.Tick(m.keyDebounceDuration, func(_ time.Time) tea.Msg {
+		return keyDebounceMsg{
+			tag:       tag,
+			direction: direction,
+			viewport:  viewportName,
+		}
+	})
 }
 
 // handleCtrlR starts history search mode.
