@@ -1,0 +1,44 @@
+package main
+
+import (
+	"log"
+
+	"github.com/denkhaus/gollum/pkg/profiling"
+	"github.com/samber/do/v2"
+)
+
+func setupProfiling(config *profiling.ProfilingConfig, injector do.Injector) func() {
+	profilingService := do.MustInvoke[profiling.ProfilingService](injector)
+	if err := profilingService.Enable(config.ProfileAddr); err != nil {
+		log.Printf("Warning: failed to enable profiling: %v", err)
+		return func() {}
+	} else {
+		log.Printf("Profiling enabled on %s", config.ProfileAddr)
+
+		// Start CPU profiling if configured
+		if config.CPUProfile != "" {
+			if err := profilingService.StartCPUProfiling(); err != nil {
+				log.Printf("Warning: failed to start CPU profiling: %v", err)
+			} else {
+				log.Printf("CPU profiling to %s", config.CPUProfile)
+				defer profilingService.StopCPUProfiling()
+			}
+		}
+
+		// Start memory profiling if configured
+		if config.MemProfile != "" {
+			if err := profilingService.StartMemProfiling(); err != nil {
+				log.Printf("Warning: failed to start memory profiling: %v", err)
+			} else {
+				log.Printf("Memory profiling to %s", config.MemProfile)
+				defer profilingService.StopMemProfiling()
+			}
+		}
+
+		return func() {
+			if err := profilingService.Disable(); err != nil {
+				log.Printf("Warning: failed to disable profiling: %v", err)
+			}
+		}
+	}
+}
