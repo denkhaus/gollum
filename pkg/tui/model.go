@@ -291,6 +291,14 @@ type Model struct {
 
 	// maxCacheSize limits cache size to prevent unbounded growth
 	maxCacheSize int
+
+	// lastRenderedCount tracks the number of messages that were rendered in the last viewport update
+	// Used for differential rendering to only append new messages
+	lastRenderedCount int
+
+	// cachedContent stores the complete viewport content string to avoid rebuilding
+	// Invalidated on width change or message deletion
+	cachedContent string
 }
 
 // NewModel creates a new TUI model with initial state.
@@ -420,20 +428,58 @@ func (m Model) waitForMessages() tea.Cmd {
 }
 
 // updateViewportContent updates the viewport with the current messages.
-// Uses pointer receiver to ensure formatMessage cache modifications persist.
+// Uses differential rendering to only append new messages instead of rebuilding everything.
+// This is a performance optimization to avoid O(n) re-formatting on every update.
 func (m *Model) updateViewportContent() string {
-	var b strings.Builder
-	for _, msg := range m.messages {
-		b.WriteString(m.formatMessage(msg))
-		b.WriteString("\n\n")
+	currentCount := len(m.messages)
+
+	// Check if we need a full rebuild (cache invalidation scenarios)
+	// 1. Width changed - formatting depends on width
+	// 2. Messages were removed (e.g., /clear) - need to rebuild from scratch
+	// 3. No cached content yet - first call
+	needsRebuild := m.cacheWidth != m.width ||
+		currentCount < m.lastRenderedCount ||
+		m.cachedContent == ""
+
+	if needsRebuild {
+		// Full rebuild: iterate through all messages
+		var b strings.Builder
+		for _, msg := range m.messages {
+			b.WriteString(m.formatMessage(msg))
+			b.WriteString("\n\n")
+		}
+		m.cachedContent = b.String()
+		m.lastRenderedCount = currentCount
+		m.cacheWidth = m.width
+		return m.cachedContent
 	}
-	return b.String()
+
+	// Differential update: only append new messages
+	// This is the hot path for normal operation
+	if currentCount > m.lastRenderedCount {
+		var b strings.Builder
+		// Start with existing content
+		b.WriteString(m.cachedContent)
+
+		// Append only new messages
+		for i := m.lastRenderedCount; i < currentCount; i++ {
+			b.WriteString(m.formatMessage(m.messages[i]))
+			b.WriteString("\n\n")
+		}
+
+		m.cachedContent = b.String()
+		m.lastRenderedCount = currentCount
+	}
+
+	return m.cachedContent
 }
 
-// clearFormatCache clears the format cache.
+// clearFormatCache clears the format cache and cached content.
 // This is called when cache becomes invalid (e.g., width change, message update).
 func (m *Model) clearFormatCache() {
 	m.formatCache = make(map[uuid.UUID]string)
+	m.cachedContent = ""
+	m.lastRenderedCount = 0
 }
 
 // invalidateCacheFor removes a specific message from the cache.
