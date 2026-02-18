@@ -1648,3 +1648,118 @@ func TestDifferentialRenderingCacheInvalidation(t *testing.T) {
 		t.Errorf("Expected lastRenderedCount to be 3, got %d", m.lastRenderedCount)
 	}
 }
+
+// TestAddMessageRingBuffer verifies the ring buffer behavior of addMessage.
+// When MaxMessages limit is exceeded, oldest messages should be evicted
+// and both format cache and differential rendering cache should be cleaned up.
+func TestAddMessageRingBuffer(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+
+	// Set a small limit for testing
+	m.config.MaxMessages = 5
+
+	// Add 5 messages (at limit)
+	for i := 0; i < 5; i++ {
+		msg := Message{
+			ID:        uuid.New(),
+			Type:      MessageTypeAgent,
+			Content:   fmt.Sprintf("Message %d", i),
+			Timestamp: time.Now(),
+		}
+		m.addMessage(msg)
+	}
+
+	// Verify we have 5 messages
+	if len(m.messages) != 5 {
+		t.Fatalf("Expected 5 messages, got %d", len(m.messages))
+	}
+
+	// Store the first message ID to verify it gets evicted
+	firstMsgID := m.messages[0].ID
+
+	// Add format cache entry for first message
+	m.formatCache[firstMsgID] = "cached content"
+
+	// Trigger differential rendering to populate cache
+	_ = m.updateViewportContent()
+	if m.cachedContent == "" {
+		t.Error("Expected cachedContent to be populated after updateViewportContent")
+	}
+	if m.lastRenderedCount != 5 {
+		t.Errorf("Expected lastRenderedCount=5, got %d", m.lastRenderedCount)
+	}
+
+	// Add 6th message (exceeds limit by 1)
+	newMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeAgent,
+		Content:   "Message 5",
+		Timestamp: time.Now(),
+	}
+	m.addMessage(newMsg)
+
+	// Verify we still have 5 messages (oldest evicted)
+	if len(m.messages) != 5 {
+		t.Errorf("Expected 5 messages after eviction, got %d", len(m.messages))
+	}
+
+	// Verify first message was evicted
+	if m.messages[0].ID == firstMsgID {
+		t.Error("First message should have been evicted")
+	}
+
+	// Verify format cache was cleaned up for evicted message
+	if _, exists := m.formatCache[firstMsgID]; exists {
+		t.Error("Format cache should have been cleaned up for evicted message")
+	}
+
+	// Verify differential rendering cache was invalidated
+	if m.cachedContent != "" {
+		t.Error("Expected cachedContent to be cleared after message eviction")
+	}
+	if m.lastRenderedCount != 0 {
+		t.Errorf("Expected lastRenderedCount=0 after eviction, got %d", m.lastRenderedCount)
+	}
+}
+
+// TestAddMessageWithZeroLimit verifies that when MaxMessages is 0,
+// the default limit of 500 is used as a fallback.
+func TestAddMessageWithZeroLimit(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+
+	// Set MaxMessages to 0 (should use default of 500)
+	m.config.MaxMessages = 0
+
+	// Add messages up to 501 (exceeds default of 500)
+	for i := 0; i < 501; i++ {
+		msg := Message{
+			ID:        uuid.New(),
+			Type:      MessageTypeAgent,
+			Content:   fmt.Sprintf("Message %d", i),
+			Timestamp: time.Now(),
+		}
+		m.addMessage(msg)
+	}
+
+	// Verify we have 500 messages (default limit applied)
+	if len(m.messages) != 500 {
+		t.Errorf("Expected 500 messages (default limit), got %d", len(m.messages))
+	}
+
+	// Verify first message is "Message 1" (index 1, since 0 was evicted)
+	if m.messages[0].Content != "Message 1" {
+		t.Errorf("Expected first message to be 'Message 1', got '%s'", m.messages[0].Content)
+	}
+}

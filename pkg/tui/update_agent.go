@@ -33,7 +33,7 @@ func (m Model) handleAgentCompleteMsg(msg agentCompleteMsg) (Model, tea.Cmd) {
 
 // handleNewMessageMsg handles new messages from AgentMessenger.
 func (m Model) handleNewMessageMsg(msg newMessageMsg) (Model, tea.Cmd) {
-	m.messages = append(m.messages, msg.message)
+	m.addMessage(msg.message)
 	m.viewport.SetContent(m.updateViewportContent())
 	m.viewport.GotoBottom()
 	return m, m.waitForMessages()
@@ -50,7 +50,7 @@ func (m Model) handleAgentError(err error) Model {
 		Content:   err.Error(),
 		Timestamp: time.Now(),
 	}
-	m.messages = append(m.messages, errorMsg)
+	m.addMessage(errorMsg)
 
 	// Update viewport with error message
 	m.viewport.SetContent(m.updateViewportContent())
@@ -75,7 +75,7 @@ func (m Model) handleAgentResponse(response *gollem.ExecuteResponse) Model {
 				AgentID:   uuid.Nil, // Will be set by agent messenger
 				AgentRole: "",
 			}
-			m.messages = append(m.messages, agentMsg)
+			m.addMessage(agentMsg)
 		}
 		// Update viewport with new messages
 		m.viewport.SetContent(m.updateViewportContent())

@@ -72,7 +72,7 @@ func (m Model) handleCtrlC() (tea.Model, tea.Cmd) {
 		Content:   "^C",
 		Timestamp: time.Now(),
 	}
-	m.messages = append(m.messages, cancelMsg)
+	m.addMessage(cancelMsg)
 	m.viewport.SetContent(m.updateViewportContent())
 	return m, tea.Quit
 }
@@ -156,7 +156,7 @@ func (m Model) handleSubmitInput() (tea.Model, tea.Cmd) {
 		Content:   input,
 		Timestamp: time.Now(),
 	}
-	m.messages = append(m.messages, userMsg)
+	m.addMessage(userMsg)
 	m.viewport.SetContent(m.updateViewportContent())
 	m.viewport.GotoBottom() // Show latest message at bottom
 
@@ -182,7 +182,7 @@ func (m Model) handleQuitCommand() (tea.Model, tea.Cmd) {
 		Content:   "👋 Goodbye!",
 		Timestamp: time.Now(),
 	}
-	m.messages = append(m.messages, goodbyeMsg)
+	m.addMessage(goodbyeMsg)
 	m.viewport.SetContent(m.updateViewportContent())
 	return m, tea.Quit
 }

@@ -24,7 +24,7 @@ func (m Model) handleExport() (tea.Model, tea.Cmd) {
 			Content:   fmt.Sprintf("Failed to export conversation: %v", err),
 			Timestamp: time.Now(),
 		}
-		m.messages = append(m.messages, errorMsg)
+		m.addMessage(errorMsg)
 	} else {
 		successMsg := Message{
 			ID:        uuid.New(),
@@ -32,7 +32,7 @@ func (m Model) handleExport() (tea.Model, tea.Cmd) {
 			Content:   fmt.Sprintf("Conversation exported to: %s", filename),
 			Timestamp: time.Now(),
 		}
-		m.messages = append(m.messages, successMsg)
+		m.addMessage(successMsg)
 	}
 
 	m.viewport.SetContent(m.updateViewportContent())

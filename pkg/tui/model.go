@@ -149,6 +149,10 @@ type Config struct {
 	// HistoryMaxSize is the maximum number of history entries to keep
 	HistoryMaxSize int
 
+	// MaxMessages is the maximum number of messages to keep in the conversation history
+	// When exceeded, oldest messages are removed (ring buffer behavior)
+	MaxMessages int
+
 	// EnableTimestamps controls whether timestamps are shown in messages
 	EnableTimestamps bool
 
@@ -166,6 +170,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		HistoryMaxSize:   1000,
+		MaxMessages:      500, // Cap message history to prevent unbounded growth
 		EnableTimestamps: true,
 		EnableColors:     true,
 		StatusEnabled:    true,
@@ -362,6 +367,37 @@ func (m *Model) SetConfig(config Config) {
 // SetMarkdownRenderer sets the markdown renderer for rich text display.
 func (m *Model) SetMarkdownRenderer(renderer markdown.Renderer) {
 	m.markdownRenderer = renderer
+}
+
+// addMessage appends a message to the history while enforcing the MaxMessages limit.
+// When the limit is exceeded, oldest messages are removed (ring buffer behavior).
+// This also cleans up the format cache and differential rendering cache for evicted messages.
+func (m *Model) addMessage(msg Message) {
+	m.messages = append(m.messages, msg)
+
+	// Enforce message limit - remove oldest messages if exceeded
+	maxMsgs := m.config.MaxMessages
+	if maxMsgs <= 0 {
+		maxMsgs = 500 // Fallback to default if not configured
+	}
+
+	if len(m.messages) > maxMsgs {
+		// Calculate how many messages to remove
+		evictCount := len(m.messages) - maxMsgs
+
+		// Clean up format cache for evicted messages
+		for i := 0; i < evictCount; i++ {
+			delete(m.formatCache, m.messages[i].ID)
+		}
+
+		// Remove oldest messages (ring buffer behavior)
+		m.messages = m.messages[evictCount:]
+
+		// Invalidate differential rendering cache when messages are evicted
+		// This ensures the viewport is rebuilt correctly
+		m.cachedContent = ""
+		m.lastRenderedCount = 0
+	}
 }
 
 // Init initializes the TUI application.
@@ -853,7 +889,7 @@ func (m *Model) executeCommand(cmd string) (tea.Model, tea.Cmd) {
 			Content:   "Messages cleared",
 			Timestamp: time.Now(),
 		}
-		m.messages = append(m.messages, systemMsg)
+		m.addMessage(systemMsg)
 		m.viewport.SetContent(m.updateViewportContent())
 		m.viewport.GotoTop()
 		return m, nil
@@ -867,7 +903,7 @@ func (m *Model) executeCommand(cmd string) (tea.Model, tea.Cmd) {
 			Content:   "👋 Goodbye!",
 			Timestamp: time.Now(),
 		}
-		m.messages = append(m.messages, goodbyeMsg)
+		m.addMessage(goodbyeMsg)
 		m.viewport.SetContent(m.updateViewportContent())
 		return m, tea.Quit
 
@@ -892,7 +928,7 @@ Ctrl+R    - Search history (type query, use C-s/C-r to navigate)`
 			Content:   helpText,
 			Timestamp: time.Now(),
 		}
-		m.messages = append(m.messages, helpMsg)
+		m.addMessage(helpMsg)
 		m.viewport.SetContent(m.updateViewportContent())
 		m.viewport.GotoTop()
 		return m, nil
@@ -911,7 +947,7 @@ Ctrl+R    - Search history (type query, use C-s/C-r to navigate)`
 			Content:   fmt.Sprintf("Unknown command: %s. Type /help for available commands.", command),
 			Timestamp: time.Now(),
 		}
-		m.messages = append(m.messages, errorMsg)
+		m.addMessage(errorMsg)
 		m.viewport.SetContent(m.updateViewportContent())
 		m.viewport.GotoTop()
 		return m, nil
