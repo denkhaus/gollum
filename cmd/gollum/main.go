@@ -49,7 +49,9 @@ func startup(startupCtx context.Context) error {
 	// Enable profiling if configured
 	if profilingConfig.Enable {
 		cleanup := setupProfiling(profilingConfig, injector)
-		defer cleanup()
+		defer func() {
+			cleanup()
+		}()
 	}
 
 	// Ensure terminal is restored on exit

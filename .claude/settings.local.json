@@ -57,7 +57,8 @@
       "mcp__vestige__search",
       "mcp__vestige__ingest",
       "mcp__vestige__smart_ingest",
-      "Skill(gsd:execute-phase)"
+      "Skill(gsd:execute-phase)",
+      "mcp__forgejo__search_repos"
     ],
     "deny": [],
     "ask": []
