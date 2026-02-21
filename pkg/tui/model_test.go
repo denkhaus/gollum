@@ -1763,3 +1763,482 @@ func TestAddMessageWithZeroLimit(t *testing.T) {
 		t.Errorf("Expected first message to be 'Message 1', got '%s'", m.messages[0].Content)
 	}
 }
+
+// TestCountLines tests the countLines helper function.
+func TestCountLines(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected int
+	}{
+		{"empty string", "", 0},
+		{"single line", "hello", 1},
+		{"two lines", "hello\nworld", 2},
+		{"three lines", "a\nb\nc", 3},
+		{"trailing newline", "hello\n", 2},
+		{"multiple trailing newlines", "a\nb\n\n", 4},
+		{"only newlines", "\n\n\n", 4}, // 3 newlines = 4 lines (empty lines before/between/after)
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := countLines(tt.input)
+			if got != tt.expected {
+				t.Errorf("countLines(%q) = %d, want %d", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
+
+// TestFormatCollapsedToolMessage tests the collapsed tool message rendering.
+func TestFormatCollapsedToolMessage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+
+	toolMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeTool,
+		Content:   "This is a very long tool output that should be hidden when collapsed. It contains multiple lines of output that would clutter the conversation view.",
+		Timestamp: time.Now(),
+		AgentID:   uuid.New(),
+		AgentRole: "runner",
+		IsTool:    true,
+		Collapsed: true,
+	}
+
+	got := m.formatMessage(toolMsg)
+
+	// Verify collapsed indicator is present
+	if !strings.Contains(got, "Click to expand") {
+		t.Error("Collapsed tool message should contain 'Click to expand'")
+	}
+
+	// Verify it shows the "Tool" label
+	if !strings.Contains(got, "Tool") {
+		t.Error("Collapsed tool message should contain 'Tool'")
+	}
+
+	// Verify it's compact (fewer lines than expanded)
+	lines := strings.Count(got, "\n")
+	if lines > 5 {
+		t.Errorf("Collapsed message should be compact (max 5 lines), got %d lines", lines)
+	}
+
+	// Verify the full content is NOT shown
+	if strings.Contains(got, "very long tool output") {
+		t.Error("Collapsed message should NOT contain the full tool output")
+	}
+}
+
+// TestFormatExpandedToolMessage tests that expanded tool messages show full content.
+func TestFormatExpandedToolMessage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+
+	toolMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeTool,
+		Content:   "This is the tool output content that should be visible.",
+		Timestamp: time.Now(),
+		AgentID:   uuid.New(),
+		AgentRole: "runner",
+		IsTool:    true,
+		Collapsed: false, // Expanded state
+	}
+
+	got := m.formatMessage(toolMsg)
+
+	// Verify the content IS shown
+	if !strings.Contains(got, "tool output content") {
+		t.Error("Expanded tool message should contain the full content")
+	}
+
+	// Verify collapsed indicator is NOT present
+	if strings.Contains(got, "Click to expand") {
+		t.Error("Expanded tool message should NOT contain 'Click to expand'")
+	}
+}
+
+// TestGetMessageAtLine tests finding messages by line position.
+func TestGetMessageAtLine(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+
+	// Add some messages
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Hi there, how can I help?", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool output", Timestamp: time.Now(), IsTool: true},
+	}
+
+	// Set up message line positions manually for testing
+	m.messageLinePositions = []int{0, 10, 25}
+
+	tests := []struct {
+		name     string
+		line     int
+		expected int
+	}{
+		{"first message", 0, 0},
+		{"first message line 5", 5, 0},
+		{"second message", 10, 1},
+		{"second message line 15", 15, 1},
+		{"third message", 25, 2},
+		{"third message line 100", 100, 2},
+		{"before first", -1, -1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := m.getMessageAtLine(tt.line)
+			if got != tt.expected {
+				t.Errorf("getMessageAtLine(%d) = %d, want %d", tt.line, got, tt.expected)
+			}
+		})
+	}
+}
+
+// TestToggleMessageCollapse tests toggling collapse state.
+func TestToggleMessageCollapse(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+
+	// Add messages
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool output", Timestamp: time.Now(), IsTool: true, Collapsed: true},
+		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Response", Timestamp: time.Now()},
+	}
+
+	// Test toggling tool message (should succeed)
+	if !m.toggleMessageCollapse(1) {
+		t.Error("toggleMessageCollapse(1) should return true for tool message")
+	}
+	if m.messages[1].Collapsed {
+		t.Error("Tool message should be expanded after toggle")
+	}
+
+	// Toggle again (should collapse)
+	if !m.toggleMessageCollapse(1) {
+		t.Error("toggleMessageCollapse(1) should return true for expanded tool message")
+	}
+	if !m.messages[1].Collapsed {
+		t.Error("Tool message should be collapsed after second toggle")
+	}
+
+	// Test toggling non-tool message (should fail)
+	if m.toggleMessageCollapse(0) {
+		t.Error("toggleMessageCollapse(0) should return false for user message")
+	}
+
+	// Test invalid index
+	if m.toggleMessageCollapse(-1) {
+		t.Error("toggleMessageCollapse(-1) should return false")
+	}
+	if m.toggleMessageCollapse(100) {
+		t.Error("toggleMessageCollapse(100) should return false for out of bounds")
+	}
+}
+
+// TestToggleMessageCollapseInvalidatesCache tests that toggling collapse invalidates the format cache.
+func TestToggleMessageCollapseInvalidatesCache(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+
+	// Add a tool message
+	toolMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeTool,
+		Content:   "Tool output",
+		Timestamp: time.Now(),
+		IsTool:    true,
+		Collapsed: true,
+	}
+	m.messages = []Message{toolMsg}
+
+	// Build the cache
+	content := m.updateViewportContent()
+	m.viewport.SetContent(content)
+
+	// Verify cache is populated
+	if len(m.formatCache) == 0 {
+		t.Error("Format cache should be populated after updateViewportContent")
+	}
+
+	// Toggle collapse
+	m.toggleMessageCollapse(0)
+
+	// Verify cache for that message was invalidated
+	if _, exists := m.formatCache[toolMsg.ID]; exists {
+		t.Error("Format cache for tool message should be invalidated after toggle")
+	}
+
+	// Verify cached content was cleared
+	if m.cachedContent != "" {
+		t.Error("Cached content should be cleared after toggle to force rebuild")
+	}
+}
+
+// TestMessageAdapterToMessageCollapsedState tests that MessageAdapter.ToMessage sets collapsed state for tool messages.
+func TestMessageAdapterToMessageCollapsedState(t *testing.T) {
+	tests := []struct {
+		name             string
+		adapter          MessageAdapter
+		expectCollapsed  bool
+	}{
+		{
+			name: "tool message with IsTool=true",
+			adapter: MessageAdapter{
+				ID:      uuid.New(),
+				Type:    MessageTypeAdapterAgent,
+				Content: "output",
+				IsTool:  true,
+			},
+			expectCollapsed: true,
+		},
+		{
+			name: "message with MessageTypeAdapterTool type",
+			adapter: MessageAdapter{
+				ID:      uuid.New(),
+				Type:    MessageTypeAdapterTool,
+				Content: "output",
+				IsTool:  false,
+			},
+			expectCollapsed: true,
+		},
+		{
+			name: "regular agent message",
+			adapter: MessageAdapter{
+				ID:      uuid.New(),
+				Type:    MessageTypeAdapterAgent,
+				Content: "response",
+				IsTool:  false,
+			},
+			expectCollapsed: false,
+		},
+		{
+			name: "user message",
+			adapter: MessageAdapter{
+				ID:      uuid.New(),
+				Type:    MessageTypeAdapterUser,
+				Content: "question",
+				IsTool:  false,
+			},
+			expectCollapsed: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.adapter.ToMessage()
+			if got.Collapsed != tt.expectCollapsed {
+				t.Errorf("ToMessage().Collapsed = %v, want %v", got.Collapsed, tt.expectCollapsed)
+			}
+		})
+	}
+}
+
+// TestUpdateViewportContentTracksMessagePositions tests that updateViewportContent tracks message line positions.
+func TestUpdateViewportContentTracksMessagePositions(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+
+	// Add messages
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Hi there", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool output", Timestamp: time.Now(), IsTool: true, Collapsed: true},
+	}
+
+	// Update viewport content
+	_ = m.updateViewportContent()
+
+	// Verify message line positions are tracked
+	if len(m.messageLinePositions) != 3 {
+		t.Errorf("Expected 3 message line positions, got %d", len(m.messageLinePositions))
+	}
+
+	// First message should start at line 0
+	if m.messageLinePositions[0] != 0 {
+		t.Errorf("First message should start at line 0, got %d", m.messageLinePositions[0])
+	}
+
+	// Subsequent messages should have increasing line positions
+	for i := 1; i < len(m.messageLinePositions); i++ {
+		if m.messageLinePositions[i] <= m.messageLinePositions[i-1] {
+			t.Errorf("Message %d line position (%d) should be greater than message %d (%d)",
+				i, m.messageLinePositions[i], i-1, m.messageLinePositions[i-1])
+		}
+	}
+}
+
+// TestHandleClickOnToolMessage tests mouse click handling for collapsing/expanding tool messages.
+func TestHandleClickOnToolMessage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 24
+	m.viewport.Height = 20 // Set viewport height
+
+	// Add messages with known positions
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool output", Timestamp: time.Now(), IsTool: true, Collapsed: true},
+		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Response", Timestamp: time.Now()},
+	}
+
+	// Set up the viewport content
+	content := m.updateViewportContent()
+	m.viewport.SetContent(content)
+
+	// Set up message line positions (simulating what updateViewportContent does)
+	// Message 0 starts at line 0, Message 1 starts at line 10, Message 2 starts at line 15
+	m.messageLinePositions = []int{0, 10, 15}
+
+	// Click on line 10 (where message 1, the tool message, starts)
+	clickMsg := tea.MouseMsg{
+		Type: tea.MouseLeft,
+		Y:    10, // Click on the tool message
+	}
+
+	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
+	result := resultModel.(Model)
+
+	// Verify the tool message was toggled (collapsed -> expanded)
+	if result.messages[1].Collapsed {
+		t.Error("Tool message should be expanded after click")
+	}
+}
+
+// TestHandleClickOnNonToolMessage tests that clicking on non-tool messages doesn't toggle collapse.
+func TestHandleClickOnNonToolMessage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 24
+	m.viewport.Height = 20
+
+	// Add messages
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Response", Timestamp: time.Now()},
+	}
+
+	content := m.updateViewportContent()
+	m.viewport.SetContent(content)
+	m.messageLinePositions = []int{0, 10}
+
+	// Click on line 0 (user message)
+	clickMsg := tea.MouseMsg{
+		Type: tea.MouseLeft,
+		Y:    0,
+	}
+
+	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
+	result := resultModel.(Model)
+
+	// User message should not have a Collapsed field that changes
+	// This test mainly verifies no error occurs when clicking non-tool messages
+	if len(result.messages) != 2 {
+		t.Error("Messages should be unchanged after clicking non-tool message")
+	}
+}
+
+// TestHandleClickOutsideViewport tests that clicks outside viewport bounds are handled.
+func TestHandleClickOutsideViewport(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 24
+	m.viewport.Height = 10
+
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool", Timestamp: time.Now(), IsTool: true, Collapsed: true},
+	}
+
+	content := m.updateViewportContent()
+	m.viewport.SetContent(content)
+	m.messageLinePositions = []int{0}
+
+	// Click outside viewport bounds (Y = 15, but viewport height is 10)
+	clickMsg := tea.MouseMsg{
+		Type: tea.MouseLeft,
+		Y:    15, // Outside viewport
+	}
+
+	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
+	result := resultModel.(Model)
+
+	// Tool message should still be collapsed (click was outside viewport)
+	if !result.messages[0].Collapsed {
+		t.Error("Tool message should remain collapsed when click is outside viewport")
+	}
+}
+
+// TestHandleClickOnInvalidLine tests clicking on a line with no message.
+func TestHandleClickOnInvalidLine(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 24
+	m.viewport.Height = 20
+
+	// No message line positions set (empty)
+	m.messageLinePositions = []int{}
+
+	// Click somewhere
+	clickMsg := tea.MouseMsg{
+		Type: tea.MouseLeft,
+		Y:    5,
+	}
+
+	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
+	// Should not panic and should pass to text input
+	_ = resultModel.(Model)
+}

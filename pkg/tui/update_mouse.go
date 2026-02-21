@@ -19,6 +19,9 @@ import (
 // 3. Only processing the scroll if the tag matches when the command fires
 //
 // This prevents rapid mouse wheel events from overwhelming the UI.
+//
+// For mouse clicks (tea.MouseLeft), this function detects clicks on tool message
+// headers to toggle collapse/expand state.
 func (m Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	switch msg.Type {
 	case tea.MouseWheelUp, tea.MouseWheelDown:
@@ -33,9 +36,67 @@ func (m Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 
 		// Return a debounce command with the current tag
 		return m, m.createDebounceCommand(m.mouseDebounceTag, direction, m.activeViewport)
+
+	case tea.MouseLeft:
+		// Handle click on tool message header to toggle collapse state
+		return m.handleClickOnToolMessage(msg)
 	}
 
 	// For other mouse events, pass to text input (for clicks, etc.)
+	var cmd tea.Cmd
+	m.textInput, cmd = m.textInput.Update(msg)
+	return m, cmd
+}
+
+// handleClickOnToolMessage handles mouse clicks to toggle tool message collapse state.
+// When a user clicks on a tool message header in the viewport, it toggles between
+// collapsed (showing only summary) and expanded (showing full content).
+func (m Model) handleClickOnToolMessage(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	// Only process clicks in the main viewport area
+	// The viewport Y position starts after the header
+	// Click Y is relative to the terminal, we need to convert to content position
+
+	// Get the viewport's Y offset (how far the content is scrolled)
+	yOffset := m.viewport.YOffset
+
+	// Convert click Y to content line position
+	// This is a simplified approach - we assume each visual line maps to one content line
+	// The click Y needs to be within the viewport height
+	viewportHeight := m.viewport.Height
+
+	// Check if click is within the viewport area (not in input, status, or footer)
+	// The viewport occupies the top portion of the screen
+	// We need to account for the viewport's position in the layout
+	clickY := msg.Y
+
+	// Only process clicks within the viewport bounds
+	if clickY < 0 || clickY >= viewportHeight {
+		// Click is outside viewport, pass to text input
+		var cmd tea.Cmd
+		m.textInput, cmd = m.textInput.Update(msg)
+		return m, cmd
+	}
+
+	// Calculate the line number in the content (0-indexed from top of content)
+	contentLine := yOffset + clickY
+
+	// Find which message is at this line
+	msgIdx := m.getMessageAtLine(contentLine)
+	if msgIdx < 0 {
+		// No message found at this line
+		var cmd tea.Cmd
+		m.textInput, cmd = m.textInput.Update(msg)
+		return m, cmd
+	}
+
+	// Toggle collapse state if it's a tool message
+	if m.toggleMessageCollapse(msgIdx) {
+		// Message was toggled, rebuild viewport content
+		m.viewport.SetContent(m.updateViewportContent())
+		return m, nil
+	}
+
+	// Not a tool message or couldn't toggle, pass to text input
 	var cmd tea.Cmd
 	m.textInput, cmd = m.textInput.Update(msg)
 	return m, cmd

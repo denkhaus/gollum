@@ -137,6 +137,10 @@ type Message struct {
 
 	// IsTool indicates whether this is a tool execution message.
 	IsTool bool
+
+	// Collapsed indicates whether this message is collapsed (tool messages only).
+	// When collapsed, only a summary header is shown. Click to expand/collapse.
+	Collapsed bool
 }
 
 // newMessageMsg is sent when a new message should be added to the viewport.
@@ -304,6 +308,11 @@ type Model struct {
 	// cachedContent stores the complete viewport content string to avoid rebuilding
 	// Invalidated on width change or message deletion
 	cachedContent string
+
+	// messageLinePositions tracks the starting line number (0-indexed) for each message
+	// Used for mouse click detection to identify which message was clicked
+	// Updated during viewport content rendering
+	messageLinePositions []int
 }
 
 // NewModel creates a new TUI model with initial state.
@@ -466,6 +475,7 @@ func (m Model) waitForMessages() tea.Cmd {
 // updateViewportContent updates the viewport with the current messages.
 // Uses differential rendering to only append new messages instead of rebuilding everything.
 // This is a performance optimization to avoid O(n) re-formatting on every update.
+// Also tracks message line positions for mouse click detection.
 func (m *Model) updateViewportContent() string {
 	currentCount := len(m.messages)
 
@@ -473,6 +483,7 @@ func (m *Model) updateViewportContent() string {
 	// 1. Width changed - formatting depends on width
 	// 2. Messages were removed (e.g., /clear) - need to rebuild from scratch
 	// 3. No cached content yet - first call
+	// 4. Message collapse state changed - need to rebuild for updated formatting
 	needsRebuild := m.cacheWidth != m.width ||
 		currentCount < m.lastRenderedCount ||
 		m.cachedContent == ""
@@ -480,9 +491,20 @@ func (m *Model) updateViewportContent() string {
 	if needsRebuild {
 		// Full rebuild: iterate through all messages
 		var b strings.Builder
+		// Reset message line positions for click detection
+		m.messageLinePositions = make([]int, 0, currentCount)
+		currentLine := 0
+
 		for _, msg := range m.messages {
-			b.WriteString(m.formatMessage(msg))
+			// Record starting line position for this message
+			m.messageLinePositions = append(m.messageLinePositions, currentLine)
+
+			formatted := m.formatMessage(msg)
+			b.WriteString(formatted)
 			b.WriteString("\n\n")
+
+			// Count lines in this message (including the trailing newlines)
+			currentLine += countLines(formatted) + 2
 		}
 		m.cachedContent = b.String()
 		m.lastRenderedCount = currentCount
@@ -497,10 +519,34 @@ func (m *Model) updateViewportContent() string {
 		// Start with existing content
 		b.WriteString(m.cachedContent)
 
+		// Calculate starting line for new messages
+		currentLine := 0
+		if len(m.messageLinePositions) > 0 {
+			// Start after the last tracked message
+			lastIdx := len(m.messageLinePositions) - 1
+			currentLine = m.messageLinePositions[lastIdx]
+			// Add lines from the last message to the end
+			// We need to count from the last message start to current position
+			if m.lastRenderedCount > 0 && lastIdx < m.lastRenderedCount {
+				for i := m.lastRenderedCount - 1; i < currentCount; i++ {
+					if i < len(m.messages) {
+						currentLine += countLines(m.formatMessage(m.messages[i])) + 2
+					}
+				}
+			}
+		}
+
 		// Append only new messages
 		for i := m.lastRenderedCount; i < currentCount; i++ {
-			b.WriteString(m.formatMessage(m.messages[i]))
+			// Record starting line position for this message
+			m.messageLinePositions = append(m.messageLinePositions, currentLine)
+
+			formatted := m.formatMessage(m.messages[i])
+			b.WriteString(formatted)
 			b.WriteString("\n\n")
+
+			// Count lines in this message (including the trailing newlines)
+			currentLine += countLines(formatted) + 2
 		}
 
 		m.cachedContent = b.String()
@@ -516,6 +562,45 @@ func (m *Model) clearFormatCache() {
 	m.formatCache = make(map[uuid.UUID]string)
 	m.cachedContent = ""
 	m.lastRenderedCount = 0
+	m.messageLinePositions = nil
+}
+
+// getMessageAtLine finds the message index at the given line number in the viewport content.
+// Returns -1 if no message is found at that line.
+// The line number is 0-indexed from the top of the viewport content.
+func (m Model) getMessageAtLine(lineNum int) int {
+	for i := len(m.messageLinePositions) - 1; i >= 0; i-- {
+		if lineNum >= m.messageLinePositions[i] {
+			return i
+		}
+	}
+	return -1
+}
+
+// toggleMessageCollapse toggles the collapsed state of a tool message at the given index.
+// Returns true if the message was toggled, false if it wasn't a tool message.
+func (m *Model) toggleMessageCollapse(msgIdx int) bool {
+	if msgIdx < 0 || msgIdx >= len(m.messages) {
+		return false
+	}
+
+	msg := &m.messages[msgIdx]
+	// Only tool messages can be collapsed
+	if !msg.IsTool && msg.Type != MessageTypeTool {
+		return false
+	}
+
+	// Toggle collapsed state
+	msg.Collapsed = !msg.Collapsed
+
+	// Invalidate cache for this message to force re-render
+	delete(m.formatCache, msg.ID)
+
+	// Invalidate cached content since collapse state affects line positions
+	m.cachedContent = ""
+	m.messageLinePositions = nil
+
+	return true
 }
 
 // invalidateCacheFor removes a specific message from the cache.
@@ -568,6 +653,11 @@ func (m *Model) formatMessage(msg Message) string {
 // formatMessageImpl implements the actual message formatting logic.
 // This is separated from formatMessage to enable caching.
 func (m *Model) formatMessageImpl(msg Message) string {
+	// For collapsed tool messages, render a compact header with click-to-expand indicator
+	if msg.IsTool && msg.Type == MessageTypeTool && msg.Collapsed {
+		return m.formatCollapsedToolMessage(msg)
+	}
+
 	timestamp := msg.Timestamp.Format("15:04:05")
 
 	// Build header row content with 3 columns
@@ -808,8 +898,63 @@ func formatAgentName(agentID uuid.UUID, role string) string {
 	return "agent"
 }
 
+// formatCollapsedToolMessage renders a collapsed tool message with a click-to-expand indicator.
+// Shows a compact header: "⚡ Tool Output [Click to expand]" with agent name and timestamp.
+func (m *Model) formatCollapsedToolMessage(msg Message) string {
+	timestamp := msg.Timestamp.Format("15:04:05")
+	agentName := formatAgentName(msg.AgentID, msg.AgentRole)
+
+	// Calculate total width matching the full message format
+	const minWidth = 50
+	totalWidth := max(m.width-2, minWidth)
+
+	// Build a compact single-line header
+	// Format: ⚡ Tool (AgentName) [Click to expand] · timestamp
+	headerContent := fmt.Sprintf("⚡ Tool (%s) [Click to expand] · %s", agentName, timestamp)
+
+	// Truncate if too long
+	headerRunes := []rune(headerContent)
+	availableWidth := totalWidth - 2 // Account for borders
+	if len(headerRunes) > availableWidth {
+		headerContent = string(headerRunes[:availableWidth])
+	}
+
+	// Build the collapsed border - single line box
+	var b strings.Builder
+	borderWidth := totalWidth - 2
+
+	// Top border
+	b.WriteString(fmt.Sprintf("╭%s╮\n", strings.Repeat("─", borderWidth)))
+
+	// Header content with padding
+	padding := borderWidth - len([]rune(headerContent))
+	if padding < 0 {
+		padding = 0
+	}
+	b.WriteString(fmt.Sprintf("│ %s%s │\n", headerContent, strings.Repeat(" ", padding)))
+
+	// Bottom border
+	b.WriteString(fmt.Sprintf("╰%s╯", strings.Repeat("─", borderWidth)))
+
+	return b.String()
+}
+
 // ansiRegex matches ANSI escape sequences
 var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]|\x1b\][^\x07]*\x07|\x1b[()][AB012]`)
+
+// countLines returns the number of lines in a string.
+func countLines(s string) int {
+	if s == "" {
+		return 0
+	}
+	count := 1
+	for _, r := range s {
+		if r == '\n' {
+			count++
+		}
+	}
+	return count
+}
 
 // visualWidth returns the visual/display width of a string, ignoring ANSI escape codes.
 // This is needed because glamour returns text with ANSI color codes that shouldn't
