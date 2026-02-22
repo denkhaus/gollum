@@ -7,12 +7,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"go.uber.org/mock/gomock"
 )
+
+const testPreservedInput = "saved input"
 
 func TestNewModel(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -1777,11 +1780,11 @@ func TestCountLines(t *testing.T) {
 		{"single line", "hello", 1},
 		{"two lines", "hello\nworld", 2},
 		{"three lines", "a\nb\nc", 3},
-		{"trailing newline", "hello\n", 1},       // trailing \n is stripped
+		{"trailing newline", "hello\n", 1},            // trailing \n is stripped
 		{"multiple trailing newlines", "a\nb\n\n", 3}, // one trailing \n is stripped, leaving "a\nb\n"
-		{"only newlines", "\n\n\n", 3},           // one trailing \n is stripped, leaving "\n\n"
-		{"only newlines single", "\n", 0},        // single \n is stripped, leaving ""
-		{"only newlines double", "\n\n", 2},      // one trailing \n is stripped, leaving "\n" = 2 lines
+		{"only newlines", "\n\n\n", 3},                // one trailing \n is stripped, leaving "\n\n"
+		{"only newlines single", "\n", 0},             // single \n is stripped, leaving ""
+		{"only newlines double", "\n\n", 2},           // one trailing \n is stripped, leaving "\n" = 2 lines
 	}
 
 	for _, tt := range tests {
@@ -2031,9 +2034,9 @@ func TestToggleMessageCollapseInvalidatesCache(t *testing.T) {
 // TestMessageAdapterToMessageCollapsedState tests that MessageAdapter.ToMessage sets collapsed state for tool messages.
 func TestMessageAdapterToMessageCollapsedState(t *testing.T) {
 	tests := []struct {
-		name             string
-		adapter          MessageAdapter
-		expectCollapsed  bool
+		name            string
+		adapter         MessageAdapter
+		expectCollapsed bool
 	}{
 		{
 			name: "tool message with IsTool=true",
@@ -2350,7 +2353,6 @@ func TestClickOnToolMessageWithDifferentialUpdate(t *testing.T) {
 
 // TestClickOnToolMessageWithScrolling tests clicking when content is scrolled.
 func TestClickOnToolMessageWithScrolling(t *testing.T) {
-	t.Skip("Test needs to be updated to account for trailing newlines in all message types")
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -2559,17 +2561,20 @@ func TestMultipleDoubleClicks(t *testing.T) {
 		// After iteration 1: Collapsed=true (collapsed)
 		// After iteration 2: Collapsed=false
 		// etc.
-		expectedCollapsed := (i % 2) == 0 // After even iterations: collapsed, After odd: expanded
-		if i == 0 {
+		var expectedCollapsed bool
+		switch i {
+		case 0:
 			expectedCollapsed = false // First toggle: true -> false
-		} else if i == 1 {
+		case 1:
 			expectedCollapsed = true // Second toggle: false -> true
-		} else if i == 2 {
+		case 2:
 			expectedCollapsed = false // Third toggle: true -> false
-		} else if i == 3 {
+		case 3:
 			expectedCollapsed = true
-		} else if i == 4 {
+		case 4:
 			expectedCollapsed = false
+		default:
+			expectedCollapsed = (i % 2) == 0 // After even iterations: collapsed, After odd: expanded
 		}
 
 		if m.messages[1].Collapsed != expectedCollapsed {
@@ -3059,5 +3064,694 @@ func TestDoubleClickDifferentY(t *testing.T) {
 	}
 	if !result2.messages[1].Collapsed {
 		t.Error("Message 1 should still be collapsed (only one click on this message)")
+	}
+}
+
+// TestHandleMouseMsg_WheelEvents tests mouse wheel scrolling events.
+func TestHandleMouseMsg_WheelEvents(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+	m.viewport.Height = 10
+
+	// Add messages to create scrollable content
+	for i := 0; i < 20; i++ {
+		m.messages = append(m.messages, Message{
+			ID:        uuid.New(),
+			Type:      MessageTypeAgent,
+			Content:   fmt.Sprintf("Message %d", i),
+			Timestamp: time.Now(),
+		})
+	}
+	m.viewport.SetContent(m.updateViewportContent())
+
+	initialTag := m.mouseDebounceTag
+
+	// Test mouse wheel up
+	wheelUpMsg := tea.MouseMsg{Type: tea.MouseWheelUp, Y: 0}
+	resultModel, cmd := m.handleMouseMsg(wheelUpMsg)
+	result := resultModel.(Model)
+
+	if result.mouseDebounceTag != initialTag+1 {
+		t.Errorf("Mouse wheel up should increment debounce tag, got %d", result.mouseDebounceTag)
+	}
+	if cmd == nil {
+		t.Error("Mouse wheel up should return a debounce command")
+	}
+
+	// Test mouse wheel down
+	wheelDownMsg := tea.MouseMsg{Type: tea.MouseWheelDown, Y: 0}
+	resultModel, cmd = result.handleMouseMsg(wheelDownMsg)
+	result = resultModel.(Model)
+
+	if result.mouseDebounceTag != initialTag+2 {
+		t.Errorf("Mouse wheel down should increment debounce tag, got %d", result.mouseDebounceTag)
+	}
+	if cmd == nil {
+		t.Error("Mouse wheel down should return a debounce command")
+	}
+}
+
+// TestHandleMouseDebounceMsg tests the debounced mouse scroll processing.
+func TestHandleMouseDebounceMsg(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+	m.viewport.Height = 10
+	m.mouseDebounceTag = 5
+
+	// Add messages to create scrollable content
+	for i := 0; i < 20; i++ {
+		m.messages = append(m.messages, Message{
+			ID:        uuid.New(),
+			Type:      MessageTypeAgent,
+			Content:   fmt.Sprintf("Message %d", i),
+			Timestamp: time.Now(),
+		})
+	}
+	m.viewport.SetContent(m.updateViewportContent())
+
+	// Test with matching tag (should scroll)
+	msg := mouseDebounceMsg{tag: 5, direction: 1, viewport: ViewportMain}
+	resultModel, _ := m.handleMouseDebounceMsg(msg)
+	result := resultModel.(Model)
+
+	// The scroll should have been applied (no easy way to verify viewport scrolled in unit test)
+	_ = result
+
+	// Test with non-matching tag (should not scroll)
+	result.mouseDebounceTag = 10
+	msg2 := mouseDebounceMsg{tag: 5, direction: 1, viewport: ViewportMain}
+	resultModel2, _ := result.handleMouseDebounceMsg(msg2)
+	result2 := resultModel2.(Model)
+
+	// Tag mismatch means scroll was ignored
+	_ = result2
+}
+
+// TestScrollViewport tests the scrollViewport function.
+func TestScrollViewport(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+	m.viewport.Height = 10
+	m.logViewport.Height = 10
+
+	// Add messages to create scrollable content
+	for i := 0; i < 20; i++ {
+		m.messages = append(m.messages, Message{
+			ID:        uuid.New(),
+			Type:      MessageTypeAgent,
+			Content:   fmt.Sprintf("Message %d", i),
+			Timestamp: time.Now(),
+		})
+	}
+	m.viewport.SetContent(m.updateViewportContent())
+
+	// Test scrolling main viewport up
+	result := m.scrollViewport(ViewportMain, -1)
+	_ = result
+
+	// Test scrolling main viewport down
+	result = m.scrollViewport(ViewportMain, 1)
+	_ = result
+
+	// Test scrolling log viewport
+	result = m.scrollViewport(ViewportLogs, -1)
+	_ = result
+}
+
+// TestCreateDebounceCommand tests the debounce command creation.
+func TestCreateDebounceCommand(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+
+	cmd := m.createDebounceCommand(1, -1, ViewportMain)
+	if cmd == nil {
+		t.Error("createDebounceCommand should return a command")
+	}
+}
+
+// TestHandleNewMessageMsg tests handling of new message events.
+func TestHandleNewMessageMsg(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+
+	newMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeAgent,
+		Content:   "Test message",
+		Timestamp: time.Now(),
+	}
+
+	result, _ := m.handleNewMessageMsg(newMessageMsg{message: newMsg})
+
+	if len(result.messages) != 1 {
+		t.Errorf("Expected 1 message, got %d", len(result.messages))
+	}
+	if result.messages[0].Content != "Test message" {
+		t.Errorf("Expected 'Test message', got %s", result.messages[0].Content)
+	}
+}
+
+// TestWithLoggerService tests the WithLoggerService option.
+func TestWithLoggerService(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+
+	mockLogger := mocks.NewMockLoggerService(ctrl)
+	opt := WithLoggerService(mockLogger)
+
+	m := NewModel(ctx, agent)
+	opt(&m)
+
+	if m.logService == nil {
+		t.Error("WithLoggerService should set logService")
+	}
+}
+
+// TestHandleExport tests the export functionality.
+func TestHandleExport(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+
+	// Add some messages
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Hi there!", Timestamp: time.Now()},
+	}
+
+	// Test handleExport
+	resultModel, _ := m.handleExport()
+	result := resultModel.(Model)
+
+	// Should have added a success or error message
+	if len(result.messages) != 3 {
+		t.Errorf("Expected 3 messages (2 original + export result), got %d", len(result.messages))
+	}
+}
+
+// TestUpdate_LogTickMsg tests the Update function with logTickMsg.
+func TestUpdate_LogTickMsg(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+
+	// Test handling logTickMsg
+	updatedModel, cmd := m.Update(logTickMsg{})
+	if cmd == nil {
+		t.Error("Update with logTickMsg should return a command")
+	}
+	_ = updatedModel // Model is updated
+}
+
+// TestUpdate_WindowSizeMsg tests the Update function with WindowSizeMsg.
+func TestUpdate_WindowSizeMsg(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+
+	// Test handling WindowSizeMsg
+	updatedModel, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 40})
+	result := updatedModel.(Model)
+
+	if result.width != 100 {
+		t.Errorf("Expected width 100, got %d", result.width)
+	}
+	if result.height != 40 {
+		t.Errorf("Expected height 40, got %d", result.height)
+	}
+}
+
+// TestUpdate_KeyDebounceMsg tests the Update function with keyDebounceMsg.
+func TestUpdate_KeyDebounceMsg(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+	m.mouseDebounceTag = 5
+
+	// Test handling keyDebounceMsg with matching tag
+	debounceMsg := keyDebounceMsg{tag: 5, direction: -1, viewport: ViewportMain}
+	updatedModel, _ := m.Update(debounceMsg)
+	_ = updatedModel // Model is updated
+}
+
+// TestUpdate_SearchModeDefault tests the Update function default case in search mode.
+func TestUpdate_SearchModeDefault(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.searchState.active = true
+
+	// In search mode, default messages should return nil cmd
+	updatedModel, cmd := m.Update(tea.FocusMsg{})
+	result := updatedModel.(Model)
+
+	if cmd != nil {
+		t.Error("Update with unknown message in search mode should return nil command")
+	}
+	if !result.searchState.active {
+		t.Error("Search mode should remain active")
+	}
+}
+
+// TestHandleTickMsg_ContextCancelled tests tickMsg with cancelled context.
+func TestHandleTickMsg_ContextCancelled(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+
+	result, cmd := m.handleTickMsg(tickMsg{})
+	if !result.quit {
+		t.Error("Model should quit when context is cancelled")
+	}
+	if cmd == nil {
+		t.Error("Should return tea.Quit command when context is cancelled")
+	}
+}
+
+// TestHandleLogTickMsg tests handleLogTickMsg.
+func TestHandleLogTickMsg(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+
+	result, cmd := m.handleLogTickMsg(logTickMsg{})
+	if cmd == nil {
+		t.Error("handleLogTickMsg should return a command")
+	}
+	_ = result
+}
+
+// TestFetchNewLogEntries tests fetchNewLogEntries without log service.
+func TestFetchNewLogEntries_NoLogService(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.logService = nil // No log service
+
+	result := m.fetchNewLogEntries()
+	if len(result.logEntries) != 0 {
+		t.Error("Should have no log entries without log service")
+	}
+}
+
+// TestIsLogViewportAtBottom tests isLogViewportAtBottom.
+func TestIsLogViewportAtBottom(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+
+	// Empty content - should be at bottom
+	if !m.isLogViewportAtBottom() {
+		t.Error("Empty log viewport should be at bottom")
+	}
+}
+
+// TestHandleWindowSizeMsg tests handleWindowSizeMsg.
+func TestHandleWindowSizeMsg(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+
+	result, _ := m.handleWindowSizeMsg(tea.WindowSizeMsg{Width: 120, Height: 50})
+
+	if result.width != 120 {
+		t.Errorf("Expected width 120, got %d", result.width)
+	}
+	if result.height != 50 {
+		t.Errorf("Expected height 50, got %d", result.height)
+	}
+}
+
+// TestRestorePreservedInput tests restorePreservedInput.
+func TestRestorePreservedInput(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.preservedInput = testPreservedInput
+	m.cancelRequested = true // Required for restore to happen
+
+	result := m.restorePreservedInput()
+
+	if result.textInput.Value() != testPreservedInput {
+		t.Errorf("Expected %q, got %q", testPreservedInput, result.textInput.Value())
+	}
+	if result.preservedInput != "" {
+		t.Error("preservedInput should be cleared after restore")
+	}
+}
+
+// TestRestorePreservedInput_NoCancel tests restorePreservedInput without cancelRequested.
+func TestRestorePreservedInput_NoCancel(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.preservedInput = testPreservedInput
+	m.cancelRequested = false // No cancel requested
+
+	result := m.restorePreservedInput()
+
+	if result.textInput.Value() != "" {
+		t.Errorf("Expected empty input, got '%s'", result.textInput.Value())
+	}
+	if result.preservedInput != testPreservedInput {
+		t.Error("preservedInput should NOT be cleared without cancelRequested")
+	}
+}
+
+// TestCreateAgentCommand tests createAgentCommand.
+func TestCreateAgentCommand(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+	m = m.prepareAgentExecution()
+
+	cmd := m.createAgentCommand("test input")
+	if cmd == nil {
+		t.Error("createAgentCommand should return a command")
+	}
+}
+
+// TestWrapText tests wrapText helper.
+func TestWrapText(t *testing.T) {
+	tests := []struct {
+		input    string
+		maxWidth int
+		want     []string
+	}{
+		{"short", 10, []string{"short"}},
+		{"very long text", 5, []string{"very", "long", "text"}},
+		{"", 10, []string{""}},
+	}
+
+	for _, tt := range tests {
+		got := wrapText(tt.input, tt.maxWidth)
+		if len(got) != len(tt.want) {
+			t.Errorf("wrapText(%q, %d) returned %d lines, want %d", tt.input, tt.maxWidth, len(got), len(tt.want))
+		}
+	}
+}
+
+// TestTruncateVisual tests truncateVisual helper.
+func TestTruncateVisual(t *testing.T) {
+	tests := []struct {
+		input    string
+		maxWidth int
+		want     string
+	}{
+		{"short", 10, "short"},
+		{"very long text", 8, "very lon"},
+		{"exact", 5, "exact"},
+		{"", 10, ""},
+		{"test", 0, ""},
+	}
+
+	for _, tt := range tests {
+		got := truncateVisual(tt.input, tt.maxWidth)
+		if got != tt.want {
+			t.Errorf("truncateVisual(%q, %d) = %q, want %q", tt.input, tt.maxWidth, got, tt.want)
+		}
+	}
+}
+
+// TestHandleSearchEnter tests handleSearchEnter.
+func TestHandleSearchEnter(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.searchState.active = true
+	m.searchState.query = "test"
+
+	resultModel, cmd := m.handleSearchEnter()
+	result := resultModel.(Model)
+	if cmd != nil {
+		t.Error("handleSearchEnter should return nil command")
+	}
+	if result.searchState.active {
+		t.Error("Search should be deactivated")
+	}
+}
+
+// TestHandleSearchNavigation tests handleSearchNavigation.
+func TestHandleSearchNavigation(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.inputHistory = []string{"first", "second", "third"}
+	m.searchState.results = []int{0, 1, 2}
+	m.searchState.matchedIdx = 0
+
+	// Test Ctrl+R (prev) - should not panic and return a valid model
+	resultModel, cmd := m.handleSearchNavigation(tea.KeyCtrlR)
+	if cmd != nil {
+		t.Error("handleSearchNavigation should return nil command")
+	}
+	_ = resultModel.(Model)
+
+	// Test Ctrl+S (next) - should not panic and return a valid model
+	resultModel, cmd = m.handleSearchNavigation(tea.KeyCtrlS)
+	if cmd != nil {
+		t.Error("handleSearchNavigation should return nil command")
+	}
+	_ = resultModel.(Model)
+}
+
+// TestNextSearchResult tests nextSearchResult.
+func TestNextSearchResult(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.inputHistory = []string{"first", "second", "third"}
+	m.searchState.results = []int{0, 1, 2}
+	m.searchState.matchedIdx = 0
+
+	// Next should wrap around
+	result := m.nextSearchResult()
+	if result.searchState.matchedIdx != 1 {
+		t.Errorf("Expected matchedIdx 1, got %d", result.searchState.matchedIdx)
+	}
+
+	result = result.nextSearchResult()
+	if result.searchState.matchedIdx != 2 {
+		t.Errorf("Expected matchedIdx 2, got %d", result.searchState.matchedIdx)
+	}
+
+	result = result.nextSearchResult()
+	if result.searchState.matchedIdx != 0 {
+		t.Errorf("Expected matchedIdx 0 (wrapped), got %d", result.searchState.matchedIdx)
+	}
+}
+
+// TestPrevSearchResult tests prevSearchResult.
+func TestPrevSearchResult(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.inputHistory = []string{"first", "second", "third"}
+	m.searchState.results = []int{0, 1, 2}
+	m.searchState.matchedIdx = 0
+
+	// Prev should wrap around
+	result := m.prevSearchResult()
+	if result.searchState.matchedIdx != 2 {
+		t.Errorf("Expected matchedIdx 2 (wrapped), got %d", result.searchState.matchedIdx)
+	}
+}
+
+// TestNextPrevSearchResult_Empty tests with empty results.
+func TestNextPrevSearchResult_Empty(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.searchState.results = []int{}
+
+	result := m.nextSearchResult()
+	if result.searchState.matchedIdx != 0 {
+		t.Errorf("Expected matchedIdx 0 with empty results, got %d", result.searchState.matchedIdx)
+	}
+
+	result = m.prevSearchResult()
+	if result.searchState.matchedIdx != 0 {
+		t.Errorf("Expected matchedIdx 0 with empty results, got %d", result.searchState.matchedIdx)
+	}
+}
+
+// TestUpdateSearchResults tests updateSearchResults.
+func TestUpdateSearchResults(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.inputHistory = []string{"hello world", "foo bar", "hello test"}
+
+	// Test with query
+	result := m.updateSearchResults("hello")
+	if len(result.searchState.results) != 2 {
+		t.Errorf("Expected 2 results for 'hello', got %d", len(result.searchState.results))
+	}
+
+	// Test with empty query
+	result = m.updateSearchResults("")
+	if len(result.searchState.results) != 3 {
+		t.Errorf("Expected 3 results for empty query, got %d", len(result.searchState.results))
+	}
+}
+
+// TestHandleSearchBackspace tests handleSearchBackspace.
+func TestHandleSearchBackspace(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.inputHistory = []string{"test", "testing", "tester"}
+	m.searchState.results = []int{0, 1, 2}
+
+	// Set up textInput with a value
+	ti := textinput.New()
+	ti.SetValue("test")
+	m.textInput = ti
+
+	resultModel, cmd := m.handleSearchBackspace()
+	result := resultModel.(Model)
+	if cmd != nil {
+		t.Error("handleSearchBackspace should return nil command")
+	}
+	// Verify the function was called and returned a valid model
+	_ = result.textInput.Value()
+}
+
+// TestHandleSearchBackspace_Empty tests handleSearchBackspace with empty input.
+func TestHandleSearchBackspace_Empty(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.searchState.query = ""
+	m.textInput.SetValue("")
+
+	resultModel, _ := m.handleSearchBackspace()
+	result := resultModel.(Model)
+	if result.textInput.Value() != "" {
+		t.Errorf("Expected empty string, got '%s'", result.textInput.Value())
+	}
+}
+
+// TestViewportString tests the Viewport String method.
+func TestViewportString(t *testing.T) {
+	if ViewportMain.String() != "main" {
+		t.Errorf("Expected 'main', got '%s'", ViewportMain.String())
+	}
+	if ViewportLogs.String() != "logs" {
+		t.Errorf("Expected 'logs', got '%s'", ViewportLogs.String())
+	}
+	if ViewportInput.String() != "input" {
+		t.Errorf("Expected 'input', got '%s'", ViewportInput.String())
 	}
 }

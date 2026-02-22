@@ -19,8 +19,8 @@ func debugLog(format string, args ...interface{}) {
 	if err != nil {
 		return
 	}
-	defer f.Close()
-	fmt.Fprintf(f, format+"\n", args...)
+	defer f.Close()                      //nolint:errcheck // Debug logging errors are acceptable to ignore
+	fmt.Fprintf(f, format+"\n", args...) //nolint:errcheck // Debug logging errors are acceptable to ignore
 }
 
 // handleMouseMsg handles mouse events with debouncing for smooth scrolling.
@@ -177,9 +177,8 @@ func (m Model) handleClickOnToolMessage(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				// Message was toggled, rebuild viewport content
 				m.viewport.SetContent(m.updateViewportContent())
 				return m, nil
-			} else {
-				debugLog("  TOGGLE FAILED - toggleMessageCollapse returned false")
 			}
+			debugLog("  TOGGLE FAILED - toggleMessageCollapse returned false")
 		} else {
 			debugLog("  SKIPPED - not a tool message")
 		}
@@ -188,20 +187,6 @@ func (m Model) handleClickOnToolMessage(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	// Rebuild viewport to show selection (bold border)
 	m.viewport.SetContent(m.updateViewportContent())
 	return m, nil
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
 
 // handleMouseDebounceMsg processes debounced mouse scroll events.

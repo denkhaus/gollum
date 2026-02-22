@@ -4,3 +4,4 @@ coverage.out
 .worktrees/
 snippets.md
 .env
+gollum_export*

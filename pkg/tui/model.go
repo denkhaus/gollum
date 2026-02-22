@@ -308,10 +308,11 @@ type Model struct {
 	// Invalidated on width change or message deletion
 	cachedContent string
 
-	// messageLinePositions tracks the starting line number (0-indexed) for each message
-	// Used for mouse click detection to identify which message was clicked
-	// Updated during viewport content rendering
-	// DEPRECATED: Use lineToMessage instead for direct lookup
+	// messageLinePositions tracks the starting line number (0-indexed) for each message.
+	// Used for mouse click detection to identify which message was clicked.
+	// Updated during viewport content rendering.
+	//
+	// Deprecated: Use lineToMessage instead for direct lookup.
 	messageLinePositions []int
 
 	// lineToMessage is a direct mapping from content line number to message index.
@@ -717,7 +718,7 @@ func (m *Model) formatMessage(msgIdx int, msg Message) string {
 // formatMessageImpl implements the actual message formatting logic.
 // This is separated from formatMessage to enable caching.
 // The selected parameter determines whether to use bold/double-line borders.
-func (m *Model) formatMessageImpl(msgIdx int, msg Message, selected bool) string {
+func (m *Model) formatMessageImpl(_ int, msg Message, selected bool) string {
 	// For collapsed tool messages, render a compact header with click indicator
 	if msg.IsTool && msg.Type == MessageTypeTool && msg.Collapsed {
 		return m.formatCollapsedToolMessage(msg, selected)
