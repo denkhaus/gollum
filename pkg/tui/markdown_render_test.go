@@ -43,8 +43,8 @@ func TestMarkdownRendering(t *testing.T) {
 		Render(gomock.Any(), "# Test Heading\n\nThis is **bold** text.", 78).
 		Return("RENDERED_MARKDOWN_OUTPUT", nil)
 
-	// Format the message
-	result := m.formatMessage(agentMsg)
+	// Format the message (index 0 = no selection)
+	result := m.formatMessage(0, agentMsg)
 
 	// Verify the rendered markdown is in the output
 	if len(result) == 0 {
@@ -85,8 +85,8 @@ func TestPlainTextFallback(t *testing.T) {
 		AgentRole: "assistant",
 	}
 
-	// Format the message
-	result := m.formatMessage(agentMsg)
+	// Format the message (index 0 = no selection)
+	result := m.formatMessage(0, agentMsg)
 
 	// Verify the raw markdown content is in the output (no rendering)
 	if len(result) == 0 {

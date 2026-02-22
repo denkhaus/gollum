@@ -3,10 +3,25 @@ package tui
 // This file handles mouse events for the TUI.
 
 import (
+	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+// Debug log file for click detection debugging
+const debugLogFile = "/tmp/gollum_click_debug.log"
+
+func debugLog(format string, args ...interface{}) {
+	f, err := os.OpenFile(debugLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	fmt.Fprintf(f, format+"\n", args...)
+}
 
 // handleMouseMsg handles mouse events with debouncing for smooth scrolling.
 //
@@ -48,26 +63,29 @@ func (m Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-// handleClickOnToolMessage handles mouse clicks to toggle tool message collapse state.
-// When a user clicks on a tool message header in the viewport, it toggles between
-// collapsed (showing only summary) and expanded (showing full content).
+// handleClickOnToolMessage handles mouse clicks for message selection and collapse toggle.
+//
+// Click behavior:
+//   - Single click: Select the message (shows bold border)
+//   - Double click (within 500ms on same Y): Select AND toggle collapse state
+//
+// This allows users to always see which message is currently selected via the bold border,
+// while still being able to quickly toggle collapse state with a double-click.
 func (m Model) handleClickOnToolMessage(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	// Only process clicks in the main viewport area
-	// The viewport Y position starts after the header
-	// Click Y is relative to the terminal, we need to convert to content position
-
 	// Get the viewport's Y offset (how far the content is scrolled)
 	yOffset := m.viewport.YOffset
-
-	// Convert click Y to content line position
-	// This is a simplified approach - we assume each visual line maps to one content line
-	// The click Y needs to be within the viewport height
 	viewportHeight := m.viewport.Height
 
-	// Check if click is within the viewport area (not in input, status, or footer)
-	// The viewport occupies the top portion of the screen
-	// We need to account for the viewport's position in the layout
+	// The viewport starts at terminal Y=0 (top of screen)
+	// Mouse Y coordinate is 0-indexed from top of terminal
 	clickY := msg.Y
+
+	debugLog("=== CLICK ===")
+	debugLog("clickY=%d, yOffset=%d, viewportHeight=%d", clickY, yOffset, viewportHeight)
+	debugLog("messages count: %d", len(m.messages))
+	for i, msg := range m.messages {
+		debugLog("  msg[%d]: type=%s, isTool=%v, collapsed=%v", i, msg.Type.String(), msg.IsTool, msg.Collapsed)
+	}
 
 	// Only process clicks within the viewport bounds
 	if clickY < 0 || clickY >= viewportHeight {
@@ -79,27 +97,111 @@ func (m Model) handleClickOnToolMessage(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 
 	// Calculate the line number in the content (0-indexed from top of content)
 	contentLine := yOffset + clickY
+	debugLog("contentLine = yOffset + clickY = %d + %d = %d", yOffset, clickY, contentLine)
 
-	// Find which message is at this line
+	// ALWAYS rebuild content and mapping fresh on every click
+	// This ensures lineToMessage is 100% in sync with actual content
+	content := m.updateViewportContent()
+	m.viewport.SetContent(content)
+
+	// NOW log the CORRECT data (after rebuild)
+	debugLog("lineToMessage (first 30): %v", m.lineToMessage[:min(30, len(m.lineToMessage))])
+	debugLog("messageLinePositions: %v", m.messageLinePositions)
+	debugLog("lineToMessage length: %d", len(m.lineToMessage))
+
+	// Log actual viewport content (lines around the click)
+	contentLines := strings.Split(content, "\n")
+	startLine := max(0, yOffset-2)
+	endLine := min(len(contentLines), yOffset+viewportHeight+2)
+	debugLog("=== VIEWPORT CONTENT (lines %d to %d of %d) ===", startLine, endLine-1, len(contentLines))
+	for i := startLine; i < endLine; i++ {
+		if i < len(contentLines) {
+			// Clean up ANSI codes for readability
+			cleanLine := ansiRegex.ReplaceAllString(contentLines[i], "")
+			prefix := "  "
+			if i == contentLine {
+				prefix = "> " // Mark the clicked line
+			}
+			debugLog("%sLine %d: %s", prefix, i, cleanLine)
+		}
+	}
+	debugLog("=== END VIEWPORT CONTENT ===")
+
+	// Find which message is at this line using direct O(1) lookup
 	msgIdx := m.getMessageAtLine(contentLine)
+	debugLog("getMessageAtLine(%d) = %d", contentLine, msgIdx)
+
 	if msgIdx < 0 {
-		// No message found at this line
+		// Clicked on a blank gap between messages, pass to text input
+		debugLog("Clicked on blank gap - passing to text input")
 		var cmd tea.Cmd
 		m.textInput, cmd = m.textInput.Update(msg)
 		return m, cmd
 	}
 
-	// Toggle collapse state if it's a tool message
-	if m.toggleMessageCollapse(msgIdx) {
-		// Message was toggled, rebuild viewport content
-		m.viewport.SetContent(m.updateViewportContent())
-		return m, nil
+	// Check for double-click: same message index within threshold time
+	now := time.Now()
+	isDoubleClick := false
+	timeSinceLastClick := now.Sub(m.lastClickTime)
+	threshold := m.doubleClickThreshold
+
+	debugLog("DOUBLE-CLICK CHECK:")
+	debugLog("  lastClickedMessageIndex=%d, currentMsgIdx=%d", m.lastClickedMessageIndex, msgIdx)
+	debugLog("  timeSinceLastClick=%v, threshold=%v", timeSinceLastClick, threshold)
+	debugLog("  sameMessage=%v, withinThreshold=%v",
+		m.lastClickedMessageIndex == msgIdx,
+		timeSinceLastClick < threshold)
+
+	if m.lastClickedMessageIndex == msgIdx && timeSinceLastClick < threshold {
+		isDoubleClick = true
+		debugLog("  >>> DOUBLE-CLICK DETECTED! <<<")
 	}
 
-	// Not a tool message or couldn't toggle, pass to text input
-	var cmd tea.Cmd
-	m.textInput, cmd = m.textInput.Update(msg)
-	return m, cmd
+	// Update click tracking for next potential double-click
+	m.lastClickTime = now
+	m.lastClickedMessageIndex = msgIdx
+
+	// Select the message (always)
+	m.selectMessage(msgIdx)
+	debugLog("SELECTED message %d (type=%s, isTool=%v)", msgIdx, m.messages[msgIdx].Type.String(), m.messages[msgIdx].IsTool)
+
+	// On double-click, also toggle collapse state if it's a tool message
+	if isDoubleClick {
+		debugLog("DOUBLE-CLICK: Attempting toggle on message %d", msgIdx)
+		debugLog("  message type=%s, isTool=%v", m.messages[msgIdx].Type.String(), m.messages[msgIdx].IsTool)
+
+		if m.messages[msgIdx].IsTool || m.messages[msgIdx].Type == MessageTypeTool {
+			oldCollapsed := m.messages[msgIdx].Collapsed
+			if m.toggleMessageCollapse(msgIdx) {
+				debugLog("  TOGGLE SUCCESS: collapsed %v -> %v", oldCollapsed, !oldCollapsed)
+				// Message was toggled, rebuild viewport content
+				m.viewport.SetContent(m.updateViewportContent())
+				return m, nil
+			} else {
+				debugLog("  TOGGLE FAILED - toggleMessageCollapse returned false")
+			}
+		} else {
+			debugLog("  SKIPPED - not a tool message")
+		}
+	}
+
+	// Rebuild viewport to show selection (bold border)
+	m.viewport.SetContent(m.updateViewportContent())
+	return m, nil
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // handleMouseDebounceMsg processes debounced mouse scroll events.

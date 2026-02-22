@@ -44,8 +44,8 @@ func TestIntegrationMarkdownRendering(t *testing.T) {
 		AgentRole: "assistant",
 	}
 
-	// Step 6: Format the message
-	result := m.formatMessage(agentMsg)
+	// Step 6: Format the message (index 0 = no selection)
+	result := m.formatMessage(0, agentMsg)
 
 	t.Logf("Formatted message:\n%s", result)
 

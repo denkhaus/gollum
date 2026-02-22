@@ -60,8 +60,8 @@ func TestE2EMarkdownRendererSetup(t *testing.T) {
 		AgentRole: "assistant",
 	}
 
-	// Step 7: Format the message
-	result := m.formatMessage(agentMsg)
+	// Step 7: Format the message (index 0 = no selection)
+	result := m.formatMessage(0, agentMsg)
 
 	t.Logf("E2E Test - Formatted message:\n%s", result)
 
