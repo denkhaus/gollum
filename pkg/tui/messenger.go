@@ -54,6 +54,8 @@ func (ma MessageAdapter) ToMessage() Message {
 		AgentID:   ma.AgentID,
 		AgentRole: ma.AgentRole,
 		IsTool:    ma.IsTool,
+		// Tool messages default to collapsed state
+		Collapsed: ma.IsTool || ma.Type == MessageTypeAdapterTool,
 	}
 }
 

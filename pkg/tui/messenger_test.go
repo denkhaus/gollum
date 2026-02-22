@@ -416,7 +416,7 @@ func TestModelFormatMessage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := m.formatMessage(tt.msg)
+			got := m.formatMessage(0, tt.msg) // index 0 = no selection
 			if !tt.check(got) {
 				t.Errorf("formatMessage() check failed for %s, got: %q", tt.name, got)
 			}

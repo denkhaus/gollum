@@ -32,7 +32,6 @@ package tui
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -137,6 +136,10 @@ type Message struct {
 
 	// IsTool indicates whether this is a tool execution message.
 	IsTool bool
+
+	// Collapsed indicates whether this message is collapsed (tool messages only).
+	// When collapsed, only a summary header is shown. Click to expand/collapse.
+	Collapsed bool
 }
 
 // newMessageMsg is sent when a new message should be added to the viewport.
@@ -304,6 +307,34 @@ type Model struct {
 	// cachedContent stores the complete viewport content string to avoid rebuilding
 	// Invalidated on width change or message deletion
 	cachedContent string
+
+	// messageLinePositions tracks the starting line number (0-indexed) for each message.
+	// Used for mouse click detection to identify which message was clicked.
+	// Updated during viewport content rendering.
+	//
+	// Deprecated: Use lineToMessage instead for direct lookup.
+	messageLinePositions []int
+
+	// lineToMessage is a direct mapping from content line number to message index.
+	// lineToMessage[lineNum] = messageIdx means that line `lineNum` belongs to message `messageIdx`.
+	// This is built during content rendering and provides O(1) click detection.
+	// When content changes (expand/collapse, new messages), this array is rebuilt.
+	lineToMessage []int
+
+	// selectedMessageIndex tracks which message is currently selected (-1 = none)
+	// A selected message displays a bold border to indicate selection
+	selectedMessageIndex int
+
+	// lastClickTime tracks when the last click occurred for double-click detection
+	lastClickTime time.Time
+
+	// lastClickedMessageIndex tracks which message was last clicked for double-click detection
+	// Double-clicks must be on the same message as the first click
+	// Using message index instead of Y position makes this robust to content changes
+	lastClickedMessageIndex int
+
+	// doubleClickThreshold is the maximum time between clicks to count as double-click
+	doubleClickThreshold time.Duration
 }
 
 // NewModel creates a new TUI model with initial state.
@@ -349,8 +380,10 @@ func NewModel(ctx context.Context, agent AgentExecutor) Model {
 		keyDebounceTag:        0,
 		keyDebounceDuration:   16 * time.Millisecond, // 16ms debounce for arrow keys (one frame)
 		formatCache:           make(map[uuid.UUID]string),
-		cacheWidth:            0,    // Will be set on first update
-		maxCacheSize:          1000, // Match HistoryMaxSize default
+		cacheWidth:            0,                      // Will be set on first update
+		maxCacheSize:          1000,                   // Match HistoryMaxSize default
+		selectedMessageIndex:  -1,                     // No message selected initially
+		doubleClickThreshold:  500 * time.Millisecond, // 500ms for double-click detection
 	}
 }
 
@@ -414,7 +447,7 @@ func (m Model) Init() tea.Cmd {
 
 // tickCmd returns a command that sends tick messages for UI updates.
 func (m Model) tickCmd() tea.Cmd {
-	return tea.Tick(time.Millisecond*250, func(t time.Time) tea.Msg {
+	return tea.Tick(time.Millisecond*750, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
 }
@@ -466,6 +499,7 @@ func (m Model) waitForMessages() tea.Cmd {
 // updateViewportContent updates the viewport with the current messages.
 // Uses differential rendering to only append new messages instead of rebuilding everything.
 // This is a performance optimization to avoid O(n) re-formatting on every update.
+// Also tracks message line positions for mouse click detection.
 func (m *Model) updateViewportContent() string {
 	currentCount := len(m.messages)
 
@@ -473,6 +507,7 @@ func (m *Model) updateViewportContent() string {
 	// 1. Width changed - formatting depends on width
 	// 2. Messages were removed (e.g., /clear) - need to rebuild from scratch
 	// 3. No cached content yet - first call
+	// 4. Message collapse state changed - need to rebuild for updated formatting
 	needsRebuild := m.cacheWidth != m.width ||
 		currentCount < m.lastRenderedCount ||
 		m.cachedContent == ""
@@ -480,9 +515,33 @@ func (m *Model) updateViewportContent() string {
 	if needsRebuild {
 		// Full rebuild: iterate through all messages
 		var b strings.Builder
-		for _, msg := range m.messages {
-			b.WriteString(m.formatMessage(msg))
-			b.WriteString("\n\n")
+		// Reset line-to-message mapping for O(1) click detection
+		m.lineToMessage = make([]int, 0)
+		// Also keep old positions for backwards compatibility
+		m.messageLinePositions = make([]int, 0, currentCount)
+
+		for i, msg := range m.messages {
+			// Add blank lines BEFORE each message (except the first)
+			// Map them to -1 (no message) so viewport line indices match array indices
+			if i > 0 {
+				b.WriteString("\n")                           // First blank line
+				m.lineToMessage = append(m.lineToMessage, -1) // Map blank line to -1
+				b.WriteString("\n")                           // Second blank line
+				m.lineToMessage = append(m.lineToMessage, -1) // Map blank line to -1
+			}
+
+			// Record starting line position for this message (legacy)
+			m.messageLinePositions = append(m.messageLinePositions, len(m.lineToMessage))
+
+			formatted := m.formatMessage(i, msg)
+			b.WriteString(formatted)
+
+			// Build direct line-to-message mapping
+			// Each line of this message maps to message index i
+			linesInMsg := countLines(formatted)
+			for line := 0; line < linesInMsg; line++ {
+				m.lineToMessage = append(m.lineToMessage, i)
+			}
 		}
 		m.cachedContent = b.String()
 		m.lastRenderedCount = currentCount
@@ -499,8 +558,27 @@ func (m *Model) updateViewportContent() string {
 
 		// Append only new messages
 		for i := m.lastRenderedCount; i < currentCount; i++ {
-			b.WriteString(m.formatMessage(m.messages[i]))
-			b.WriteString("\n\n")
+			// Add blank lines BEFORE each message (except if this is the first message)
+			// Map them to -1 (no message) so viewport line indices match array indices
+			if i > 0 {
+				b.WriteString("\n")                           // First blank line
+				m.lineToMessage = append(m.lineToMessage, -1) // Map blank line to -1
+				b.WriteString("\n")                           // Second blank line
+				m.lineToMessage = append(m.lineToMessage, -1) // Map blank line to -1
+			}
+
+			// Record starting line position for this message (legacy)
+			m.messageLinePositions = append(m.messageLinePositions, len(m.lineToMessage))
+
+			formatted := m.formatMessage(i, m.messages[i])
+			b.WriteString(formatted)
+
+			// Build direct line-to-message mapping
+			// Each line of this message maps to message index i
+			linesInMsg := countLines(formatted)
+			for line := 0; line < linesInMsg; line++ {
+				m.lineToMessage = append(m.lineToMessage, i)
+			}
 		}
 
 		m.cachedContent = b.String()
@@ -516,6 +594,75 @@ func (m *Model) clearFormatCache() {
 	m.formatCache = make(map[uuid.UUID]string)
 	m.cachedContent = ""
 	m.lastRenderedCount = 0
+	m.messageLinePositions = nil
+	m.lineToMessage = nil
+}
+
+// getMessageAtLine finds the message index at the given line number in the viewport content.
+// Returns -1 if no message is found at that line.
+// The line number is 0-indexed from the top of the viewport content.
+// Uses direct O(1) lookup via lineToMessage array.
+func (m Model) getMessageAtLine(lineNum int) int {
+	// Direct lookup - O(1)
+	if lineNum >= 0 && lineNum < len(m.lineToMessage) {
+		return m.lineToMessage[lineNum]
+	}
+	return -1
+}
+
+// toggleMessageCollapse toggles the collapsed state of a tool message at the given index.
+// Returns true if the message was toggled, false if it wasn't a tool message.
+func (m *Model) toggleMessageCollapse(msgIdx int) bool {
+	if msgIdx < 0 || msgIdx >= len(m.messages) {
+		return false
+	}
+
+	msg := &m.messages[msgIdx]
+	// Only tool messages can be collapsed
+	if !msg.IsTool && msg.Type != MessageTypeTool {
+		return false
+	}
+
+	// Toggle collapsed state
+	msg.Collapsed = !msg.Collapsed
+
+	// Invalidate cache for this message to force re-render
+	delete(m.formatCache, msg.ID)
+
+	// Invalidate cached content since collapse state affects line positions
+	m.cachedContent = ""
+	m.messageLinePositions = nil
+	m.lineToMessage = nil
+
+	return true
+}
+
+// isMessageSelected returns true if the message at the given index is currently selected.
+func (m Model) isMessageSelected(msgIdx int) bool {
+	return m.selectedMessageIndex >= 0 && msgIdx == m.selectedMessageIndex
+}
+
+// selectMessage sets the selected message index and invalidates cache for re-render.
+// Pass -1 to deselect all messages.
+func (m *Model) selectMessage(msgIdx int) {
+	// Invalidate cache for previously selected message
+	if m.selectedMessageIndex >= 0 && m.selectedMessageIndex < len(m.messages) {
+		delete(m.formatCache, m.messages[m.selectedMessageIndex].ID)
+	}
+
+	// Invalidate cache for newly selected message
+	if msgIdx >= 0 && msgIdx < len(m.messages) {
+		delete(m.formatCache, m.messages[msgIdx].ID)
+	}
+
+	m.selectedMessageIndex = msgIdx
+
+	// Invalidate cached content since selection affects border rendering
+	m.cachedContent = ""
+	// Also invalidate line positions to force recalculation
+	// This ensures click detection uses correct positions after selection changes
+	m.messageLinePositions = nil
+	m.lineToMessage = nil
 }
 
 // invalidateCacheFor removes a specific message from the cache.
@@ -539,10 +686,12 @@ func (m *Model) invalidateCacheFor(msgID uuid.UUID) {
 //	│ Hello! How can I help you today?                           │
 //	│                                                            │
 //	╰────────────────────────────────────────────────────────────╯
-func (m *Model) formatMessage(msg Message) string {
+//
+// When selected, the message uses double-line borders (╔═╗║╚╝) to indicate selection.
+func (m *Model) formatMessage(msgIdx int, msg Message) string {
 	// Check cache first - return cached formatted message if available
 	// Cache key: message ID
-	// Cache invalidation: width change, message update
+	// Cache invalidation: width change, message update, selection change
 	if cached, ok := m.formatCache[msg.ID]; ok && m.cacheWidth == m.width {
 		return cached
 	}
@@ -556,7 +705,8 @@ func (m *Model) formatMessage(msg Message) string {
 	}
 
 	// Cache miss - format the message and cache the result
-	formatted := m.formatMessageImpl(msg)
+	selected := m.isMessageSelected(msgIdx)
+	formatted := m.formatMessageImpl(msgIdx, msg, selected)
 
 	// Cache the formatted message
 	m.formatCache[msg.ID] = formatted
@@ -567,7 +717,13 @@ func (m *Model) formatMessage(msg Message) string {
 
 // formatMessageImpl implements the actual message formatting logic.
 // This is separated from formatMessage to enable caching.
-func (m *Model) formatMessageImpl(msg Message) string {
+// The selected parameter determines whether to use bold/double-line borders.
+func (m *Model) formatMessageImpl(_ int, msg Message, selected bool) string {
+	// For collapsed tool messages, render a compact header with click indicator
+	if msg.IsTool && msg.Type == MessageTypeTool && msg.Collapsed {
+		return m.formatCollapsedToolMessage(msg, selected)
+	}
+
 	timestamp := msg.Timestamp.Format("15:04:05")
 
 	// Build header row content with 3 columns
@@ -673,9 +829,31 @@ func (m *Model) formatMessageImpl(msg Message) string {
 		return strings.Repeat(s, count)
 	}
 
+	// Select border characters based on selection state
+	// Selected messages use double-line borders (bold appearance)
+	var (
+		topLeft, topMid, topRight string
+		midLeft, midMid, midRight string
+		bottomLeft, bottomRight   string
+		vertical, horizontal      string
+	)
+	if selected {
+		// Double-line borders for selected messages
+		topLeft, topMid, topRight = "╔", "╦", "╗"
+		midLeft, midMid, midRight = "╠", "╩", "╣"
+		bottomLeft, bottomRight = "╚", "╝"
+		vertical, horizontal = "║", "═"
+	} else {
+		// Single-line borders for normal messages
+		topLeft, topMid, topRight = "╭", "┬", "╮"
+		midLeft, midMid, midRight = "├", "┴", "┤"
+		bottomLeft, bottomRight = "╰", "╯"
+		vertical, horizontal = "│", "─"
+	}
+
 	// Top border with T-junctions for column separators
-	b.WriteString(fmt.Sprintf("╭%s┬%s┬%s╮\n",
-		repeat("─", col1Width), repeat("─", col2Width), repeat("─", col3Width)))
+	b.WriteString(fmt.Sprintf("%s%s%s%s%s%s%s\n",
+		topLeft, repeat(horizontal, col1Width), topMid, repeat(horizontal, col2Width), topMid, repeat(horizontal, col3Width), topRight))
 
 	// Pad and truncate columns to fit
 	// Adds 1 space of padding on each side of the text
@@ -708,11 +886,11 @@ func (m *Model) formatMessageImpl(msg Message) string {
 	paddedCol3 := padCol(col3, col3Width, false) // LEFT-align timestamp (not right)
 
 	// Write the header row with proper borders
-	b.WriteString(fmt.Sprintf("│%s│%s│%s│\n", paddedCol1, paddedCol2, paddedCol3))
+	b.WriteString(fmt.Sprintf("%s%s%s%s%s%s%s\n", vertical, paddedCol1, vertical, paddedCol2, vertical, paddedCol3, vertical))
 
-	// Separator line with ├ ┴ ┤
-	b.WriteString(fmt.Sprintf("├%s┴%s┴%s┤\n",
-		repeat("─", col1Width), repeat("─", col2Width), repeat("─", col3Width)))
+	// Separator line
+	b.WriteString(fmt.Sprintf("%s%s%s%s%s%s%s\n",
+		midLeft, repeat(horizontal, col1Width), midMid, repeat(horizontal, col2Width), midMid, repeat(horizontal, col3Width), midRight))
 
 	// Content rows with border
 	// Add 1 space of padding on each side for content
@@ -727,121 +905,73 @@ func (m *Model) formatMessageImpl(msg Message) string {
 		if lineVisWidth > availableContentWidth {
 			// Truncate long lines by visual width (preserving ANSI codes at start)
 			truncated := truncateVisual(line, availableContentWidth)
-			b.WriteString(fmt.Sprintf("│ %s%s │\n", truncated, strings.Repeat(" ", availableContentWidth-visualWidth(truncated))))
+			b.WriteString(fmt.Sprintf("%s %s%s %s\n", vertical, truncated, strings.Repeat(" ", availableContentWidth-visualWidth(truncated)), vertical))
 		} else {
 			// Pad short lines with spaces on the right
 			padding := availableContentWidth - lineVisWidth
-			b.WriteString(fmt.Sprintf("│ %s%s │\n", line, strings.Repeat(" ", padding)))
+			b.WriteString(fmt.Sprintf("%s %s%s %s\n", vertical, line, strings.Repeat(" ", padding), vertical))
 		}
 	}
 
 	// Bottom border - needs to match top border width
-	// Top border: ╭ + col1Width + ┬ + col2Width + ┬ + col3Width + ╮ = 4 + col1Width + col2Width + col3Width
-	// Bottom border: ╰ + dashes + ╯ = 2 + borderWidth
-	// So borderWidth should be col1Width + col2Width + col3Width + 2
 	borderLineWidth := col1Width + col2Width + col3Width + 2
-	b.WriteString(fmt.Sprintf("╰%s╯", repeat("─", borderLineWidth)))
+	b.WriteString(fmt.Sprintf("%s%s%s\n", bottomLeft, repeat(horizontal, borderLineWidth), bottomRight))
 
 	return b.String()
 }
 
-// wrapText wraps text to fit within the specified width.
-func wrapText(text string, width int) []string {
-	if width <= 0 {
-		return []string{text}
+// formatCollapsedToolMessage renders a collapsed tool message with a click-to-expand indicator.
+// Shows a compact header: "⚡ Tool Output [Click to expand]" with agent name and timestamp.
+// When selected, uses double-line borders to indicate selection.
+func (m *Model) formatCollapsedToolMessage(msg Message, selected bool) string {
+	timestamp := msg.Timestamp.Format("15:04:05")
+	agentName := formatAgentName(msg.AgentID, msg.AgentRole)
+
+	// Calculate total width matching the full message format
+	const minWidth = 50
+	totalWidth := max(m.width-2, minWidth)
+
+	// Build a compact single-line header
+	// Format: ⚡ Tool (AgentName) [Click to expand] · timestamp
+	headerContent := fmt.Sprintf("⚡ Tool (%s) [Click to expand] · %s", agentName, timestamp)
+
+	// Truncate if too long
+	headerRunes := []rune(headerContent)
+	availableWidth := totalWidth - 2 // Account for borders
+	if len(headerRunes) > availableWidth {
+		headerContent = string(headerRunes[:availableWidth])
 	}
 
-	var lines []string
-	words := strings.Fields(text)
-	if len(words) == 0 {
-		return []string{text}
+	// Select border characters based on selection state
+	var topLeft, topRight, bottomLeft, bottomRight, vertical, horizontal string
+	if selected {
+		topLeft, topRight = "╔", "╗"
+		bottomLeft, bottomRight = "╚", "╝"
+		vertical, horizontal = "║", "═"
+	} else {
+		topLeft, topRight = "╭", "╮"
+		bottomLeft, bottomRight = "╰", "╯"
+		vertical, horizontal = "│", "─"
 	}
 
-	currentLine := ""
-	for _, word := range words {
-		testLine := currentLine
-		if testLine == "" {
-			testLine = word
-		} else {
-			testLine = testLine + " " + word
-		}
+	// Build the collapsed border
+	var b strings.Builder
+	borderWidth := totalWidth - 2
 
-		// Handle words longer than width
-		if len(word) > width {
-			if currentLine != "" {
-				lines = append(lines, currentLine)
-				currentLine = ""
-			}
-			// Split long word
-			for i := 0; i < len(word); i += width {
-				end := min(i+width, len(word))
-				lines = append(lines, word[i:end])
-			}
-			continue
-		}
+	// Top border
+	b.WriteString(fmt.Sprintf("%s%s%s\n", topLeft, strings.Repeat(horizontal, borderWidth), topRight))
 
-		if len(testLine) <= width {
-			currentLine = testLine
-		} else {
-			lines = append(lines, currentLine)
-			currentLine = word
-		}
+	// Header content with padding
+	padding := borderWidth - len([]rune(headerContent))
+	if padding < 0 {
+		padding = 0
 	}
+	b.WriteString(fmt.Sprintf("%s %s%s %s\n", vertical, headerContent, strings.Repeat(" ", padding), vertical))
 
-	if currentLine != "" {
-		lines = append(lines, currentLine)
-	}
+	// Bottom border (with trailing newline for consistency)
+	b.WriteString(fmt.Sprintf("%s%s%s\n", bottomLeft, strings.Repeat(horizontal, borderWidth), bottomRight))
 
-	return lines
-}
-
-// formatAgentName creates a short display name for agents.
-func formatAgentName(agentID uuid.UUID, role string) string {
-	if role != "" && len(role) <= 10 {
-		return role
-	}
-	// Use first 4 characters of ID as fallback
-	idStr := agentID.String()
-	if len(idStr) >= 4 {
-		return idStr[:4]
-	}
-	return "agent"
-}
-
-// ansiRegex matches ANSI escape sequences
-var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]|\x1b\][^\x07]*\x07|\x1b[()][AB012]`)
-
-// visualWidth returns the visual/display width of a string, ignoring ANSI escape codes.
-// This is needed because glamour returns text with ANSI color codes that shouldn't
-// be counted when calculating padding and alignment.
-func visualWidth(s string) int {
-	// Strip ANSI escape sequences
-	stripped := ansiRegex.ReplaceAllString(s, "")
-	// Count runes (not bytes) for proper Unicode handling
-	return len([]rune(stripped))
-}
-
-// truncateVisual truncates a string to fit within the given visual width.
-// Preserves ANSI escape codes at the start of the string.
-func truncateVisual(s string, maxVisualWidth int) string {
-	if maxVisualWidth <= 0 {
-		return ""
-	}
-
-	// Find leading ANSI codes (to preserve colors at the start)
-	leadingANSI := ansiRegex.FindStringIndex(s)
-	ansiPrefix := ""
-	if leadingANSI != nil && leadingANSI[0] == 0 {
-		ansiPrefix = s[:leadingANSI[1]]
-		s = s[leadingANSI[1]:]
-	}
-
-	runes := []rune(s)
-	if len(runes) <= maxVisualWidth {
-		return ansiPrefix + s
-	}
-
-	return ansiPrefix + string(runes[:maxVisualWidth])
+	return b.String()
 }
 
 // addToHistory adds input to history with size limit enforcement.

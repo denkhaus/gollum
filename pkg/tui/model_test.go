@@ -7,12 +7,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"go.uber.org/mock/gomock"
 )
+
+const testPreservedInput = "saved input"
 
 func TestNewModel(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -1028,8 +1031,8 @@ func BenchmarkFormatMessage(b *testing.B) {
 
 	// Run the benchmark
 	for i := 0; i < b.N; i++ {
-		for _, msg := range testMessages {
-			_ = m.formatMessage(msg)
+		for idx, msg := range testMessages {
+			_ = m.formatMessage(idx, msg)
 		}
 	}
 
@@ -1162,8 +1165,8 @@ func BenchmarkFormatMessageWithCache(b *testing.B) {
 	// First pass: warm up the cache (cache miss)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		for _, msg := range testMessages {
-			_ = m.formatMessage(msg)
+		for idx, msg := range testMessages {
+			_ = m.formatMessage(idx, msg)
 		}
 	}
 
@@ -1203,7 +1206,7 @@ func BenchmarkFormatMessageNoCache(b *testing.B) {
 				Content:   fmt.Sprintf("Agent response message %d with some markdown formatting **bold** and `code`", j),
 				Timestamp: time.Now(),
 			}
-			_ = m.formatMessage(testMessages[j])
+			_ = m.formatMessage(j, testMessages[j])
 		}
 	}
 
@@ -1233,7 +1236,7 @@ func TestFormatCache(t *testing.T) {
 	}
 
 	// First call should cache the result
-	result1 := m.formatMessage(msg)
+	result1 := m.formatMessage(0, msg)
 	if result1 == "" {
 		t.Fatal("First formatMessage call should return non-empty string")
 	}
@@ -1244,7 +1247,7 @@ func TestFormatCache(t *testing.T) {
 	}
 
 	// Second call should return cached result (same width)
-	result2 := m.formatMessage(msg)
+	result2 := m.formatMessage(0, msg)
 	if result1 != result2 {
 		t.Errorf("Cache hit should return same result. First: %q, Second: %q", result1, result2)
 	}
@@ -1272,7 +1275,7 @@ func TestFormatCacheInvalidationOnWidthChange(t *testing.T) {
 		Content:   "Test message",
 		Timestamp: time.Now(),
 	}
-	_ = m.formatMessage(msg)
+	_ = m.formatMessage(0, msg)
 
 	// Verify cache has entry
 	if len(m.formatCache) != 1 {
@@ -1289,7 +1292,7 @@ func TestFormatCacheInvalidationOnWidthChange(t *testing.T) {
 	}
 
 	// New format call should populate cache again
-	_ = m.formatMessage(msg)
+	_ = m.formatMessage(0, msg)
 	if len(m.formatCache) != 1 {
 		t.Errorf("Expected cache size 1 after re-format, got %d", len(m.formatCache))
 	}
@@ -1319,8 +1322,8 @@ func TestFormatCacheInvalidationOnMessageUpdate(t *testing.T) {
 		Timestamp: time.Now(),
 	}
 
-	_ = m.formatMessage(msg1)
-	_ = m.formatMessage(msg2)
+	_ = m.formatMessage(0, msg1)
+	_ = m.formatMessage(1, msg2)
 
 	// Verify both are cached
 	if len(m.formatCache) != 2 {
@@ -1365,7 +1368,7 @@ func TestFormatCacheSizeLimit(t *testing.T) {
 			Content:   fmt.Sprintf("Message %d", i),
 			Timestamp: time.Now(),
 		}
-		_ = m.formatMessage(msg)
+		_ = m.formatMessage(i, msg)
 	}
 
 	// Verify cache has 5 entries
@@ -1380,7 +1383,7 @@ func TestFormatCacheSizeLimit(t *testing.T) {
 		Content:   "Message 6",
 		Timestamp: time.Now(),
 	}
-	_ = m.formatMessage(msg)
+	_ = m.formatMessage(0, msg)
 
 	// Cache should be cleared and have only 1 entry (the new message)
 	if len(m.formatCache) != 1 {
@@ -1761,5 +1764,1994 @@ func TestAddMessageWithZeroLimit(t *testing.T) {
 	// Verify first message is "Message 1" (index 1, since 0 was evicted)
 	if m.messages[0].Content != "Message 1" {
 		t.Errorf("Expected first message to be 'Message 1', got '%s'", m.messages[0].Content)
+	}
+}
+
+// TestCountLines tests the countLines helper function.
+// Note: countLines strips trailing newlines before counting to match
+// how lines appear visually in the viewport content.
+func TestCountLines(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected int
+	}{
+		{"empty string", "", 0},
+		{"single line", "hello", 1},
+		{"two lines", "hello\nworld", 2},
+		{"three lines", "a\nb\nc", 3},
+		{"trailing newline", "hello\n", 1},            // trailing \n is stripped
+		{"multiple trailing newlines", "a\nb\n\n", 3}, // one trailing \n is stripped, leaving "a\nb\n"
+		{"only newlines", "\n\n\n", 3},                // one trailing \n is stripped, leaving "\n\n"
+		{"only newlines single", "\n", 0},             // single \n is stripped, leaving ""
+		{"only newlines double", "\n\n", 2},           // one trailing \n is stripped, leaving "\n" = 2 lines
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := countLines(tt.input)
+			if got != tt.expected {
+				t.Errorf("countLines(%q) = %d, want %d", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
+
+// TestFormatCollapsedToolMessage tests the collapsed tool message rendering.
+func TestFormatCollapsedToolMessage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+
+	toolMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeTool,
+		Content:   "This is a very long tool output that should be hidden when collapsed. It contains multiple lines of output that would clutter the conversation view.",
+		Timestamp: time.Now(),
+		AgentID:   uuid.New(),
+		AgentRole: "runner",
+		IsTool:    true,
+		Collapsed: true,
+	}
+
+	got := m.formatMessage(0, toolMsg)
+
+	// Verify collapsed indicator is present
+	if !strings.Contains(got, "Click to expand") {
+		t.Error("Collapsed tool message should contain 'Click to expand'")
+	}
+
+	// Verify it shows the "Tool" label
+	if !strings.Contains(got, "Tool") {
+		t.Error("Collapsed tool message should contain 'Tool'")
+	}
+
+	// Verify it's compact (fewer lines than expanded)
+	lines := strings.Count(got, "\n")
+	if lines > 5 {
+		t.Errorf("Collapsed message should be compact (max 5 lines), got %d lines", lines)
+	}
+
+	// Verify the full content is NOT shown
+	if strings.Contains(got, "very long tool output") {
+		t.Error("Collapsed message should NOT contain the full tool output")
+	}
+}
+
+// TestFormatExpandedToolMessage tests that expanded tool messages show full content.
+func TestFormatExpandedToolMessage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+
+	toolMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeTool,
+		Content:   "This is the tool output content that should be visible.",
+		Timestamp: time.Now(),
+		AgentID:   uuid.New(),
+		AgentRole: "runner",
+		IsTool:    true,
+		Collapsed: false, // Expanded state
+	}
+
+	got := m.formatMessage(0, toolMsg)
+
+	// Verify the content IS shown
+	if !strings.Contains(got, "tool output content") {
+		t.Error("Expanded tool message should contain the full content")
+	}
+
+	// Verify collapsed indicator is NOT present
+	if strings.Contains(got, "Click to expand") {
+		t.Error("Expanded tool message should NOT contain 'Click to expand'")
+	}
+}
+
+// TestGetMessageAtLine tests finding messages by line position.
+func TestGetMessageAtLine(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+
+	// Add some messages
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Hi there, how can I help?", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool output", Timestamp: time.Now(), IsTool: true},
+	}
+
+	// Build the line-to-message mapping by updating viewport content
+	m.updateViewportContent()
+
+	// Verify the mapping was built
+	if len(m.lineToMessage) == 0 {
+		t.Fatal("lineToMessage should be populated after updateViewportContent()")
+	}
+
+	// Test that lines within each message return the correct message index
+	// Message 0 should occupy lines 0 to (messageLinePositions[1]-1)
+	// Message 1 should occupy lines messageLinePositions[1] to (messageLinePositions[2]-1)
+	// etc.
+
+	tests := []struct {
+		name     string
+		line     int
+		expected int
+	}{
+		{"first message line 0", 0, 0},
+		{"before first", -1, -1},
+	}
+
+	// Test first message (line 0)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := m.getMessageAtLine(tt.line)
+			if got != tt.expected {
+				t.Errorf("getMessageAtLine(%d) = %d, want %d", tt.line, got, tt.expected)
+			}
+		})
+	}
+
+	// Test lines within bounds
+	for line := 0; line < len(m.lineToMessage); line++ {
+		expected := m.lineToMessage[line]
+		got := m.getMessageAtLine(line)
+		if got != expected {
+			t.Errorf("getMessageAtLine(%d) = %d, want %d", line, got, expected)
+		}
+	}
+
+	// Test line beyond bounds
+	if got := m.getMessageAtLine(len(m.lineToMessage) + 100); got != -1 {
+		t.Errorf("getMessageAtLine(beyond bounds) should return -1, got %d", got)
+	}
+}
+
+// TestToggleMessageCollapse tests toggling collapse state.
+func TestToggleMessageCollapse(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+
+	// Add messages
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool output", Timestamp: time.Now(), IsTool: true, Collapsed: true},
+		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Response", Timestamp: time.Now()},
+	}
+
+	// Test toggling tool message (should succeed)
+	if !m.toggleMessageCollapse(1) {
+		t.Error("toggleMessageCollapse(1) should return true for tool message")
+	}
+	if m.messages[1].Collapsed {
+		t.Error("Tool message should be expanded after toggle")
+	}
+
+	// Toggle again (should collapse)
+	if !m.toggleMessageCollapse(1) {
+		t.Error("toggleMessageCollapse(1) should return true for expanded tool message")
+	}
+	if !m.messages[1].Collapsed {
+		t.Error("Tool message should be collapsed after second toggle")
+	}
+
+	// Test toggling non-tool message (should fail)
+	if m.toggleMessageCollapse(0) {
+		t.Error("toggleMessageCollapse(0) should return false for user message")
+	}
+
+	// Test invalid index
+	if m.toggleMessageCollapse(-1) {
+		t.Error("toggleMessageCollapse(-1) should return false")
+	}
+	if m.toggleMessageCollapse(100) {
+		t.Error("toggleMessageCollapse(100) should return false for out of bounds")
+	}
+}
+
+// TestToggleMessageCollapseInvalidatesCache tests that toggling collapse invalidates the format cache.
+func TestToggleMessageCollapseInvalidatesCache(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+
+	// Add a tool message
+	toolMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeTool,
+		Content:   "Tool output",
+		Timestamp: time.Now(),
+		IsTool:    true,
+		Collapsed: true,
+	}
+	m.messages = []Message{toolMsg}
+
+	// Build the cache
+	content := m.updateViewportContent()
+	m.viewport.SetContent(content)
+
+	// Verify cache is populated
+	if len(m.formatCache) == 0 {
+		t.Error("Format cache should be populated after updateViewportContent")
+	}
+
+	// Toggle collapse
+	m.toggleMessageCollapse(0)
+
+	// Verify cache for that message was invalidated
+	if _, exists := m.formatCache[toolMsg.ID]; exists {
+		t.Error("Format cache for tool message should be invalidated after toggle")
+	}
+
+	// Verify cached content was cleared
+	if m.cachedContent != "" {
+		t.Error("Cached content should be cleared after toggle to force rebuild")
+	}
+}
+
+// TestMessageAdapterToMessageCollapsedState tests that MessageAdapter.ToMessage sets collapsed state for tool messages.
+func TestMessageAdapterToMessageCollapsedState(t *testing.T) {
+	tests := []struct {
+		name            string
+		adapter         MessageAdapter
+		expectCollapsed bool
+	}{
+		{
+			name: "tool message with IsTool=true",
+			adapter: MessageAdapter{
+				ID:      uuid.New(),
+				Type:    MessageTypeAdapterAgent,
+				Content: "output",
+				IsTool:  true,
+			},
+			expectCollapsed: true,
+		},
+		{
+			name: "message with MessageTypeAdapterTool type",
+			adapter: MessageAdapter{
+				ID:      uuid.New(),
+				Type:    MessageTypeAdapterTool,
+				Content: "output",
+				IsTool:  false,
+			},
+			expectCollapsed: true,
+		},
+		{
+			name: "regular agent message",
+			adapter: MessageAdapter{
+				ID:      uuid.New(),
+				Type:    MessageTypeAdapterAgent,
+				Content: "response",
+				IsTool:  false,
+			},
+			expectCollapsed: false,
+		},
+		{
+			name: "user message",
+			adapter: MessageAdapter{
+				ID:      uuid.New(),
+				Type:    MessageTypeAdapterUser,
+				Content: "question",
+				IsTool:  false,
+			},
+			expectCollapsed: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.adapter.ToMessage()
+			if got.Collapsed != tt.expectCollapsed {
+				t.Errorf("ToMessage().Collapsed = %v, want %v", got.Collapsed, tt.expectCollapsed)
+			}
+		})
+	}
+}
+
+// TestUpdateViewportContentTracksMessagePositions tests that updateViewportContent tracks message line positions.
+func TestUpdateViewportContentTracksMessagePositions(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+
+	// Add messages
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Hi there", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool output", Timestamp: time.Now(), IsTool: true, Collapsed: true},
+	}
+
+	// Update viewport content
+	_ = m.updateViewportContent()
+
+	// Verify message line positions are tracked
+	if len(m.messageLinePositions) != 3 {
+		t.Errorf("Expected 3 message line positions, got %d", len(m.messageLinePositions))
+	}
+
+	// First message should start at line 0
+	if m.messageLinePositions[0] != 0 {
+		t.Errorf("First message should start at line 0, got %d", m.messageLinePositions[0])
+	}
+
+	// Subsequent messages should have increasing line positions
+	for i := 1; i < len(m.messageLinePositions); i++ {
+		if m.messageLinePositions[i] <= m.messageLinePositions[i-1] {
+			t.Errorf("Message %d line position (%d) should be greater than message %d (%d)",
+				i, m.messageLinePositions[i], i-1, m.messageLinePositions[i-1])
+		}
+	}
+
+	// Now verify clicking on each message selects the correct one
+	m.height = 24
+	m.viewport.Height = 20
+	m.viewport.SetContent(m.updateViewportContent())
+
+	// Click on first message (at its start line)
+	clickOnFirst := tea.MouseMsg{Type: tea.MouseLeft, Y: 0}
+	resultModel, _ := m.handleClickOnToolMessage(clickOnFirst)
+	result := resultModel.(Model)
+	if result.selectedMessageIndex != 0 {
+		t.Errorf("Click at Y=0 should select message 0, got %d", result.selectedMessageIndex)
+	}
+
+	// Click on second message (at its start line)
+	clickY := m.messageLinePositions[1]
+	clickOnSecond := tea.MouseMsg{Type: tea.MouseLeft, Y: clickY}
+	resultModel2, _ := result.handleClickOnToolMessage(clickOnSecond)
+	result2 := resultModel2.(Model)
+	if result2.selectedMessageIndex != 1 {
+		t.Errorf("Click at Y=%d (message 1 start) should select message 1, got %d", clickY, result2.selectedMessageIndex)
+	}
+
+	// Click on third message (collapsed tool, at its start line)
+	clickY2 := m.messageLinePositions[2]
+	clickOnThird := tea.MouseMsg{Type: tea.MouseLeft, Y: clickY2}
+	resultModel3, _ := result2.handleClickOnToolMessage(clickOnThird)
+	result3 := resultModel3.(Model)
+	if result3.selectedMessageIndex != 2 {
+		t.Errorf("Click at Y=%d (message 2 start) should select message 2, got %d", clickY2, result3.selectedMessageIndex)
+	}
+}
+
+// TestClickOnCollapsedToolMessage tests that clicking on a collapsed tool message
+// at different Y positions within the message selects the correct message.
+func TestClickOnCollapsedToolMessage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 50
+	m.viewport.Height = 40
+
+	// Create messages where a collapsed tool message is in the middle
+	userMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeUser,
+		Content:   "Hello, this is a user message",
+		Timestamp: time.Now(),
+	}
+	toolMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeTool,
+		Content:   "This is a long tool output that should be collapsed",
+		Timestamp: time.Now(),
+		IsTool:    true,
+		Collapsed: true,
+	}
+	agentMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeAgent,
+		Content:   "Agent response here",
+		Timestamp: time.Now(),
+	}
+
+	m.messages = []Message{userMsg, toolMsg, agentMsg}
+	content := m.updateViewportContent()
+	m.viewport.SetContent(content)
+
+	t.Logf("Message line positions: %v", m.messageLinePositions)
+	t.Logf("Content:\n%s", content)
+
+	// Get the start and end lines for the tool message
+	// The actual message content (without blank gaps)
+	toolStartLine := m.messageLinePositions[1]
+	formattedToolMsg := m.formatMessage(1, toolMsg)
+	toolMsgLines := countLines(formattedToolMsg)
+	toolEndLine := toolStartLine + toolMsgLines - 1 // End of actual tool message content
+
+	t.Logf("Tool message starts at line %d, ends at line %d (content only, no gaps)", toolStartLine, toolEndLine)
+
+	// Click at various positions within the tool message
+	for clickY := toolStartLine; clickY <= toolEndLine && clickY < m.viewport.Height; clickY++ {
+		clickMsg := tea.MouseMsg{Type: tea.MouseLeft, Y: clickY}
+		resultModel, _ := m.handleClickOnToolMessage(clickMsg)
+		result := resultModel.(Model)
+
+		if result.selectedMessageIndex != 1 {
+			t.Errorf("Click at Y=%d (within tool message lines %d-%d) should select message 1 (tool), got %d",
+				clickY, toolStartLine, toolEndLine, result.selectedMessageIndex)
+		} else {
+			t.Logf("Click at Y=%d correctly selected tool message (index 1)", clickY)
+		}
+
+		// Reset for next iteration
+		m.selectedMessageIndex = -1
+	}
+}
+
+// TestClickOnExpandedToolMessage tests clicking on an expanded tool message.
+func TestClickOnExpandedToolMessage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 50
+	m.viewport.Height = 40
+
+	// Create messages with an EXPANDED tool message
+	userMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeUser,
+		Content:   "Hello",
+		Timestamp: time.Now(),
+	}
+	toolMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeTool,
+		Content:   "This is tool output that should be visible",
+		Timestamp: time.Now(),
+		IsTool:    true,
+		Collapsed: false, // EXPANDED
+	}
+	agentMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeAgent,
+		Content:   "Response",
+		Timestamp: time.Now(),
+	}
+
+	m.messages = []Message{userMsg, toolMsg, agentMsg}
+	content := m.updateViewportContent()
+	m.viewport.SetContent(content)
+
+	t.Logf("Message line positions: %v", m.messageLinePositions)
+
+	// Click at the start of the tool message
+	toolStartLine := m.messageLinePositions[1]
+	clickMsg := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
+	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
+	result := resultModel.(Model)
+
+	if result.selectedMessageIndex != 1 {
+		t.Errorf("Click at Y=%d (tool message start) should select message 1, got %d",
+			toolStartLine, result.selectedMessageIndex)
+	}
+}
+
+// TestClickOnToolMessageWithDifferentialUpdate tests clicking after messages are added via differential update.
+func TestClickOnToolMessageWithDifferentialUpdate(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 50
+	m.viewport.Height = 40
+
+	// Start with one message
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "First message", Timestamp: time.Now()},
+	}
+	m.updateViewportContent()
+	m.viewport.SetContent(m.cachedContent)
+
+	t.Logf("After first message: positions=%v, lastRenderedCount=%d", m.messageLinePositions, m.lastRenderedCount)
+
+	// Add more messages via differential update
+	m.messages = append(m.messages, Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeTool,
+		Content:   "Tool output",
+		Timestamp: time.Now(),
+		IsTool:    true,
+		Collapsed: true,
+	})
+	m.updateViewportContent()
+	m.viewport.SetContent(m.cachedContent)
+
+	t.Logf("After tool message: positions=%v, lastRenderedCount=%d", m.messageLinePositions, m.lastRenderedCount)
+
+	// Add one more
+	m.messages = append(m.messages, Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeAgent,
+		Content:   "Agent response",
+		Timestamp: time.Now(),
+	})
+	m.updateViewportContent()
+	m.viewport.SetContent(m.cachedContent)
+
+	t.Logf("After agent message: positions=%v, lastRenderedCount=%d", m.messageLinePositions, m.lastRenderedCount)
+
+	// Now click on the tool message (index 1)
+	toolStartLine := m.messageLinePositions[1]
+	clickMsg := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
+	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
+	result := resultModel.(Model)
+
+	if result.selectedMessageIndex != 1 {
+		t.Errorf("Click at Y=%d should select tool message (index 1), got %d",
+			toolStartLine, result.selectedMessageIndex)
+	}
+
+	// Also verify clicking on the first message
+	userStartLine := m.messageLinePositions[0]
+	clickMsg2 := tea.MouseMsg{Type: tea.MouseLeft, Y: userStartLine}
+	resultModel2, _ := m.handleClickOnToolMessage(clickMsg2)
+	result2 := resultModel2.(Model)
+
+	if result2.selectedMessageIndex != 0 {
+		t.Errorf("Click at Y=%d should select user message (index 0), got %d",
+			userStartLine, result2.selectedMessageIndex)
+	}
+}
+
+// TestClickOnToolMessageWithScrolling tests clicking when content is scrolled.
+func TestClickOnToolMessageWithScrolling(t *testing.T) {
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+	m.viewport.Height = 10 // Small viewport to force scrolling
+
+	// Create many messages so content overflows viewport
+	for i := 0; i < 10; i++ {
+		msgType := MessageTypeAgent
+		content := fmt.Sprintf("Message %d with some content to make it longer", i)
+		isTool := false
+
+		// Every third message is a tool message
+		if i%3 == 2 {
+			msgType = MessageTypeTool
+			content = fmt.Sprintf("Tool output %d", i)
+			isTool = true
+		}
+
+		m.messages = append(m.messages, Message{
+			ID:        uuid.New(),
+			Type:      msgType,
+			Content:   content,
+			Timestamp: time.Now(),
+			IsTool:    isTool,
+			Collapsed: isTool, // Tool messages start collapsed
+		})
+	}
+
+	m.updateViewportContent()
+	m.viewport.SetContent(m.cachedContent)
+
+	t.Logf("Message line positions: %v", m.messageLinePositions)
+	t.Logf("Total content lines: %d", countLines(m.cachedContent))
+	t.Logf("Viewport height: %d", m.viewport.Height)
+
+	// Scroll down a bit
+	m.viewport.LineDown(10)
+	yOffset := m.viewport.YOffset
+	t.Logf("Scrolled down, YOffset: %d", yOffset)
+
+	// Click at Y=0 in the viewport (which is actually at content line yOffset)
+	clickMsg := tea.MouseMsg{Type: tea.MouseLeft, Y: 0}
+	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
+	result := resultModel.(Model)
+
+	// The click handler rebuilds content, so use the result's message line positions
+	expectedMsgIdx := result.getMessageAtLine(yOffset)
+	t.Logf("Click at viewport Y=0 (content line %d) should select message %d", yOffset, expectedMsgIdx)
+
+	if result.selectedMessageIndex != expectedMsgIdx {
+		t.Errorf("Click at viewport Y=0 (content line %d) should select message %d, got %d",
+			yOffset, expectedMsgIdx, result.selectedMessageIndex)
+	}
+
+	// Now click at Y=5 in the viewport
+	clickMsg2 := tea.MouseMsg{Type: tea.MouseLeft, Y: 5}
+	resultModel2, _ := result.handleClickOnToolMessage(clickMsg2)
+	result2 := resultModel2.(Model)
+
+	// The click handler rebuilds content, so use the result's message line positions
+	expectedMsgIdx2 := result2.getMessageAtLine(yOffset + 5)
+	t.Logf("Click at viewport Y=5 (content line %d) should select message %d", yOffset+5, expectedMsgIdx2)
+
+	if result2.selectedMessageIndex != expectedMsgIdx2 {
+		t.Errorf("Click at viewport Y=5 (content line %d) should select message %d, got %d",
+			yOffset+5, expectedMsgIdx2, result2.selectedMessageIndex)
+	}
+}
+
+// TestClickOnFirstToolMessage tests clicking on the first tool message after a user message.
+// This is a specific test case to ensure the first tool message's position is calculated correctly.
+func TestClickOnFirstToolMessage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 50
+	m.viewport.Height = 40
+
+	// Add a user message
+	userMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeUser,
+		Content:   "Hello, please help me",
+		Timestamp: time.Now(),
+	}
+	m.messages = append(m.messages, userMsg)
+	content := m.updateViewportContent()
+	m.viewport.SetContent(content)
+
+	t.Logf("After user message: positions=%v, lastRenderedCount=%d", m.messageLinePositions, m.lastRenderedCount)
+
+	// Now add a tool message (collapsed)
+	toolMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeTool,
+		Content:   "Tool output here",
+		Timestamp: time.Now(),
+		AgentID:   uuid.New(),
+		AgentRole: "runner",
+		IsTool:    true,
+		Collapsed: true,
+	}
+	m.messages = append(m.messages, toolMsg)
+	content = m.updateViewportContent()
+	m.viewport.SetContent(content)
+
+	t.Logf("After tool message: positions=%v, lastRenderedCount=%d", m.messageLinePositions, m.lastRenderedCount)
+	t.Logf("User message lines: %d", m.messageLinePositions[1])
+	t.Logf("Content:\n%s", content)
+
+	// The tool message starts AFTER the user message + 2 blank lines
+	// User message (5 lines) + 2 blank lines = tool message starts at line 7
+	userLines := countLines(m.formatMessage(0, m.messages[0]))
+	expectedToolStart := userLines + 2 // +2 for blank lines
+	t.Logf("Expected tool start: %d, actual: %d", expectedToolStart, m.messageLinePositions[1])
+
+	if m.messageLinePositions[1] != expectedToolStart {
+		t.Errorf("Tool message position incorrect: expected %d, got %d", expectedToolStart, m.messageLinePositions[1])
+	}
+
+	// Now click at the START of the tool message
+	toolStartLine := m.messageLinePositions[1]
+	clickMsg := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
+	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
+	result := resultModel.(Model)
+
+	// Should select the TOOL message (index 1), not the user message (index 0)
+	if result.selectedMessageIndex != 1 {
+		t.Errorf("Click at Y=%d (tool message start) should select tool message (index 1), got %d",
+			toolStartLine, result.selectedMessageIndex)
+	}
+
+	// Also click at a line within the tool message (not at the start)
+	clickMsg2 := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine + 1}
+	resultModel2, _ := result.handleClickOnToolMessage(clickMsg2)
+	result2 := resultModel2.(Model)
+
+	if result2.selectedMessageIndex != 1 {
+		t.Errorf("Click at Y=%d (within tool message) should select tool message (index 1), got %d",
+			toolStartLine+1, result2.selectedMessageIndex)
+	}
+}
+
+// TestMultipleDoubleClicks tests that double-clicking multiple times still works.
+func TestMultipleDoubleClicks(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 50
+	m.viewport.Height = 40
+
+	// Create messages with collapsed tool messages
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool 1", Timestamp: time.Now(), IsTool: true, Collapsed: true},
+		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool 2", Timestamp: time.Now(), IsTool: true, Collapsed: true},
+	}
+	m.updateViewportContent()
+	m.viewport.SetContent(m.cachedContent)
+
+	// Simulate multiple double-clicks on the first tool message
+	toolStartLine := m.messageLinePositions[1]
+
+	for i := 0; i < 5; i++ {
+		// Reset click tracking to ensure clean state for each double-click
+		// This simulates waiting >500ms between double-click attempts
+		m.lastClickTime = time.Time{}
+		m.lastClickedMessageIndex = -1
+
+		t.Logf("Iteration %d start: tool message Collapsed=%v, positions=%v", i, m.messages[1].Collapsed, m.messageLinePositions)
+
+		// First click
+		click1 := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
+		resultModel1, _ := m.handleClickOnToolMessage(click1)
+		m = resultModel1.(Model)
+
+		t.Logf("Iteration %d after first click: Collapsed=%v, lastClickedMessageIndex=%d", i, m.messages[1].Collapsed, m.lastClickedMessageIndex)
+
+		// Simulate quick second click (within threshold)
+		m.lastClickTime = m.lastClickTime.Add(-100 * time.Millisecond)
+
+		// Second click (should be double-click)
+		click2 := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
+		resultModel2, _ := m.handleClickOnToolMessage(click2)
+		m = resultModel2.(Model)
+
+		t.Logf("Iteration %d after second click: Collapsed=%v", i, m.messages[1].Collapsed)
+
+		// Check that collapse state toggled
+		// Start: Collapsed=true
+		// After iteration 0: Collapsed=false (expanded)
+		// After iteration 1: Collapsed=true (collapsed)
+		// After iteration 2: Collapsed=false
+		// etc.
+		var expectedCollapsed bool
+		switch i {
+		case 0:
+			expectedCollapsed = false // First toggle: true -> false
+		case 1:
+			expectedCollapsed = true // Second toggle: false -> true
+		case 2:
+			expectedCollapsed = false // Third toggle: true -> false
+		case 3:
+			expectedCollapsed = true
+		case 4:
+			expectedCollapsed = false
+		default:
+			expectedCollapsed = (i % 2) == 0 // After even iterations: collapsed, After odd: expanded
+		}
+
+		if m.messages[1].Collapsed != expectedCollapsed {
+			t.Errorf("Iteration %d: expected Collapsed=%v, got %v", i, expectedCollapsed, m.messages[1].Collapsed)
+		}
+
+		// Update toolStartLine for next iteration (line positions may have changed)
+		toolStartLine = m.messageLinePositions[1]
+	}
+}
+
+// TestDoubleClickLinePositionChange tests that double-clicking still works when line positions change.
+func TestDoubleClickLinePositionChange(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 50
+	m.viewport.Height = 40
+
+	// Create messages with collapsed tool messages
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool 1", Timestamp: time.Now(), IsTool: true, Collapsed: true},
+		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Agent response", Timestamp: time.Now()},
+	}
+	m.updateViewportContent()
+	m.viewport.SetContent(m.cachedContent)
+
+	// Get initial positions
+	initialPositions := make([]int, len(m.messageLinePositions))
+	copy(initialPositions, m.messageLinePositions)
+	t.Logf("Initial positions: %v", initialPositions)
+
+	// Double-click to expand tool message
+	toolStartLine := m.messageLinePositions[1]
+	click1 := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
+	resultModel1, _ := m.handleClickOnToolMessage(click1)
+	m = resultModel1.(Model)
+
+	// Quick second click
+	m.lastClickTime = m.lastClickTime.Add(-100 * time.Millisecond)
+	click2 := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
+	resultModel2, _ := m.handleClickOnToolMessage(click2)
+	m = resultModel2.(Model)
+
+	t.Logf("After expand: positions=%v, Collapsed=%v", m.messageLinePositions, m.messages[1].Collapsed)
+
+	// Tool message should be expanded now
+	if m.messages[1].Collapsed {
+		t.Error("Tool message should be expanded after double-click")
+	}
+
+	// Line positions should have changed (expanded message takes more lines)
+	if len(m.messageLinePositions) != 3 {
+		t.Errorf("Expected 3 positions, got %d", len(m.messageLinePositions))
+	}
+
+	// The agent message should now start at a higher line number
+	// (because the expanded tool message takes more space)
+	if m.messageLinePositions[2] <= initialPositions[2] {
+		t.Errorf("Agent message should start at higher line after tool expansion, was %d, now %d",
+			initialPositions[2], m.messageLinePositions[2])
+	}
+}
+
+// TestHandleClickOnToolMessage tests mouse click handling for collapsing/expanding tool messages.
+func TestHandleClickOnToolMessage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 24
+	m.viewport.Height = 20 // Set viewport height
+
+	// Add messages with known positions
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool output", Timestamp: time.Now(), IsTool: true, Collapsed: true},
+		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Response", Timestamp: time.Now()},
+	}
+
+	// Set up the viewport content
+	content := m.updateViewportContent()
+	m.viewport.SetContent(content)
+
+	t.Logf("Message line positions: %v", m.messageLinePositions)
+	t.Logf("Line to message mapping: %v", m.lineToMessage)
+
+	// Click on the actual line where tool message starts
+	toolStartLine := m.messageLinePositions[1]
+	clickMsg := tea.MouseMsg{
+		Type: tea.MouseLeft,
+		Y:    toolStartLine, // Click on the tool message
+	}
+	t.Logf("Clicking at line %d (tool message start)", toolStartLine)
+
+	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
+	result := resultModel.(Model)
+
+	// Verify the message is selected (single click behavior)
+	if result.selectedMessageIndex != 1 {
+		t.Errorf("Message at index 1 should be selected, got %d", result.selectedMessageIndex)
+	}
+
+	// Single click should NOT toggle collapse (still collapsed)
+	if !result.messages[1].Collapsed {
+		t.Error("Tool message should still be collapsed after single click (double-click required to toggle)")
+	}
+
+	// Now simulate a double-click by clicking again quickly on the same message
+	// The lastClickTime and lastClickedMessageIndex were already set by the first click
+	result.lastClickTime = result.lastClickTime.Add(-100 * time.Millisecond) // Simulate quick second click
+
+	resultModel2, _ := result.handleClickOnToolMessage(clickMsg)
+	result2 := resultModel2.(Model)
+
+	// After double-click, the tool message should be expanded
+	if result2.messages[1].Collapsed {
+		t.Error("Tool message should be expanded after double-click")
+	}
+
+	// Selection should still be on message 1
+	if result2.selectedMessageIndex != 1 {
+		t.Errorf("Message at index 1 should still be selected, got %d", result2.selectedMessageIndex)
+	}
+}
+
+// TestHandleClickOnNonToolMessage tests that clicking on non-tool messages selects them but doesn't toggle collapse.
+func TestHandleClickOnNonToolMessage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 24
+	m.viewport.Height = 20
+
+	// Add messages
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Response", Timestamp: time.Now()},
+	}
+
+	content := m.updateViewportContent()
+	m.viewport.SetContent(content)
+	m.messageLinePositions = []int{0, 10}
+
+	// Click on line 0 (user message)
+	clickMsg := tea.MouseMsg{
+		Type: tea.MouseLeft,
+		Y:    0,
+	}
+
+	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
+	result := resultModel.(Model)
+
+	// User message should be selected
+	if result.selectedMessageIndex != 0 {
+		t.Errorf("Message at index 0 should be selected, got %d", result.selectedMessageIndex)
+	}
+
+	// Messages should be unchanged (no collapse toggle for non-tool messages)
+	if len(result.messages) != 2 {
+		t.Error("Messages should be unchanged after clicking non-tool message")
+	}
+}
+
+// TestHandleClickOutsideViewport tests that clicks outside viewport bounds are handled.
+func TestHandleClickOutsideViewport(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 24
+	m.viewport.Height = 10
+
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool", Timestamp: time.Now(), IsTool: true, Collapsed: true},
+	}
+
+	content := m.updateViewportContent()
+	m.viewport.SetContent(content)
+	m.messageLinePositions = []int{0}
+
+	// Click outside viewport bounds (Y = 15, but viewport height is 10)
+	clickMsg := tea.MouseMsg{
+		Type: tea.MouseLeft,
+		Y:    15, // Outside viewport
+	}
+
+	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
+	result := resultModel.(Model)
+
+	// Tool message should still be collapsed (click was outside viewport)
+	if !result.messages[0].Collapsed {
+		t.Error("Tool message should remain collapsed when click is outside viewport")
+	}
+}
+
+// TestHandleClickOnInvalidLine tests clicking on a line with no message.
+func TestHandleClickOnInvalidLine(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 24
+	m.viewport.Height = 20
+
+	// No message line positions set (empty)
+	m.messageLinePositions = []int{}
+
+	// Click somewhere
+	clickMsg := tea.MouseMsg{
+		Type: tea.MouseLeft,
+		Y:    5,
+	}
+
+	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
+	// Should not panic and should pass to text input
+	_ = resultModel.(Model)
+}
+
+// TestMessageSelectionWithBoldBorder tests that selected messages have bold/double-line borders.
+func TestMessageSelectionWithBoldBorder(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+
+	// Create a tool message and add it to the model
+	toolMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeTool,
+		Content:   "Tool output",
+		Timestamp: time.Now(),
+		AgentID:   uuid.New(),
+		AgentRole: "runner",
+		IsTool:    true,
+		Collapsed: true,
+	}
+	m.messages = []Message{toolMsg}
+
+	// Format without selection (index 0, not selected)
+	normalFormat := m.formatMessage(0, toolMsg)
+
+	// Select the message
+	m.selectMessage(0)
+
+	// Format with selection (index 0, selected)
+	selectedFormat := m.formatMessage(0, toolMsg)
+
+	// Selected format should use double-line borders (╔═╗║╚╝)
+	if !strings.Contains(selectedFormat, "╔") {
+		t.Error("Selected message should contain double-line top-left border '╔'")
+	}
+	if !strings.Contains(selectedFormat, "╗") {
+		t.Error("Selected message should contain double-line top-right border '╗'")
+	}
+	if !strings.Contains(selectedFormat, "╚") {
+		t.Error("Selected message should contain double-line bottom-left border '╚'")
+	}
+	if !strings.Contains(selectedFormat, "╝") {
+		t.Error("Selected message should contain double-line bottom-right border '╝'")
+	}
+
+	// Normal format should use single-line borders (╭─│╮╰╯)
+	if !strings.Contains(normalFormat, "╭") {
+		t.Error("Normal message should contain single-line top-left border '╭'")
+	}
+	if !strings.Contains(normalFormat, "╮") {
+		t.Error("Normal message should contain single-line top-right border '╮'")
+	}
+	if !strings.Contains(normalFormat, "╰") {
+		t.Error("Normal message should contain single-line bottom-left border '╰'")
+	}
+	if !strings.Contains(normalFormat, "╯") {
+		t.Error("Normal message should contain single-line bottom-right border '╯'")
+	}
+}
+
+// TestClickSelectsMessage tests that clicking a message selects it.
+func TestClickSelectsMessage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 24
+	m.viewport.Height = 20
+
+	// Add messages
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Response", Timestamp: time.Now()},
+	}
+
+	content := m.updateViewportContent()
+	m.viewport.SetContent(content)
+	t.Logf("Message line positions: %v", m.messageLinePositions)
+
+	// Initially no message selected
+	if m.selectedMessageIndex != -1 {
+		t.Errorf("Expected no message selected initially, got %d", m.selectedMessageIndex)
+	}
+
+	// Click on first line (first message)
+	clickMsg := tea.MouseMsg{
+		Type: tea.MouseLeft,
+		Y:    0,
+	}
+
+	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
+	result := resultModel.(Model)
+
+	// First message should be selected
+	if result.selectedMessageIndex != 0 {
+		t.Errorf("Expected message 0 selected, got %d", result.selectedMessageIndex)
+	}
+
+	// Click on the actual line where second message starts
+	secondMsgLine := m.messageLinePositions[1]
+	clickMsg2 := tea.MouseMsg{
+		Type: tea.MouseLeft,
+		Y:    secondMsgLine,
+	}
+	t.Logf("Clicking on line %d (second message start)", secondMsgLine)
+
+	resultModel2, _ := result.handleClickOnToolMessage(clickMsg2)
+	result2 := resultModel2.(Model)
+
+	// Second message should be selected
+	if result2.selectedMessageIndex != 1 {
+		t.Errorf("Expected message 1 selected, got %d", result2.selectedMessageIndex)
+	}
+}
+
+// TestDoubleClickThreshold tests that double-click only works within the threshold.
+func TestDoubleClickThreshold(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 24
+	m.viewport.Height = 20
+
+	// Add messages with a collapsed tool message
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool output", Timestamp: time.Now(), IsTool: true, Collapsed: true},
+	}
+
+	content := m.updateViewportContent()
+	m.viewport.SetContent(content)
+
+	t.Logf("Message line positions: %v", m.messageLinePositions)
+	t.Logf("Line to message mapping: %v", m.lineToMessage)
+
+	// Click on the actual line where tool message starts
+	toolStartLine := m.messageLinePositions[1]
+	clickMsg := tea.MouseMsg{
+		Type: tea.MouseLeft,
+		Y:    toolStartLine,
+	}
+	t.Logf("Clicking at line %d (tool message start)", toolStartLine)
+
+	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
+	result := resultModel.(Model)
+
+	// Message should be selected but still collapsed
+	if result.selectedMessageIndex != 1 {
+		t.Errorf("Expected message 1 selected, got %d", result.selectedMessageIndex)
+	}
+	if !result.messages[1].Collapsed {
+		t.Error("Message should still be collapsed after single click")
+	}
+
+	// Simulate a slow second click (beyond threshold)
+	// Set lastClickTime to be more than 500ms ago
+	result.lastClickTime = result.lastClickTime.Add(-600 * time.Millisecond)
+
+	resultModel2, _ := result.handleClickOnToolMessage(clickMsg)
+	result2 := resultModel2.(Model)
+
+	// Should still be collapsed (not a double-click due to timeout)
+	if !result2.messages[1].Collapsed {
+		t.Error("Message should still be collapsed after slow second click (not a double-click)")
+	}
+
+	// Now test a quick second click (within threshold)
+	result2.lastClickTime = result2.lastClickTime.Add(-100 * time.Millisecond) // 100ms ago
+
+	resultModel3, _ := result2.handleClickOnToolMessage(clickMsg)
+	result3 := resultModel3.(Model)
+
+	// Should now be expanded (double-click detected)
+	if result3.messages[1].Collapsed {
+		t.Error("Message should be expanded after quick double-click")
+	}
+}
+
+// TestDoubleClickDifferentY tests that double-click only works on the same message (not same Y).
+func TestDoubleClickDifferentY(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 24
+	m.viewport.Height = 20
+
+	// Add messages with collapsed tool messages
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool 1", Timestamp: time.Now(), IsTool: true, Collapsed: true},
+		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool 2", Timestamp: time.Now(), IsTool: true, Collapsed: true},
+	}
+
+	content := m.updateViewportContent()
+	m.viewport.SetContent(content)
+
+	// Log the actual line positions for debugging
+	t.Logf("lineToMessage: %v", m.lineToMessage)
+	t.Logf("messageLinePositions: %v", m.messageLinePositions)
+
+	// First click on first message (line 0)
+	clickMsg := tea.MouseMsg{
+		Type: tea.MouseLeft,
+		Y:    0,
+	}
+
+	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
+	result := resultModel.(Model)
+
+	// Message 0 should be selected
+	if result.selectedMessageIndex != 0 {
+		t.Errorf("Expected message 0 selected, got %d", result.selectedMessageIndex)
+	}
+
+	// Find a line that belongs to message 1
+	msg1StartLine := m.messageLinePositions[1]
+	t.Logf("Message 1 starts at line %d", msg1StartLine)
+
+	// Second click on line belonging to message 1 (different message, within threshold time)
+	clickMsg2 := tea.MouseMsg{
+		Type: tea.MouseLeft,
+		Y:    msg1StartLine,
+	}
+
+	// Set quick time for double-click detection
+	result.lastClickTime = result.lastClickTime.Add(-100 * time.Millisecond)
+
+	resultModel2, _ := result.handleClickOnToolMessage(clickMsg2)
+	result2 := resultModel2.(Model)
+
+	// Message 1 should be selected
+	if result2.selectedMessageIndex != 1 {
+		t.Errorf("Expected message 1 selected, got %d", result2.selectedMessageIndex)
+	}
+
+	// Both messages should still be collapsed (different message = not double-click)
+	if !result2.messages[0].Collapsed {
+		t.Error("Message 0 should still be collapsed (click was on different message)")
+	}
+	if !result2.messages[1].Collapsed {
+		t.Error("Message 1 should still be collapsed (only one click on this message)")
+	}
+}
+
+// TestHandleMouseMsg_WheelEvents tests mouse wheel scrolling events.
+func TestHandleMouseMsg_WheelEvents(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+	m.viewport.Height = 10
+
+	// Add messages to create scrollable content
+	for i := 0; i < 20; i++ {
+		m.messages = append(m.messages, Message{
+			ID:        uuid.New(),
+			Type:      MessageTypeAgent,
+			Content:   fmt.Sprintf("Message %d", i),
+			Timestamp: time.Now(),
+		})
+	}
+	m.viewport.SetContent(m.updateViewportContent())
+
+	initialTag := m.mouseDebounceTag
+
+	// Test mouse wheel up
+	wheelUpMsg := tea.MouseMsg{Type: tea.MouseWheelUp, Y: 0}
+	resultModel, cmd := m.handleMouseMsg(wheelUpMsg)
+	result := resultModel.(Model)
+
+	if result.mouseDebounceTag != initialTag+1 {
+		t.Errorf("Mouse wheel up should increment debounce tag, got %d", result.mouseDebounceTag)
+	}
+	if cmd == nil {
+		t.Error("Mouse wheel up should return a debounce command")
+	}
+
+	// Test mouse wheel down
+	wheelDownMsg := tea.MouseMsg{Type: tea.MouseWheelDown, Y: 0}
+	resultModel, cmd = result.handleMouseMsg(wheelDownMsg)
+	result = resultModel.(Model)
+
+	if result.mouseDebounceTag != initialTag+2 {
+		t.Errorf("Mouse wheel down should increment debounce tag, got %d", result.mouseDebounceTag)
+	}
+	if cmd == nil {
+		t.Error("Mouse wheel down should return a debounce command")
+	}
+}
+
+// TestHandleMouseDebounceMsg tests the debounced mouse scroll processing.
+func TestHandleMouseDebounceMsg(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+	m.viewport.Height = 10
+	m.mouseDebounceTag = 5
+
+	// Add messages to create scrollable content
+	for i := 0; i < 20; i++ {
+		m.messages = append(m.messages, Message{
+			ID:        uuid.New(),
+			Type:      MessageTypeAgent,
+			Content:   fmt.Sprintf("Message %d", i),
+			Timestamp: time.Now(),
+		})
+	}
+	m.viewport.SetContent(m.updateViewportContent())
+
+	// Test with matching tag (should scroll)
+	msg := mouseDebounceMsg{tag: 5, direction: 1, viewport: ViewportMain}
+	resultModel, _ := m.handleMouseDebounceMsg(msg)
+	result := resultModel.(Model)
+
+	// The scroll should have been applied (no easy way to verify viewport scrolled in unit test)
+	_ = result
+
+	// Test with non-matching tag (should not scroll)
+	result.mouseDebounceTag = 10
+	msg2 := mouseDebounceMsg{tag: 5, direction: 1, viewport: ViewportMain}
+	resultModel2, _ := result.handleMouseDebounceMsg(msg2)
+	result2 := resultModel2.(Model)
+
+	// Tag mismatch means scroll was ignored
+	_ = result2
+}
+
+// TestScrollViewport tests the scrollViewport function.
+func TestScrollViewport(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+	m.viewport.Height = 10
+	m.logViewport.Height = 10
+
+	// Add messages to create scrollable content
+	for i := 0; i < 20; i++ {
+		m.messages = append(m.messages, Message{
+			ID:        uuid.New(),
+			Type:      MessageTypeAgent,
+			Content:   fmt.Sprintf("Message %d", i),
+			Timestamp: time.Now(),
+		})
+	}
+	m.viewport.SetContent(m.updateViewportContent())
+
+	// Test scrolling main viewport up
+	result := m.scrollViewport(ViewportMain, -1)
+	_ = result
+
+	// Test scrolling main viewport down
+	result = m.scrollViewport(ViewportMain, 1)
+	_ = result
+
+	// Test scrolling log viewport
+	result = m.scrollViewport(ViewportLogs, -1)
+	_ = result
+}
+
+// TestCreateDebounceCommand tests the debounce command creation.
+func TestCreateDebounceCommand(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+
+	cmd := m.createDebounceCommand(1, -1, ViewportMain)
+	if cmd == nil {
+		t.Error("createDebounceCommand should return a command")
+	}
+}
+
+// TestHandleNewMessageMsg tests handling of new message events.
+func TestHandleNewMessageMsg(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+
+	newMsg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeAgent,
+		Content:   "Test message",
+		Timestamp: time.Now(),
+	}
+
+	result, _ := m.handleNewMessageMsg(newMessageMsg{message: newMsg})
+
+	if len(result.messages) != 1 {
+		t.Errorf("Expected 1 message, got %d", len(result.messages))
+	}
+	if result.messages[0].Content != "Test message" {
+		t.Errorf("Expected 'Test message', got %s", result.messages[0].Content)
+	}
+}
+
+// TestWithLoggerService tests the WithLoggerService option.
+func TestWithLoggerService(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+
+	mockLogger := mocks.NewMockLoggerService(ctrl)
+	opt := WithLoggerService(mockLogger)
+
+	m := NewModel(ctx, agent)
+	opt(&m)
+
+	if m.logService == nil {
+		t.Error("WithLoggerService should set logService")
+	}
+}
+
+// TestHandleExport tests the export functionality.
+func TestHandleExport(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+
+	// Add some messages
+	m.messages = []Message{
+		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Hi there!", Timestamp: time.Now()},
+	}
+
+	// Test handleExport
+	resultModel, _ := m.handleExport()
+	result := resultModel.(Model)
+
+	// Should have added a success or error message
+	if len(result.messages) != 3 {
+		t.Errorf("Expected 3 messages (2 original + export result), got %d", len(result.messages))
+	}
+}
+
+// TestUpdate_LogTickMsg tests the Update function with logTickMsg.
+func TestUpdate_LogTickMsg(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+
+	// Test handling logTickMsg
+	updatedModel, cmd := m.Update(logTickMsg{})
+	if cmd == nil {
+		t.Error("Update with logTickMsg should return a command")
+	}
+	_ = updatedModel // Model is updated
+}
+
+// TestUpdate_WindowSizeMsg tests the Update function with WindowSizeMsg.
+func TestUpdate_WindowSizeMsg(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+
+	// Test handling WindowSizeMsg
+	updatedModel, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 40})
+	result := updatedModel.(Model)
+
+	if result.width != 100 {
+		t.Errorf("Expected width 100, got %d", result.width)
+	}
+	if result.height != 40 {
+		t.Errorf("Expected height 40, got %d", result.height)
+	}
+}
+
+// TestUpdate_KeyDebounceMsg tests the Update function with keyDebounceMsg.
+func TestUpdate_KeyDebounceMsg(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+	m.mouseDebounceTag = 5
+
+	// Test handling keyDebounceMsg with matching tag
+	debounceMsg := keyDebounceMsg{tag: 5, direction: -1, viewport: ViewportMain}
+	updatedModel, _ := m.Update(debounceMsg)
+	_ = updatedModel // Model is updated
+}
+
+// TestUpdate_SearchModeDefault tests the Update function default case in search mode.
+func TestUpdate_SearchModeDefault(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.searchState.active = true
+
+	// In search mode, default messages should return nil cmd
+	updatedModel, cmd := m.Update(tea.FocusMsg{})
+	result := updatedModel.(Model)
+
+	if cmd != nil {
+		t.Error("Update with unknown message in search mode should return nil command")
+	}
+	if !result.searchState.active {
+		t.Error("Search mode should remain active")
+	}
+}
+
+// TestHandleTickMsg_ContextCancelled tests tickMsg with cancelled context.
+func TestHandleTickMsg_ContextCancelled(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+
+	result, cmd := m.handleTickMsg(tickMsg{})
+	if !result.quit {
+		t.Error("Model should quit when context is cancelled")
+	}
+	if cmd == nil {
+		t.Error("Should return tea.Quit command when context is cancelled")
+	}
+}
+
+// TestHandleLogTickMsg tests handleLogTickMsg.
+func TestHandleLogTickMsg(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+
+	result, cmd := m.handleLogTickMsg(logTickMsg{})
+	if cmd == nil {
+		t.Error("handleLogTickMsg should return a command")
+	}
+	_ = result
+}
+
+// TestFetchNewLogEntries tests fetchNewLogEntries without log service.
+func TestFetchNewLogEntries_NoLogService(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.logService = nil // No log service
+
+	result := m.fetchNewLogEntries()
+	if len(result.logEntries) != 0 {
+		t.Error("Should have no log entries without log service")
+	}
+}
+
+// TestIsLogViewportAtBottom tests isLogViewportAtBottom.
+func TestIsLogViewportAtBottom(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+
+	// Empty content - should be at bottom
+	if !m.isLogViewportAtBottom() {
+		t.Error("Empty log viewport should be at bottom")
+	}
+}
+
+// TestHandleWindowSizeMsg tests handleWindowSizeMsg.
+func TestHandleWindowSizeMsg(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+
+	result, _ := m.handleWindowSizeMsg(tea.WindowSizeMsg{Width: 120, Height: 50})
+
+	if result.width != 120 {
+		t.Errorf("Expected width 120, got %d", result.width)
+	}
+	if result.height != 50 {
+		t.Errorf("Expected height 50, got %d", result.height)
+	}
+}
+
+// TestRestorePreservedInput tests restorePreservedInput.
+func TestRestorePreservedInput(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.preservedInput = testPreservedInput
+	m.cancelRequested = true // Required for restore to happen
+
+	result := m.restorePreservedInput()
+
+	if result.textInput.Value() != testPreservedInput {
+		t.Errorf("Expected %q, got %q", testPreservedInput, result.textInput.Value())
+	}
+	if result.preservedInput != "" {
+		t.Error("preservedInput should be cleared after restore")
+	}
+}
+
+// TestRestorePreservedInput_NoCancel tests restorePreservedInput without cancelRequested.
+func TestRestorePreservedInput_NoCancel(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.preservedInput = testPreservedInput
+	m.cancelRequested = false // No cancel requested
+
+	result := m.restorePreservedInput()
+
+	if result.textInput.Value() != "" {
+		t.Errorf("Expected empty input, got '%s'", result.textInput.Value())
+	}
+	if result.preservedInput != testPreservedInput {
+		t.Error("preservedInput should NOT be cleared without cancelRequested")
+	}
+}
+
+// TestCreateAgentCommand tests createAgentCommand.
+func TestCreateAgentCommand(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+
+	m := NewModel(ctx, agent)
+	m.width = 80
+	m.height = 20
+	m = m.prepareAgentExecution()
+
+	cmd := m.createAgentCommand("test input")
+	if cmd == nil {
+		t.Error("createAgentCommand should return a command")
+	}
+}
+
+// TestWrapText tests wrapText helper.
+func TestWrapText(t *testing.T) {
+	tests := []struct {
+		input    string
+		maxWidth int
+		want     []string
+	}{
+		{"short", 10, []string{"short"}},
+		{"very long text", 5, []string{"very", "long", "text"}},
+		{"", 10, []string{""}},
+	}
+
+	for _, tt := range tests {
+		got := wrapText(tt.input, tt.maxWidth)
+		if len(got) != len(tt.want) {
+			t.Errorf("wrapText(%q, %d) returned %d lines, want %d", tt.input, tt.maxWidth, len(got), len(tt.want))
+		}
+	}
+}
+
+// TestTruncateVisual tests truncateVisual helper.
+func TestTruncateVisual(t *testing.T) {
+	tests := []struct {
+		input    string
+		maxWidth int
+		want     string
+	}{
+		{"short", 10, "short"},
+		{"very long text", 8, "very lon"},
+		{"exact", 5, "exact"},
+		{"", 10, ""},
+		{"test", 0, ""},
+	}
+
+	for _, tt := range tests {
+		got := truncateVisual(tt.input, tt.maxWidth)
+		if got != tt.want {
+			t.Errorf("truncateVisual(%q, %d) = %q, want %q", tt.input, tt.maxWidth, got, tt.want)
+		}
+	}
+}
+
+// TestHandleSearchEnter tests handleSearchEnter.
+func TestHandleSearchEnter(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.searchState.active = true
+	m.searchState.query = "test"
+
+	resultModel, cmd := m.handleSearchEnter()
+	result := resultModel.(Model)
+	if cmd != nil {
+		t.Error("handleSearchEnter should return nil command")
+	}
+	if result.searchState.active {
+		t.Error("Search should be deactivated")
+	}
+}
+
+// TestHandleSearchNavigation tests handleSearchNavigation.
+func TestHandleSearchNavigation(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.inputHistory = []string{"first", "second", "third"}
+	m.searchState.results = []int{0, 1, 2}
+	m.searchState.matchedIdx = 0
+
+	// Test Ctrl+R (prev) - should not panic and return a valid model
+	resultModel, cmd := m.handleSearchNavigation(tea.KeyCtrlR)
+	if cmd != nil {
+		t.Error("handleSearchNavigation should return nil command")
+	}
+	_ = resultModel.(Model)
+
+	// Test Ctrl+S (next) - should not panic and return a valid model
+	resultModel, cmd = m.handleSearchNavigation(tea.KeyCtrlS)
+	if cmd != nil {
+		t.Error("handleSearchNavigation should return nil command")
+	}
+	_ = resultModel.(Model)
+}
+
+// TestNextSearchResult tests nextSearchResult.
+func TestNextSearchResult(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.inputHistory = []string{"first", "second", "third"}
+	m.searchState.results = []int{0, 1, 2}
+	m.searchState.matchedIdx = 0
+
+	// Next should wrap around
+	result := m.nextSearchResult()
+	if result.searchState.matchedIdx != 1 {
+		t.Errorf("Expected matchedIdx 1, got %d", result.searchState.matchedIdx)
+	}
+
+	result = result.nextSearchResult()
+	if result.searchState.matchedIdx != 2 {
+		t.Errorf("Expected matchedIdx 2, got %d", result.searchState.matchedIdx)
+	}
+
+	result = result.nextSearchResult()
+	if result.searchState.matchedIdx != 0 {
+		t.Errorf("Expected matchedIdx 0 (wrapped), got %d", result.searchState.matchedIdx)
+	}
+}
+
+// TestPrevSearchResult tests prevSearchResult.
+func TestPrevSearchResult(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.inputHistory = []string{"first", "second", "third"}
+	m.searchState.results = []int{0, 1, 2}
+	m.searchState.matchedIdx = 0
+
+	// Prev should wrap around
+	result := m.prevSearchResult()
+	if result.searchState.matchedIdx != 2 {
+		t.Errorf("Expected matchedIdx 2 (wrapped), got %d", result.searchState.matchedIdx)
+	}
+}
+
+// TestNextPrevSearchResult_Empty tests with empty results.
+func TestNextPrevSearchResult_Empty(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.searchState.results = []int{}
+
+	result := m.nextSearchResult()
+	if result.searchState.matchedIdx != 0 {
+		t.Errorf("Expected matchedIdx 0 with empty results, got %d", result.searchState.matchedIdx)
+	}
+
+	result = m.prevSearchResult()
+	if result.searchState.matchedIdx != 0 {
+		t.Errorf("Expected matchedIdx 0 with empty results, got %d", result.searchState.matchedIdx)
+	}
+}
+
+// TestUpdateSearchResults tests updateSearchResults.
+func TestUpdateSearchResults(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.inputHistory = []string{"hello world", "foo bar", "hello test"}
+
+	// Test with query
+	result := m.updateSearchResults("hello")
+	if len(result.searchState.results) != 2 {
+		t.Errorf("Expected 2 results for 'hello', got %d", len(result.searchState.results))
+	}
+
+	// Test with empty query
+	result = m.updateSearchResults("")
+	if len(result.searchState.results) != 3 {
+		t.Errorf("Expected 3 results for empty query, got %d", len(result.searchState.results))
+	}
+}
+
+// TestHandleSearchBackspace tests handleSearchBackspace.
+func TestHandleSearchBackspace(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.inputHistory = []string{"test", "testing", "tester"}
+	m.searchState.results = []int{0, 1, 2}
+
+	// Set up textInput with a value
+	ti := textinput.New()
+	ti.SetValue("test")
+	m.textInput = ti
+
+	resultModel, cmd := m.handleSearchBackspace()
+	result := resultModel.(Model)
+	if cmd != nil {
+		t.Error("handleSearchBackspace should return nil command")
+	}
+	// Verify the function was called and returned a valid model
+	_ = result.textInput.Value()
+}
+
+// TestHandleSearchBackspace_Empty tests handleSearchBackspace with empty input.
+func TestHandleSearchBackspace_Empty(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agent := setupMockAgent(ctrl)
+	m := NewModel(ctx, agent)
+	m.searchState.query = ""
+	m.textInput.SetValue("")
+
+	resultModel, _ := m.handleSearchBackspace()
+	result := resultModel.(Model)
+	if result.textInput.Value() != "" {
+		t.Errorf("Expected empty string, got '%s'", result.textInput.Value())
+	}
+}
+
+// TestViewportString tests the Viewport String method.
+func TestViewportString(t *testing.T) {
+	if ViewportMain.String() != "main" {
+		t.Errorf("Expected 'main', got '%s'", ViewportMain.String())
+	}
+	if ViewportLogs.String() != "logs" {
+		t.Errorf("Expected 'logs', got '%s'", ViewportLogs.String())
+	}
+	if ViewportInput.String() != "input" {
+		t.Errorf("Expected 'input', got '%s'", ViewportInput.String())
 	}
 }

@@ -73,11 +73,11 @@ func (m Model) isLogViewportAtBottom() bool {
 	// The viewport is at the bottom if scrolling down doesn't change the view
 	// We check by attempting to scroll and comparing YOffset
 	prevYOffset := m.logViewport.YOffset
-	m.logViewport.LineDown(1)
+	m.logViewport.ScrollDown(1)
 	atBottom := m.logViewport.YOffset == prevYOffset
 	// Restore the position
 	if !atBottom {
-		m.logViewport.LineUp(1)
+		m.logViewport.ScrollUp(1)
 	}
 	return atBottom
 }

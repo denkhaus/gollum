@@ -219,7 +219,9 @@ func NewProgramWithContext(ctx context.Context, agent AgentExecutor, opts ...fun
 	return tea.NewProgram(m,
 		tea.WithContext(ctx),
 		tea.WithAltScreen(),
-		// Kein MouseCellMotion - ermöglicht Text-Selection im Terminal
+		// Enable mouse cell motion for click detection on tool messages
+		// This allows text selection in most terminals while still receiving clicks
+		tea.WithMouseCellMotion(),
 	)
 }
 
