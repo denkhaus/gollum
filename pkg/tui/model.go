@@ -308,13 +308,6 @@ type Model struct {
 	// Invalidated on width change or message deletion
 	cachedContent string
 
-	// messageLinePositions tracks the starting line number (0-indexed) for each message.
-	// Used for mouse click detection to identify which message was clicked.
-	// Updated during viewport content rendering.
-	//
-	// Deprecated: Use lineToMessage instead for direct lookup.
-	messageLinePositions []int
-
 	// lineToMessage is a direct mapping from content line number to message index.
 	// lineToMessage[lineNum] = messageIdx means that line `lineNum` belongs to message `messageIdx`.
 	// This is built during content rendering and provides O(1) click detection.
@@ -517,8 +510,6 @@ func (m *Model) updateViewportContent() string {
 		var b strings.Builder
 		// Reset line-to-message mapping for O(1) click detection
 		m.lineToMessage = make([]int, 0)
-		// Also keep old positions for backwards compatibility
-		m.messageLinePositions = make([]int, 0, currentCount)
 
 		for i, msg := range m.messages {
 			// Add blank lines BEFORE each message (except the first)
@@ -529,9 +520,6 @@ func (m *Model) updateViewportContent() string {
 				b.WriteString("\n")                           // Second blank line
 				m.lineToMessage = append(m.lineToMessage, -1) // Map blank line to -1
 			}
-
-			// Record starting line position for this message (legacy)
-			m.messageLinePositions = append(m.messageLinePositions, len(m.lineToMessage))
 
 			formatted := m.formatMessage(i, msg)
 			b.WriteString(formatted)
@@ -567,9 +555,6 @@ func (m *Model) updateViewportContent() string {
 				m.lineToMessage = append(m.lineToMessage, -1) // Map blank line to -1
 			}
 
-			// Record starting line position for this message (legacy)
-			m.messageLinePositions = append(m.messageLinePositions, len(m.lineToMessage))
-
 			formatted := m.formatMessage(i, m.messages[i])
 			b.WriteString(formatted)
 
@@ -594,7 +579,6 @@ func (m *Model) clearFormatCache() {
 	m.formatCache = make(map[uuid.UUID]string)
 	m.cachedContent = ""
 	m.lastRenderedCount = 0
-	m.messageLinePositions = nil
 	m.lineToMessage = nil
 }
 
@@ -606,6 +590,18 @@ func (m Model) getMessageAtLine(lineNum int) int {
 	// Direct lookup - O(1)
 	if lineNum >= 0 && lineNum < len(m.lineToMessage) {
 		return m.lineToMessage[lineNum]
+	}
+	return -1
+}
+
+// getMessageStartLine finds the first line number where a given message appears.
+// Returns -1 if the message is not found in the lineToMessage mapping.
+// This is used for tests that need to find the starting line of a specific message.
+func (m Model) getMessageStartLine(msgIdx int) int {
+	for line, idx := range m.lineToMessage {
+		if idx == msgIdx {
+			return line
+		}
 	}
 	return -1
 }
@@ -631,7 +627,6 @@ func (m *Model) toggleMessageCollapse(msgIdx int) bool {
 
 	// Invalidate cached content since collapse state affects line positions
 	m.cachedContent = ""
-	m.messageLinePositions = nil
 	m.lineToMessage = nil
 
 	return true
@@ -661,7 +656,6 @@ func (m *Model) selectMessage(msgIdx int) {
 	m.cachedContent = ""
 	// Also invalidate line positions to force recalculation
 	// This ensures click detection uses correct positions after selection changes
-	m.messageLinePositions = nil
 	m.lineToMessage = nil
 }
 

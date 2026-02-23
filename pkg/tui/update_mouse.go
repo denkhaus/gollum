@@ -106,7 +106,6 @@ func (m Model) handleClickOnToolMessage(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 
 	// NOW log the CORRECT data (after rebuild)
 	debugLog("lineToMessage (first 30): %v", m.lineToMessage[:min(30, len(m.lineToMessage))])
-	debugLog("messageLinePositions: %v", m.messageLinePositions)
 	debugLog("lineToMessage length: %d", len(m.lineToMessage))
 
 	// Log actual viewport content (lines around the click)

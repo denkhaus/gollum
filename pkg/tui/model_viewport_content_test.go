@@ -29,22 +29,29 @@ func TestUpdateViewportContentTracksMessagePositions(t *testing.T) {
 	// Update viewport content
 	_ = m.updateViewportContent()
 
-	// Verify message line positions are tracked
-	if len(m.messageLinePositions) != 3 {
-		t.Errorf("Expected 3 message line positions, got %d", len(m.messageLinePositions))
-	}
-
+	// Verify message start lines are tracked via lineToMessage
 	// First message should start at line 0
-	if m.messageLinePositions[0] != 0 {
-		t.Errorf("First message should start at line 0, got %d", m.messageLinePositions[0])
+	if startLine := m.getMessageStartLine(0); startLine != 0 {
+		t.Errorf("First message should start at line 0, got %d", startLine)
 	}
 
-	// Subsequent messages should have increasing line positions
-	for i := 1; i < len(m.messageLinePositions); i++ {
-		if m.messageLinePositions[i] <= m.messageLinePositions[i-1] {
-			t.Errorf("Message %d line position (%d) should be greater than message %d (%d)",
-				i, m.messageLinePositions[i], i-1, m.messageLinePositions[i-1])
+	// Verify all messages have valid start lines
+	for i := 0; i < 3; i++ {
+		startLine := m.getMessageStartLine(i)
+		if startLine < 0 {
+			t.Errorf("Message %d should have a valid start line", i)
 		}
+	}
+
+	// Verify start lines are in increasing order
+	prevStartLine := -1
+	for i := 0; i < 3; i++ {
+		startLine := m.getMessageStartLine(i)
+		if startLine <= prevStartLine {
+			t.Errorf("Message %d start line (%d) should be greater than previous (%d)",
+				i, startLine, prevStartLine)
+		}
+		prevStartLine = startLine
 	}
 
 	// Now verify clicking on each message selects the correct one
@@ -61,7 +68,7 @@ func TestUpdateViewportContentTracksMessagePositions(t *testing.T) {
 	}
 
 	// Click on second message (at its start line)
-	clickY := m.messageLinePositions[1]
+	clickY := m.getMessageStartLine(1)
 	clickOnSecond := tea.MouseMsg{Type: tea.MouseLeft, Y: clickY}
 	resultModel2, _ := result.handleClickOnToolMessage(clickOnSecond)
 	result2 := resultModel2.(Model)
@@ -70,7 +77,7 @@ func TestUpdateViewportContentTracksMessagePositions(t *testing.T) {
 	}
 
 	// Click on third message (collapsed tool, at its start line)
-	clickY2 := m.messageLinePositions[2]
+	clickY2 := m.getMessageStartLine(2)
 	clickOnThird := tea.MouseMsg{Type: tea.MouseLeft, Y: clickY2}
 	resultModel3, _ := result2.handleClickOnToolMessage(clickOnThird)
 	result3 := resultModel3.(Model)

@@ -114,9 +114,8 @@ func TestGetMessageAtLine(t *testing.T) {
 	}
 
 	// Test that lines within each message return the correct message index
-	// Message 0 should occupy lines 0 to (messageLinePositions[1]-1)
-	// Message 1 should occupy lines messageLinePositions[1] to (messageLinePositions[2]-1)
-	// etc.
+	// Use getMessageStartLine() to find where each message starts
+	// Message 0 starts at line 0, Message 1 starts at getMessageStartLine(1), etc.
 
 	tests := []struct {
 		name     string

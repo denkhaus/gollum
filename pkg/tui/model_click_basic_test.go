@@ -48,12 +48,11 @@ func TestClickOnCollapsedToolMessage(t *testing.T) {
 	content := m.updateViewportContent()
 	m.viewport.SetContent(content)
 
-	t.Logf("Message line positions: %v", m.messageLinePositions)
 	t.Logf("Content:\n%s", content)
 
 	// Get the start and end lines for the tool message
 	// The actual message content (without blank gaps)
-	toolStartLine := m.messageLinePositions[1]
+	toolStartLine := m.getMessageStartLine(1)
 	formattedToolMsg := m.formatMessage(1, toolMsg)
 	toolMsgLines := countLines(formattedToolMsg)
 	toolEndLine := toolStartLine + toolMsgLines - 1 // End of actual tool message content
@@ -116,10 +115,8 @@ func TestClickOnExpandedToolMessage(t *testing.T) {
 	content := m.updateViewportContent()
 	m.viewport.SetContent(content)
 
-	t.Logf("Message line positions: %v", m.messageLinePositions)
-
 	// Click at the start of the tool message
-	toolStartLine := m.messageLinePositions[1]
+	toolStartLine := m.getMessageStartLine(1)
 	clickMsg := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
 	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
 	result := resultModel.(Model)
@@ -149,7 +146,7 @@ func TestClickOnToolMessageWithDifferentialUpdate(t *testing.T) {
 	m.updateViewportContent()
 	m.viewport.SetContent(m.cachedContent)
 
-	t.Logf("After first message: positions=%v, lastRenderedCount=%d", m.messageLinePositions, m.lastRenderedCount)
+	t.Logf("After first message: lastRenderedCount=%d", m.lastRenderedCount)
 
 	// Add more messages via differential update
 	m.messages = append(m.messages, Message{
@@ -163,7 +160,7 @@ func TestClickOnToolMessageWithDifferentialUpdate(t *testing.T) {
 	m.updateViewportContent()
 	m.viewport.SetContent(m.cachedContent)
 
-	t.Logf("After tool message: positions=%v, lastRenderedCount=%d", m.messageLinePositions, m.lastRenderedCount)
+	t.Logf("After tool message: lastRenderedCount=%d", m.lastRenderedCount)
 
 	// Add one more
 	m.messages = append(m.messages, Message{
@@ -175,10 +172,10 @@ func TestClickOnToolMessageWithDifferentialUpdate(t *testing.T) {
 	m.updateViewportContent()
 	m.viewport.SetContent(m.cachedContent)
 
-	t.Logf("After agent message: positions=%v, lastRenderedCount=%d", m.messageLinePositions, m.lastRenderedCount)
+	t.Logf("After agent message: lastRenderedCount=%d", m.lastRenderedCount)
 
 	// Now click on the tool message (index 1)
-	toolStartLine := m.messageLinePositions[1]
+	toolStartLine := m.getMessageStartLine(1)
 	clickMsg := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
 	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
 	result := resultModel.(Model)
@@ -189,7 +186,7 @@ func TestClickOnToolMessageWithDifferentialUpdate(t *testing.T) {
 	}
 
 	// Also verify clicking on the first message
-	userStartLine := m.messageLinePositions[0]
+	userStartLine := m.getMessageStartLine(0)
 	clickMsg2 := tea.MouseMsg{Type: tea.MouseLeft, Y: userStartLine}
 	resultModel2, _ := m.handleClickOnToolMessage(clickMsg2)
 	result2 := resultModel2.(Model)
@@ -239,7 +236,6 @@ func TestClickOnToolMessageWithScrolling(t *testing.T) {
 	m.updateViewportContent()
 	m.viewport.SetContent(m.cachedContent)
 
-	t.Logf("Message line positions: %v", m.messageLinePositions)
 	t.Logf("Total content lines: %d", countLines(m.cachedContent))
 	t.Logf("Viewport height: %d", m.viewport.Height)
 
@@ -301,7 +297,7 @@ func TestClickOnFirstToolMessage(t *testing.T) {
 	content := m.updateViewportContent()
 	m.viewport.SetContent(content)
 
-	t.Logf("After user message: positions=%v, lastRenderedCount=%d", m.messageLinePositions, m.lastRenderedCount)
+	t.Logf("After user message: lastRenderedCount=%d", m.lastRenderedCount)
 
 	// Now add a tool message (collapsed)
 	toolMsg := Message{
@@ -318,22 +314,23 @@ func TestClickOnFirstToolMessage(t *testing.T) {
 	content = m.updateViewportContent()
 	m.viewport.SetContent(content)
 
-	t.Logf("After tool message: positions=%v, lastRenderedCount=%d", m.messageLinePositions, m.lastRenderedCount)
-	t.Logf("User message lines: %d", m.messageLinePositions[1])
+	t.Logf("After tool message: lastRenderedCount=%d", m.lastRenderedCount)
+	t.Logf("User message lines: %d", m.getMessageStartLine(1))
 	t.Logf("Content:\n%s", content)
 
 	// The tool message starts AFTER the user message + 2 blank lines
 	// User message (5 lines) + 2 blank lines = tool message starts at line 7
 	userLines := countLines(m.formatMessage(0, m.messages[0]))
 	expectedToolStart := userLines + 2 // +2 for blank lines
-	t.Logf("Expected tool start: %d, actual: %d", expectedToolStart, m.messageLinePositions[1])
+	actualToolStart := m.getMessageStartLine(1)
+	t.Logf("Expected tool start: %d, actual: %d", expectedToolStart, actualToolStart)
 
-	if m.messageLinePositions[1] != expectedToolStart {
-		t.Errorf("Tool message position incorrect: expected %d, got %d", expectedToolStart, m.messageLinePositions[1])
+	if actualToolStart != expectedToolStart {
+		t.Errorf("Tool message position incorrect: expected %d, got %d", expectedToolStart, actualToolStart)
 	}
 
 	// Now click at the START of the tool message
-	toolStartLine := m.messageLinePositions[1]
+	toolStartLine := m.getMessageStartLine(1)
 	clickMsg := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
 	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
 	result := resultModel.(Model)

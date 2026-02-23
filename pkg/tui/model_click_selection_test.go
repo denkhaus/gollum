@@ -31,7 +31,7 @@ func TestMultipleDoubleClicks(t *testing.T) {
 	m.viewport.SetContent(m.cachedContent)
 
 	// Simulate multiple double-clicks on the first tool message
-	toolStartLine := m.messageLinePositions[1]
+	toolStartLine := m.getMessageStartLine(1)
 
 	for i := 0; i < 5; i++ {
 		// Reset click tracking to ensure clean state for each double-click
@@ -39,7 +39,7 @@ func TestMultipleDoubleClicks(t *testing.T) {
 		m.lastClickTime = time.Time{}
 		m.lastClickedMessageIndex = -1
 
-		t.Logf("Iteration %d start: tool message Collapsed=%v, positions=%v", i, m.messages[1].Collapsed, m.messageLinePositions)
+		t.Logf("Iteration %d start: tool message Collapsed=%v", i, m.messages[1].Collapsed)
 
 		// First click
 		click1 := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
@@ -85,7 +85,7 @@ func TestMultipleDoubleClicks(t *testing.T) {
 		}
 
 		// Update toolStartLine for next iteration (line positions may have changed)
-		toolStartLine = m.messageLinePositions[1]
+		toolStartLine = m.getMessageStartLine(1)
 	}
 }
 
@@ -111,12 +111,11 @@ func TestDoubleClickLinePositionChange(t *testing.T) {
 	m.viewport.SetContent(m.cachedContent)
 
 	// Get initial positions
-	initialPositions := make([]int, len(m.messageLinePositions))
-	copy(initialPositions, m.messageLinePositions)
-	t.Logf("Initial positions: %v", initialPositions)
+	initialMsg2Start := m.getMessageStartLine(2)
+	t.Logf("Initial message 2 start line: %d", initialMsg2Start)
 
 	// Double-click to expand tool message
-	toolStartLine := m.messageLinePositions[1]
+	toolStartLine := m.getMessageStartLine(1)
 	click1 := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
 	resultModel1, _ := m.handleClickOnToolMessage(click1)
 	m = resultModel1.(Model)
@@ -127,23 +126,19 @@ func TestDoubleClickLinePositionChange(t *testing.T) {
 	resultModel2, _ := m.handleClickOnToolMessage(click2)
 	m = resultModel2.(Model)
 
-	t.Logf("After expand: positions=%v, Collapsed=%v", m.messageLinePositions, m.messages[1].Collapsed)
+	t.Logf("After expand: message 2 start=%d, Collapsed=%v", m.getMessageStartLine(2), m.messages[1].Collapsed)
 
 	// Tool message should be expanded now
 	if m.messages[1].Collapsed {
 		t.Error("Tool message should be expanded after double-click")
 	}
 
-	// Line positions should have changed (expanded message takes more lines)
-	if len(m.messageLinePositions) != 3 {
-		t.Errorf("Expected 3 positions, got %d", len(m.messageLinePositions))
-	}
-
 	// The agent message should now start at a higher line number
 	// (because the expanded tool message takes more space)
-	if m.messageLinePositions[2] <= initialPositions[2] {
+	newMsg2Start := m.getMessageStartLine(2)
+	if newMsg2Start <= initialMsg2Start {
 		t.Errorf("Agent message should start at higher line after tool expansion, was %d, now %d",
-			initialPositions[2], m.messageLinePositions[2])
+			initialMsg2Start, newMsg2Start)
 	}
 }
 
@@ -170,11 +165,10 @@ func TestHandleClickOnToolMessage(t *testing.T) {
 	content := m.updateViewportContent()
 	m.viewport.SetContent(content)
 
-	t.Logf("Message line positions: %v", m.messageLinePositions)
 	t.Logf("Line to message mapping: %v", m.lineToMessage)
 
 	// Click on the actual line where tool message starts
-	toolStartLine := m.messageLinePositions[1]
+	toolStartLine := m.getMessageStartLine(1)
 	clickMsg := tea.MouseMsg{
 		Type: tea.MouseLeft,
 		Y:    toolStartLine, // Click on the tool message
@@ -232,7 +226,7 @@ func TestHandleClickOnNonToolMessage(t *testing.T) {
 
 	content := m.updateViewportContent()
 	m.viewport.SetContent(content)
-	m.messageLinePositions = []int{0, 10}
+	// lineToMessage is built by updateViewportContent()
 
 	// Click on line 0 (user message)
 	clickMsg := tea.MouseMsg{
@@ -272,7 +266,7 @@ func TestHandleClickOutsideViewport(t *testing.T) {
 
 	content := m.updateViewportContent()
 	m.viewport.SetContent(content)
-	m.messageLinePositions = []int{0}
+	// lineToMessage is built by updateViewportContent()
 
 	// Click outside viewport bounds (Y = 15, but viewport height is 10)
 	clickMsg := tea.MouseMsg{
@@ -301,8 +295,7 @@ func TestHandleClickOnInvalidLine(t *testing.T) {
 	m.height = 24
 	m.viewport.Height = 20
 
-	// No message line positions set (empty)
-	m.messageLinePositions = []int{}
+	// No messages set (empty lineToMessage)
 
 	// Click somewhere
 	clickMsg := tea.MouseMsg{
