@@ -189,6 +189,11 @@ type ConfigService interface {
 	GetPromptStoreConfig() *PromptStoreConfig
 	GetPromptOptimizerConfig() *PromptOptimizerConfig
 	GetLangfuseConfig() *LangfuseConfig
+	// Workspace management
+	GetWorkspaceConfig() *WorkspaceConfig
+	SetCurrentWorkspace(path string) error
+	GetCurrentWorkspace() string
+	GetWorkspaceHistory() []string
 }
 
 // serviceImpl implements the ConfigService interface
@@ -205,6 +210,7 @@ type serviceImpl struct {
 	Development     bool                  `envconfig:"DEVELOPMENT" default:"false"`
 	PromptStore     PromptStoreConfig     `envconfig:"PROMPT_STORE"`
 	PromptOptimizer PromptOptimizerConfig `envconfig:"OPTIMIZER"`
+	Workspace       WorkspaceConfig       `envconfig:"WORKSPACE"`
 }
 
 // NewService creates a new configuration service
@@ -277,4 +283,20 @@ func (s *serviceImpl) GetPromptOptimizerConfig() *PromptOptimizerConfig {
 
 func (s *serviceImpl) GetLangfuseConfig() *LangfuseConfig {
 	return (*LangfuseConfig)(&s.Hooks)
+}
+
+func (s *serviceImpl) GetWorkspaceConfig() *WorkspaceConfig {
+	return &s.Workspace
+}
+
+func (s *serviceImpl) SetCurrentWorkspace(path string) error {
+	return s.Workspace.SetWorkspace(path)
+}
+
+func (s *serviceImpl) GetCurrentWorkspace() string {
+	return s.Workspace.GetCurrentWorkspace()
+}
+
+func (s *serviceImpl) GetWorkspaceHistory() []string {
+	return s.Workspace.GetWorkspaceHistory()
 }
