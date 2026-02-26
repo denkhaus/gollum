@@ -91,7 +91,6 @@ func TestClickSelectsMessage(t *testing.T) {
 
 	content := m.updateViewportContent()
 	m.viewport.SetContent(content)
-	t.Logf("Message line positions: %v", m.messageLinePositions)
 
 	// Initially no message selected
 	if m.selectedMessageIndex != -1 {
@@ -113,7 +112,7 @@ func TestClickSelectsMessage(t *testing.T) {
 	}
 
 	// Click on the actual line where second message starts
-	secondMsgLine := m.messageLinePositions[1]
+	secondMsgLine := m.getMessageStartLine(1)
 	clickMsg2 := tea.MouseMsg{
 		Type: tea.MouseLeft,
 		Y:    secondMsgLine,
@@ -150,11 +149,10 @@ func TestDoubleClickThreshold(t *testing.T) {
 	content := m.updateViewportContent()
 	m.viewport.SetContent(content)
 
-	t.Logf("Message line positions: %v", m.messageLinePositions)
 	t.Logf("Line to message mapping: %v", m.lineToMessage)
 
 	// Click on the actual line where tool message starts
-	toolStartLine := m.messageLinePositions[1]
+	toolStartLine := m.getMessageStartLine(1)
 	clickMsg := tea.MouseMsg{
 		Type: tea.MouseLeft,
 		Y:    toolStartLine,
@@ -219,7 +217,6 @@ func TestDoubleClickDifferentY(t *testing.T) {
 
 	// Log the actual line positions for debugging
 	t.Logf("lineToMessage: %v", m.lineToMessage)
-	t.Logf("messageLinePositions: %v", m.messageLinePositions)
 
 	// First click on first message (line 0)
 	clickMsg := tea.MouseMsg{
@@ -236,7 +233,7 @@ func TestDoubleClickDifferentY(t *testing.T) {
 	}
 
 	// Find a line that belongs to message 1
-	msg1StartLine := m.messageLinePositions[1]
+	msg1StartLine := m.getMessageStartLine(1)
 	t.Logf("Message 1 starts at line %d", msg1StartLine)
 
 	// Second click on line belonging to message 1 (different message, within threshold time)
