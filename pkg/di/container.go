@@ -13,11 +13,12 @@ import (
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/markdown"
 	"github.com/denkhaus/gollum/pkg/middleware"
+	"github.com/denkhaus/gollum/pkg/profiling"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/prompt/optimizer"
 	"github.com/denkhaus/gollum/pkg/prompt/store"
-	"github.com/denkhaus/gollum/pkg/profiling"
 	"github.com/denkhaus/gollum/pkg/registry"
+	"github.com/denkhaus/gollum/pkg/skills"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/denkhaus/gollum/pkg/ui"
@@ -69,6 +70,9 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 
 	// Register agent registry
 	do.Provide(p.injector, registry.NewAgentRegistry)
+
+	// Register skill service
+	do.Provide(p.injector, skills.NewService)
 
 	// Register UI components
 	do.Provide(p.injector, ui.NewAgentMessenger)
