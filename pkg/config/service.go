@@ -229,6 +229,11 @@ func NewService(_ do.Injector) (ConfigService, error) {
 		s.Logging.SessionLogBufferSize = 100000
 	}
 
+	// Validate WorkspaceConfig
+	if s.Workspace.MaxWorkspaceHistory < 1 {
+		s.Workspace.MaxWorkspaceHistory = 5
+	}
+
 	return &s, nil
 }
 

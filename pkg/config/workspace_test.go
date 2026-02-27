@@ -207,6 +207,55 @@ func TestNewService_WorkspaceConfig_FromEnv(t *testing.T) {
 	assert.Equal(t, 10, config.MaxWorkspaceHistory)
 }
 
+// TestNewService_WorkspaceConfig_MaxHistoryValidation tests that MaxWorkspaceHistory is validated
+func TestNewService_WorkspaceConfig_MaxHistoryValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		envValue    string
+		expectedMax int
+	}{
+		{
+			name:        "Zero_value_gets_default",
+			envValue:    "0",
+			expectedMax: 5,
+		},
+		{
+			name:        "Negative_value_gets_default",
+			envValue:    "-5",
+			expectedMax: 5,
+		},
+		{
+			name:        "Valid_value_preserved",
+			envValue:    "10",
+			expectedMax: 10,
+		},
+		{
+			name:        "One_is_valid",
+			envValue:    "1",
+			expectedMax: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			unsetEnv(t, "GOLLUM_WORKSPACE_CURRENT_WORKSPACE")
+			unsetEnv(t, "GOLLUM_WORKSPACE_MAX_WORKSPACE_HISTORY")
+
+			require.NoError(t, os.Setenv("GOLLUM_WORKSPACE_MAX_WORKSPACE_HISTORY", tt.envValue))
+			t.Cleanup(func() {
+				unsetEnv(t, "GOLLUM_WORKSPACE_MAX_WORKSPACE_HISTORY")
+			})
+
+			injector := do.New()
+			service, err := NewService(injector)
+			require.NoError(t, err)
+
+			config := service.GetWorkspaceConfig()
+			assert.Equal(t, tt.expectedMax, config.MaxWorkspaceHistory)
+		})
+	}
+}
+
 // TestConfigService_WorkspaceMethods tests the ConfigService workspace methods
 func TestConfigService_WorkspaceMethods(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "workspace-test-*")
