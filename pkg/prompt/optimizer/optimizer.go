@@ -11,26 +11,26 @@
 // Choose the appropriate strategy based on your requirements:
 //
 // 1. Prompt Memory (StrategyPromptMemory / "prompt_memory")
-//    - LLM Calls: 1 total (fastest)
-//    - Use Case: Simple adjustments, quick iterations
-//    - Cost: Lowest
-//    - Speed: Fastest
-//    - Trade-off: Limited ability to learn from complex patterns
-//    - Best for: Rapid prototyping, simple prompt tweaks, cost-sensitive applications
+//   - LLM Calls: 1 total (fastest)
+//   - Use Case: Simple adjustments, quick iterations
+//   - Cost: Lowest
+//   - Speed: Fastest
+//   - Trade-off: Limited ability to learn from complex patterns
+//   - Best for: Rapid prototyping, simple prompt tweaks, cost-sensitive applications
 //
 // 2. Meta-Prompt (StrategyMetaPrompt / "metaprompt")
-//    - LLM Calls: 1-5 (configurable via Min/MaxReflectionSteps)
-//    - Use Case: Balanced optimization between speed and quality
-//    - Cost: Medium
-//    - Speed: Medium
-//    - Best for: General-purpose optimization, moderate complexity improvements
+//   - LLM Calls: 1-5 (configurable via Min/MaxReflectionSteps)
+//   - Use Case: Balanced optimization between speed and quality
+//   - Cost: Medium
+//   - Speed: Medium
+//   - Best for: General-purpose optimization, moderate complexity improvements
 //
 // 3. Gradient (StrategyGradient / "gradient")
-//    - LLM Calls: 2-10 (configurable via Min/MaxReflectionSteps)
-//    - Use Case: Complex improvements requiring thorough analysis
-//    - Cost: Highest (each reflection step requires multiple LLM calls)
-//    - Speed: Slowest
-//    - Best for: Critical prompts, complex reasoning improvements, production-quality optimization
+//   - LLM Calls: 2-10 (configurable via Min/MaxReflectionSteps)
+//   - Use Case: Complex improvements requiring thorough analysis
+//   - Cost: Highest (each reflection step requires multiple LLM calls)
+//   - Speed: Slowest
+//   - Best for: Critical prompts, complex reasoning improvements, production-quality optimization
 //
 // # Performance Characteristics
 //

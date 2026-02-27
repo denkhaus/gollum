@@ -33,6 +33,7 @@
 // - LLM Calls: 2-10 (configurable via Min/MaxReflectionSteps)
 //   - Each reflection step: 1 LLM call for structured analysis
 //   - Update phase: 1 LLM call for applying recommendations
+//
 // - Cost: Highest
 // - Speed: Slowest
 //

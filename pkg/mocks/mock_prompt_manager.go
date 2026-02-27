@@ -160,6 +160,20 @@ func (mr *MockPromptManagerMockRecorder) GetSystemPrompt() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSystemPrompt", reflect.TypeOf((*MockPromptManager)(nil).GetSystemPrompt))
 }
 
+// GetWorkspaceContext mocks base method.
+func (m *MockPromptManager) GetWorkspaceContext() *prompt.WorkspaceContext {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWorkspaceContext")
+	ret0, _ := ret[0].(*prompt.WorkspaceContext)
+	return ret0
+}
+
+// GetWorkspaceContext indicates an expected call of GetWorkspaceContext.
+func (mr *MockPromptManagerMockRecorder) GetWorkspaceContext() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkspaceContext", reflect.TypeOf((*MockPromptManager)(nil).GetWorkspaceContext))
+}
+
 // ListPrompts mocks base method.
 func (m *MockPromptManager) ListPrompts(ctx context.Context, filter *prompt.ListFilter) ([]*prompt.Prompt, error) {
 	m.ctrl.T.Helper()
@@ -203,4 +217,32 @@ func (m *MockPromptManager) SetPrompt(ctx context.Context, id, content, name str
 func (mr *MockPromptManagerMockRecorder) SetPrompt(ctx, id, content, name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPrompt", reflect.TypeOf((*MockPromptManager)(nil).SetPrompt), ctx, id, content, name)
+}
+
+// SetWorkspaceContext mocks base method.
+func (m *MockPromptManager) SetWorkspaceContext(ctx *prompt.WorkspaceContext) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetWorkspaceContext", ctx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetWorkspaceContext indicates an expected call of SetWorkspaceContext.
+func (mr *MockPromptManagerMockRecorder) SetWorkspaceContext(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetWorkspaceContext", reflect.TypeOf((*MockPromptManager)(nil).SetWorkspaceContext), ctx)
+}
+
+// UpdateWorkspaceFromSkillService mocks base method.
+func (m *MockPromptManager) UpdateWorkspaceFromSkillService(ctx context.Context, currentPath string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateWorkspaceFromSkillService", ctx, currentPath)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateWorkspaceFromSkillService indicates an expected call of UpdateWorkspaceFromSkillService.
+func (mr *MockPromptManagerMockRecorder) UpdateWorkspaceFromSkillService(ctx, currentPath any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateWorkspaceFromSkillService", reflect.TypeOf((*MockPromptManager)(nil).UpdateWorkspaceFromSkillService), ctx, currentPath)
 }

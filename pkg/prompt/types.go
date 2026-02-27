@@ -44,9 +44,10 @@ type Prompt struct {
 
 // RenderContext contains general context values for prompt rendering.
 type RenderContext struct {
-	Values   map[string]interface{} // General context values
-	SubAgent *SubAgentContext       // SubAgent-specific context
-	Agent    *AgentContext          // Agent-specific context
+	Values    map[string]interface{} // General context values
+	SubAgent  *SubAgentContext       // SubAgent-specific context
+	Agent     *AgentContext          // Agent-specific context
+	Workspace *WorkspaceContext      // Workspace-specific context (skills, path)
 }
 
 // SubAgentContext contains context specific to subagent operations.
@@ -62,9 +63,23 @@ type SubAgentContext struct {
 
 // AgentContext contains context specific to agent operations.
 type AgentContext struct {
-	AgentID        string            // The agent's unique identifier
-	Task           string            // The task the agent is working on
-	MessageHistory []gollem.Message  // Optional message history for context awareness
+	AgentID        string           // The agent's unique identifier
+	Task           string           // The task the agent is working on
+	MessageHistory []gollem.Message // Optional message history for context awareness
+}
+
+// SkillInfo represents a discovered skill for template rendering.
+type SkillInfo struct {
+	Name        string `json:"name"`        // Skill name
+	Description string `json:"description"` // Brief description
+	Location    string `json:"location"`    // File path to the skill
+}
+
+// WorkspaceContext contains workspace-specific information for prompt rendering.
+type WorkspaceContext struct {
+	CurrentPath string      `json:"current_path"` // Current working directory
+	SkillsXML   string      `json:"skills_xml"`   // Skills in XML format for LLM prompts
+	Skills      []SkillInfo `json:"skills"`       // List of discovered skills
 }
 
 // ListFilter provides filtering options for listing prompts.
