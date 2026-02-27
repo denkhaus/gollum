@@ -97,6 +97,10 @@ func (p *promptManager) buildTemplateData(renderCtx *prompt.RenderContext) map[s
 
 	// Handle nil context
 	if renderCtx == nil {
+		// Include workspace context even if renderCtx is nil
+		if p.workspace != nil {
+			data["Workspace"] = p.workspace
+		}
 		return data
 	}
 
@@ -126,6 +130,13 @@ func (p *promptManager) buildTemplateData(renderCtx *prompt.RenderContext) map[s
 		if len(renderCtx.Agent.MessageHistory) > 0 {
 			data["MessageHistory"] = renderCtx.Agent.MessageHistory
 		}
+	}
+
+	// Workspace context - prefer renderCtx.Workspace, fallback to manager's workspace
+	if renderCtx.Workspace != nil {
+		data["Workspace"] = renderCtx.Workspace
+	} else if p.workspace != nil {
+		data["Workspace"] = p.workspace
 	}
 
 	return data
