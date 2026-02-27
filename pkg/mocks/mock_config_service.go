@@ -82,6 +82,20 @@ func (mr *MockConfigServiceMockRecorder) GetBashConfig() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBashConfig", reflect.TypeOf((*MockConfigService)(nil).GetBashConfig))
 }
 
+// GetCurrentWorkspace mocks base method.
+func (m *MockConfigService) GetCurrentWorkspace() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCurrentWorkspace")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetCurrentWorkspace indicates an expected call of GetCurrentWorkspace.
+func (mr *MockConfigServiceMockRecorder) GetCurrentWorkspace() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCurrentWorkspace", reflect.TypeOf((*MockConfigService)(nil).GetCurrentWorkspace))
+}
+
 // GetFilesConfig mocks base method.
 func (m *MockConfigService) GetFilesConfig() *config.FilesConfig {
 	m.ctrl.T.Helper()
@@ -208,6 +222,34 @@ func (mr *MockConfigServiceMockRecorder) GetPromptStoreConfig() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPromptStoreConfig", reflect.TypeOf((*MockConfigService)(nil).GetPromptStoreConfig))
 }
 
+// GetWorkspaceConfig mocks base method.
+func (m *MockConfigService) GetWorkspaceConfig() *config.WorkspaceConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWorkspaceConfig")
+	ret0, _ := ret[0].(*config.WorkspaceConfig)
+	return ret0
+}
+
+// GetWorkspaceConfig indicates an expected call of GetWorkspaceConfig.
+func (mr *MockConfigServiceMockRecorder) GetWorkspaceConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkspaceConfig", reflect.TypeOf((*MockConfigService)(nil).GetWorkspaceConfig))
+}
+
+// GetWorkspaceHistory mocks base method.
+func (m *MockConfigService) GetWorkspaceHistory() []string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWorkspaceHistory")
+	ret0, _ := ret[0].([]string)
+	return ret0
+}
+
+// GetWorkspaceHistory indicates an expected call of GetWorkspaceHistory.
+func (mr *MockConfigServiceMockRecorder) GetWorkspaceHistory() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkspaceHistory", reflect.TypeOf((*MockConfigService)(nil).GetWorkspaceHistory))
+}
+
 // IsDevMode mocks base method.
 func (m *MockConfigService) IsDevMode() bool {
 	m.ctrl.T.Helper()
@@ -220,4 +262,18 @@ func (m *MockConfigService) IsDevMode() bool {
 func (mr *MockConfigServiceMockRecorder) IsDevMode() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsDevMode", reflect.TypeOf((*MockConfigService)(nil).IsDevMode))
+}
+
+// SetCurrentWorkspace mocks base method.
+func (m *MockConfigService) SetCurrentWorkspace(path string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetCurrentWorkspace", path)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetCurrentWorkspace indicates an expected call of SetCurrentWorkspace.
+func (mr *MockConfigServiceMockRecorder) SetCurrentWorkspace(path any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCurrentWorkspace", reflect.TypeOf((*MockConfigService)(nil).SetCurrentWorkspace), path)
 }

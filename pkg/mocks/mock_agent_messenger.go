@@ -75,15 +75,3 @@ func (mr *MockAgentMessengerMockRecorder) DisplayUserMessage(message any) *gomoc
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisplayUserMessage", reflect.TypeOf((*MockAgentMessenger)(nil).DisplayUserMessage), message)
 }
-
-// DisplayWelcome mocks base method.
-func (m *MockAgentMessenger) DisplayWelcome() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "DisplayWelcome")
-}
-
-// DisplayWelcome indicates an expected call of DisplayWelcome.
-func (mr *MockAgentMessengerMockRecorder) DisplayWelcome() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisplayWelcome", reflect.TypeOf((*MockAgentMessenger)(nil).DisplayWelcome))
-}
