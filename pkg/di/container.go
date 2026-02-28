@@ -110,6 +110,7 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	do.Provide(p.injector, tools.NewGrepToolProvider)
 	do.Provide(p.injector, tools.NewEditToolProvider)
 	do.Provide(p.injector, tools.NewSessionLogsToolProvider)
+	do.Provide(p.injector, tools.NewChangeDirectoryToolProvider)
 
 	// Register prompt store
 	do.Provide(p.injector, store.NewPromptStore)

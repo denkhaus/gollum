@@ -30,6 +30,8 @@ type SkillService interface {
 	Refresh(ctx context.Context) error
 	// AddSearchPath adds a directory to search for skills
 	AddSearchPath(path string)
+	// AddSearchPathAndDiscover adds a directory to search for skills and triggers discovery
+	AddSearchPathAndDiscover(ctx context.Context, path string) error
 	// RemoveSearchPath removes a directory from search paths
 	RemoveSearchPath(path string)
 	// GetSearchPaths returns current search paths
@@ -200,6 +202,27 @@ func (s *skillServiceImpl) AddSearchPath(path string) {
 
 	s.searchPaths = append(s.searchPaths, path)
 	s.log.Info("Added skill search path", zap.String("path", path))
+}
+
+// AddSearchPathAndDiscover adds a directory to search for skills and triggers discovery
+func (s *skillServiceImpl) AddSearchPathAndDiscover(ctx context.Context, path string) error {
+	s.mu.Lock()
+
+	// Check for duplicates
+	for _, p := range s.searchPaths {
+		if p == path {
+			s.mu.Unlock()
+			return nil // Already exists, no need to discover
+		}
+	}
+
+	s.searchPaths = append(s.searchPaths, path)
+	s.log.Info("Added skill search path", zap.String("path", path))
+
+	s.mu.Unlock()
+
+	// Trigger discovery with the new path included
+	return s.Discover(ctx)
 }
 
 // RemoveSearchPath removes a directory from search paths
