@@ -43,6 +43,7 @@ type defaultAgentFactory struct {
 	editToolProv        tools.EditToolProvider
 	sessionLogsToolProv tools.SessionLogsToolProvider
 	changeDirectoryToolProv tools.ChangeDirectoryToolProvider
+	invokeSkillToolProv    tools.InvokeSkillToolProvider
 }
 
 // NewAgentFactory creates a new AgentFactory
@@ -70,6 +71,7 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 	editToolProv := do.MustInvoke[tools.EditToolProvider](injector)
 	sessionLogsToolProv := do.MustInvoke[tools.SessionLogsToolProvider](injector)
 	changeDirectoryToolProv := do.MustInvoke[tools.ChangeDirectoryToolProvider](injector)
+	invokeSkillToolProv := do.MustInvoke[tools.InvokeSkillToolProvider](injector)
 
 	return &defaultAgentFactory{
 		logService:          logService,
@@ -93,6 +95,7 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 		editToolProv:        editToolProv,
 		sessionLogsToolProv: sessionLogsToolProv,
 		changeDirectoryToolProv: changeDirectoryToolProv,
+		invokeSkillToolProv:    invokeSkillToolProv,
 	}, nil
 }
 
@@ -120,6 +123,7 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 		f.editToolProv.CreateTool(config.ID),
 		f.sessionLogsToolProv.CreateTool(config.ID),
 		f.changeDirectoryToolProv.CreateTool(config.ID),
+		f.invokeSkillToolProv.CreateTool(config.ID, f),
 	}
 	config.Tools = append(config.Tools, defaultTools...)
 
