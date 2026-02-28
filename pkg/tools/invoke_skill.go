@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/skills"
@@ -42,9 +40,7 @@ type (
 		logService      logger.LoggerService
 		agentFactory    shared.AgentFactory
 		registry        registry.AgentRegistry
-		promptManager   manager.PromptManager
 		executionHelper AgentExecutionHelper
-		configService   config.ConfigService
 		hookManager     hooks.HookManager
 		skillService    skills.SkillService
 		senderID        uuid.UUID
@@ -58,9 +54,7 @@ type (
 	invokeSkillToolProvider struct {
 		logService      logger.LoggerService
 		registry        registry.AgentRegistry
-		promptManager   manager.PromptManager
 		executionHelper AgentExecutionHelper
-		configService   config.ConfigService
 		hookManager     hooks.HookManager
 		skillService    skills.SkillService
 	}
@@ -70,18 +64,14 @@ type (
 func NewInvokeSkillToolProvider(injector do.Injector) (InvokeSkillToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	registry := do.MustInvoke[registry.AgentRegistry](injector)
-	promptManager := do.MustInvoke[manager.PromptManager](injector)
 	executionHelper := do.MustInvoke[AgentExecutionHelper](injector)
-	configService := do.MustInvoke[config.ConfigService](injector)
 	hookManager := do.MustInvoke[hooks.HookManager](injector)
 	skillSvc := do.MustInvoke[skills.SkillService](injector)
 
 	return &invokeSkillToolProvider{
 		logService:      logService,
 		registry:        registry,
-		promptManager:   promptManager,
 		executionHelper: executionHelper,
-		configService:   configService,
 		hookManager:     hookManager,
 		skillService:    skillSvc,
 	}, nil
@@ -93,9 +83,7 @@ func (p *invokeSkillToolProvider) CreateTool(senderID uuid.UUID, agentFactory sh
 		logService:      p.logService,
 		agentFactory:    agentFactory,
 		registry:        p.registry,
-		promptManager:   p.promptManager,
 		executionHelper: p.executionHelper,
-		configService:   p.configService,
 		hookManager:     p.hookManager,
 		skillService:    p.skillService,
 		senderID:        senderID,
