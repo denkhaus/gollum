@@ -2,6 +2,7 @@ package skills
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"sync"
 
@@ -194,10 +195,8 @@ func (s *skillServiceImpl) AddSearchPath(path string) {
 	defer s.mu.Unlock()
 
 	// Check for duplicates
-	for _, p := range s.searchPaths {
-		if p == path {
-			return
-		}
+	if slices.Contains(s.searchPaths, path) {
+		return
 	}
 
 	s.searchPaths = append(s.searchPaths, path)
@@ -209,11 +208,9 @@ func (s *skillServiceImpl) AddSearchPathAndDiscover(ctx context.Context, path st
 	s.mu.Lock()
 
 	// Check for duplicates
-	for _, p := range s.searchPaths {
-		if p == path {
-			s.mu.Unlock()
-			return nil // Already exists, no need to discover
-		}
+	if slices.Contains(s.searchPaths, path) {
+		s.mu.Unlock()
+		return nil // Already exists, no need to discover
 	}
 
 	s.searchPaths = append(s.searchPaths, path)
