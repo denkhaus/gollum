@@ -198,8 +198,8 @@ Provide findings in this structure:
 ```yaml
 # Whitelist approach
 tools:
-  - Read
-  - Glob
+  - read_file
+  - glob
 tool_scope: custom
 
 # Blacklist approach
