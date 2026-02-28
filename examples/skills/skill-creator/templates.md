@@ -113,10 +113,10 @@ version: 1.0.0
 type: agent
 tool_scope: custom
 tools:
-  - Read
-  - Write
-  - Edit
-  - Glob
+  - read_file
+  - write_file
+  - edit
+  - glob
 ---
 
 # Code Generator
@@ -214,10 +214,10 @@ version: 1.0.0
 type: agent
 tool_scope: custom
 tools:
-  - Read
-  - Write
-  - Glob
-  - Grep
+  - read_file
+  - write_file
+  - glob
+  - grep
 tags:
   - testing
   - quality
@@ -287,10 +287,10 @@ version: 1.0.0
 type: agent
 tool_scope: custom
 tools:
-  - Read
-  - Edit
-  - Glob
-  - Grep
+  - read_file
+  - edit
+  - glob
+  - grep
 ---
 
 # Code Refactorer

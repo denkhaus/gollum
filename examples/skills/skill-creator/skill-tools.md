@@ -28,9 +28,9 @@ tool_scope: read-only
 ```
 
 Allowed tools:
-- `Read` - Read file contents
-- `Glob` - Find files by pattern
-- `Grep` - Search file contents
+- `read_file` - Read file contents
+- `glob` - Find files by pattern
+- `grep` - Search file contents
 
 Use when:
 - The skill only analyzes code
@@ -57,9 +57,9 @@ Use the `tools` list for fine-grained control.
 ```yaml
 tool_scope: custom
 tools:
-  - Read
-  - Write
-  - Edit
+  - read_file
+  - write_file
+  - edit
 ```
 
 Use when:
@@ -69,16 +69,16 @@ Use when:
 
 ## Tools Whitelist
 
-The `tools` field specifies which tools are explicitly allowed:
+The `tools` field specifies which tools are explicitly allowed. Use Gollum tool names:
 
 ```yaml
 tools:
-  - Read      # Read file contents
-  - Write     # Create new files
-  - Edit      # Modify existing files
-  - Glob      # Find files by pattern
-  - Grep      # Search file contents
-  - Bash      # Execute shell commands
+  - read_file      # Read file contents
+  - write_file     # Create new files
+  - edit           # Modify existing files
+  - glob           # Find files by pattern
+  - grep           # Search file contents
+  - bash           # Execute shell commands
 ```
 
 ### Common Tool Combinations
@@ -87,9 +87,9 @@ tools:
 
 ```yaml
 tools:
-  - Read
-  - Glob
-  - Grep
+  - read_file
+  - glob
+  - grep
 tool_scope: custom
 ```
 
@@ -97,10 +97,10 @@ tool_scope: custom
 
 ```yaml
 tools:
-  - Read
-  - Write
-  - Edit
-  - Glob
+  - read_file
+  - write_file
+  - edit
+  - glob
 tool_scope: custom
 ```
 
@@ -108,12 +108,12 @@ tool_scope: custom
 
 ```yaml
 tools:
-  - Read
-  - Write
-  - Edit
-  - Glob
-  - Grep
-  - Bash
+  - read_file
+  - write_file
+  - edit
+  - glob
+  - grep
+  - bash
 tool_scope: custom
 ```
 
@@ -123,8 +123,8 @@ The `tool_filter` field excludes specific tools:
 
 ```yaml
 tool_filter:
-  - Bash      # No shell access
-  - Write     # No file creation
+  - bash        # No shell access
+  - write_file  # No file creation
 ```
 
 This is useful when:
@@ -132,18 +132,25 @@ This is useful when:
 - Building on existing configurations
 - Implementing defense in depth
 
-## Available Tools
+## Available Gollum Tools
 
 | Tool | Category | Description |
 |------|----------|-------------|
-| `Read` | File | Read file contents |
-| `Write` | File | Create new files |
-| `Edit` | File | Modify existing files |
-| `Glob` | Search | Find files by pattern |
-| `Grep` | Search | Search file contents |
-| `Bash` | System | Execute shell commands |
-| `WebFetch` | Network | Fetch web content |
-| `WebSearch` | Network | Search the web |
+| `read_file` | File | Read file contents |
+| `write_file` | File | Create new files |
+| `edit` | File | Modify existing files |
+| `glob` | Search | Find files by pattern |
+| `grep` | Search | Search file contents |
+| `bash` | System | Execute shell commands |
+| `spawn_agent` | Agent | Create subagent |
+| `resume_agent` | Agent | Resume subagent |
+| `remove_agent` | Agent | Remove subagent |
+| `list_agents` | Agent | List subagents |
+| `agent_output` | Agent | Get agent output |
+| `invoke_skill` | Skill | Invoke another skill |
+| `change_directory` | Navigation | Change workspace |
+| `current_time` | Utility | Get current time |
+| `session_logs` | Utility | Get session logs |
 
 ## Security Considerations
 
@@ -167,9 +174,10 @@ Some tools pose higher risk:
 
 | Tool | Risk | Mitigation |
 |------|------|------------|
-| `Bash` | Command injection | Use `tool_filter` to exclude |
-| `Write` | Data loss | Limit to specific directories |
-| `Edit` | Unintended changes | Review before applying |
+| `bash` | Command injection | Use `tool_filter` to exclude |
+| `write_file` | Data loss | Limit to specific directories |
+| `edit` | Unintended changes | Review before applying |
+| `spawn_agent` | Resource usage | Limit agent creation |
 
 ### Defense in Depth
 
@@ -178,12 +186,12 @@ Combine multiple controls:
 ```yaml
 tool_scope: custom
 tools:
-  - Read
-  - Glob
-  - Grep
+  - read_file
+  - glob
+  - grep
 tool_filter:
-  - Bash
-  - Write
+  - bash
+  - write_file
 ```
 
 ## Tool Checking
@@ -192,12 +200,12 @@ Skills can check tool availability programmatically:
 
 ```go
 // Check if a tool is allowed
-if skill.HasTool("Read") {
+if skill.HasTool("read_file") {
     // Tool is available
 }
 
 // Check if a tool is filtered
-if skill.IsToolFiltered("Bash") {
+if skill.IsToolFiltered("bash") {
     // Tool is not available
 }
 ```
@@ -216,6 +224,7 @@ tool_scope: read-only
 # Security Scanner
 
 Scan the provided code for security issues...
+```
 
 ### Selective Access Skill
 
@@ -225,12 +234,12 @@ name: documentation-generator
 description: Generates documentation from code
 tool_scope: custom
 tools:
-  - Read
-  - Write
-  - Glob
-  - Grep
+  - read_file
+  - write_file
+  - glob
+  - grep
 tool_filter:
-  - Bash
+  - bash
 ---
 
 # Documentation Generator

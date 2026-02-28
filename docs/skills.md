@@ -155,9 +155,9 @@ tags:
 user_invocable: true
 priority: 100
 tools:
-  - Read
-  - Glob
-  - Grep
+  - read_file
+  - glob
+  - grep
 tool_scope: custom
 ---
 
@@ -189,7 +189,7 @@ Provide findings in this structure:
 | Scope | Description | Allowed Tools |
 |-------|-------------|---------------|
 | `all` | Full access | All available tools |
-| `read-only` | Read operations | Read, Glob, Grep |
+| `read-only` | Read operations | read_file, glob, grep |
 | `none` | No access | None |
 | `custom` | Custom list | Per `tools` field |
 
@@ -205,8 +205,8 @@ tool_scope: custom
 # Blacklist approach
 tool_scope: all
 tool_filter:
-  - Bash
-  - Write
+  - bash
+  - write_file
 ```
 
 ## Hook Events

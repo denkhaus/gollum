@@ -25,8 +25,10 @@ type SkillService interface {
 	ListByType(skillType SkillType) Skills
 	// ListUserInvocable returns skills that can be invoked by users
 	ListUserInvocable() Skills
-	// Validate validates a skill
+	// Validate validates a skill (including tool names)
 	Validate(skill *Skill) error
+	// ValidateTools validates only the tool names in a skill
+	ValidateTools(skill *Skill) []string
 	// Refresh rediscovery all skills
 	Refresh(ctx context.Context) error
 	// AddSearchPath adds a directory to search for skills
@@ -41,12 +43,13 @@ type SkillService interface {
 
 // skillServiceImpl implements SkillService
 type skillServiceImpl struct {
-	log          *zap.Logger
-	config       *config.WorkspaceConfig
-	mu           sync.RWMutex
-	skills       map[string]*Skill // name -> skill
-	skillsByPath map[string]*Skill // path -> skill
-	searchPaths  []string
+	log             *zap.Logger
+	config          *config.WorkspaceConfig
+	toolNameValidator ToolNameValidator
+	mu              sync.RWMutex
+	skills          map[string]*Skill // name -> skill
+	skillsByPath    map[string]*Skill // path -> skill
+	searchPaths     []string
 }
 
 // Ensure skillServiceImpl implements SkillService
@@ -57,12 +60,20 @@ func NewService(injector do.Injector) (SkillService, error) {
 	log := do.MustInvoke[*zap.Logger](injector)
 	cfg := do.MustInvoke[config.ConfigService](injector)
 
+	// Try to get ToolNameValidator from DI, but it's optional
+	// If not available, tool validation will be skipped
+	var toolNameValidator ToolNameValidator
+	if tv, err := do.Invoke[ToolNameValidator](injector); err == nil {
+		toolNameValidator = tv
+	}
+
 	service := &skillServiceImpl{
-		log:          log,
-		config:       cfg.GetWorkspaceConfig(),
-		skills:       make(map[string]*Skill),
-		skillsByPath: make(map[string]*Skill),
-		searchPaths:  make([]string, 0),
+		log:                log,
+		config:             cfg.GetWorkspaceConfig(),
+		toolNameValidator:  toolNameValidator,
+		skills:             make(map[string]*Skill),
+		skillsByPath:       make(map[string]*Skill),
+		searchPaths:        make([]string, 0),
 	}
 
 	// Add workspace directory as default search path
@@ -179,9 +190,47 @@ func (s *skillServiceImpl) ListUserInvocable() Skills {
 	return result
 }
 
-// Validate validates a skill
+// Validate validates a skill (including tool names)
 func (s *skillServiceImpl) Validate(skill *Skill) error {
-	return skill.Validate()
+	// First, validate the skill structure
+	if err := skill.Validate(); err != nil {
+		return err
+	}
+
+	// Then validate tool names
+	invalidTools := s.ValidateTools(skill)
+	if len(invalidTools) > 0 {
+		return ErrInvalidToolNames(skill.FilePath, invalidTools)
+	}
+
+	return nil
+}
+
+// ValidateTools validates only the tool names in a skill
+// Returns a list of invalid tool names (empty if all valid)
+func (s *skillServiceImpl) ValidateTools(skill *Skill) []string {
+	// If no validator is available, skip tool validation
+	if s.toolNameValidator == nil {
+		return nil
+	}
+
+	var invalid []string
+
+	// Validate tools whitelist
+	for _, tool := range skill.Tools {
+		if !s.toolNameValidator.IsValidTool(tool) {
+			invalid = append(invalid, tool)
+		}
+	}
+
+	// Validate tool filter
+	for _, tool := range skill.ToolFilter {
+		if !s.toolNameValidator.IsValidTool(tool) {
+			invalid = append(invalid, tool)
+		}
+	}
+
+	return invalid
 }
 
 // Refresh rediscovery all skills

@@ -206,3 +206,17 @@ func (mr *MockSkillServiceMockRecorder) Validate(skill any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockSkillService)(nil).Validate), skill)
 }
+
+// ValidateTools mocks base method.
+func (m *MockSkillService) ValidateTools(skill *skills.Skill) []string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateTools", skill)
+	ret0, _ := ret[0].([]string)
+	return ret0
+}
+
+// ValidateTools indicates an expected call of ValidateTools.
+func (mr *MockSkillServiceMockRecorder) ValidateTools(skill any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateTools", reflect.TypeOf((*MockSkillService)(nil).ValidateTools), skill)
+}

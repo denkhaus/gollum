@@ -12,11 +12,11 @@ tags:
 user_invocable: true
 priority: 100
 tools:
-  - Read
-  - Write
-  - Edit
-  - Glob
-  - Grep
+  - read_file
+  - write_file
+  - edit
+  - glob
+  - grep
 tool_scope: all
 ---
 

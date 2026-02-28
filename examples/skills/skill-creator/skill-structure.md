@@ -83,12 +83,12 @@ Whitelist of tools the skill can use. If empty, all tools are allowed (subject t
 
 ```yaml
 tools:
-  - Read
-  - Write
-  - Edit
-  - Glob
-  - Grep
-  - Bash
+  - read_file
+  - write_file
+  - edit
+  - glob
+  - grep
+  - bash
 ```
 
 ### tool_scope
@@ -98,7 +98,7 @@ Controls overall tool access:
 | Value | Description |
 |-------|-------------|
 | `all` | Full access to all tools (default) |
-| `read-only` | Only read operations (Read, Glob, Grep) |
+| `read-only` | Only read operations (read_file, glob, grep) |
 | `none` | No tool access |
 | `custom` | Use `tools` list for custom restrictions |
 
@@ -113,7 +113,7 @@ Blacklist of tools to exclude. Useful for removing dangerous operations.
 ```yaml
 tool_filter:
   - Bash        # No shell access
-  - Write       # No file creation
+  - write_file  # No file creation
 ```
 
 ### arguments
@@ -168,10 +168,10 @@ tags:
 user_invocable: true
 priority: 50
 tools:
-  - Read
-  - Glob
-  - Grep
-  - Write
+  - read_file
+  - glob
+  - grep
+  - write_file
 tool_scope: custom
 arguments: "[source-dir] [output-format]"
 ---
