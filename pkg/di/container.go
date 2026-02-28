@@ -111,6 +111,7 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	do.Provide(p.injector, tools.NewEditToolProvider)
 	do.Provide(p.injector, tools.NewSessionLogsToolProvider)
 	do.Provide(p.injector, tools.NewChangeDirectoryToolProvider)
+	do.Provide(p.injector, tools.NewInvokeSkillToolProvider)
 
 	// Register prompt store
 	do.Provide(p.injector, store.NewPromptStore)

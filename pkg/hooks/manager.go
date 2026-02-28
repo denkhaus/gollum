@@ -169,6 +169,9 @@ func NewHookManager(injector do.Injector) (HookManager, error) {
 		BeforeLLMRequest,
 		AfterLLMResponse,
 		OnLLMError,
+		BeforeSkillInvoked,
+		AfterSkillInvoked,
+		OnSkillError,
 	} {
 		p.registries[point] = &hookRegistry{}
 	}

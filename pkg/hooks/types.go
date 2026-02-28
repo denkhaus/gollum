@@ -89,6 +89,19 @@ const (
 	// Use case: Implement retry logic, fallback to alternative models, log errors.
 	// Hooks can recover by setting LLMResponse or allow error to propagate.
 	OnLLMError HookPoint = "OnLLMError"
+
+	// BeforeSkillInvoked is triggered before a skill is invoked.
+	// Use case: Validate skill permissions, log skill usage, modify skill input.
+	// Hooks can access skill name, context mode, and model via HookContext.Data.
+	BeforeSkillInvoked HookPoint = "BeforeSkillInvoked"
+	// AfterSkillInvoked is triggered after a skill completes successfully.
+	// Use case: Log skill execution, update metrics, cache skill results.
+	// Hooks can access skill name, context mode, model, and result via HookContext.Data.
+	AfterSkillInvoked HookPoint = "AfterSkillInvoked"
+	// OnSkillError is triggered when a skill invocation fails.
+	// Use case: Implement fallback skills, log errors, notify administrators.
+	// Hooks can recover by setting ToolResult or allow error to propagate.
+	OnSkillError HookPoint = "OnSkillError"
 )
 
 // String returns the string representation of the hook point.
@@ -192,6 +205,44 @@ type HookResult struct {
 // - Return an error to stop execution (if FatalError=true)
 // - Modify hookCtx.Data to pass data to subsequent hooks
 type HookFunc func(ctx context.Context, hookCtx *HookContext, next func() error) error
+
+// NoOpHookManager is a no-op implementation of HookManager for testing
+type NoOpHookManager struct{}
+
+// Ensure NoOpHookManager implements HookManager
+var _ HookManager = (*NoOpHookManager)(nil)
+
+// NewNoOpHookManager creates a new no-op hook manager
+func NewNoOpHookManager() *NoOpHookManager {
+	return &NoOpHookManager{}
+}
+
+func (n *NoOpHookManager) RegisterHook(_ HookFunc, _ HookMetadata) error { return nil }
+func (n *NoOpHookManager) UnregisterHook(_ string) bool                   { return false }
+func (n *NoOpHookManager) TriggerHooks(_ context.Context, _ HookPoint, _ *HookContext) HookResult {
+	return HookResult{}
+}
+func (n *NoOpHookManager) WithSessionHooks(_ context.Context, _ uuid.UUID, work func() error) error {
+	return work()
+}
+func (n *NoOpHookManager) WithAgentHooks(_ context.Context, _, _ uuid.UUID, _ HookPoint, work func() error) error {
+	return work()
+}
+func (n *NoOpHookManager) WithToolHooks(_ context.Context, _, _ uuid.UUID, _ string, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+	return work()
+}
+func (n *NoOpHookManager) WithFileReadHooks(_ context.Context, _, _ uuid.UUID, _ string, work func() (string, error)) (string, error) {
+	return work()
+}
+func (n *NoOpHookManager) WithFileWriteHooks(_ context.Context, _, _ uuid.UUID, _, _ string, work func(string) error) error {
+	return work("")
+}
+func (n *NoOpHookManager) WithFileHooks(_ context.Context, _, _ uuid.UUID, _ HookPoint, _ string, work func() error) error {
+	return work()
+}
+func (n *NoOpHookManager) WithLLMHooks(_ context.Context, _, _ uuid.UUID, _, _ string, work func(string) (string, error)) (string, error) {
+	return work("")
+}
 
 // HookMetadata contains configuration for a hook.
 type HookMetadata struct {

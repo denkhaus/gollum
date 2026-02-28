@@ -13,6 +13,7 @@ const (
 	ToolNameReadFile        = "read_file"
 	ToolNameSessionLogs     = "session_logs"
 	ToolNameChangeDirectory = "change_directory"
+	ToolNameInvokeSkill     = "invoke_skill"
 
 	// File operation tools (matching builtin tools)
 	ToolNameEdit = "edit"
