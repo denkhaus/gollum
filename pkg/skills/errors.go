@@ -56,3 +56,8 @@ func ErrDuplicateSkill(skillName, existingPath, newPath string) *errs.Error {
 	return errs.Conflictf("duplicate skill '%s': already exists at %s, found again at %s",
 		skillName, existingPath, newPath)
 }
+
+// ErrInvalidToolNames creates a validation error for invalid tool names
+func ErrInvalidToolNames(skillPath string, invalidTools []string) *errs.Error {
+	return errs.Validationf("skill %s: invalid tool names: %v", skillPath, invalidTools)
+}
