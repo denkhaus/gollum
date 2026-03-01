@@ -42,6 +42,34 @@ func (m *MockHookManager) EXPECT() *MockHookManagerMockRecorder {
 	return m.recorder
 }
 
+// RegisterAgentHook mocks base method.
+func (m *MockHookManager) RegisterAgentHook(fn hooks.TypedHookFunc[hooks.AgentPayload], meta hooks.TypedHookMetadata) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterAgentHook", fn, meta)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterAgentHook indicates an expected call of RegisterAgentHook.
+func (mr *MockHookManagerMockRecorder) RegisterAgentHook(fn, meta any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterAgentHook", reflect.TypeOf((*MockHookManager)(nil).RegisterAgentHook), fn, meta)
+}
+
+// RegisterFileHook mocks base method.
+func (m *MockHookManager) RegisterFileHook(fn hooks.TypedHookFunc[hooks.FilePayload], meta hooks.TypedHookMetadata) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterFileHook", fn, meta)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterFileHook indicates an expected call of RegisterFileHook.
+func (mr *MockHookManagerMockRecorder) RegisterFileHook(fn, meta any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterFileHook", reflect.TypeOf((*MockHookManager)(nil).RegisterFileHook), fn, meta)
+}
+
 // RegisterHook mocks base method.
 func (m *MockHookManager) RegisterHook(fn hooks.HookFunc, meta hooks.HookMetadata) error {
 	m.ctrl.T.Helper()
@@ -56,6 +84,90 @@ func (mr *MockHookManagerMockRecorder) RegisterHook(fn, meta any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterHook", reflect.TypeOf((*MockHookManager)(nil).RegisterHook), fn, meta)
 }
 
+// RegisterLLMHook mocks base method.
+func (m *MockHookManager) RegisterLLMHook(fn hooks.TypedHookFunc[hooks.LLMPayload], meta hooks.TypedHookMetadata) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterLLMHook", fn, meta)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterLLMHook indicates an expected call of RegisterLLMHook.
+func (mr *MockHookManagerMockRecorder) RegisterLLMHook(fn, meta any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterLLMHook", reflect.TypeOf((*MockHookManager)(nil).RegisterLLMHook), fn, meta)
+}
+
+// RegisterSessionHook mocks base method.
+func (m *MockHookManager) RegisterSessionHook(fn hooks.TypedHookFunc[hooks.SessionPayload], meta hooks.TypedHookMetadata) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterSessionHook", fn, meta)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterSessionHook indicates an expected call of RegisterSessionHook.
+func (mr *MockHookManagerMockRecorder) RegisterSessionHook(fn, meta any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterSessionHook", reflect.TypeOf((*MockHookManager)(nil).RegisterSessionHook), fn, meta)
+}
+
+// RegisterSkillHook mocks base method.
+func (m *MockHookManager) RegisterSkillHook(fn hooks.TypedHookFunc[hooks.SkillPayload], meta hooks.TypedHookMetadata) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterSkillHook", fn, meta)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterSkillHook indicates an expected call of RegisterSkillHook.
+func (mr *MockHookManagerMockRecorder) RegisterSkillHook(fn, meta any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterSkillHook", reflect.TypeOf((*MockHookManager)(nil).RegisterSkillHook), fn, meta)
+}
+
+// RegisterToolHook mocks base method.
+func (m *MockHookManager) RegisterToolHook(fn hooks.TypedHookFunc[hooks.ToolPayload], meta hooks.TypedHookMetadata) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterToolHook", fn, meta)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterToolHook indicates an expected call of RegisterToolHook.
+func (mr *MockHookManagerMockRecorder) RegisterToolHook(fn, meta any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterToolHook", reflect.TypeOf((*MockHookManager)(nil).RegisterToolHook), fn, meta)
+}
+
+// TriggerAgentHooks mocks base method.
+func (m *MockHookManager) TriggerAgentHooks(ctx context.Context, point hooks.HookPoint, hookCtx *hooks.TypedHookContext[hooks.AgentPayload]) hooks.TypedHookResult[hooks.AgentPayload] {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TriggerAgentHooks", ctx, point, hookCtx)
+	ret0, _ := ret[0].(hooks.TypedHookResult[hooks.AgentPayload])
+	return ret0
+}
+
+// TriggerAgentHooks indicates an expected call of TriggerAgentHooks.
+func (mr *MockHookManagerMockRecorder) TriggerAgentHooks(ctx, point, hookCtx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TriggerAgentHooks", reflect.TypeOf((*MockHookManager)(nil).TriggerAgentHooks), ctx, point, hookCtx)
+}
+
+// TriggerFileHooks mocks base method.
+func (m *MockHookManager) TriggerFileHooks(ctx context.Context, point hooks.HookPoint, hookCtx *hooks.TypedHookContext[hooks.FilePayload]) hooks.TypedHookResult[hooks.FilePayload] {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TriggerFileHooks", ctx, point, hookCtx)
+	ret0, _ := ret[0].(hooks.TypedHookResult[hooks.FilePayload])
+	return ret0
+}
+
+// TriggerFileHooks indicates an expected call of TriggerFileHooks.
+func (mr *MockHookManagerMockRecorder) TriggerFileHooks(ctx, point, hookCtx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TriggerFileHooks", reflect.TypeOf((*MockHookManager)(nil).TriggerFileHooks), ctx, point, hookCtx)
+}
+
 // TriggerHooks mocks base method.
 func (m *MockHookManager) TriggerHooks(ctx context.Context, point hooks.HookPoint, hookCtx *hooks.HookContext) hooks.HookResult {
 	m.ctrl.T.Helper()
@@ -68,6 +180,62 @@ func (m *MockHookManager) TriggerHooks(ctx context.Context, point hooks.HookPoin
 func (mr *MockHookManagerMockRecorder) TriggerHooks(ctx, point, hookCtx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TriggerHooks", reflect.TypeOf((*MockHookManager)(nil).TriggerHooks), ctx, point, hookCtx)
+}
+
+// TriggerLLMHooks mocks base method.
+func (m *MockHookManager) TriggerLLMHooks(ctx context.Context, point hooks.HookPoint, hookCtx *hooks.TypedHookContext[hooks.LLMPayload]) hooks.TypedHookResult[hooks.LLMPayload] {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TriggerLLMHooks", ctx, point, hookCtx)
+	ret0, _ := ret[0].(hooks.TypedHookResult[hooks.LLMPayload])
+	return ret0
+}
+
+// TriggerLLMHooks indicates an expected call of TriggerLLMHooks.
+func (mr *MockHookManagerMockRecorder) TriggerLLMHooks(ctx, point, hookCtx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TriggerLLMHooks", reflect.TypeOf((*MockHookManager)(nil).TriggerLLMHooks), ctx, point, hookCtx)
+}
+
+// TriggerSessionHooks mocks base method.
+func (m *MockHookManager) TriggerSessionHooks(ctx context.Context, point hooks.HookPoint, hookCtx *hooks.TypedHookContext[hooks.SessionPayload]) hooks.TypedHookResult[hooks.SessionPayload] {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TriggerSessionHooks", ctx, point, hookCtx)
+	ret0, _ := ret[0].(hooks.TypedHookResult[hooks.SessionPayload])
+	return ret0
+}
+
+// TriggerSessionHooks indicates an expected call of TriggerSessionHooks.
+func (mr *MockHookManagerMockRecorder) TriggerSessionHooks(ctx, point, hookCtx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TriggerSessionHooks", reflect.TypeOf((*MockHookManager)(nil).TriggerSessionHooks), ctx, point, hookCtx)
+}
+
+// TriggerSkillHooks mocks base method.
+func (m *MockHookManager) TriggerSkillHooks(ctx context.Context, point hooks.HookPoint, hookCtx *hooks.TypedHookContext[hooks.SkillPayload]) hooks.TypedHookResult[hooks.SkillPayload] {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TriggerSkillHooks", ctx, point, hookCtx)
+	ret0, _ := ret[0].(hooks.TypedHookResult[hooks.SkillPayload])
+	return ret0
+}
+
+// TriggerSkillHooks indicates an expected call of TriggerSkillHooks.
+func (mr *MockHookManagerMockRecorder) TriggerSkillHooks(ctx, point, hookCtx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TriggerSkillHooks", reflect.TypeOf((*MockHookManager)(nil).TriggerSkillHooks), ctx, point, hookCtx)
+}
+
+// TriggerToolHooks mocks base method.
+func (m *MockHookManager) TriggerToolHooks(ctx context.Context, point hooks.HookPoint, hookCtx *hooks.TypedHookContext[hooks.ToolPayload]) hooks.TypedHookResult[hooks.ToolPayload] {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TriggerToolHooks", ctx, point, hookCtx)
+	ret0, _ := ret[0].(hooks.TypedHookResult[hooks.ToolPayload])
+	return ret0
+}
+
+// TriggerToolHooks indicates an expected call of TriggerToolHooks.
+func (mr *MockHookManagerMockRecorder) TriggerToolHooks(ctx, point, hookCtx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TriggerToolHooks", reflect.TypeOf((*MockHookManager)(nil).TriggerToolHooks), ctx, point, hookCtx)
 }
 
 // UnregisterHook mocks base method.
