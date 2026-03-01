@@ -75,10 +75,10 @@ func TestFullTraceLifecycle(t *testing.T) {
 
 	// Step 1: beforeSessionStartHook - verify trace context created
 	t.Run("BeforeSessionStart", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			Data:      make(map[string]any),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID},
+			hooks.SessionPayload{},
+		)
 
 		err := hook.beforeSessionStartHook(ctx, hookCtx, func() error {
 			// This would call the next hook in the chain
@@ -86,9 +86,8 @@ func TestFullTraceLifecycle(t *testing.T) {
 		})
 		require.NoError(t, err, "beforeSessionStartHook should not error")
 
-		// Verify trace ID was propagated
-		traceID, ok := hookCtx.Data["langfuse_trace_id"].(string)
-		require.True(t, ok, "langfuse_trace_id should be set in HookContext.Data")
+		// Verify trace ID was propagated via Tracing
+		traceID := hookCtx.Tracing.TraceID
 		require.NotEmpty(t, traceID, "trace ID should not be empty")
 
 		// Verify trace context was created
@@ -101,12 +100,10 @@ func TestFullTraceLifecycle(t *testing.T) {
 
 	// Step 2: beforeLLMRequestHook + afterLLMResponseHook - verify LLM span created
 	t.Run("LLMSpan", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			LLMModel:  "test-model",
-			LLMInput:  "test prompt",
-			Data:      make(map[string]any),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID},
+			hooks.LLMPayload{Model: "test-model", Input: "test prompt"},
+		)
 
 		// Before LLM request
 		err := hook.beforeLLMRequestHook(ctx, hookCtx, func() error {
@@ -114,13 +111,12 @@ func TestFullTraceLifecycle(t *testing.T) {
 		})
 		require.NoError(t, err, "beforeLLMRequestHook should not error")
 
-		// Verify span ID was set
-		spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-		require.True(t, ok, "langfuse_span_id should be set")
+		// Verify span ID was set via Tracing
+		spanID := hookCtx.Tracing.SpanID
 		require.NotEmpty(t, spanID, "span ID should not be empty")
 
 		// After LLM response
-		hookCtx.LLMResponse = "test response"
+		hookCtx.Payload.Response = "test response"
 		err = hook.afterLLMResponseHook(ctx, hookCtx, func() error {
 			return nil
 		})
@@ -143,12 +139,10 @@ func TestFullTraceLifecycle(t *testing.T) {
 
 	// Step 3: beforeToolExecutionHook + afterToolExecutionHook - verify tool span created
 	t.Run("ToolSpan", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			ToolName:  "test_tool",
-			ToolArgs:  map[string]any{"arg1": "value1"},
-			Data:      make(map[string]any),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID},
+			hooks.ToolPayload{Name: "test_tool", Args: map[string]any{"arg1": "value1"}},
+		)
 
 		// Before tool execution
 		err := hook.beforeToolExecutionHook(ctx, hookCtx, func() error {
@@ -156,13 +150,12 @@ func TestFullTraceLifecycle(t *testing.T) {
 		})
 		require.NoError(t, err, "beforeToolExecutionHook should not error")
 
-		// Verify span ID was set
-		spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-		require.True(t, ok, "langfuse_span_id should be set")
+		// Verify span ID was set via Tracing
+		spanID := hookCtx.Tracing.SpanID
 		require.NotEmpty(t, spanID, "span ID should not be empty")
 
 		// After tool execution
-		hookCtx.ToolResult = map[string]any{"result": "success"}
+		hookCtx.Payload.Result = map[string]any{"result": "success"}
 		err = hook.afterToolExecutionHook(ctx, hookCtx, func() error {
 			return nil
 		})
@@ -185,10 +178,10 @@ func TestFullTraceLifecycle(t *testing.T) {
 
 	// Step 4: afterSessionEndHook - verify trace flushed and cleaned up
 	t.Run("AfterSessionEnd", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			Data:      make(map[string]any),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID},
+			hooks.SessionPayload{},
+		)
 
 		err := hook.afterSessionEndHook(ctx, hookCtx, func() error {
 			return nil
@@ -234,10 +227,10 @@ func TestAgentSpanHierarchy(t *testing.T) {
 
 	// Start session trace
 	t.Run("StartSession", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			Data:      make(map[string]any),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID},
+			hooks.SessionPayload{},
+		)
 
 		err := hook.beforeSessionStartHook(ctx, hookCtx, func() error {
 			return nil
@@ -249,24 +242,20 @@ func TestAgentSpanHierarchy(t *testing.T) {
 	agentAID := uuid.New()
 	var agentASpawnSpanID string
 	t.Run("SpawnAgentA", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			AgentID:   sessionID, // Root agent is the session
-			Data:      make(map[string]any),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID, AgentID: sessionID}, // Root agent is the session
+			hooks.AgentPayload{Event: hooks.AgentEventSpawn, NewAgentID: agentAID},
+		)
 
 		err := hook.beforeAgentSpawnHook(ctx, hookCtx, func() error {
 			return nil
 		})
 		require.NoError(t, err, "beforeAgentSpawnHook should not error")
 
-		// Get span ID
-		spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-		require.True(t, ok, "langfuse_span_id should be set")
-		agentASpawnSpanID = spanID
+		// Get span ID from Tracing
+		agentASpawnSpanID = hookCtx.Tracing.SpanID
+		require.NotEmpty(t, agentASpawnSpanID, "span ID should not be empty")
 
-		// After spawn - set new agent ID
-		hookCtx.Data["new_agent_id"] = agentAID.String()
 		err = hook.afterAgentSpawnHook(ctx, hookCtx, func() error {
 			return nil
 		})
@@ -277,24 +266,20 @@ func TestAgentSpanHierarchy(t *testing.T) {
 	agentBID := uuid.New()
 	var agentBSpawnSpanID string
 	t.Run("SpawnAgentB", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			AgentID:   agentAID, // Spawned from Agent A
-			Data:      make(map[string]any),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID, AgentID: agentAID}, // Spawned from Agent A
+			hooks.AgentPayload{Event: hooks.AgentEventSpawn, NewAgentID: agentBID},
+		)
 
 		err := hook.beforeAgentSpawnHook(ctx, hookCtx, func() error {
 			return nil
 		})
 		require.NoError(t, err, "beforeAgentSpawnHook should not error")
 
-		// Get span ID
-		spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-		require.True(t, ok, "langfuse_span_id should be set")
-		agentBSpawnSpanID = spanID
+		// Get span ID from Tracing
+		agentBSpawnSpanID = hookCtx.Tracing.SpanID
+		require.NotEmpty(t, agentBSpawnSpanID, "span ID should not be empty")
 
-		// After spawn - set new agent ID
-		hookCtx.Data["new_agent_id"] = agentBID.String()
 		err = hook.afterAgentSpawnHook(ctx, hookCtx, func() error {
 			return nil
 		})
@@ -304,25 +289,21 @@ func TestAgentSpanHierarchy(t *testing.T) {
 	// From Agent B, execute tool
 	var toolSpanID string
 	t.Run("ExecuteTool", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			AgentID:   agentBID, // Executed from Agent B
-			ToolName:  "test_tool",
-			ToolArgs:  map[string]any{"arg1": "value1"},
-			Data:      make(map[string]any),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID, AgentID: agentBID}, // Executed from Agent B
+			hooks.ToolPayload{Name: "test_tool", Args: map[string]any{"arg1": "value1"}},
+		)
 
 		err := hook.beforeToolExecutionHook(ctx, hookCtx, func() error {
 			return nil
 		})
 		require.NoError(t, err, "beforeToolExecutionHook should not error")
 
-		// Get span ID
-		spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-		require.True(t, ok, "langfuse_span_id should be set")
-		toolSpanID = spanID
+		// Get span ID from Tracing
+		toolSpanID = hookCtx.Tracing.SpanID
+		require.NotEmpty(t, toolSpanID, "span ID should not be empty")
 
-		hookCtx.ToolResult = map[string]any{"result": "success"}
+		hookCtx.Payload.Result = map[string]any{"result": "success"}
 		err = hook.afterToolExecutionHook(ctx, hookCtx, func() error {
 			return nil
 		})
@@ -332,21 +313,19 @@ func TestAgentSpanHierarchy(t *testing.T) {
 	// Remove Agent B
 	var agentBRemoveSpanID string
 	t.Run("RemoveAgentB", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			AgentID:   agentBID,
-			Data:      make(map[string]any),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID, AgentID: agentBID},
+			hooks.AgentPayload{Event: hooks.AgentEventRemove},
+		)
 
 		err := hook.beforeAgentRemoveHook(ctx, hookCtx, func() error {
 			return nil
 		})
 		require.NoError(t, err, "beforeAgentRemoveHook should not error")
 
-		// Get span ID
-		spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-		require.True(t, ok, "langfuse_span_id should be set")
-		agentBRemoveSpanID = spanID
+		// Get span ID from Tracing
+		agentBRemoveSpanID = hookCtx.Tracing.SpanID
+		require.NotEmpty(t, agentBRemoveSpanID, "span ID should not be empty")
 
 		err = hook.afterAgentRemoveHook(ctx, hookCtx, func() error {
 			return nil
@@ -357,21 +336,19 @@ func TestAgentSpanHierarchy(t *testing.T) {
 	// Remove Agent A
 	var agentARemoveSpanID string
 	t.Run("RemoveAgentA", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			AgentID:   agentAID,
-			Data:      make(map[string]any),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID, AgentID: agentAID},
+			hooks.AgentPayload{Event: hooks.AgentEventRemove},
+		)
 
 		err := hook.beforeAgentRemoveHook(ctx, hookCtx, func() error {
 			return nil
 		})
 		require.NoError(t, err, "beforeAgentRemoveHook should not error")
 
-		// Get span ID
-		spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-		require.True(t, ok, "langfuse_span_id should be set")
-		agentARemoveSpanID = spanID
+		// Get span ID from Tracing
+		agentARemoveSpanID = hookCtx.Tracing.SpanID
+		require.NotEmpty(t, agentARemoveSpanID, "span ID should not be empty")
 
 		err = hook.afterAgentRemoveHook(ctx, hookCtx, func() error {
 			return nil
@@ -428,10 +405,10 @@ func TestAgentSpanHierarchy(t *testing.T) {
 
 	// End session trace
 	t.Run("EndSession", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			Data:      make(map[string]any),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID},
+			hooks.SessionPayload{},
+		)
 
 		err := hook.afterSessionEndHook(ctx, hookCtx, func() error {
 			return nil
@@ -477,10 +454,10 @@ func TestErrorHandlingIntegration(t *testing.T) {
 
 	// Start session trace
 	t.Run("StartSession", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			Data:      make(map[string]any),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID},
+			hooks.SessionPayload{},
+		)
 
 		err := hook.beforeSessionStartHook(ctx, hookCtx, func() error {
 			return nil
@@ -491,13 +468,14 @@ func TestErrorHandlingIntegration(t *testing.T) {
 	// Execute LLM request with error
 	var llmSpanID string
 	t.Run("LLMError", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			LLMModel:  "test-model",
-			LLMInput:  "test prompt",
-			LLMError:  errors.New("LLM request failed"),
-			Data:      make(map[string]any),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID},
+			hooks.LLMPayload{
+				Model: "test-model",
+				Input: "test prompt",
+				Error: errors.New("LLM request failed"),
+			},
+		)
 
 		// Before LLM request
 		err := hook.beforeLLMRequestHook(ctx, hookCtx, func() error {
@@ -505,10 +483,9 @@ func TestErrorHandlingIntegration(t *testing.T) {
 		})
 		require.NoError(t, err, "beforeLLMRequestHook should not error")
 
-		// Get span ID
-		spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-		require.True(t, ok, "langfuse_span_id should be set")
-		llmSpanID = spanID
+		// Get span ID from Tracing
+		llmSpanID = hookCtx.Tracing.SpanID
+		require.NotEmpty(t, llmSpanID, "span ID should not be empty")
 
 		// On LLM error
 		err = hook.onLLMErrorHook(ctx, hookCtx, func() error {
@@ -532,13 +509,14 @@ func TestErrorHandlingIntegration(t *testing.T) {
 	// Execute tool with error
 	var toolSpanID string
 	t.Run("ToolError", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			ToolName:  "test_tool",
-			ToolArgs:  map[string]any{"arg1": "value1"},
-			ToolError: errors.New("tool execution failed"),
-			Data:      make(map[string]any),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID},
+			hooks.ToolPayload{
+				Name:  "test_tool",
+				Args:  map[string]any{"arg1": "value1"},
+				Error: errors.New("tool execution failed"),
+			},
+		)
 
 		// Before tool execution
 		err := hook.beforeToolExecutionHook(ctx, hookCtx, func() error {
@@ -546,10 +524,9 @@ func TestErrorHandlingIntegration(t *testing.T) {
 		})
 		require.NoError(t, err, "beforeToolExecutionHook should not error")
 
-		// Get span ID
-		spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-		require.True(t, ok, "langfuse_span_id should be set")
-		toolSpanID = spanID
+		// Get span ID from Tracing
+		toolSpanID = hookCtx.Tracing.SpanID
+		require.NotEmpty(t, toolSpanID, "span ID should not be empty")
 
 		// On tool error
 		err = hook.onToolErrorHook(ctx, hookCtx, func() error {
@@ -571,10 +548,10 @@ func TestErrorHandlingIntegration(t *testing.T) {
 
 	// End session trace - should complete despite errors
 	t.Run("EndSession", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			Data:      make(map[string]any),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID},
+			hooks.SessionPayload{},
+		)
 
 		err := hook.afterSessionEndHook(ctx, hookCtx, func() error {
 			return nil

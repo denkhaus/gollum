@@ -137,7 +137,7 @@ func TestRegisterLangfuseHooks(t *testing.T) {
 	t.Run("skips registration when Langfuse disabled", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		mockHM := &mockHookManager{}
+		mockHM := mocks.NewMockHookManager(ctrl)
 		mockLog := mocks.NewMockLoggerService(ctrl)
 		cfg := &config.LangfuseConfig{
 			LangfuseEnabled: false,
@@ -154,13 +154,13 @@ func TestRegisterLangfuseHooks(t *testing.T) {
 		err := RegisterLangfuseHooks(mockHM, hook)
 
 		assert.NoError(t, err)
-		assert.Equal(t, 0, mockHM.registerCount, "No hooks should be registered when disabled")
+		// No EXPECT() calls means no hooks should be registered
 	})
 
 	t.Run("registers all hooks when Langfuse enabled", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		mockHM := &mockHookManager{}
+		mockHM := mocks.NewMockHookManager(ctrl)
 		mockLog := mocks.NewMockLoggerService(ctrl)
 		cfg := &config.LangfuseConfig{
 			LangfuseEnabled: true,
@@ -174,14 +174,24 @@ func TestRegisterLangfuseHooks(t *testing.T) {
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
+		// Expect 2 session hooks
+		mockHM.EXPECT().RegisterSessionHook(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+		// Expect 4 agent hooks
+		mockHM.EXPECT().RegisterAgentHook(gomock.Any(), gomock.Any()).Return(nil).Times(4)
+		// Expect 3 tool hooks
+		mockHM.EXPECT().RegisterToolHook(gomock.Any(), gomock.Any()).Return(nil).Times(3)
+		// Expect 8 file hooks (read, write, delete, modify - before/after each)
+		mockHM.EXPECT().RegisterFileHook(gomock.Any(), gomock.Any()).Return(nil).Times(8)
+		// Expect 3 LLM hooks
+		mockHM.EXPECT().RegisterLLMHook(gomock.Any(), gomock.Any()).Return(nil).Times(3)
+
 		err := RegisterLangfuseHooks(mockHM, hook)
 
 		assert.NoError(t, err)
-		assert.Equal(t, 20, mockHM.registerCount, "Should register 20 hook points (2 session + 4 agent + 3 tool + 6 file + 3 LLM)")
 	})
 }
 
-func TestLangfuseHook_TraceIDPropagation(t *testing.T) {
+func TestLangfuseHook_TracingPropagation(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -201,43 +211,48 @@ func TestLangfuseHook_TraceIDPropagation(t *testing.T) {
 	}
 
 	// Create trace context
-	hook.createTraceContext(sessionID)
+	_ = hook.createTraceContext(sessionID)
+	requireTraceContext := func(t *testing.T) *TraceContext {
+		t.Helper()
+		foundTC := hook.getTraceContext(sessionID)
+		assert.NotNil(t, foundTC, "TraceContext should exist")
+		return foundTC
+	}
 
-	t.Run("propagateTraceID sets trace ID in HookContext.Data", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			Data:      make(map[string]any),
-		}
+	t.Run("propagateTracingToContext sets trace ID in TypedHookContext.Tracing", func(t *testing.T) {
+		tc := requireTraceContext(t)
+		_ = tc // Use tc to avoid unused variable error
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID},
+			hooks.ToolPayload{Name: "test"},
+		)
 
-		hook.propagateTraceID(hookCtx)
+		hook.propagateTracingToContext(sessionID, &hookCtx.Tracing)
 
-		traceID, exists := hookCtx.Data["langfuse_trace_id"]
-		assert.True(t, exists, "langfuse_trace_id should be set")
-		assert.NotEmpty(t, traceID, "trace ID should not be empty")
+		assert.NotEmpty(t, hookCtx.Tracing.TraceID, "TraceID should be set in Tracing")
+		assert.Equal(t, tc.TraceID, hookCtx.Tracing.TraceID, "TraceID should match trace context")
 	})
 
-	t.Run("propagateTraceID does nothing when no session", func(t *testing.T) {
-		hookCtx := &hooks.HookContext{
-			SessionID: uuid.Nil,
-			Data:      make(map[string]any),
-		}
+	t.Run("propagateTracingToContext does nothing when no session", func(t *testing.T) {
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: uuid.Nil},
+			hooks.ToolPayload{Name: "test"},
+		)
 
-		hook.propagateTraceID(hookCtx)
+		hook.propagateTracingToContext(uuid.Nil, &hookCtx.Tracing)
 
-		_, exists := hookCtx.Data["langfuse_trace_id"]
-		assert.False(t, exists, "langfuse_trace_id should not be set for nil session")
+		assert.Empty(t, hookCtx.Tracing.TraceID, "TraceID should not be set for nil session")
 	})
 
-	t.Run("propagateTraceID does nothing when no trace context", func(t *testing.T) {
+	t.Run("propagateTracingToContext does nothing when no trace context", func(t *testing.T) {
 		differentSession := uuid.New()
-		hookCtx := &hooks.HookContext{
-			SessionID: differentSession,
-			Data:      make(map[string]any),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: differentSession},
+			hooks.ToolPayload{Name: "test"},
+		)
 
-		hook.propagateTraceID(hookCtx)
+		hook.propagateTracingToContext(differentSession, &hookCtx.Tracing)
 
-		_, exists := hookCtx.Data["langfuse_trace_id"]
-		assert.False(t, exists, "langfuse_trace_id should not be set for non-existent trace")
+		assert.Empty(t, hookCtx.Tracing.TraceID, "TraceID should not be set for non-existent trace")
 	})
 }

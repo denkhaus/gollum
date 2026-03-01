@@ -83,20 +83,17 @@ func TestLangfuseHook_ToolSpanCreation(t *testing.T) {
 				hook.createTraceContext(tt.sessionID)
 			}
 
-			hookCtx := &hooks.HookContext{
-				SessionID: tt.sessionID,
-				ToolName:  tt.toolName,
-				ToolArgs:  tt.toolArgs,
-				Data:      make(map[string]any),
-			}
+			hookCtx := hooks.NewTypedHookContext(
+				hooks.BaseContext{SessionID: tt.sessionID},
+				hooks.ToolPayload{Name: tt.toolName, Args: tt.toolArgs},
+			)
 
 			err := hook.beforeToolExecutionHook(context.Background(), hookCtx, func() error { return nil })
 			require.NoError(t, err)
 
-			spanID, hasSpanID := hookCtx.Data["langfuse_span_id"].(string)
+			spanID := hookCtx.Tracing.SpanID
 
 			if tt.wantSpanCreated {
-				assert.True(t, hasSpanID, "Should have span ID in Data")
 				assert.NotEmpty(t, spanID, "Span ID should not be empty")
 
 				tc := hook.getTraceContext(tt.sessionID)
@@ -109,7 +106,7 @@ func TestLangfuseHook_ToolSpanCreation(t *testing.T) {
 				assert.Equal(t, tt.toolArgs, spanCtx.Input)
 				assert.False(t, spanCtx.StartTime.IsZero(), "StartTime should be set")
 			} else {
-				assert.False(t, hasSpanID, "Should not have span ID when disabled or nil session")
+				assert.Empty(t, spanID, "Should not have span ID when disabled or nil session")
 			}
 		})
 	}
@@ -151,13 +148,11 @@ func TestLangfuseHook_ToolSpanUpdate(t *testing.T) {
 		Input:     map[string]any{"path": "/test.txt"},
 	}
 
-	hookCtx := &hooks.HookContext{
-		SessionID:  sessionID,
-		ToolResult: map[string]any{"content": "hello world"},
-		Data: map[string]any{
-			"langfuse_span_id": spanID,
-		},
-	}
+	hookCtx := hooks.NewTypedHookContextWithTracing(
+		hooks.BaseContext{SessionID: sessionID},
+		hooks.ToolPayload{Result: map[string]any{"content": "hello world"}},
+		hooks.TracingPayload{SpanID: spanID},
+	)
 
 	err := hook.afterToolExecutionHook(context.Background(), hookCtx, func() error { return nil })
 	require.NoError(t, err)
@@ -226,13 +221,11 @@ func TestLangfuseHook_OnToolError(t *testing.T) {
 				Level:     traces.ObservationLevelDefault,
 			}
 
-			hookCtx := &hooks.HookContext{
-				SessionID: sessionID,
-				ToolError: tt.toolError,
-				Data: map[string]any{
-					"langfuse_span_id": spanID,
-				},
-			}
+			hookCtx := hooks.NewTypedHookContextWithTracing(
+				hooks.BaseContext{SessionID: sessionID},
+				hooks.ToolPayload{Error: tt.toolError},
+				hooks.TracingPayload{SpanID: spanID},
+			)
 
 			err := hook.onToolErrorHook(context.Background(), hookCtx, func() error { return nil })
 			require.NoError(t, err)
@@ -311,22 +304,22 @@ func TestLangfuseHook_ToolSpanLifecycle_Integration(t *testing.T) {
 			tc := hook.getTraceContext(sessionID)
 
 			// Simulate tool flow: BeforeToolExecution -> Tool execution -> AfterToolExecution/OnToolError
-			hookCtx := &hooks.HookContext{
-				SessionID:  sessionID,
-				ToolName:   tt.toolName,
-				ToolArgs:   tt.toolArgs,
-				ToolResult: tt.toolResult,
-				ToolError:  tt.toolError,
-				Data:       make(map[string]any),
-			}
+			hookCtx := hooks.NewTypedHookContext(
+				hooks.BaseContext{SessionID: sessionID},
+				hooks.ToolPayload{
+					Name:   tt.toolName,
+					Args:   tt.toolArgs,
+					Result: tt.toolResult,
+					Error:  tt.toolError,
+				},
+			)
 
 			// Call beforeToolExecutionHook (creates span)
 			err := hook.beforeToolExecutionHook(context.Background(), hookCtx, func() error { return nil })
 			require.NoError(t, err)
 
-			// Get span ID
-			spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-			require.True(t, ok, "Should have span ID")
+			// Get span ID from Tracing
+			spanID := hookCtx.Tracing.SpanID
 			require.NotEmpty(t, spanID, "Span ID should not be empty")
 
 			// Verify initial span state
