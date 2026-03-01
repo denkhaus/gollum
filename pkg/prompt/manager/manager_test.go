@@ -270,7 +270,7 @@ func TestRenderPrompt_WithVariables(t *testing.T) {
 	}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
+	pm := manager.NewPromptManager(st)
 
 	// Render the prompt
 	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
@@ -305,7 +305,7 @@ func TestRenderPrompt_AgentContext(t *testing.T) {
 	}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
+	pm := manager.NewPromptManager(st)
 
 	// Render the prompt
 	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
@@ -340,7 +340,7 @@ func TestRenderPrompt_ValuesContext(t *testing.T) {
 	}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
+	pm := manager.NewPromptManager(st)
 
 	// Render the prompt
 	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
@@ -369,7 +369,7 @@ func TestGetPromptWithContext(t *testing.T) {
 	}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
+	pm := manager.NewPromptManager(st)
 
 	// Get and render prompt
 	rendered, err := pm.GetPromptWithContext(ctx, "test-context", renderCtx)
@@ -383,7 +383,7 @@ func TestBackwardCompatibility_GetSystemPrompt(t *testing.T) {
 	st := promptstore.NewMemoryStore()
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
+	pm := manager.NewPromptManager(st)
 
 	// Call GetSystemPrompt
 	result, err := pm.GetSystemPrompt()
@@ -398,7 +398,7 @@ func TestBackwardCompatibility_GetSubagentPrompt(t *testing.T) {
 	st := promptstore.NewMemoryStore()
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
+	pm := manager.NewPromptManager(st)
 
 	// Call GetSubagentPrompt
 	result, err := pm.GetSubagentPrompt("coder", "write clean code")
@@ -415,7 +415,7 @@ func TestBackwardCompatibility_GetSupervisorPrompt(t *testing.T) {
 	st := promptstore.NewMemoryStore()
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
+	pm := manager.NewPromptManager(st)
 
 	// Call GetSupervisorPrompt
 	result, err := pm.GetSupervisorPrompt()
@@ -430,7 +430,7 @@ func TestBackwardCompatibility_GetCompacterPrompt(t *testing.T) {
 	st := promptstore.NewMemoryStore()
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
+	pm := manager.NewPromptManager(st)
 
 	// Call GetCompacterPrompt with data
 	// The built-in compacter template doesn't use template variables,
@@ -455,7 +455,7 @@ func TestBackwardCompatibility_GetCompacterPromptWithCustomTemplate(t *testing.T
 	require.NoError(t, err)
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
+	pm := manager.NewPromptManager(st)
 
 	// Create render context with data
 	renderCtx := &prompt.RenderContext{
@@ -492,7 +492,7 @@ func TestRenderPrompt_MissingVariable(t *testing.T) {
 	renderCtx := &prompt.RenderContext{}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
+	pm := manager.NewPromptManager(st)
 
 	// Render the prompt - text/template handles missing variables gracefully
 	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
@@ -518,7 +518,7 @@ func TestRenderPrompt_NilContext(t *testing.T) {
 	require.NotNil(t, loaded)
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
+	pm := manager.NewPromptManager(st)
 
 	// Render the prompt with nil context
 	rendered, err := pm.RenderPrompt(ctx, loaded, nil)
@@ -534,7 +534,7 @@ func TestRenderPrompt_NilPrompt(t *testing.T) {
 	st := promptstore.NewMemoryStore()
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
+	pm := manager.NewPromptManager(st)
 
 	// Try to render nil prompt
 	_, err := pm.RenderPrompt(ctx, nil, &prompt.RenderContext{})
@@ -573,7 +573,7 @@ func TestRenderPrompt_AllContextFields(t *testing.T) {
 	}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
+	pm := manager.NewPromptManager(st)
 
 	// Render the prompt
 	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
@@ -637,7 +637,7 @@ func TestRenderPrompt_WithMessageHistory(t *testing.T) {
 	}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
+	pm := manager.NewPromptManager(st)
 
 	// Render the prompt
 	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
@@ -672,7 +672,7 @@ func TestRenderPrompt_EmptyMessageHistory(t *testing.T) {
 	}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
+	pm := manager.NewPromptManager(st)
 
 	// Render the prompt - should handle nil MessageHistory gracefully
 	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
@@ -681,200 +681,3 @@ func TestRenderPrompt_EmptyMessageHistory(t *testing.T) {
 	assert.Contains(t, rendered, "Task: test task", "Should contain substituted Task")
 }
 
-// ============ WORKSPACE CONTEXT TESTS ============
-
-// TestSetWorkspaceContext tests setting workspace context
-func TestSetWorkspaceContext(t *testing.T) {
-	// Create in-memory store
-	st := promptstore.NewMemoryStore()
-
-	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
-
-	// Initial workspace context should be empty but not nil
-	initial := pm.GetWorkspaceContext()
-	require.NotNil(t, initial, "Initial workspace context should not be nil")
-	assert.Empty(t, initial.CurrentPath, "Initial current path should be empty")
-
-	// Set workspace context
-	workspaceCtx := &prompt.WorkspaceContext{
-		CurrentPath: "/home/user/project",
-		Skills: []prompt.SkillInfo{
-			{Name: "test-skill", Description: "A test skill", Location: "/.gollum/skills"},
-		},
-		SkillsXML: "<skills><skill name=\"test-skill\"/></skills>",
-	}
-
-	err := pm.SetWorkspaceContext(workspaceCtx)
-	require.NoError(t, err)
-
-	// Verify context was set
-	retrieved := pm.GetWorkspaceContext()
-	require.NotNil(t, retrieved)
-	assert.Equal(t, "/home/user/project", retrieved.CurrentPath)
-	assert.Len(t, retrieved.Skills, 1)
-	assert.Equal(t, "test-skill", retrieved.Skills[0].Name)
-	assert.Contains(t, retrieved.SkillsXML, "test-skill")
-}
-
-// TestSetWorkspaceContext_Nil tests setting nil workspace context
-func TestSetWorkspaceContext_Nil(t *testing.T) {
-	// Create in-memory store
-	st := promptstore.NewMemoryStore()
-
-	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
-
-	// First set a non-nil context
-	workspaceCtx := &prompt.WorkspaceContext{
-		CurrentPath: "/some/path",
-	}
-	err := pm.SetWorkspaceContext(workspaceCtx)
-	require.NoError(t, err)
-
-	// Set nil context - should reset to empty
-	err = pm.SetWorkspaceContext(nil)
-	require.NoError(t, err)
-
-	// Verify context was reset
-	retrieved := pm.GetWorkspaceContext()
-	require.NotNil(t, retrieved, "GetWorkspaceContext should not return nil")
-	assert.Empty(t, retrieved.CurrentPath, "CurrentPath should be empty after nil set")
-}
-
-// TestRenderPrompt_WithWorkspaceContext tests rendering with workspace context
-func TestRenderPrompt_WithWorkspaceContext(t *testing.T) {
-	ctx := context.Background()
-
-	// Create in-memory store
-	st := promptstore.NewMemoryStore()
-
-	// Save a test prompt with workspace variables
-	testContent := "Workspace: {{.Workspace.CurrentPath}}{{if .Workspace.SkillsXML}}\nSkills: {{.Workspace.SkillsXML}}{{end}}"
-	_, err := st.SaveNewVersion(ctx, "test-workspace", testContent, "Test Workspace")
-	require.NoError(t, err)
-
-	// Get the prompt
-	loaded, err := st.Load(ctx, "test-workspace")
-	require.NoError(t, err)
-	require.NotNil(t, loaded)
-
-	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
-
-	// Set workspace context
-	workspaceCtx := &prompt.WorkspaceContext{
-		CurrentPath: "/home/user/myproject",
-		SkillsXML:   "<skills><skill name=\"review\"/></skills>",
-	}
-	err = pm.SetWorkspaceContext(workspaceCtx)
-	require.NoError(t, err)
-
-	// Render the prompt with nil render context (should use manager's workspace)
-	rendered, err := pm.RenderPrompt(ctx, loaded, nil)
-	require.NoError(t, err)
-	assert.Contains(t, rendered, "Workspace: /home/user/myproject", "Should contain workspace path")
-	assert.Contains(t, rendered, "Skills: <skills>", "Should contain skills XML")
-}
-
-// TestRenderPrompt_WorkspaceContextInRenderContext tests workspace context passed via RenderContext
-func TestRenderPrompt_WorkspaceContextInRenderContext(t *testing.T) {
-	ctx := context.Background()
-
-	// Create in-memory store
-	st := promptstore.NewMemoryStore()
-
-	// Save a test prompt
-	testContent := "Path: {{.Workspace.CurrentPath}}"
-	_, err := st.SaveNewVersion(ctx, "test-workspace-override", testContent, "Test Workspace Override")
-	require.NoError(t, err)
-
-	// Get the prompt
-	loaded, err := st.Load(ctx, "test-workspace-override")
-	require.NoError(t, err)
-	require.NotNil(t, loaded)
-
-	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
-
-	// Set manager's workspace context
-	managerWorkspace := &prompt.WorkspaceContext{
-		CurrentPath: "/manager/path",
-	}
-	err = pm.SetWorkspaceContext(managerWorkspace)
-	require.NoError(t, err)
-
-	// Create render context with different workspace (should override)
-	renderCtx := &prompt.RenderContext{
-		Workspace: &prompt.WorkspaceContext{
-			CurrentPath: "/render/path",
-		},
-	}
-
-	// Render the prompt
-	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
-	require.NoError(t, err)
-	// RenderContext.Workspace should take precedence
-	assert.Contains(t, rendered, "Path: /render/path", "Should use RenderContext workspace")
-}
-
-// TestRenderPrompt_WorkspaceSkillsList tests rendering with skills list
-func TestRenderPrompt_WorkspaceSkillsList(t *testing.T) {
-	ctx := context.Background()
-
-	// Create in-memory store
-	st := promptstore.NewMemoryStore()
-
-	// Save a test prompt that iterates over skills
-	testContent := `Skills:
-{{- range .Workspace.Skills }}
-- {{.Name}}: {{.Description}}
-{{- end }}`
-	_, err := st.SaveNewVersion(ctx, "test-skills-list", testContent, "Test Skills List")
-	require.NoError(t, err)
-
-	// Get the prompt
-	loaded, err := st.Load(ctx, "test-skills-list")
-	require.NoError(t, err)
-	require.NotNil(t, loaded)
-
-	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
-
-	// Set workspace context with skills
-	workspaceCtx := &prompt.WorkspaceContext{
-		CurrentPath: "/project",
-		Skills: []prompt.SkillInfo{
-			{Name: "code-review", Description: "Reviews code for issues", Location: "/.gollum/skills/review"},
-			{Name: "test-gen", Description: "Generates tests", Location: "/.gollum/skills/test"},
-		},
-	}
-	err = pm.SetWorkspaceContext(workspaceCtx)
-	require.NoError(t, err)
-
-	// Render the prompt
-	rendered, err := pm.RenderPrompt(ctx, loaded, nil)
-	require.NoError(t, err)
-	assert.Contains(t, rendered, "code-review: Reviews code for issues")
-	assert.Contains(t, rendered, "test-gen: Generates tests")
-}
-
-// TestGetWorkspaceContextReturnsCopy verifies that GetWorkspaceContext returns a usable reference
-func TestGetWorkspaceContextReturnsCopy(t *testing.T) {
-	// Create in-memory store
-	st := promptstore.NewMemoryStore()
-
-	// Create prompt manager
-	pm := manager.NewPromptManager(st, nil)
-
-	// Set workspace context
-	original := &prompt.WorkspaceContext{
-		CurrentPath: "/original/path",
-	}
-	err := pm.SetWorkspaceContext(original)
-	require.NoError(t, err)
-
-	// Get context and verify
-	retrieved := pm.GetWorkspaceContext()
-	assert.Equal(t, "/original/path", retrieved.CurrentPath)
-}

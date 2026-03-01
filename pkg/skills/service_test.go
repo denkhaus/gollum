@@ -545,6 +545,9 @@ func (m *testWorkspaceService) ClearHistory()                                 {}
 func (m *testWorkspaceService) GetWorkspaceContext() *workspace.WorkspaceContext {
 	return &workspace.WorkspaceContext{}
 }
+func (m *testWorkspaceService) SetSkillsContext(_ []workspace.SkillInfo, _ string) {}
+func (m *testWorkspaceService) GetSkillsContext() []workspace.SkillInfo                 { return nil }
+func (m *testWorkspaceService) GetSkillsXML() string                                         { return "" }
 
 // TestSkills_ToOpenAIFunctions tests OpenAI functions conversion for collection
 func TestSkills_ToOpenAIFunctions(t *testing.T) {

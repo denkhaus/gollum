@@ -9,14 +9,23 @@ import (
 	"github.com/samber/do/v2"
 )
 
+// SkillInfo holds information about a discovered skill
+type SkillInfo struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Location    string `json:"location"`
+}
+
 // WorkspaceContext holds the current workspace state
 type WorkspaceContext struct {
-	CurrentPath      string
-	WorkspaceHistory []string
+	CurrentPath      string      `json:"current_path"`
+	WorkspaceHistory []string    `json:"workspace_history"`
+	Skills           []SkillInfo `json:"skills"`
+	SkillsXML        string      `json:"skills_xml"`
 }
 
 // Service manages workspace state during runtime.
-// It ONLY manages workspace paths - nothing else!
+// It manages workspace paths and skills context.
 type Service interface {
 	// Workspace path management
 	SetCurrentWorkspace(path string) error
@@ -24,6 +33,11 @@ type Service interface {
 	AddToHistory(path string)
 	GetWorkspaceHistory() []string
 	ClearHistory()
+
+	// Skills context (populated by SkillService)
+	SetSkillsContext(skills []SkillInfo, skillsXML string)
+	GetSkillsContext() []SkillInfo
+	GetSkillsXML() string
 
 	// Context export
 	GetWorkspaceContext() *WorkspaceContext
@@ -35,6 +49,8 @@ type serviceImpl struct {
 	currentPath    string
 	history        []string
 	maxHistorySize int
+	skills         []SkillInfo
+	skillsXML      string
 }
 
 // Ensure serviceImpl implements Service
@@ -46,6 +62,8 @@ func NewServiceProvider(injector do.Injector) (Service, error) {
 		currentPath:    "",
 		history:        make([]string, 0),
 		maxHistorySize: 10, // Keep last 10 workspaces
+		skills:         make([]SkillInfo, 0),
+		skillsXML:      "",
 	}
 
 	// Initialize with current working directory
@@ -132,8 +150,41 @@ func (s *serviceImpl) GetWorkspaceContext() *WorkspaceContext {
 	history := make([]string, len(s.history))
 	copy(history, s.history)
 
+	skills := make([]SkillInfo, len(s.skills))
+	copy(skills, s.skills)
+
 	return &WorkspaceContext{
 		CurrentPath:      s.currentPath,
 		WorkspaceHistory: history,
+		Skills:           skills,
+		SkillsXML:        s.skillsXML,
 	}
+}
+
+// SetSkillsContext updates the skills context
+func (s *serviceImpl) SetSkillsContext(skills []SkillInfo, skillsXML string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.skills = make([]SkillInfo, len(skills))
+	copy(s.skills, skills)
+	s.skillsXML = skillsXML
+}
+
+// GetSkillsContext returns the current skills
+func (s *serviceImpl) GetSkillsContext() []SkillInfo {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	result := make([]SkillInfo, len(s.skills))
+	copy(result, s.skills)
+	return result
+}
+
+// GetSkillsXML returns the skills in XML format
+func (s *serviceImpl) GetSkillsXML() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.skillsXML
 }
