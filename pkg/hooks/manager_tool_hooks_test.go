@@ -17,20 +17,20 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		hm := newTestHookManager()
 
 		executed := []string{}
-		beforeHook := func(_ context.Context, hc *HookContext, next func() error) error {
+		beforeHook := func(_ context.Context, hc *TypedHookContext[ToolPayload], next func() error) error {
 			executed = append(executed, "before")
-			assert.Equal(t, "test-tool", hc.ToolName)
-			assert.NotNil(t, hc.ToolArgs)
+			assert.Equal(t, "test-tool", hc.Payload.Name)
+			assert.NotNil(t, hc.Payload.Args)
 			return next()
 		}
-		afterHook := func(_ context.Context, hc *HookContext, next func() error) error {
+		afterHook := func(_ context.Context, hc *TypedHookContext[ToolPayload], next func() error) error {
 			executed = append(executed, "after")
-			assert.NotNil(t, hc.ToolResult)
+			assert.NotNil(t, hc.Payload.Result)
 			return next()
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeToolExecution, Priority: 0, FatalError: false}))
-		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterToolExecution, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterToolHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeToolExecution, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterToolHook(afterHook, TypedHookMetadata{Name: "after", Point: AfterToolExecution, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -49,13 +49,13 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 	t.Run("before hook can modify args", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		beforeHook := func(_ context.Context, hc *HookContext, next func() error) error {
+		beforeHook := func(_ context.Context, hc *TypedHookContext[ToolPayload], next func() error) error {
 			// Modify args
-			hc.ToolArgs["input"] = testModifiedContent
+			hc.Payload.Args["input"] = testModifiedContent
 			return next()
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeToolExecution, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterToolHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeToolExecution, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -75,13 +75,13 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 	t.Run("after hook can modify result", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		afterHook := func(_ context.Context, hc *HookContext, next func() error) error {
+		afterHook := func(_ context.Context, hc *TypedHookContext[ToolPayload], next func() error) error {
 			// Modify result
-			hc.ToolResult["output"] = testModifiedContent
+			hc.Payload.Result["output"] = testModifiedContent
 			return next()
 		}
 
-		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterToolExecution, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterToolHook(afterHook, TypedHookMetadata{Name: "after", Point: AfterToolExecution, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -98,13 +98,13 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 	t.Run("before hook can block execution", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		beforeHook := func(_ context.Context, hc *HookContext, _ func() error) error {
+		beforeHook := func(_ context.Context, hc *TypedHookContext[ToolPayload], _ func() error) error {
 			// Don't call next() to block execution
-			hc.ToolResult = map[string]any{"blocked": true}
+			hc.Payload.Result = map[string]any{"blocked": true}
 			return nil
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeToolExecution, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterToolHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeToolExecution, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -124,13 +124,13 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 	t.Run("on error hook can recover from errors", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		errorHook := func(_ context.Context, hc *HookContext, next func() error) error {
+		errorHook := func(_ context.Context, hc *TypedHookContext[ToolPayload], next func() error) error {
 			// Provide fallback result
-			hc.ToolResult = map[string]any{"output": "fallback"}
+			hc.Payload.Result = map[string]any{"output": "fallback"}
 			return next()
 		}
 
-		require.NoError(t, hm.RegisterHook(errorHook, HookMetadata{Name: "error", Point: OnToolError, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterToolHook(errorHook, TypedHookMetadata{Name: "error", Point: OnToolError, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -147,10 +147,10 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 	t.Run("on error hook without recovery propagates error", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		require.NoError(t, hm.RegisterHook(func(_ context.Context, hc *HookContext, next func() error) error {
-			assert.Equal(t, "tool failed", hc.ToolError.Error())
+		require.NoError(t, hm.RegisterToolHook(func(_ context.Context, hc *TypedHookContext[ToolPayload], next func() error) error {
+			assert.Equal(t, "tool failed", hc.Payload.Error.Error())
 			return next()
-		}, HookMetadata{Name: "error", Point: OnToolError, Priority: 0, FatalError: false}))
+		}, TypedHookMetadata{Name: "error", Point: OnToolError, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -196,11 +196,11 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 	t.Run("fatal error in before hook stops execution", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		beforeHook := func(_ context.Context, _ *HookContext, _ func() error) error {
+		beforeHook := func(_ context.Context, _ *TypedHookContext[ToolPayload], _ func() error) error {
 			return errors.New("fatal hook error")
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeToolExecution, Priority: 0, FatalError: true}))
+		require.NoError(t, hm.RegisterToolHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeToolExecution, Priority: 0, FatalError: true}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -221,11 +221,11 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 	t.Run("fatal error in after hook propagates error", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		afterHook := func(_ context.Context, _ *HookContext, _ func() error) error {
+		afterHook := func(_ context.Context, _ *TypedHookContext[ToolPayload], _ func() error) error {
 			return errors.New("fatal after error")
 		}
 
-		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterToolExecution, Priority: 0, FatalError: true}))
+		require.NoError(t, hm.RegisterToolHook(afterHook, TypedHookMetadata{Name: "after", Point: AfterToolExecution, Priority: 0, FatalError: true}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -243,13 +243,13 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 	t.Run("non-fatal error in before hook continues execution", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		beforeHook := func(_ context.Context, _ *HookContext, next func() error) error {
+		beforeHook := func(_ context.Context, _ *TypedHookContext[ToolPayload], next func() error) error {
 			// Return error but call next first - next() should succeed
 			require.NoError(t, next())
 			return errors.New("non-fatal error")
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeToolExecution, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterToolHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeToolExecution, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()

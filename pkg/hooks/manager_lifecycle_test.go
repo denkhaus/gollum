@@ -356,17 +356,17 @@ func TestHookManager_WithSessionHooks(t *testing.T) {
 		hm := newTestHookManager()
 
 		executed := []string{}
-		beforeHook := func(_ context.Context, _ *HookContext, next func() error) error {
+		beforeHook := func(_ context.Context, _ *TypedHookContext[SessionPayload], next func() error) error {
 			executed = append(executed, "before")
 			return next()
 		}
-		afterHook := func(_ context.Context, _ *HookContext, next func() error) error {
+		afterHook := func(_ context.Context, _ *TypedHookContext[SessionPayload], next func() error) error {
 			executed = append(executed, "after")
 			return next()
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeSessionStart, Priority: 0, FatalError: false}))
-		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterSessionEnd, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterSessionHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeSessionStart, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterSessionHook(afterHook, TypedHookMetadata{Name: "after", Point: AfterSessionEnd, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		workExecuted := false
@@ -385,17 +385,17 @@ func TestHookManager_WithSessionHooks(t *testing.T) {
 		hm := newTestHookManager()
 
 		executed := []string{}
-		beforeHook := func(_ context.Context, _ *HookContext, next func() error) error {
+		beforeHook := func(_ context.Context, _ *TypedHookContext[SessionPayload], next func() error) error {
 			executed = append(executed, "before")
 			return next()
 		}
-		afterHook := func(_ context.Context, _ *HookContext, next func() error) error {
+		afterHook := func(_ context.Context, _ *TypedHookContext[SessionPayload], next func() error) error {
 			executed = append(executed, "after")
 			return next()
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeSessionStart, Priority: 0, FatalError: false}))
-		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterSessionEnd, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterSessionHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeSessionStart, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterSessionHook(afterHook, TypedHookMetadata{Name: "after", Point: AfterSessionEnd, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		workErr := errors.New("work failed")
@@ -427,12 +427,12 @@ func TestHookManager_WithAgentHooks(t *testing.T) {
 		hm := newTestHookManager()
 
 		executed := false
-		agentHook := func(_ context.Context, _ *HookContext, next func() error) error {
+		agentHook := func(_ context.Context, _ *TypedHookContext[AgentPayload], next func() error) error {
 			executed = true
 			return next()
 		}
 
-		require.NoError(t, hm.RegisterHook(agentHook, HookMetadata{Name: "agent-hook", Point: BeforeAgentSpawn, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterAgentHook(agentHook, TypedHookMetadata{Name: "agent-hook", Point: BeforeAgentSpawn, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()

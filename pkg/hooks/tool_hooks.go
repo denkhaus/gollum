@@ -11,13 +11,13 @@ import (
 // WithToolHooks wraps a function with tool execution hooks.
 //
 // The workflow is:
-// 1. BeforeToolExecution hooks run with args in HookContext
-//   - Hooks can modify args via HookContext.ToolArgs
+// 1. BeforeToolExecution hooks run with args in TypedHookContext[ToolPayload]
+//   - Hooks can modify args via Payload.Args
 //   - Hooks can block execution by not calling next()
 //
 // 2. Tool execution (work function) runs
 // 3. If tool succeeds, AfterToolExecution hooks run with result
-//   - Hooks can modify result via HookContext.ToolResult
+//   - Hooks can modify result via Payload.Result
 //
 // 4. If tool fails, OnToolError hooks run with error
 //   - Hooks can recover by returning a new result
@@ -43,24 +43,21 @@ func (p *hookManagerImpl) WithToolHooks(
 		argsCopy[k] = v
 	}
 
-	// BeforeToolExecution hook
-	hookCtx := &HookContext{
-		SessionID: sessionID,
-		AgentID:   agentID,
-		ToolName:  toolName,
-		ToolArgs:  argsCopy,
-		Data:      make(map[string]any),
-	}
+	// BeforeToolExecution hook with typed context
+	hookCtx := NewTypedHookContext(
+		BaseContext{SessionID: sessionID, AgentID: agentID},
+		ToolPayload{Name: toolName, Args: argsCopy},
+	)
 
-	result := p.TriggerHooks(ctx, BeforeToolExecution, hookCtx)
+	result := p.TriggerToolHooks(ctx, BeforeToolExecution, hookCtx)
 	if result.Stopped {
 		// Hook blocked execution
 		if result.Error != nil {
 			return nil, result.Error
 		}
-		// Hook stopped without error - return ToolResult if set, or empty result
-		if hookCtx.ToolResult != nil {
-			return hookCtx.ToolResult, nil
+		// Hook stopped without error - return Result if set, or empty result
+		if hookCtx.Payload.Result != nil {
+			return hookCtx.Payload.Result, nil
 		}
 		return make(map[string]any), nil
 	}
@@ -68,28 +65,28 @@ func (p *hookManagerImpl) WithToolHooks(
 	// Note: Modified args are not passed to work() due to design limitations.
 	// Hooks can validate/block execution but cannot modify what work() receives.
 	// The work function closes over the original args parameter.
-	_ = hookCtx.ToolArgs // Explicitly document we're not using modified args
+	_ = hookCtx.Payload.Args // Explicitly document we're not using modified args
 
 	// Execute the tool work
 	toolResult, workErr := work()
 
 	// Check if BeforeToolExecution hooks set a modified result
-	if hookCtx.ToolResult != nil {
-		toolResult = hookCtx.ToolResult
+	if hookCtx.Payload.Result != nil {
+		toolResult = hookCtx.Payload.Result
 		workErr = nil
 	}
 
 	if workErr != nil {
 		// OnToolError hook
-		hookCtx.ToolError = workErr
-		errorResult := p.TriggerHooks(ctx, OnToolError, hookCtx)
+		hookCtx.Payload.Error = workErr
+		errorResult := p.TriggerToolHooks(ctx, OnToolError, hookCtx)
 
 		// If hooks provided a fallback result, use it
-		if hookCtx.ToolResult != nil {
+		if hookCtx.Payload.Result != nil {
 			p.log.Debug("Tool error recovered by hook",
 				zap.String("tool", toolName),
 				zap.Error(workErr))
-			return hookCtx.ToolResult, nil
+			return hookCtx.Payload.Result, nil
 		}
 
 		// If error hook had fatal error, return that
@@ -102,17 +99,17 @@ func (p *hookManagerImpl) WithToolHooks(
 	}
 
 	// AfterToolExecution hook
-	hookCtx.ToolResult = toolResult
-	hookCtx.ToolError = nil
+	hookCtx.Payload.Result = toolResult
+	hookCtx.Payload.Error = nil
 
-	afterResult := p.TriggerHooks(ctx, AfterToolExecution, hookCtx)
+	afterResult := p.TriggerToolHooks(ctx, AfterToolExecution, hookCtx)
 	if afterResult.Stopped && afterResult.Error != nil {
 		return nil, afterResult.Error
 	}
 
 	// Return potentially modified result from hooks
-	if hookCtx.ToolResult != nil {
-		return hookCtx.ToolResult, nil
+	if hookCtx.Payload.Result != nil {
+		return hookCtx.Payload.Result, nil
 	}
 
 	// toolResult should never be nil here, but handle defensively

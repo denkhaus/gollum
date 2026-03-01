@@ -33,13 +33,13 @@ func TestWithLLMHooks(t *testing.T) {
 	t.Run("BeforeLLMRequest hook can modify prompt", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		beforeHook := func(_ context.Context, hc *HookContext, next func() error) error {
+		beforeHook := func(_ context.Context, hc *TypedHookContext[LLMPayload], next func() error) error {
 			// Modify the prompt
-			hc.LLMInput = "modified prompt"
+			hc.Payload.Input = "modified prompt"
 			return next()
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeLLMRequest, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterLLMHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeLLMRequest, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -60,13 +60,13 @@ func TestWithLLMHooks(t *testing.T) {
 	t.Run("AfterLLMResponse hook can modify response", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		afterHook := func(_ context.Context, hc *HookContext, _ func() error) error {
+		afterHook := func(_ context.Context, hc *TypedHookContext[LLMPayload], _ func() error) error {
 			// Modify the response
-			hc.LLMResponse = "modified response"
+			hc.Payload.Response = "modified response"
 			return nil
 		}
 
-		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterLLMResponse, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterLLMHook(afterHook, TypedHookMetadata{Name: "after", Point: AfterLLMResponse, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -84,13 +84,13 @@ func TestWithLLMHooks(t *testing.T) {
 	t.Run("BeforeLLMRequest hook can block execution by not calling next", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		beforeHook := func(_ context.Context, hc *HookContext, _ func() error) error {
+		beforeHook := func(_ context.Context, hc *TypedHookContext[LLMPayload], _ func() error) error {
 			// Set a canned response and don't call next
-			hc.LLMResponse = "canned response"
+			hc.Payload.Response = "canned response"
 			return nil
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeLLMRequest, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterLLMHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeLLMRequest, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -111,13 +111,13 @@ func TestWithLLMHooks(t *testing.T) {
 	t.Run("OnLLMError hook can recover from error", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		errorHook := func(_ context.Context, hc *HookContext, _ func() error) error {
+		errorHook := func(_ context.Context, hc *TypedHookContext[LLMPayload], _ func() error) error {
 			// Provide fallback response
-			hc.LLMResponse = "fallback response"
+			hc.Payload.Response = "fallback response"
 			return nil
 		}
 
-		require.NoError(t, hm.RegisterHook(errorHook, HookMetadata{Name: "error", Point: OnLLMError, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterLLMHook(errorHook, TypedHookMetadata{Name: "error", Point: OnLLMError, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -152,11 +152,11 @@ func TestWithLLMHooks(t *testing.T) {
 	t.Run("BeforeLLMRequest hook with fatal error blocks execution", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		beforeHook := func(_ context.Context, _ *HookContext, _ func() error) error {
+		beforeHook := func(_ context.Context, _ *TypedHookContext[LLMPayload], _ func() error) error {
 			return errs.Validation("prompt validation failed")
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeLLMRequest, Priority: 0, FatalError: true}))
+		require.NoError(t, hm.RegisterLLMHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeLLMRequest, Priority: 0, FatalError: true}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -178,12 +178,12 @@ func TestWithLLMHooks(t *testing.T) {
 	t.Run("AfterLLMResponse hook with fatal error overrides successful response", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		afterHook := func(_ context.Context, _ *HookContext, next func() error) error {
+		afterHook := func(_ context.Context, _ *TypedHookContext[LLMPayload], next func() error) error {
 			_ = next()
 			return errs.Validation("response validation failed")
 		}
 
-		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterLLMResponse, Priority: 0, FatalError: true}))
+		require.NoError(t, hm.RegisterLLMHook(afterHook, TypedHookMetadata{Name: "after", Point: AfterLLMResponse, Priority: 0, FatalError: true}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -202,13 +202,13 @@ func TestWithLLMHooks(t *testing.T) {
 	t.Run("hooks receive correct context with sessionID, agentID, model", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		var receivedCtx *HookContext
-		beforeHook := func(_ context.Context, hc *HookContext, next func() error) error {
+		var receivedCtx *TypedHookContext[LLMPayload]
+		beforeHook := func(_ context.Context, hc *TypedHookContext[LLMPayload], next func() error) error {
 			receivedCtx = hc
 			return next()
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeLLMRequest, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterLLMHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeLLMRequest, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -223,8 +223,8 @@ func TestWithLLMHooks(t *testing.T) {
 		require.NotNil(t, receivedCtx)
 		assert.Equal(t, sessionID, receivedCtx.SessionID)
 		assert.Equal(t, agentID, receivedCtx.AgentID)
-		assert.Equal(t, prompt, receivedCtx.LLMInput)
-		assert.Equal(t, model, receivedCtx.LLMModel)
+		assert.Equal(t, prompt, receivedCtx.Payload.Input)
+		assert.Equal(t, model, receivedCtx.Payload.Model)
 	})
 
 	t.Run("multiple hooks execute in priority order", func(t *testing.T) {
@@ -232,20 +232,20 @@ func TestWithLLMHooks(t *testing.T) {
 
 		executed := []string{}
 
-		hook1 := func(_ context.Context, hc *HookContext, next func() error) error {
+		hook1 := func(_ context.Context, hc *TypedHookContext[LLMPayload], next func() error) error {
 			executed = append(executed, "hook1")
-			hc.LLMInput += " + hook1"
+			hc.Payload.Input += " + hook1"
 			return next()
 		}
 
-		hook2 := func(_ context.Context, hc *HookContext, next func() error) error {
+		hook2 := func(_ context.Context, hc *TypedHookContext[LLMPayload], next func() error) error {
 			executed = append(executed, "hook2")
-			hc.LLMInput += " + hook2"
+			hc.Payload.Input += " + hook2"
 			return next()
 		}
 
-		require.NoError(t, hm.RegisterHook(hook1, HookMetadata{Name: "hook1", Point: BeforeLLMRequest, Priority: 1, FatalError: false}))
-		require.NoError(t, hm.RegisterHook(hook2, HookMetadata{Name: "hook2", Point: BeforeLLMRequest, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterLLMHook(hook1, TypedHookMetadata{Name: "hook1", Point: BeforeLLMRequest, Priority: 1, FatalError: false}))
+		require.NoError(t, hm.RegisterLLMHook(hook2, TypedHookMetadata{Name: "hook2", Point: BeforeLLMRequest, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
