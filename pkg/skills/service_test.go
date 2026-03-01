@@ -2,12 +2,12 @@ package skills
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -368,15 +368,18 @@ func TestDiscoverInPath_InvalidSkill(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = os.RemoveAll(tmpDir) })
 
-	// Create valid skill
+	// Create valid skill in its own folder
+	validDir := filepath.Join(tmpDir, "valid-skill")
+	require.NoError(t, os.MkdirAll(validDir, 0755))
+
 	validContent := `---
 name: valid-skill
 ---
 Content
 `
-	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "SKILL.md"), []byte(validContent), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(validDir, "SKILL.md"), []byte(validContent), 0644))
 
-	// Create invalid skill (missing name)
+	// Create invalid skill (missing name) in its own folder
 	invalidContent := `---
 description: No name here
 ---
@@ -495,47 +498,53 @@ func TestSkill_String(t *testing.T) {
 // Note: Service tests require DI container setup and are better suited for integration tests
 // The following tests focus on unit-testable aspects
 
+// DEVIATION FROM MOCKING GUIDELINES:
+// We use custom mock structs instead of generated mocks from pkg/mocks because:
+// - pkg/mocks imports skills package (for MockSkillService)
+// - This test file is in skills package
+// - This creates a circular dependency: skills -> mocks -> skills
+// - Using a separate test package (skills_test) would require exporting internal types
+// Generated mocks should be preferred when no circular dependency exists.
+
 func TestNewService(t *testing.T) {
-	// Create a minimal injector with required dependencies
+	// Create injector with custom mocks
 	injector := do.New()
-
-	// Provide logger
-	do.Provide(injector, func(_ do.Injector) (*zap.Logger, error) {
-		return zap.NewNop(), nil
-	})
-
-	// Provide config service
-	do.Provide(injector, func(_ do.Injector) (config.ConfigService, error) {
-		return &mockConfigService{}, nil
-	})
+	do.ProvideValue[logger.LoggerService](injector, &testLoggerService{})
+	do.ProvideValue[workspace.Service](injector, &testWorkspaceService{})
 
 	service, err := NewService(injector)
 	require.NoError(t, err)
 	assert.NotNil(t, service)
 }
 
-// mockConfigService for testing
-type mockConfigService struct{}
+// testLoggerService is a minimal mock for LoggerService
+type testLoggerService struct{}
 
-func (m *mockConfigService) GetWorkspaceConfig() *config.WorkspaceConfig {
-	return &config.WorkspaceConfig{}
+func (m *testLoggerService) GetLogger() *zap.Logger                     { return zap.NewNop() }
+func (m *testLoggerService) Info(_ string, _ ...zap.Field)              {}
+func (m *testLoggerService) Infof(_ string, _ ...any)                   {}
+func (m *testLoggerService) Error(_ string, _ ...zap.Field)             {}
+func (m *testLoggerService) Errorf(_ string, _ ...any)                  {}
+func (m *testLoggerService) Debug(_ string, _ ...zap.Field)             {}
+func (m *testLoggerService) Debugf(_ string, _ ...any)                  {}
+func (m *testLoggerService) Warn(_ string, _ ...zap.Field)              {}
+func (m *testLoggerService) Warnf(_ string, _ ...any)                   {}
+func (m *testLoggerService) GetLogs(_ logger.LogFilter) []logger.LogEntry { return nil }
+func (m *testLoggerService) GetLogStats() map[string]interface{}        { return nil }
+func (m *testLoggerService) SetTUIMode(_ bool)                          {}
+func (m *testLoggerService) IsTUIMode() bool                            { return false }
+
+// testWorkspaceService is a minimal mock for workspace.Service
+type testWorkspaceService struct{}
+
+func (m *testWorkspaceService) SetCurrentWorkspace(_ string) error            { return nil }
+func (m *testWorkspaceService) GetCurrentWorkspace() string                   { return "" }
+func (m *testWorkspaceService) AddToHistory(_ string)                         {}
+func (m *testWorkspaceService) GetWorkspaceHistory() []string                 { return nil }
+func (m *testWorkspaceService) ClearHistory()                                 {}
+func (m *testWorkspaceService) GetWorkspaceContext() *workspace.WorkspaceContext {
+	return &workspace.WorkspaceContext{}
 }
-func (m *mockConfigService) GetLogLevel() string                                     { return "info" }
-func (m *mockConfigService) IsDevMode() bool                                         { return false }
-func (m *mockConfigService) GetAnthropicConfig() *config.AnthropicConfig             { return nil }
-func (m *mockConfigService) GetGeminiConfig() *config.GeminiConfig                   { return nil }
-func (m *mockConfigService) GetOpenAIConfig() *config.OpenAIConfig                   { return nil }
-func (m *mockConfigService) GetAgentLimits() *config.AgentLimitsConfig               { return nil }
-func (m *mockConfigService) GetFilesConfig() *config.FilesConfig                     { return nil }
-func (m *mockConfigService) GetLoggingConfig() *config.LoggingConfig                 { return nil }
-func (m *mockConfigService) GetBashConfig() *config.BashConfig                       { return nil }
-func (m *mockConfigService) GetHooksConfig() *config.HooksConfig                     { return nil }
-func (m *mockConfigService) GetPromptStoreConfig() *config.PromptStoreConfig         { return nil }
-func (m *mockConfigService) GetPromptOptimizerConfig() *config.PromptOptimizerConfig { return nil }
-func (m *mockConfigService) GetLangfuseConfig() *config.LangfuseConfig               { return nil }
-func (m *mockConfigService) SetCurrentWorkspace(_ string) error                      { return nil }
-func (m *mockConfigService) GetCurrentWorkspace() string                             { return "" }
-func (m *mockConfigService) GetWorkspaceHistory() []string                           { return nil }
 
 // TestSkills_ToOpenAIFunctions tests OpenAI functions conversion for collection
 func TestSkills_ToOpenAIFunctions(t *testing.T) {
@@ -704,13 +713,8 @@ func TestSkillService_SearchPaths(t *testing.T) {
 	// Create a minimal injector with required dependencies
 	injector := do.New()
 
-	do.Provide(injector, func(_ do.Injector) (*zap.Logger, error) {
-		return zap.NewNop(), nil
-	})
-
-	do.Provide(injector, func(_ do.Injector) (config.ConfigService, error) {
-		return &mockConfigService{}, nil
-	})
+	do.ProvideValue[logger.LoggerService](injector, &testLoggerService{})
+	do.ProvideValue[workspace.Service](injector, &testWorkspaceService{})
 
 	service, err := NewService(injector)
 	require.NoError(t, err)
@@ -743,13 +747,8 @@ func TestSkillService_SearchPaths(t *testing.T) {
 func TestSkillService_ListMethods(t *testing.T) {
 	injector := do.New()
 
-	do.Provide(injector, func(_ do.Injector) (*zap.Logger, error) {
-		return zap.NewNop(), nil
-	})
-
-	do.Provide(injector, func(_ do.Injector) (config.ConfigService, error) {
-		return &mockConfigService{}, nil
-	})
+	do.ProvideValue[logger.LoggerService](injector, &testLoggerService{})
+	do.ProvideValue[workspace.Service](injector, &testWorkspaceService{})
 
 	service, err := NewService(injector)
 	require.NoError(t, err)
@@ -759,15 +758,18 @@ func TestSkillService_ListMethods(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = os.RemoveAll(tmpDir) })
 
-	// Create skills
+	// Create skill in its own folder
+	skillFolder := filepath.Join(tmpDir, "list-skill")
+	require.NoError(t, os.MkdirAll(skillFolder, 0755))
+
 	skillContent := `---
-name: %s
-type: %s
-user_invocable: %v
+name: list-skill
+type: agent
+user_invocable: true
 ---
 Content
 `
-	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "SKILL.md"), []byte(fmt.Sprintf(skillContent, "list-skill", "agent", "true")), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(skillFolder, "SKILL.md"), []byte(skillContent), 0644))
 
 	service.AddSearchPath(tmpDir)
 	err = service.Discover(context.Background())
@@ -793,13 +795,8 @@ Content
 func TestSkillService_Get(t *testing.T) {
 	injector := do.New()
 
-	do.Provide(injector, func(_ do.Injector) (*zap.Logger, error) {
-		return zap.NewNop(), nil
-	})
-
-	do.Provide(injector, func(_ do.Injector) (config.ConfigService, error) {
-		return &mockConfigService{}, nil
-	})
+	do.ProvideValue[logger.LoggerService](injector, &testLoggerService{})
+	do.ProvideValue[workspace.Service](injector, &testWorkspaceService{})
 
 	service, err := NewService(injector)
 	require.NoError(t, err)
@@ -809,13 +806,17 @@ func TestSkillService_Get(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = os.RemoveAll(tmpDir) })
 
+	// Create skill in its own folder
+	skillFolder := filepath.Join(tmpDir, "get-skill")
+	require.NoError(t, os.MkdirAll(skillFolder, 0755))
+
 	skillContent := `---
 name: get-skill
 type: agent
 ---
 Content
 `
-	skillPath := filepath.Join(tmpDir, "SKILL.md")
+	skillPath := filepath.Join(skillFolder, "SKILL.md")
 	require.NoError(t, os.WriteFile(skillPath, []byte(skillContent), 0644))
 
 	service.AddSearchPath(tmpDir)
@@ -846,13 +847,8 @@ Content
 func TestSkillService_Refresh(t *testing.T) {
 	injector := do.New()
 
-	do.Provide(injector, func(_ do.Injector) (*zap.Logger, error) {
-		return zap.NewNop(), nil
-	})
-
-	do.Provide(injector, func(_ do.Injector) (config.ConfigService, error) {
-		return &mockConfigService{}, nil
-	})
+	do.ProvideValue[logger.LoggerService](injector, &testLoggerService{})
+	do.ProvideValue[workspace.Service](injector, &testWorkspaceService{})
 
 	service, err := NewService(injector)
 	require.NoError(t, err)
@@ -873,7 +869,7 @@ func TestDiscoverMultiple(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = os.RemoveAll(tmpDir2) })
 
-	// Create skills in each
+	// Create skills in each (in subfolders)
 	skill1Content := `---
 name: skill-from-dir1
 ---
@@ -885,8 +881,14 @@ name: skill-from-dir2
 Content 2
 `
 
-	require.NoError(t, os.WriteFile(filepath.Join(tmpDir1, "SKILL.md"), []byte(skill1Content), 0644))
-	require.NoError(t, os.WriteFile(filepath.Join(tmpDir2, "SKILL.md"), []byte(skill2Content), 0644))
+	// Create skill folders
+	skillFolder1 := filepath.Join(tmpDir1, "skill1")
+	require.NoError(t, os.MkdirAll(skillFolder1, 0755))
+	skillFolder2 := filepath.Join(tmpDir2, "skill2")
+	require.NoError(t, os.MkdirAll(skillFolder2, 0755))
+
+	require.NoError(t, os.WriteFile(filepath.Join(skillFolder1, "SKILL.md"), []byte(skill1Content), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(skillFolder2, "SKILL.md"), []byte(skill2Content), 0644))
 
 	log := zap.NewNop()
 	result, err := DiscoverMultiple(context.Background(), []string{tmpDir1, tmpDir2}, log)
@@ -908,15 +910,21 @@ func TestDiscoverMultiple_DuplicateDetection(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = os.RemoveAll(tmpDir2) })
 
-	// Create same skill name in both
+	// Create same skill name in both (in subfolders to pass folder validation)
 	skillContent := `---
 name: duplicate-skill
 ---
 Content
 `
 
-	require.NoError(t, os.WriteFile(filepath.Join(tmpDir1, "SKILL.md"), []byte(skillContent), 0644))
-	require.NoError(t, os.WriteFile(filepath.Join(tmpDir2, "SKILL.md"), []byte(skillContent), 0644))
+	// Create skill folders
+	skillFolder1 := filepath.Join(tmpDir1, "my-skill")
+	require.NoError(t, os.MkdirAll(skillFolder1, 0755))
+	skillFolder2 := filepath.Join(tmpDir2, "my-skill")
+	require.NoError(t, os.MkdirAll(skillFolder2, 0755))
+
+	require.NoError(t, os.WriteFile(filepath.Join(skillFolder1, "SKILL.md"), []byte(skillContent), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(skillFolder2, "SKILL.md"), []byte(skillContent), 0644))
 
 	log := zap.NewNop()
 	result, err := DiscoverMultiple(context.Background(), []string{tmpDir1, tmpDir2}, log)
@@ -926,4 +934,93 @@ Content
 	assert.Len(t, result.Skills, 1)
 	assert.Len(t, result.Errors, 1)
 	assert.Contains(t, result.Errors[0].Error(), "duplicate")
+}
+
+// TestSkillService_AutoRemoveEmptySearchPaths tests that search paths with no skills are removed after discovery
+func TestSkillService_AutoRemoveEmptySearchPaths(t *testing.T) {
+	injector := do.New()
+
+	do.ProvideValue[logger.LoggerService](injector, &testLoggerService{})
+	do.ProvideValue[workspace.Service](injector, &testWorkspaceService{})
+
+	service, err := NewService(injector)
+	require.NoError(t, err)
+
+	// Create temp directories
+	dirWithSkill, err := os.MkdirTemp("", "skill-with-*")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = os.RemoveAll(dirWithSkill) })
+
+	dirWithoutSkill, err := os.MkdirTemp("", "skill-without-*")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = os.RemoveAll(dirWithoutSkill) })
+
+	// Create skill in one directory (in subfolder)
+	skillFolder := filepath.Join(dirWithSkill, "test-skill")
+	require.NoError(t, os.MkdirAll(skillFolder, 0755))
+	skillContent := `---
+name: test-skill
+type: agent
+---
+Content
+`
+	require.NoError(t, os.WriteFile(filepath.Join(skillFolder, "SKILL.md"), []byte(skillContent), 0644))
+
+	// Add both paths
+	service.AddSearchPath(dirWithSkill)
+	service.AddSearchPath(dirWithoutSkill)
+
+	// Verify both paths are present before discovery
+	pathsBefore := service.GetSearchPaths()
+	assert.Contains(t, pathsBefore, dirWithSkill)
+	assert.Contains(t, pathsBefore, dirWithoutSkill)
+
+	// Trigger discovery
+	err = service.Discover(context.Background())
+	require.NoError(t, err)
+
+	// Verify skill was found
+	skill, err := service.Get("test-skill")
+	require.NoError(t, err)
+	assert.Equal(t, "test-skill", skill.Name)
+
+	// Verify empty path was removed, path with skill was kept
+	pathsAfter := service.GetSearchPaths()
+	assert.Contains(t, pathsAfter, dirWithSkill)
+	assert.NotContains(t, pathsAfter, dirWithoutSkill)
+}
+
+// TestDiscoverMultiple_PathsWithSkills tests that PathsWithSkills is correctly populated
+func TestDiscoverMultiple_PathsWithSkills(t *testing.T) {
+	// Create temp directories
+	dirWithSkill, err := os.MkdirTemp("", "skill-path-with-*")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = os.RemoveAll(dirWithSkill) })
+
+	dirWithoutSkill, err := os.MkdirTemp("", "skill-path-without-*")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = os.RemoveAll(dirWithoutSkill) })
+
+	// Create skill in one directory (in subfolder)
+	skillFolder := filepath.Join(dirWithSkill, "my-skill")
+	require.NoError(t, os.MkdirAll(skillFolder, 0755))
+	skillContent := `---
+name: my-skill
+---
+Content
+`
+	require.NoError(t, os.WriteFile(filepath.Join(skillFolder, "SKILL.md"), []byte(skillContent), 0644))
+
+	log := zap.NewNop()
+	result, err := DiscoverMultiple(context.Background(), []string{dirWithSkill, dirWithoutSkill}, log)
+	require.NoError(t, err)
+
+	// Verify PathsWithSkills is populated correctly
+	assert.NotNil(t, result.PathsWithSkills)
+	assert.True(t, result.PathsWithSkills[dirWithSkill], "Path with skill should be marked true")
+	assert.False(t, result.PathsWithSkills[dirWithoutSkill], "Path without skill should be marked false")
+
+	// Verify skill was found
+	assert.Len(t, result.Skills, 1)
+	assert.Equal(t, "my-skill", result.Skills[0].Name)
 }

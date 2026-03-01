@@ -6,7 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -43,22 +44,24 @@ type SkillService interface {
 
 // skillServiceImpl implements SkillService
 type skillServiceImpl struct {
-	log             *zap.Logger
-	config          *config.WorkspaceConfig
+	log               *zap.Logger
+	workspace         workspace.Service
 	toolNameValidator ToolNameValidator
-	mu              sync.RWMutex
-	skills          map[string]*Skill // name -> skill
-	skillsByPath    map[string]*Skill // path -> skill
-	searchPaths     []string
+	mu                sync.RWMutex
+	skills            map[string]*Skill // name -> skill
+	skillsByPath      map[string]*Skill // path -> skill
+	searchPaths       []string
 }
 
 // Ensure skillServiceImpl implements SkillService
 var _ SkillService = (*skillServiceImpl)(nil)
 
-// NewService creates a new SkillService instance
+// NewService creates a new SkillService instance.
+// The service self-initializes by discovering skills during construction.
 func NewService(injector do.Injector) (SkillService, error) {
-	log := do.MustInvoke[*zap.Logger](injector)
-	cfg := do.MustInvoke[config.ConfigService](injector)
+	logService := do.MustInvoke[logger.LoggerService](injector)
+	log := logService.GetLogger()
+	ws := do.MustInvoke[workspace.Service](injector)
 
 	// Try to get ToolNameValidator from DI, but it's optional
 	// If not available, tool validation will be skipped
@@ -68,27 +71,35 @@ func NewService(injector do.Injector) (SkillService, error) {
 	}
 
 	service := &skillServiceImpl{
-		log:                log,
-		config:             cfg.GetWorkspaceConfig(),
-		toolNameValidator:  toolNameValidator,
-		skills:             make(map[string]*Skill),
-		skillsByPath:       make(map[string]*Skill),
-		searchPaths:        make([]string, 0),
+		log:               log,
+		workspace:         ws,
+		toolNameValidator: toolNameValidator,
+		skills:            make(map[string]*Skill),
+		skillsByPath:      make(map[string]*Skill),
+		searchPaths:       make([]string, 0),
 	}
 
 	// Add workspace directory as default search path
-	if ws := service.config.GetCurrentWorkspace(); ws != "" {
-		service.searchPaths = append(service.searchPaths, ws)
+	if currentWs := ws.GetCurrentWorkspace(); currentWs != "" {
+		service.searchPaths = append(service.searchPaths, currentWs)
+	}
+
+	// Self-initialize: discover skills during construction
+	ctx := context.Background()
+	if err := service.discoverInternal(ctx); err != nil {
+		log.Warn("Skill discovery failed during initialization", zap.Error(err))
+		// Non-fatal - service works but has no skills
+	} else {
+		log.Info("SkillService initialized",
+			zap.Int("skills_found", len(service.skills)),
+			zap.Strings("search_paths", service.searchPaths))
 	}
 
 	return service, nil
 }
 
-// Discover scans for skills in configured directories
-func (s *skillServiceImpl) Discover(ctx context.Context) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
+// discoverInternal performs skill discovery without locking (called from constructor)
+func (s *skillServiceImpl) discoverInternal(ctx context.Context) error {
 	// Clear existing skills
 	s.skills = make(map[string]*Skill)
 	s.skillsByPath = make(map[string]*Skill)
@@ -117,12 +128,36 @@ func (s *skillServiceImpl) Discover(ctx context.Context) error {
 		s.log.Warn("Skill discovery error", zap.Error(discoveryErr))
 	}
 
+	// Remove search paths that yielded no skills
+	// Only remove from explicitly added searchPaths, not from workspace history
+	var removedPaths []string
+	newSearchPaths := make([]string, 0, len(s.searchPaths))
+	for _, path := range s.searchPaths {
+		if hasSkills, exists := result.PathsWithSkills[path]; exists && !hasSkills {
+			removedPaths = append(removedPaths, path)
+			s.log.Info("Removing skill search path (no skills found)",
+				zap.String("path", path))
+		} else {
+			newSearchPaths = append(newSearchPaths, path)
+		}
+	}
+	s.searchPaths = newSearchPaths
+
 	s.log.Info("Skill discovery complete",
 		zap.Int("skills_found", len(s.skills)),
 		zap.Int("errors", len(result.Errors)),
+		zap.Int("search_paths_removed", len(removedPaths)),
 	)
 
 	return nil
+}
+
+// Discover scans for skills in configured directories (public API for re-discovery)
+func (s *skillServiceImpl) Discover(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.discoverInternal(ctx)
 }
 
 // Get retrieves a skill by name (case-insensitive)
@@ -305,12 +340,12 @@ func (s *skillServiceImpl) getEffectiveSearchPaths() []string {
 	}
 
 	// Add current workspace
-	if ws := s.config.GetCurrentWorkspace(); ws != "" {
+	if ws := s.workspace.GetCurrentWorkspace(); ws != "" {
 		paths[ws] = true
 	}
 
 	// Add workspace history
-	for _, p := range s.config.GetWorkspaceHistory() {
+	for _, p := range s.workspace.GetWorkspaceHistory() {
 		paths[p] = true
 	}
 

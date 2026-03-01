@@ -34,6 +34,8 @@ type DiscoveryResult struct {
 	ScannedDirs int
 	// ScannedFiles is the number of files checked
 	ScannedFiles int
+	// PathsWithSkills maps search paths to whether they yielded any skills
+	PathsWithSkills map[string]bool
 }
 
 // discoverer handles skill file discovery
@@ -211,6 +213,15 @@ func (d *discoverer) walkDirectory(
 
 		// Check for SKILL.md files
 		if name == SkillFileName {
+			// Validate that skill is in its own folder (not at search root)
+			if depth == 0 {
+				result.Errors = append(result.Errors, ErrSkillNotInOwnFolder(fullPath))
+				d.log.Warn("Skill not in own folder",
+					zap.String("path", fullPath),
+					zap.String("hint", "Skills must be in their own folder, e.g., 'skills/my-skill/SKILL.md'"))
+				continue
+			}
+
 			result.ScannedFiles++
 			select {
 			case fileCh <- fullPath:
@@ -235,8 +246,9 @@ func DiscoverInPath(ctx context.Context, path string, log *zap.Logger) (*Discove
 // DiscoverMultiple discovers skills in multiple root directories
 func DiscoverMultiple(ctx context.Context, paths []string, log *zap.Logger) (*DiscoveryResult, error) {
 	combined := &DiscoveryResult{
-		Skills: make(Skills, 0),
-		Errors: make([]error, 0),
+		Skills:          make(Skills, 0),
+		Errors:          make([]error, 0),
+		PathsWithSkills: make(map[string]bool),
 	}
 
 	seenSkills := make(map[string]string) // skill name -> file path (for duplicate detection)
@@ -245,8 +257,14 @@ func DiscoverMultiple(ctx context.Context, paths []string, log *zap.Logger) (*Di
 		result, err := DiscoverInPath(ctx, path, log)
 		if err != nil {
 			combined.Errors = append(combined.Errors, err)
+			// Path had an error, don't mark it as having skills
+			combined.PathsWithSkills[path] = false
 			continue
 		}
+
+		// Track if this path yielded any skills
+		hasSkills := len(result.Skills) > 0
+		combined.PathsWithSkills[path] = hasSkills
 
 		// Merge results, checking for duplicates
 		for _, skill := range result.Skills {
