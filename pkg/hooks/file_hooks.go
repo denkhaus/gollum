@@ -15,7 +15,7 @@ import (
 // Hook execution flow:
 // 1. BeforeFileRead hooks run - can validate and block reads
 // 2. File read work executes - returns content
-// 3. AfterFileRead hooks run - can transform content via HookContext.FileContent
+// 3. AfterFileRead hooks run - can transform content via Payload.Content
 //
 // The returned content is the final content after any modifications by AfterFileRead hooks.
 func (p *hookManagerImpl) WithFileReadHooks(
@@ -37,15 +37,13 @@ func (p *hookManagerImpl) WithFileReadHooks(
 		return "", errs.Validation("work function cannot be nil")
 	}
 
-	// BeforeFileRead hook
-	hookCtx := &HookContext{
-		SessionID: sessionID,
-		AgentID:   agentID,
-		FilePath:  filePath,
-		Data:      make(map[string]any),
-	}
+	// BeforeFileRead hook with typed context
+	hookCtx := NewTypedHookContext(
+		BaseContext{SessionID: sessionID, AgentID: agentID},
+		FilePayload{Path: filePath, Operation: FileOperationRead},
+	)
 
-	result := p.TriggerHooks(ctx, BeforeFileRead, hookCtx)
+	result := p.TriggerFileHooks(ctx, BeforeFileRead, hookCtx)
 	if result.Stopped {
 		// Hook blocked execution
 		if result.Error != nil {
@@ -59,11 +57,11 @@ func (p *hookManagerImpl) WithFileReadHooks(
 	content, workErr := work()
 
 	// Store content in context for after hooks
-	hookCtx.FileContent = content
+	hookCtx.Payload.Content = content
 
 	// AfterFileRead hook runs even when work fails
-	// Hooks can modify FileContent to transform what's returned
-	result = p.TriggerHooks(ctx, AfterFileRead, hookCtx)
+	// Hooks can modify Content to transform what's returned
+	result = p.TriggerFileHooks(ctx, AfterFileRead, hookCtx)
 
 	// If a fatal 'after' hook failed, its error takes precedence
 	if result.Error != nil {
@@ -75,8 +73,8 @@ func (p *hookManagerImpl) WithFileReadHooks(
 		return "", result.Error
 	}
 
-	// Always return hookCtx.FileContent (hooks may have modified it, possibly to empty string)
-	return hookCtx.FileContent, workErr
+	// Always return hookCtx.Payload.Content (hooks may have modified it, possibly to empty string)
+	return hookCtx.Payload.Content, workErr
 }
 
 // WithFileWriteHooks wraps a file write operation with hooks.
@@ -84,7 +82,7 @@ func (p *hookManagerImpl) WithFileReadHooks(
 // AfterFileWrite hooks can log/audit the write operation.
 //
 // Hook execution flow:
-// 1. BeforeFileWrite hooks run - can transform content via HookContext.FileContent
+// 1. BeforeFileWrite hooks run - can transform content via Payload.Content
 // 2. File write work executes - receives the final content after hook transformations
 // 3. AfterFileWrite hooks run - can log/audit
 func (p *hookManagerImpl) WithFileWriteHooks(
@@ -107,16 +105,13 @@ func (p *hookManagerImpl) WithFileWriteHooks(
 		return errs.Validation("work function cannot be nil")
 	}
 
-	// BeforeFileWrite hook
-	hookCtx := &HookContext{
-		SessionID:   sessionID,
-		AgentID:     agentID,
-		FilePath:    filePath,
-		FileContent: content, // Initial content
-		Data:        make(map[string]any),
-	}
+	// BeforeFileWrite hook with typed context
+	hookCtx := NewTypedHookContext(
+		BaseContext{SessionID: sessionID, AgentID: agentID},
+		FilePayload{Path: filePath, Content: content, Operation: FileOperationWrite},
+	)
 
-	result := p.TriggerHooks(ctx, BeforeFileWrite, hookCtx)
+	result := p.TriggerFileHooks(ctx, BeforeFileWrite, hookCtx)
 	if result.Stopped {
 		// Hook blocked execution
 		if result.Error != nil {
@@ -127,12 +122,12 @@ func (p *hookManagerImpl) WithFileWriteHooks(
 	}
 
 	// Execute work with potentially modified content
-	finalContent := hookCtx.FileContent
+	finalContent := hookCtx.Payload.Content
 	workErr := work(finalContent)
 
 	// AfterFileWrite hook (always runs, even if work failed)
-	// Note: Hooks can access FileContent via hookCtx
-	result = p.TriggerHooks(ctx, AfterFileWrite, hookCtx)
+	// Note: Hooks can access Content via hookCtx.Payload
+	result = p.TriggerFileHooks(ctx, AfterFileWrite, hookCtx)
 
 	// If a fatal 'after' hook failed, its error takes precedence
 	if result.Error != nil {
@@ -158,8 +153,8 @@ func (p *hookManagerImpl) WithFileWriteHooks(
 // 3. AfterFileRead hooks run - can log/audit (cannot return modified content)
 //
 // For Write operations (BeforeFileWrite/AfterFileWrite):
-// 1. BeforeFileWrite hooks run with FileContent in HookContext
-//   - Hooks can modify FileContent to change what gets written
+// 1. BeforeFileWrite hooks run with Content in TypedHookContext[FilePayload]
+//   - Hooks can modify Payload.Content to change what gets written
 //   - Hooks can block execution by not calling next()
 //
 // 2. File write work executes (potentially with modified content)
@@ -171,8 +166,8 @@ func (p *hookManagerImpl) WithFileWriteHooks(
 // 3. AfterFileDelete hooks run - can log/audit the delete
 //
 // For Modify operations (BeforeFileModify/AfterFileModify):
-// 1. BeforeFileModify hooks run with OldContent and NewContent in HookContext
-//   - Hooks can modify NewContent to change the replacement
+// 1. BeforeFileModify hooks run with OldContent and NewContent in Payload
+//   - Hooks can modify Payload.NewContent to change the replacement
 //   - Hooks can block execution by not calling next()
 //
 // 2. File modify work executes
@@ -197,44 +192,38 @@ func (p *hookManagerImpl) WithFileHooks(
 		return errs.Validation("work function cannot be nil")
 	}
 
-	// Validate hook point
-	switch point {
-	case BeforeFileRead, AfterFileRead,
-		BeforeFileWrite, AfterFileWrite,
-		BeforeFileDelete, AfterFileDelete,
-		BeforeFileModify, AfterFileModify:
-		// valid file hook points
-	default:
-		return errs.Validationf("invalid file hook point: %s", point)
-	}
-
-	// Determine the "before" and "after" hook points
+	// Determine the "before" and "after" hook points and operation type
 	var beforePoint, afterPoint HookPoint
+	var operation FileOperation
 
 	switch point {
 	case BeforeFileRead, AfterFileRead:
 		beforePoint = BeforeFileRead
 		afterPoint = AfterFileRead
+		operation = FileOperationRead
 	case BeforeFileWrite, AfterFileWrite:
 		beforePoint = BeforeFileWrite
 		afterPoint = AfterFileWrite
+		operation = FileOperationWrite
 	case BeforeFileDelete, AfterFileDelete:
 		beforePoint = BeforeFileDelete
 		afterPoint = AfterFileDelete
+		operation = FileOperationDelete
 	case BeforeFileModify, AfterFileModify:
 		beforePoint = BeforeFileModify
 		afterPoint = AfterFileModify
+		operation = FileOperationModify
+	default:
+		return errs.Validationf("invalid file hook point: %s", point)
 	}
 
-	// Before hook
-	hookCtx := &HookContext{
-		SessionID: sessionID,
-		AgentID:   agentID,
-		FilePath:  filePath,
-		Data:      make(map[string]any),
-	}
+	// Before hook with typed context
+	hookCtx := NewTypedHookContext(
+		BaseContext{SessionID: sessionID, AgentID: agentID},
+		FilePayload{Path: filePath, Operation: operation},
+	)
 
-	result := p.TriggerHooks(ctx, beforePoint, hookCtx)
+	result := p.TriggerFileHooks(ctx, beforePoint, hookCtx)
 	if result.Stopped {
 		// Hook blocked execution
 		if result.Error != nil {
@@ -248,8 +237,8 @@ func (p *hookManagerImpl) WithFileHooks(
 	workErr := work()
 
 	// After hook (always runs, even if work failed)
-	// Note: Hooks can access FileContent, OldContent, NewContent via hookCtx
-	result = p.TriggerHooks(ctx, afterPoint, hookCtx)
+	// Note: Hooks can access Content, OldContent, NewContent via hookCtx.Payload
+	result = p.TriggerFileHooks(ctx, afterPoint, hookCtx)
 
 	// If a fatal 'after' hook failed, its error takes precedence
 	if result.Error != nil {

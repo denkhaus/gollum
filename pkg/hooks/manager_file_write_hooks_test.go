@@ -17,19 +17,19 @@ func TestHookManager_WithFileWriteHooks(t *testing.T) {
 		hm := newTestHookManager()
 
 		executed := []string{}
-		beforeHook := func(_ context.Context, hc *HookContext, next func() error) error {
+		beforeHook := func(_ context.Context, hc *TypedHookContext[FilePayload], next func() error) error {
 			executed = append(executed, "before")
-			assert.Equal(t, testFilePath, hc.FilePath)
+			assert.Equal(t, testFilePath, hc.Payload.Path)
 			return next()
 		}
-		afterHook := func(_ context.Context, hc *HookContext, next func() error) error {
+		afterHook := func(_ context.Context, hc *TypedHookContext[FilePayload], next func() error) error {
 			executed = append(executed, "after")
-			assert.Equal(t, testFilePath, hc.FilePath)
+			assert.Equal(t, testFilePath, hc.Payload.Path)
 			return next()
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
-		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileWrite, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterFileHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterFileHook(afterHook, TypedHookMetadata{Name: "after", Point: AfterFileWrite, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -50,13 +50,13 @@ func TestHookManager_WithFileWriteHooks(t *testing.T) {
 	t.Run("before hook can modify file content", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		beforeHook := func(_ context.Context, hc *HookContext, next func() error) error {
+		beforeHook := func(_ context.Context, hc *TypedHookContext[FilePayload], next func() error) error {
 			// Modify file content
-			hc.FileContent = "modified by hook"
+			hc.Payload.Content = testModifiedContent
 			return next()
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterFileHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -69,20 +69,20 @@ func TestHookManager_WithFileWriteHooks(t *testing.T) {
 		})
 
 		require.NoError(t, err)
-		assert.Equal(t, "modified by hook", writtenContent, "before hook should modify the content passed to work")
+		assert.Equal(t, testModifiedContent, writtenContent, "before hook should modify the content passed to work")
 		assert.NotEqual(t, testOriginalContent, writtenContent, "content should be different from original")
 	})
 
 	t.Run("before hook can modify content to empty string", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		beforeHook := func(_ context.Context, hc *HookContext, next func() error) error {
+		beforeHook := func(_ context.Context, hc *TypedHookContext[FilePayload], next func() error) error {
 			// Clear content (e.g., redact sensitive data before write)
-			hc.FileContent = ""
+			hc.Payload.Content = ""
 			return next()
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "redact", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterFileHook(beforeHook, TypedHookMetadata{Name: "redact", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -102,12 +102,12 @@ func TestHookManager_WithFileWriteHooks(t *testing.T) {
 	t.Run("before hook can block file write", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		beforeHook := func(_ context.Context, _ *HookContext, _ func() error) error {
+		beforeHook := func(_ context.Context, _ *TypedHookContext[FilePayload], _ func() error) error {
 			// Don't call next() to block execution
 			return nil
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterFileHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -126,11 +126,11 @@ func TestHookManager_WithFileWriteHooks(t *testing.T) {
 	t.Run("before hook can block with error", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		beforeHook := func(_ context.Context, _ *HookContext, _ func() error) error {
+		beforeHook := func(_ context.Context, _ *TypedHookContext[FilePayload], _ func() error) error {
 			return errors.New("access denied")
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: true}))
+		require.NoError(t, hm.RegisterFileHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: true}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -151,17 +151,17 @@ func TestHookManager_WithFileWriteHooks(t *testing.T) {
 		hm := newTestHookManager()
 
 		executed := []string{}
-		beforeHook := func(_ context.Context, _ *HookContext, next func() error) error {
+		beforeHook := func(_ context.Context, _ *TypedHookContext[FilePayload], next func() error) error {
 			executed = append(executed, "before")
 			return next()
 		}
-		afterHook := func(_ context.Context, _ *HookContext, next func() error) error {
+		afterHook := func(_ context.Context, _ *TypedHookContext[FilePayload], next func() error) error {
 			executed = append(executed, "after")
 			return next()
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
-		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileWrite, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterFileHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterFileHook(afterHook, TypedHookMetadata{Name: "after", Point: AfterFileWrite, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -223,11 +223,11 @@ func TestHookManager_WithFileWriteHooks(t *testing.T) {
 	t.Run("fatal error in after hook takes precedence over work error", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		afterHook := func(_ context.Context, _ *HookContext, _ func() error) error {
+		afterHook := func(_ context.Context, _ *TypedHookContext[FilePayload], _ func() error) error {
 			return errors.New("fatal after error")
 		}
 
-		require.NoError(t, hm.RegisterHook(afterHook, HookMetadata{Name: "after", Point: AfterFileWrite, Priority: 0, FatalError: true}))
+		require.NoError(t, hm.RegisterFileHook(afterHook, TypedHookMetadata{Name: "after", Point: AfterFileWrite, Priority: 0, FatalError: true}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
@@ -247,7 +247,7 @@ func TestHookManager_WithFileWriteHooks(t *testing.T) {
 		hm := newTestHookManager()
 
 		executed := []string{}
-		beforeHook := func(_ context.Context, _ *HookContext, next func() error) error {
+		beforeHook := func(_ context.Context, _ *TypedHookContext[FilePayload], next func() error) error {
 			executed = append(executed, "before")
 			// Call next() then return non-fatal error
 			_ = next()
@@ -255,7 +255,7 @@ func TestHookManager_WithFileWriteHooks(t *testing.T) {
 			return errors.New("non-fatal error")
 		}
 
-		require.NoError(t, hm.RegisterHook(beforeHook, HookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
+		require.NoError(t, hm.RegisterFileHook(beforeHook, TypedHookMetadata{Name: "before", Point: BeforeFileWrite, Priority: 0, FatalError: false}))
 
 		sessionID := uuid.New()
 		agentID := uuid.New()

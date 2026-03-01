@@ -18,12 +18,13 @@ func (p *hookManagerImpl) WithSessionHooks(
 		return errs.Validation("session ID cannot be nil")
 	}
 
-	// BeforeSessionStart hook
-	hookCtx := &HookContext{
-		SessionID: sessionID,
-		Data:      make(map[string]any),
-	}
-	result := p.TriggerHooks(ctx, BeforeSessionStart, hookCtx)
+	// BeforeSessionStart hook with typed context
+	hookCtx := NewTypedHookContext(
+		BaseContext{SessionID: sessionID},
+		SessionPayload{Metadata: make(map[string]any)},
+	)
+
+	result := p.TriggerSessionHooks(ctx, BeforeSessionStart, hookCtx)
 	if result.Stopped {
 		return result.Error
 	}
@@ -33,7 +34,7 @@ func (p *hookManagerImpl) WithSessionHooks(
 
 	// AfterSessionEnd hook
 	// Always trigger AfterSessionEnd, even if work failed, to ensure cleanup runs.
-	result = p.TriggerHooks(ctx, AfterSessionEnd, hookCtx)
+	result = p.TriggerSessionHooks(ctx, AfterSessionEnd, hookCtx)
 
 	// If a fatal 'after' hook failed, its error takes precedence.
 	if result.Error != nil {
@@ -58,21 +59,24 @@ func (p *hookManagerImpl) WithAgentHooks(
 		return errs.Validation("agent ID cannot be nil")
 	}
 
-	// Validate hook point
+	// Validate hook point and determine agent event
+	var event AgentEvent
 	switch point {
-	case BeforeAgentSpawn, AfterAgentSpawn, BeforeAgentRemove, AfterAgentRemove:
-		// valid agent hook points
+	case BeforeAgentSpawn, AfterAgentSpawn:
+		event = AgentEventSpawn
+	case BeforeAgentRemove, AfterAgentRemove:
+		event = AgentEventRemove
 	default:
 		return errs.Validationf("invalid agent hook point: %s", point)
 	}
 
-	hookCtx := &HookContext{
-		SessionID: sessionID,
-		AgentID:   agentID,
-		Data:      make(map[string]any),
-	}
+	// Create typed context
+	hookCtx := NewTypedHookContext(
+		BaseContext{SessionID: sessionID, AgentID: agentID},
+		AgentPayload{Event: event, NewAgentID: agentID},
+	)
 
-	result := p.TriggerHooks(ctx, point, hookCtx)
+	result := p.TriggerAgentHooks(ctx, point, hookCtx)
 	if result.Stopped {
 		return result.Error
 	}
