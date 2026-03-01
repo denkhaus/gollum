@@ -58,7 +58,10 @@
       "mcp__vestige__ingest",
       "mcp__vestige__smart_ingest",
       "Skill(gsd:execute-phase)",
-      "mcp__forgejo__search_repos"
+      "mcp__forgejo__search_repos",
+      "Bash(tmux list-sessions:*)",
+      "Bash(tmux send-keys:*)",
+      "Bash(command tmux:*)"
     ],
     "deny": [],
     "ask": []
