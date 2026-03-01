@@ -110,6 +110,10 @@ func (h HookPoint) String() string {
 }
 
 // HookContext carries contextual information for hook execution.
+//
+// Deprecated: Use TypedHookContext[T] with typed payloads for better type safety.
+// This type is maintained for backward compatibility during migration.
+// See generics.go for the new typed implementation.
 type HookContext struct {
 	SessionID  uuid.UUID      // Optional: session identifier
 	AgentID    uuid.UUID      // Optional: agent identifier
@@ -194,6 +198,10 @@ type HookResult struct {
 }
 
 // HookFunc is the signature for hook functions.
+//
+// Deprecated: Use TypedHookFunc[T] with typed payloads for better type safety.
+// This type is maintained for backward compatibility during migration.
+// See generics.go for the new typed implementation.
 //
 // The function receives:
 // - ctx: context for cancellation/control
