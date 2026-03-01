@@ -15,14 +15,77 @@ import (
 // HookManager defines the interface for managing and triggering hooks.
 type HookManager interface {
 	// RegisterHook registers a hook function for a specific hook point.
+	//
+	// Deprecated: Use the typed Register*Hook methods (RegisterToolHook, RegisterLLMHook, etc.)
+	// for better type safety. This method is maintained for backward compatibility.
 	RegisterHook(fn HookFunc, meta HookMetadata) error
 
-	// UnregisterHook removes a hook by name.
+	// Type-safe registration methods per hook category.
+	// These methods provide compile-time type safety for hook functions.
+
+	// RegisterToolHook registers a typed hook for tool execution events.
+	// Valid hook points: BeforeToolExecution, AfterToolExecution, OnToolError.
+	RegisterToolHook(fn TypedHookFunc[ToolPayload], meta TypedHookMetadata) error
+
+	// RegisterLLMHook registers a typed hook for LLM request/response events.
+	// Valid hook points: BeforeLLMRequest, AfterLLMResponse, OnLLMError.
+	RegisterLLMHook(fn TypedHookFunc[LLMPayload], meta TypedHookMetadata) error
+
+	// RegisterFileHook registers a typed hook for file operation events.
+	// Valid hook points: BeforeFileRead, AfterFileRead, BeforeFileWrite, AfterFileWrite,
+	// BeforeFileDelete, AfterFileDelete, BeforeFileModify, AfterFileModify.
+	RegisterFileHook(fn TypedHookFunc[FilePayload], meta TypedHookMetadata) error
+
+	// RegisterSessionHook registers a typed hook for session lifecycle events.
+	// Valid hook points: BeforeSessionStart, AfterSessionEnd.
+	RegisterSessionHook(fn TypedHookFunc[SessionPayload], meta TypedHookMetadata) error
+
+	// RegisterAgentHook registers a typed hook for agent lifecycle events.
+	// Valid hook points: BeforeAgentSpawn, AfterAgentSpawn, BeforeAgentRemove, AfterAgentRemove.
+	RegisterAgentHook(fn TypedHookFunc[AgentPayload], meta TypedHookMetadata) error
+
+	// RegisterSkillHook registers a typed hook for skill invocation events.
+	// Valid hook points: BeforeSkillInvoked, AfterSkillInvoked, OnSkillError.
+	RegisterSkillHook(fn TypedHookFunc[SkillPayload], meta TypedHookMetadata) error
+
+	// UnregisterHook removes a hook by name from all registries.
+	// Returns true if at least one hook was removed.
 	UnregisterHook(name string) bool
 
 	// TriggerHooks executes all registered hooks for a given hook point.
 	// Returns a HookResult indicating whether execution was stopped and any errors.
+	//
+	// Deprecated: Use the typed Trigger*Hooks methods (TriggerToolHooks, TriggerLLMHooks, etc.)
+	// for better type safety. This method is maintained for backward compatibility.
 	TriggerHooks(ctx context.Context, point HookPoint, hookCtx *HookContext) HookResult
+
+	// Type-safe trigger methods per hook category.
+	// These methods provide compile-time type safety for hook execution.
+
+	// TriggerToolHooks executes all typed tool hooks for a given hook point.
+	// Valid hook points: BeforeToolExecution, AfterToolExecution, OnToolError.
+	TriggerToolHooks(ctx context.Context, point HookPoint, hookCtx *TypedHookContext[ToolPayload]) TypedHookResult[ToolPayload]
+
+	// TriggerLLMHooks executes all typed LLM hooks for a given hook point.
+	// Valid hook points: BeforeLLMRequest, AfterLLMResponse, OnLLMError.
+	TriggerLLMHooks(ctx context.Context, point HookPoint, hookCtx *TypedHookContext[LLMPayload]) TypedHookResult[LLMPayload]
+
+	// TriggerFileHooks executes all typed file hooks for a given hook point.
+	// Valid hook points: BeforeFileRead, AfterFileRead, BeforeFileWrite, AfterFileWrite,
+	// BeforeFileDelete, AfterFileDelete, BeforeFileModify, AfterFileModify.
+	TriggerFileHooks(ctx context.Context, point HookPoint, hookCtx *TypedHookContext[FilePayload]) TypedHookResult[FilePayload]
+
+	// TriggerSessionHooks executes all typed session hooks for a given hook point.
+	// Valid hook points: BeforeSessionStart, AfterSessionEnd.
+	TriggerSessionHooks(ctx context.Context, point HookPoint, hookCtx *TypedHookContext[SessionPayload]) TypedHookResult[SessionPayload]
+
+	// TriggerAgentHooks executes all typed agent hooks for a given hook point.
+	// Valid hook points: BeforeAgentSpawn, AfterAgentSpawn, BeforeAgentRemove, AfterAgentRemove.
+	TriggerAgentHooks(ctx context.Context, point HookPoint, hookCtx *TypedHookContext[AgentPayload]) TypedHookResult[AgentPayload]
+
+	// TriggerSkillHooks executes all typed skill hooks for a given hook point.
+	// Valid hook points: BeforeSkillInvoked, AfterSkillInvoked, OnSkillError.
+	TriggerSkillHooks(ctx context.Context, point HookPoint, hookCtx *TypedHookContext[SkillPayload]) TypedHookResult[SkillPayload]
 
 	// WithSessionHooks wraps a function with session lifecycle hooks.
 	WithSessionHooks(
@@ -130,6 +193,14 @@ type hookManagerImpl struct {
 	registries map[HookPoint]*hookRegistry
 	names      map[string]struct{} // Global name registry for uniqueness across all hook points
 	mu         sync.RWMutex        // Protects the names map
+
+	// Typed registries for type-safe hook storage
+	toolRegistry    *TypedRegistry[ToolPayload]
+	llmRegistry     *TypedRegistry[LLMPayload]
+	fileRegistry    *TypedRegistry[FilePayload]
+	sessionRegistry *TypedRegistry[SessionPayload]
+	agentRegistry   *TypedRegistry[AgentPayload]
+	skillRegistry   *TypedRegistry[SkillPayload]
 }
 
 // Ensure hookManagerImpl implements HookManager.
@@ -147,7 +218,7 @@ func NewHookManager(injector do.Injector) (HookManager, error) {
 		names:      make(map[string]struct{}),
 	}
 
-	// Initialize registries for all known hook points
+	// Initialize legacy registries for all known hook points
 	for _, point := range []HookPoint{
 		BeforeSessionStart,
 		AfterSessionEnd,
@@ -175,6 +246,14 @@ func NewHookManager(injector do.Injector) (HookManager, error) {
 	} {
 		p.registries[point] = &hookRegistry{}
 	}
+
+	// Initialize typed registries for type-safe hook storage
+	p.toolRegistry = NewTypedRegistry[ToolPayload]()
+	p.llmRegistry = NewTypedRegistry[LLMPayload]()
+	p.fileRegistry = NewTypedRegistry[FilePayload]()
+	p.sessionRegistry = NewTypedRegistry[SessionPayload]()
+	p.agentRegistry = NewTypedRegistry[AgentPayload]()
+	p.skillRegistry = NewTypedRegistry[SkillPayload]()
 
 	return p, nil
 }
@@ -226,26 +305,53 @@ func (p *hookManagerImpl) RegisterHook(fn HookFunc, meta HookMetadata) error {
 	return nil
 }
 
-// UnregisterHook removes a hook by name from all hook points.
+// UnregisterHook removes a hook by name from all registries (both legacy and typed).
 // Returns true if at least one hook was removed.
 func (p *hookManagerImpl) UnregisterHook(name string) bool {
 	unregistered := false
+
+	// Check legacy registries
 	for point, registry := range p.registries {
 		if registry.remove(name) {
-			p.log.Debug("Hook unregistered",
+			p.log.Debug("Hook unregistered from legacy registry",
 				zap.String("name", name),
 				zap.String("point", point.String()))
 			unregistered = true
-			// Only remove from global names once
 			break
 		}
 	}
+
+	// Check typed registries if not found in legacy
+	if !unregistered {
+		switch {
+		case p.toolRegistry.Remove(name):
+			p.log.Debug("Hook unregistered from tool registry", zap.String("name", name))
+			unregistered = true
+		case p.llmRegistry.Remove(name):
+			p.log.Debug("Hook unregistered from LLM registry", zap.String("name", name))
+			unregistered = true
+		case p.fileRegistry.Remove(name):
+			p.log.Debug("Hook unregistered from file registry", zap.String("name", name))
+			unregistered = true
+		case p.sessionRegistry.Remove(name):
+			p.log.Debug("Hook unregistered from session registry", zap.String("name", name))
+			unregistered = true
+		case p.agentRegistry.Remove(name):
+			p.log.Debug("Hook unregistered from agent registry", zap.String("name", name))
+			unregistered = true
+		case p.skillRegistry.Remove(name):
+			p.log.Debug("Hook unregistered from skill registry", zap.String("name", name))
+			unregistered = true
+		}
+	}
+
 	// Remove from global names map if hook was found and removed
 	if unregistered {
 		p.mu.Lock()
 		delete(p.names, name)
 		p.mu.Unlock()
 	}
+
 	return unregistered
 }
 
@@ -367,4 +473,329 @@ func (p *hookManagerImpl) TriggerHooks(ctx context.Context, point HookPoint, hoo
 	}
 
 	return result
+}
+
+// ============================================================================
+// Typed Registration Methods
+// ============================================================================
+
+// RegisterToolHook registers a typed hook for tool execution events.
+func (p *hookManagerImpl) RegisterToolHook(fn TypedHookFunc[ToolPayload], meta TypedHookMetadata) error {
+	if fn == nil {
+		return errs.Validation("hook function cannot be nil")
+	}
+	if meta.Name == "" {
+		return errs.Validation("hook name cannot be empty")
+	}
+	if err := p.validateToolHookPoint(meta.Point); err != nil {
+		return err
+	}
+
+	// Check for global name uniqueness
+	p.mu.Lock()
+	if _, exists := p.names[meta.Name]; exists {
+		p.mu.Unlock()
+		return errs.Conflictf("hook with name '%s' is already registered globally", meta.Name)
+	}
+
+	if err := p.toolRegistry.Add(fn, meta); err != nil {
+		p.mu.Unlock()
+		if err == ErrDuplicateHook {
+			return errs.Conflictf("hook with name '%s' already registered", meta.Name)
+		}
+		return err
+	}
+
+	p.names[meta.Name] = struct{}{}
+	p.mu.Unlock()
+
+	p.log.Debug("Typed hook registered",
+		zap.String("name", meta.Name),
+		zap.String("point", meta.Point.String()),
+		zap.Int("priority", meta.Priority))
+
+	return nil
+}
+
+// RegisterLLMHook registers a typed hook for LLM request/response events.
+func (p *hookManagerImpl) RegisterLLMHook(fn TypedHookFunc[LLMPayload], meta TypedHookMetadata) error {
+	if fn == nil {
+		return errs.Validation("hook function cannot be nil")
+	}
+	if meta.Name == "" {
+		return errs.Validation("hook name cannot be empty")
+	}
+	if err := p.validateLLMHookPoint(meta.Point); err != nil {
+		return err
+	}
+
+	// Check for global name uniqueness
+	p.mu.Lock()
+	if _, exists := p.names[meta.Name]; exists {
+		p.mu.Unlock()
+		return errs.Conflictf("hook with name '%s' is already registered globally", meta.Name)
+	}
+
+	if err := p.llmRegistry.Add(fn, meta); err != nil {
+		p.mu.Unlock()
+		if err == ErrDuplicateHook {
+			return errs.Conflictf("hook with name '%s' already registered", meta.Name)
+		}
+		return err
+	}
+
+	p.names[meta.Name] = struct{}{}
+	p.mu.Unlock()
+
+	p.log.Debug("Typed hook registered",
+		zap.String("name", meta.Name),
+		zap.String("point", meta.Point.String()),
+		zap.Int("priority", meta.Priority))
+
+	return nil
+}
+
+// RegisterFileHook registers a typed hook for file operation events.
+func (p *hookManagerImpl) RegisterFileHook(fn TypedHookFunc[FilePayload], meta TypedHookMetadata) error {
+	if fn == nil {
+		return errs.Validation("hook function cannot be nil")
+	}
+	if meta.Name == "" {
+		return errs.Validation("hook name cannot be empty")
+	}
+	if err := p.validateFileHookPoint(meta.Point); err != nil {
+		return err
+	}
+
+	// Check for global name uniqueness
+	p.mu.Lock()
+	if _, exists := p.names[meta.Name]; exists {
+		p.mu.Unlock()
+		return errs.Conflictf("hook with name '%s' is already registered globally", meta.Name)
+	}
+
+	if err := p.fileRegistry.Add(fn, meta); err != nil {
+		p.mu.Unlock()
+		if err == ErrDuplicateHook {
+			return errs.Conflictf("hook with name '%s' already registered", meta.Name)
+		}
+		return err
+	}
+
+	p.names[meta.Name] = struct{}{}
+	p.mu.Unlock()
+
+	p.log.Debug("Typed hook registered",
+		zap.String("name", meta.Name),
+		zap.String("point", meta.Point.String()),
+		zap.Int("priority", meta.Priority))
+
+	return nil
+}
+
+// RegisterSessionHook registers a typed hook for session lifecycle events.
+func (p *hookManagerImpl) RegisterSessionHook(fn TypedHookFunc[SessionPayload], meta TypedHookMetadata) error {
+	if fn == nil {
+		return errs.Validation("hook function cannot be nil")
+	}
+	if meta.Name == "" {
+		return errs.Validation("hook name cannot be empty")
+	}
+	if err := p.validateSessionHookPoint(meta.Point); err != nil {
+		return err
+	}
+
+	// Check for global name uniqueness
+	p.mu.Lock()
+	if _, exists := p.names[meta.Name]; exists {
+		p.mu.Unlock()
+		return errs.Conflictf("hook with name '%s' is already registered globally", meta.Name)
+	}
+
+	if err := p.sessionRegistry.Add(fn, meta); err != nil {
+		p.mu.Unlock()
+		if err == ErrDuplicateHook {
+			return errs.Conflictf("hook with name '%s' already registered", meta.Name)
+		}
+		return err
+	}
+
+	p.names[meta.Name] = struct{}{}
+	p.mu.Unlock()
+
+	p.log.Debug("Typed hook registered",
+		zap.String("name", meta.Name),
+		zap.String("point", meta.Point.String()),
+		zap.Int("priority", meta.Priority))
+
+	return nil
+}
+
+// RegisterAgentHook registers a typed hook for agent lifecycle events.
+func (p *hookManagerImpl) RegisterAgentHook(fn TypedHookFunc[AgentPayload], meta TypedHookMetadata) error {
+	if fn == nil {
+		return errs.Validation("hook function cannot be nil")
+	}
+	if meta.Name == "" {
+		return errs.Validation("hook name cannot be empty")
+	}
+	if err := p.validateAgentHookPoint(meta.Point); err != nil {
+		return err
+	}
+
+	// Check for global name uniqueness
+	p.mu.Lock()
+	if _, exists := p.names[meta.Name]; exists {
+		p.mu.Unlock()
+		return errs.Conflictf("hook with name '%s' is already registered globally", meta.Name)
+	}
+
+	if err := p.agentRegistry.Add(fn, meta); err != nil {
+		p.mu.Unlock()
+		if err == ErrDuplicateHook {
+			return errs.Conflictf("hook with name '%s' already registered", meta.Name)
+		}
+		return err
+	}
+
+	p.names[meta.Name] = struct{}{}
+	p.mu.Unlock()
+
+	p.log.Debug("Typed hook registered",
+		zap.String("name", meta.Name),
+		zap.String("point", meta.Point.String()),
+		zap.Int("priority", meta.Priority))
+
+	return nil
+}
+
+// RegisterSkillHook registers a typed hook for skill invocation events.
+func (p *hookManagerImpl) RegisterSkillHook(fn TypedHookFunc[SkillPayload], meta TypedHookMetadata) error {
+	if fn == nil {
+		return errs.Validation("hook function cannot be nil")
+	}
+	if meta.Name == "" {
+		return errs.Validation("hook name cannot be empty")
+	}
+	if err := p.validateSkillHookPoint(meta.Point); err != nil {
+		return err
+	}
+
+	// Check for global name uniqueness
+	p.mu.Lock()
+	if _, exists := p.names[meta.Name]; exists {
+		p.mu.Unlock()
+		return errs.Conflictf("hook with name '%s' is already registered globally", meta.Name)
+	}
+
+	if err := p.skillRegistry.Add(fn, meta); err != nil {
+		p.mu.Unlock()
+		if err == ErrDuplicateHook {
+			return errs.Conflictf("hook with name '%s' already registered", meta.Name)
+		}
+		return err
+	}
+
+	p.names[meta.Name] = struct{}{}
+	p.mu.Unlock()
+
+	p.log.Debug("Typed hook registered",
+		zap.String("name", meta.Name),
+		zap.String("point", meta.Point.String()),
+		zap.Int("priority", meta.Priority))
+
+	return nil
+}
+
+// ============================================================================
+// Typed Trigger Methods
+// ============================================================================
+
+// TriggerToolHooks executes all typed tool hooks for a given hook point.
+func (p *hookManagerImpl) TriggerToolHooks(ctx context.Context, point HookPoint, hookCtx *TypedHookContext[ToolPayload]) TypedHookResult[ToolPayload] {
+	return p.toolRegistry.Trigger(ctx, point, hookCtx)
+}
+
+// TriggerLLMHooks executes all typed LLM hooks for a given hook point.
+func (p *hookManagerImpl) TriggerLLMHooks(ctx context.Context, point HookPoint, hookCtx *TypedHookContext[LLMPayload]) TypedHookResult[LLMPayload] {
+	return p.llmRegistry.Trigger(ctx, point, hookCtx)
+}
+
+// TriggerFileHooks executes all typed file hooks for a given hook point.
+func (p *hookManagerImpl) TriggerFileHooks(ctx context.Context, point HookPoint, hookCtx *TypedHookContext[FilePayload]) TypedHookResult[FilePayload] {
+	return p.fileRegistry.Trigger(ctx, point, hookCtx)
+}
+
+// TriggerSessionHooks executes all typed session hooks for a given hook point.
+func (p *hookManagerImpl) TriggerSessionHooks(ctx context.Context, point HookPoint, hookCtx *TypedHookContext[SessionPayload]) TypedHookResult[SessionPayload] {
+	return p.sessionRegistry.Trigger(ctx, point, hookCtx)
+}
+
+// TriggerAgentHooks executes all typed agent hooks for a given hook point.
+func (p *hookManagerImpl) TriggerAgentHooks(ctx context.Context, point HookPoint, hookCtx *TypedHookContext[AgentPayload]) TypedHookResult[AgentPayload] {
+	return p.agentRegistry.Trigger(ctx, point, hookCtx)
+}
+
+// TriggerSkillHooks executes all typed skill hooks for a given hook point.
+func (p *hookManagerImpl) TriggerSkillHooks(ctx context.Context, point HookPoint, hookCtx *TypedHookContext[SkillPayload]) TypedHookResult[SkillPayload] {
+	return p.skillRegistry.Trigger(ctx, point, hookCtx)
+}
+
+// ============================================================================
+// Hook Point Validation
+// ============================================================================
+
+func (p *hookManagerImpl) validateToolHookPoint(point HookPoint) error {
+	switch point {
+	case BeforeToolExecution, AfterToolExecution, OnToolError:
+		return nil
+	default:
+		return errs.Validationf("invalid tool hook point: %s (expected BeforeToolExecution, AfterToolExecution, or OnToolError)", point)
+	}
+}
+
+func (p *hookManagerImpl) validateLLMHookPoint(point HookPoint) error {
+	switch point {
+	case BeforeLLMRequest, AfterLLMResponse, OnLLMError:
+		return nil
+	default:
+		return errs.Validationf("invalid LLM hook point: %s (expected BeforeLLMRequest, AfterLLMResponse, or OnLLMError)", point)
+	}
+}
+
+func (p *hookManagerImpl) validateFileHookPoint(point HookPoint) error {
+	switch point {
+	case BeforeFileRead, AfterFileRead, BeforeFileWrite, AfterFileWrite,
+		BeforeFileDelete, AfterFileDelete, BeforeFileModify, AfterFileModify:
+		return nil
+	default:
+		return errs.Validationf("invalid file hook point: %s", point)
+	}
+}
+
+func (p *hookManagerImpl) validateSessionHookPoint(point HookPoint) error {
+	switch point {
+	case BeforeSessionStart, AfterSessionEnd:
+		return nil
+	default:
+		return errs.Validationf("invalid session hook point: %s (expected BeforeSessionStart or AfterSessionEnd)", point)
+	}
+}
+
+func (p *hookManagerImpl) validateAgentHookPoint(point HookPoint) error {
+	switch point {
+	case BeforeAgentSpawn, AfterAgentSpawn, BeforeAgentRemove, AfterAgentRemove:
+		return nil
+	default:
+		return errs.Validationf("invalid agent hook point: %s (expected BeforeAgentSpawn, AfterAgentSpawn, BeforeAgentRemove, or AfterAgentRemove)", point)
+	}
+}
+
+func (p *hookManagerImpl) validateSkillHookPoint(point HookPoint) error {
+	switch point {
+	case BeforeSkillInvoked, AfterSkillInvoked, OnSkillError:
+		return nil
+	default:
+		return errs.Validationf("invalid skill hook point: %s (expected BeforeSkillInvoked, AfterSkillInvoked, or OnSkillError)", point)
+	}
 }

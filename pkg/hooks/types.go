@@ -214,40 +214,119 @@ type HookResult struct {
 // - Modify hookCtx.Data to pass data to subsequent hooks
 type HookFunc func(ctx context.Context, hookCtx *HookContext, next func() error) error
 
-// NoOpHookManager is a no-op implementation of HookManager for testing
+// NoOpHookManager is a no-op implementation of HookManager for testing.
 type NoOpHookManager struct{}
 
-// Ensure NoOpHookManager implements HookManager
+// Ensure NoOpHookManager implements HookManager.
 var _ HookManager = (*NoOpHookManager)(nil)
 
-// NewNoOpHookManager creates a new no-op hook manager
+// NewNoOpHookManager creates a new no-op hook manager.
 func NewNoOpHookManager() *NoOpHookManager {
 	return &NoOpHookManager{}
 }
 
+// RegisterHook is a no-op implementation of HookManager.RegisterHook.
 func (n *NoOpHookManager) RegisterHook(_ HookFunc, _ HookMetadata) error { return nil }
-func (n *NoOpHookManager) UnregisterHook(_ string) bool                   { return false }
+
+// UnregisterHook is a no-op implementation of HookManager.UnregisterHook.
+func (n *NoOpHookManager) UnregisterHook(_ string) bool { return false }
+
+// TriggerHooks is a no-op implementation of HookManager.TriggerHooks.
 func (n *NoOpHookManager) TriggerHooks(_ context.Context, _ HookPoint, _ *HookContext) HookResult {
 	return HookResult{}
 }
+
+// RegisterToolHook is a no-op implementation of HookManager.RegisterToolHook.
+func (n *NoOpHookManager) RegisterToolHook(_ TypedHookFunc[ToolPayload], _ TypedHookMetadata) error {
+	return nil
+}
+
+// RegisterLLMHook is a no-op implementation of HookManager.RegisterLLMHook.
+func (n *NoOpHookManager) RegisterLLMHook(_ TypedHookFunc[LLMPayload], _ TypedHookMetadata) error {
+	return nil
+}
+
+// RegisterFileHook is a no-op implementation of HookManager.RegisterFileHook.
+func (n *NoOpHookManager) RegisterFileHook(_ TypedHookFunc[FilePayload], _ TypedHookMetadata) error {
+	return nil
+}
+
+// RegisterSessionHook is a no-op implementation of HookManager.RegisterSessionHook.
+func (n *NoOpHookManager) RegisterSessionHook(_ TypedHookFunc[SessionPayload], _ TypedHookMetadata) error {
+	return nil
+}
+
+// RegisterAgentHook is a no-op implementation of HookManager.RegisterAgentHook.
+func (n *NoOpHookManager) RegisterAgentHook(_ TypedHookFunc[AgentPayload], _ TypedHookMetadata) error {
+	return nil
+}
+
+// RegisterSkillHook is a no-op implementation of HookManager.RegisterSkillHook.
+func (n *NoOpHookManager) RegisterSkillHook(_ TypedHookFunc[SkillPayload], _ TypedHookMetadata) error {
+	return nil
+}
+
+// TriggerToolHooks is a no-op implementation of HookManager.TriggerToolHooks.
+func (n *NoOpHookManager) TriggerToolHooks(_ context.Context, _ HookPoint, hookCtx *TypedHookContext[ToolPayload]) TypedHookResult[ToolPayload] {
+	return TypedHookResult[ToolPayload]{Payload: hookCtx.Payload}
+}
+
+// TriggerLLMHooks is a no-op implementation of HookManager.TriggerLLMHooks.
+func (n *NoOpHookManager) TriggerLLMHooks(_ context.Context, _ HookPoint, hookCtx *TypedHookContext[LLMPayload]) TypedHookResult[LLMPayload] {
+	return TypedHookResult[LLMPayload]{Payload: hookCtx.Payload}
+}
+
+// TriggerFileHooks is a no-op implementation of HookManager.TriggerFileHooks.
+func (n *NoOpHookManager) TriggerFileHooks(_ context.Context, _ HookPoint, hookCtx *TypedHookContext[FilePayload]) TypedHookResult[FilePayload] {
+	return TypedHookResult[FilePayload]{Payload: hookCtx.Payload}
+}
+
+// TriggerSessionHooks is a no-op implementation of HookManager.TriggerSessionHooks.
+func (n *NoOpHookManager) TriggerSessionHooks(_ context.Context, _ HookPoint, hookCtx *TypedHookContext[SessionPayload]) TypedHookResult[SessionPayload] {
+	return TypedHookResult[SessionPayload]{Payload: hookCtx.Payload}
+}
+
+// TriggerAgentHooks is a no-op implementation of HookManager.TriggerAgentHooks.
+func (n *NoOpHookManager) TriggerAgentHooks(_ context.Context, _ HookPoint, hookCtx *TypedHookContext[AgentPayload]) TypedHookResult[AgentPayload] {
+	return TypedHookResult[AgentPayload]{Payload: hookCtx.Payload}
+}
+
+// TriggerSkillHooks is a no-op implementation of HookManager.TriggerSkillHooks.
+func (n *NoOpHookManager) TriggerSkillHooks(_ context.Context, _ HookPoint, hookCtx *TypedHookContext[SkillPayload]) TypedHookResult[SkillPayload] {
+	return TypedHookResult[SkillPayload]{Payload: hookCtx.Payload}
+}
+
+// WithSessionHooks is a no-op implementation of HookManager.WithSessionHooks.
 func (n *NoOpHookManager) WithSessionHooks(_ context.Context, _ uuid.UUID, work func() error) error {
 	return work()
 }
+
+// WithAgentHooks is a no-op implementation of HookManager.WithAgentHooks.
 func (n *NoOpHookManager) WithAgentHooks(_ context.Context, _, _ uuid.UUID, _ HookPoint, work func() error) error {
 	return work()
 }
+
+// WithToolHooks is a no-op implementation of HookManager.WithToolHooks.
 func (n *NoOpHookManager) WithToolHooks(_ context.Context, _, _ uuid.UUID, _ string, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 	return work()
 }
+
+// WithFileReadHooks is a no-op implementation of HookManager.WithFileReadHooks.
 func (n *NoOpHookManager) WithFileReadHooks(_ context.Context, _, _ uuid.UUID, _ string, work func() (string, error)) (string, error) {
 	return work()
 }
+
+// WithFileWriteHooks is a no-op implementation of HookManager.WithFileWriteHooks.
 func (n *NoOpHookManager) WithFileWriteHooks(_ context.Context, _, _ uuid.UUID, _, _ string, work func(string) error) error {
 	return work("")
 }
+
+// WithFileHooks is a no-op implementation of HookManager.WithFileHooks.
 func (n *NoOpHookManager) WithFileHooks(_ context.Context, _, _ uuid.UUID, _ HookPoint, _ string, work func() error) error {
 	return work()
 }
+
+// WithLLMHooks is a no-op implementation of HookManager.WithLLMHooks.
 func (n *NoOpHookManager) WithLLMHooks(_ context.Context, _, _ uuid.UUID, _, _ string, work func(string) (string, error)) (string, error) {
 	return work("")
 }

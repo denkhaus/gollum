@@ -167,6 +167,10 @@ func (r *TypedRegistry[T]) Remove(name string) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	if r.hooks == nil {
+		return false
+	}
+
 	removed := false
 	for point, hooks := range r.hooks {
 		for i, h := range hooks {

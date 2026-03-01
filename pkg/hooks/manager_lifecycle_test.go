@@ -91,6 +91,14 @@ func newTestHookManager() *hookManagerImpl {
 		hm.registries[point] = &hookRegistry{}
 	}
 
+	// Initialize typed registries
+	hm.toolRegistry = NewTypedRegistry[ToolPayload]()
+	hm.llmRegistry = NewTypedRegistry[LLMPayload]()
+	hm.fileRegistry = NewTypedRegistry[FilePayload]()
+	hm.sessionRegistry = NewTypedRegistry[SessionPayload]()
+	hm.agentRegistry = NewTypedRegistry[AgentPayload]()
+	hm.skillRegistry = NewTypedRegistry[SkillPayload]()
+
 	return hm
 }
 
