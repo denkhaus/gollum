@@ -206,10 +206,10 @@ name: deep-skill
 Content`
 	require.NoError(t, os.WriteFile(filepath.Join(deepDir, "SKILL.md"), []byte(skillContent), 0644))
 
-	// Create shallow skill
-	shallowDir := filepath.Join(tmpDir, "shallow")
-	require.NoError(t, os.MkdirAll(shallowDir, 0755))
-	require.NoError(t, os.WriteFile(filepath.Join(shallowDir, "SKILL.md"), []byte(`---
+	// Create shallow skill (in its own subfolder so it's not at root)
+	shallowSkillDir := filepath.Join(tmpDir, "shallow", "my-skill")
+	require.NoError(t, os.MkdirAll(shallowSkillDir, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(shallowSkillDir, "SKILL.md"), []byte(`---
 name: shallow-skill
 ---
 Content`), 0644))
@@ -246,13 +246,20 @@ func TestSkillDiscovery_DuplicateDetection(t *testing.T) {
 	require.NoError(t, os.MkdirAll(dir1, 0755))
 	require.NoError(t, os.MkdirAll(dir2, 0755))
 
-	// Create same skill in both directories
+	// Create same skill in both directories (in their own folders)
 	skillContent := `---
 name: duplicate-skill
 ---
 Content`
-	require.NoError(t, os.WriteFile(filepath.Join(dir1, "SKILL.md"), []byte(skillContent), 0644))
-	require.NoError(t, os.WriteFile(filepath.Join(dir2, "SKILL.md"), []byte(skillContent), 0644))
+
+	// Create skill folders
+	skillFolder1 := filepath.Join(dir1, "my-skill")
+	skillFolder2 := filepath.Join(dir2, "my-skill")
+	require.NoError(t, os.MkdirAll(skillFolder1, 0755))
+	require.NoError(t, os.MkdirAll(skillFolder2, 0755))
+
+	require.NoError(t, os.WriteFile(filepath.Join(skillFolder1, "SKILL.md"), []byte(skillContent), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(skillFolder2, "SKILL.md"), []byte(skillContent), 0644))
 
 	// Test discovery
 	ctx := context.Background()
@@ -521,4 +528,46 @@ func TestSkillValidation_InvalidToolNames(t *testing.T) {
 			// This is tested in service-level tests
 		})
 	}
+}
+
+// TestSkillDiscovery_MustBeInOwnFolder tests that SKILL.md must be in its own folder
+func TestSkillDiscovery_MustBeInOwnFolder(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	logger, err := zap.NewDevelopment()
+	require.NoError(t, err)
+	defer logger.Sync()
+
+	tmpDir := t.TempDir()
+
+	// Create skill DIRECTLY in search root (should be rejected)
+	skillAtRoot := `---
+name: root-skill
+---
+This skill is at the root level and should be rejected`
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "SKILL.md"), []byte(skillAtRoot), 0644))
+
+	// Create skill in its own folder (should be accepted)
+	skillInFolder := filepath.Join(tmpDir, "valid-skill")
+	require.NoError(t, os.MkdirAll(skillInFolder, 0755))
+	validContent := `---
+name: valid-skill
+---
+This skill is in its own folder and should be accepted`
+	require.NoError(t, os.WriteFile(filepath.Join(skillInFolder, "SKILL.md"), []byte(validContent), 0644))
+
+	// Test discovery
+	ctx := context.Background()
+	result, err := skills.DiscoverInPath(ctx, tmpDir, logger)
+	require.NoError(t, err)
+
+	// Should find only the valid skill
+	assert.Len(t, result.Skills, 1, "Should only find skill in its own folder")
+	assert.Equal(t, "valid-skill", result.Skills[0].Name)
+
+	// Should have one error for the root-level skill
+	assert.Len(t, result.Errors, 1, "Should have error for skill at root")
+	assert.Contains(t, result.Errors[0].Error(), "must be in its own folder")
 }

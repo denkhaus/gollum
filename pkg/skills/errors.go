@@ -61,3 +61,8 @@ func ErrDuplicateSkill(skillName, existingPath, newPath string) *errs.Error {
 func ErrInvalidToolNames(skillPath string, invalidTools []string) *errs.Error {
 	return errs.Validationf("skill %s: invalid tool names: %v", skillPath, invalidTools)
 }
+
+// ErrSkillNotInOwnFolder creates a validation error when SKILL.md is not in its own folder
+func ErrSkillNotInOwnFolder(skillPath string) *errs.Error {
+	return errs.Validationf("skill at %s: SKILL.md must be in its own folder (e.g., 'skills/my-skill/SKILL.md', not 'skills/SKILL.md')", skillPath)
+}
