@@ -22,6 +22,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/denkhaus/gollum/pkg/ui"
+	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/samber/do/v2"
 )
 
@@ -53,53 +54,46 @@ func (p *containerImpl) GetInjector() do.Injector {
 	return p.injector
 }
 
-// RegisterServices registers all services in the dependency injection container
+// RegisterServices provides all service factories to the DI container.
+// NOTE: do.Provide is lazy - services are only instantiated when invoked.
+// The order here does NOT affect instantiation order.
 func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
-	// Register config service first (other services depend on it)
+	// Core services
 	do.Provide(p.injector, config.NewService)
-
-	// Register logger service
 	do.Provide(p.injector, logger.NewService)
 	do.Provide(p.injector, llm.NewClientProvider)
 
-	// Register HookManager
+	// Hooks
 	do.Provide(p.injector, hooks.NewHookManager)
-
-	// Register built-in hooks
 	do.Provide(p.injector, builtin.NewBuiltinHooksProvider)
 
-	// Register agent registry
+	// Registry
 	do.Provide(p.injector, registry.NewAgentRegistry)
 
-	// Register skill service
+	// Workspace and Skills
+	do.Provide(p.injector, workspace.NewServiceProvider)
 	do.Provide(p.injector, skills.NewService)
 
-	// Register UI components
+	// UI
 	do.Provide(p.injector, ui.NewAgentMessenger)
-
-	// Register markdown renderer
 	do.Provide(p.injector, markdown.ProvideRenderer)
 
-	// Register middleware providers
+	// Middleware
 	do.Provide(p.injector, middleware.NewDisplayMiddlewareProvider)
 	do.Provide(p.injector, middleware.NewSummaryMiddlewareProvider)
 
-	// Register FileStateManager
+	// State
 	do.Provide(p.injector, state.NewFileStateManager)
-
-	// Register ProfilingService
 	do.Provide(p.injector, profiling.NewProfilingServiceProvider)
 
-	// Register agent factory
+	// Agents
 	do.Provide(p.injector, agents.NewAgentFactory)
-
-	// Register agent execution helper
 	do.Provide(p.injector, tools.NewAgentExecutionHelper)
 
-	// Register tool registry as ToolNameValidator for skill validation
+	// Tool validation
 	do.Provide[skills.ToolNameValidator](p.injector, tools.NewToolNameValidatorProvider)
 
-	// Register tool providers
+	// Tools
 	do.Provide(p.injector, tools.NewSpawnAgentToolProvider)
 	do.Provide(p.injector, tools.NewAgentOutputToolProvider)
 	do.Provide(p.injector, tools.NewRemoveAgentToolProvider)
@@ -116,14 +110,12 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	do.Provide(p.injector, tools.NewChangeDirectoryToolProvider)
 	do.Provide(p.injector, tools.NewInvokeSkillToolProvider)
 
-	// Register prompt store
+	// Prompts
 	do.Provide(p.injector, store.NewPromptStore)
 	do.Provide[manager.PromptManager](p.injector, manager.NewPromptManagerProvider)
-
-	// Register prompt optimizer
 	do.Provide(p.injector, optimizer.NewOptimizerProvider)
 
-	// Register application service
+	// Application
 	do.Provide(p.injector, app.NewService)
 
 	return p.injector

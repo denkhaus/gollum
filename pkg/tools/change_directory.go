@@ -6,11 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/skills"
+	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
@@ -19,11 +19,11 @@ import (
 type (
 	// ChangeDirectoryTool changes the current working directory and triggers skill discovery
 	ChangeDirectoryTool struct {
-		logService   logger.LoggerService
-		hookManager  hooks.HookManager
-		configService config.ConfigService
-		skillService skills.SkillService
-		agentID      uuid.UUID
+		logService      logger.LoggerService
+		hookManager     hooks.HookManager
+		workspaceService workspace.Service
+		skillService    skills.SkillService
+		agentID         uuid.UUID
 	}
 
 	// ChangeDirectoryToolProvider creates ChangeDirectoryTool instances via DI
@@ -32,10 +32,10 @@ type (
 	}
 
 	changeDirectoryToolProvider struct {
-		logService   logger.LoggerService
-		hookManager  hooks.HookManager
-		configService config.ConfigService
-		skillService skills.SkillService
+		logService      logger.LoggerService
+		hookManager     hooks.HookManager
+		workspaceService workspace.Service
+		skillService    skills.SkillService
 	}
 )
 
@@ -43,25 +43,25 @@ type (
 func NewChangeDirectoryToolProvider(injector do.Injector) (ChangeDirectoryToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	hookManager := do.MustInvoke[hooks.HookManager](injector)
-	cfgService := do.MustInvoke[config.ConfigService](injector)
+	wsService := do.MustInvoke[workspace.Service](injector)
 	skillSvc := do.MustInvoke[skills.SkillService](injector)
 
 	return &changeDirectoryToolProvider{
-		logService:   logService,
-		hookManager:  hookManager,
-		configService: cfgService,
-		skillService: skillSvc,
+		logService:      logService,
+		hookManager:     hookManager,
+		workspaceService: wsService,
+		skillService:    skillSvc,
 	}, nil
 }
 
 // CreateTool creates a new ChangeDirectoryTool with agent ID
 func (p *changeDirectoryToolProvider) CreateTool(agentID uuid.UUID) *ChangeDirectoryTool {
 	return &ChangeDirectoryTool{
-		logService:   p.logService,
-		hookManager:  p.hookManager,
-		configService: p.configService,
-		skillService: p.skillService,
-		agentID:      agentID,
+		logService:      p.logService,
+		hookManager:     p.hookManager,
+		workspaceService: p.workspaceService,
+		skillService:    p.skillService,
+		agentID:         agentID,
 	}
 }
 
@@ -100,10 +100,10 @@ func (t *ChangeDirectoryTool) runChangeDirectory(ctx context.Context, args map[s
 	}
 
 	// Get previous workspace
-	previousWorkspace := t.configService.GetCurrentWorkspace()
+	previousWorkspace := t.workspaceService.GetCurrentWorkspace()
 
 	// Update workspace configuration
-	if err := t.configService.SetCurrentWorkspace(absPath); err != nil {
+	if err := t.workspaceService.SetCurrentWorkspace(absPath); err != nil {
 		return nil, fmt.Errorf("failed to set workspace: %w", err)
 	}
 
@@ -126,7 +126,7 @@ func (t *ChangeDirectoryTool) runChangeDirectory(ctx context.Context, args map[s
 		"success":           true,
 		"previous_path":     previousWorkspace,
 		"current_path":      absPath,
-		"workspace_history": t.configService.GetWorkspaceHistory(),
+		"workspace_history": t.workspaceService.GetWorkspaceHistory(),
 	}
 
 	return result, nil

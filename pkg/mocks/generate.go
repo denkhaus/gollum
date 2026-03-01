@@ -20,3 +20,4 @@ package mocks
 //go:generate go run go.uber.org/mock/mockgen -source=../markdown/renderer.go -destination=mock_markdown_renderer.go -package=mocks github.com/denkhaus/gollum/pkg/markdown Renderer
 //go:generate go run go.uber.org/mock/mockgen -source=../tui/model.go -destination=mock_agent_executor.go -package=mocks github.com/denkhaus/gollum/pkg/tui AgentExecutor
 //go:generate go run go.uber.org/mock/mockgen -source=../skills/service.go -destination=mock_skill_service.go -package=mocks github.com/denkhaus/gollum/pkg/skills SkillService
+//go:generate go run go.uber.org/mock/mockgen -source=../workspace/service.go -destination=mock_workspace_service.go -package=mocks github.com/denkhaus/gollum/pkg/workspace Service
