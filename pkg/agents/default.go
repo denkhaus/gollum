@@ -7,6 +7,8 @@ import (
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/middleware"
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -22,6 +24,12 @@ type (
 		registry       registry.AgentRegistry
 		id             uuid.UUID
 		config         *shared.AgentConfig
+
+		// Required for session recreation
+		llmClient        gollem.LLMClient
+		displayProvider  middleware.DisplayMiddlewareProvider
+		summaryProvider  middleware.SummaryMiddlewareProvider
+		promptManager    manager.PromptManager
 	}
 )
 
