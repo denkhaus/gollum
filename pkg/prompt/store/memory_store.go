@@ -3,7 +3,6 @@ package store
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -24,13 +23,13 @@ func NewMemoryStore() PromptStore {
 	}
 }
 
-// Load retrieves a prompt by ID.
+// Load retrieves a prompt by versioned ID or alias.
 // Returns nil if not found (not an error).
-func (m *memoryStore) Load(_ context.Context, id string) (*prompt.Prompt, error) {
+func (m *memoryStore) Load(_ context.Context, versionedIDOrAlias prompt.VersionedPromptID) (*prompt.Prompt, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	p, exists := m.prompts[id]
+	p, exists := m.prompts[versionedIDOrAlias.String()]
 	if !exists {
 		return nil, nil
 	}
@@ -39,8 +38,8 @@ func (m *memoryStore) Load(_ context.Context, id string) (*prompt.Prompt, error)
 }
 
 // SaveNewVersion creates a new version with auto-incremented patch version.
-// Returns new prompt with versioned ID (e.g., "subagent@1.0.1").
-func (m *memoryStore) SaveNewVersion(ctx context.Context, baseID string, content string, name string) (*prompt.Prompt, error) {
+// Returns new prompt with versioned ID (e.g., "subagent_system@1.0.1").
+func (m *memoryStore) SaveNewVersion(ctx context.Context, baseID prompt.PromptID, content string, name string) (*prompt.Prompt, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -51,7 +50,7 @@ func (m *memoryStore) SaveNewVersion(ctx context.Context, baseID string, content
 	// Look for existing prompts with this base ID
 	for id, p := range m.prompts {
 		// Check if this prompt belongs to the base ID
-		if strings.HasPrefix(id, baseID+"@") {
+		if strings.HasPrefix(id, baseID.String()+"@") {
 			if latestVersion == nil || p.Version.GreaterThan(latestVersion) {
 				latestVersion = p.Version
 				latestPrompt = p
@@ -70,16 +69,16 @@ func (m *memoryStore) SaveNewVersion(ctx context.Context, baseID string, content
 	}
 
 	// Create versioned ID
-	versionID := fmt.Sprintf("%s@%s", baseID, newVersion.String())
+	versionedID := baseID.WithSemVer(newVersion)
 
 	now := m.getTime(ctx)
 
 	// Create new prompt
 	newPrompt := &prompt.Prompt{
-		ID:        versionID,
+		ID:        versionedID.String(),
 		Name:      name,
 		Content:   content,
-		Context:   make(map[string]interface{}),
+		Context:   make(map[string]any),
 		Tags:      []string{},
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -96,7 +95,7 @@ func (m *memoryStore) SaveNewVersion(ctx context.Context, baseID string, content
 
 	// Remove aliases from old version and add to new version
 	if latestPrompt != nil {
-		for _, oldID := range []string{baseID, baseID + "@latest"} {
+		for _, oldID := range []string{baseID.String(), baseID.String() + "@latest"} {
 			if oldPrompt, exists := m.prompts[oldID]; exists {
 				// Remove alias tags from old version
 				var newTags []string
@@ -112,20 +111,20 @@ func (m *memoryStore) SaveNewVersion(ctx context.Context, baseID string, content
 	}
 
 	// Add aliases to new version
-	newPrompt.Tags = append(newPrompt.Tags, baseID, baseID+"@latest")
+	newPrompt.Tags = append(newPrompt.Tags, baseID.String(), baseID.String()+"@latest")
 
 	// Store the new prompt
-	m.prompts[versionID] = newPrompt
-	m.prompts[baseID] = newPrompt
-	m.prompts[baseID+"@latest"] = newPrompt
+	m.prompts[versionedID.String()] = newPrompt
+	m.prompts[baseID.String()] = newPrompt
+	m.prompts[baseID.String()+"@latest"] = newPrompt
 
 	return copyPrompt(newPrompt), nil
 }
 
 // SaveBuiltinVersion creates a new version with IsBuiltin=true.
 // Used for bootstrapping built-in prompts that cannot be deleted.
-// Returns new prompt with versioned ID (e.g., "system@1.0.0").
-func (m *memoryStore) SaveBuiltinVersion(ctx context.Context, baseID string, content string, name string) (*prompt.Prompt, error) {
+// Returns new prompt with versioned ID (e.g., "subagent_system@1.0.0").
+func (m *memoryStore) SaveBuiltinVersion(ctx context.Context, baseID prompt.PromptID, content string, name string) (*prompt.Prompt, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -136,7 +135,7 @@ func (m *memoryStore) SaveBuiltinVersion(ctx context.Context, baseID string, con
 	// Look for existing prompts with this base ID
 	for id, p := range m.prompts {
 		// Check if this prompt belongs to the base ID
-		if strings.HasPrefix(id, baseID+"@") {
+		if strings.HasPrefix(id, baseID.String()+"@") {
 			if latestVersion == nil || p.Version.GreaterThan(latestVersion) {
 				latestVersion = p.Version
 				latestPrompt = p
@@ -155,16 +154,16 @@ func (m *memoryStore) SaveBuiltinVersion(ctx context.Context, baseID string, con
 	}
 
 	// Create versioned ID
-	versionID := fmt.Sprintf("%s@%s", baseID, newVersion.String())
+	versionedID := baseID.WithSemVer(newVersion)
 
 	now := m.getTime(ctx)
 
 	// Create new prompt with IsBuiltin=true
 	newPrompt := &prompt.Prompt{
-		ID:        versionID,
+		ID:        versionedID.String(),
 		Name:      name,
 		Content:   content,
-		Context:   make(map[string]interface{}),
+		Context:   make(map[string]any),
 		Tags:      []string{},
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -181,7 +180,7 @@ func (m *memoryStore) SaveBuiltinVersion(ctx context.Context, baseID string, con
 
 	// Remove aliases from old version and add to new version
 	if latestPrompt != nil {
-		for _, oldID := range []string{baseID, baseID + "@latest"} {
+		for _, oldID := range []string{baseID.String(), baseID.String() + "@latest"} {
 			if oldPrompt, exists := m.prompts[oldID]; exists {
 				// Remove alias tags from old version
 				var newTags []string
@@ -197,23 +196,24 @@ func (m *memoryStore) SaveBuiltinVersion(ctx context.Context, baseID string, con
 	}
 
 	// Add aliases to new version
-	newPrompt.Tags = append(newPrompt.Tags, baseID, baseID+"@latest")
+	newPrompt.Tags = append(newPrompt.Tags, baseID.String(), baseID.String()+"@latest")
 
 	// Store the new prompt
-	m.prompts[versionID] = newPrompt
-	m.prompts[baseID] = newPrompt
-	m.prompts[baseID+"@latest"] = newPrompt
+	m.prompts[versionedID.String()] = newPrompt
+	m.prompts[baseID.String()] = newPrompt
+	m.prompts[baseID.String()+"@latest"] = newPrompt
 
 	return copyPrompt(newPrompt), nil
 }
 
-// Delete removes a prompt by ID.
+// Delete removes a prompt by versioned ID.
 // Returns nil if not found.
 // Returns error for IsBuiltin prompts.
-func (m *memoryStore) Delete(ctx context.Context, id string) error {
+func (m *memoryStore) Delete(ctx context.Context, versionedID prompt.VersionedPromptID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	id := versionedID.String()
 	p, exists := m.prompts[id]
 	if !exists {
 		return nil
@@ -234,12 +234,12 @@ func (m *memoryStore) Delete(ctx context.Context, id string) error {
 	}
 
 	// If this was the latest version, try to set @latest to the previous version
-	baseID := m.extractBaseID(id)
+	baseID := versionedID.BaseID()
 	if baseID != "" {
 		var previousVersion *prompt.Prompt
 
 		for key, candidate := range m.prompts {
-			if strings.HasPrefix(key, baseID+"@") && key != baseID+"@latest" {
+			if strings.HasPrefix(key, baseID.String()+"@") && key != baseID.String()+"@latest" {
 				if previousVersion == nil || candidate.Version.GreaterThan(previousVersion.Version) {
 					previousVersion = candidate
 				}
@@ -247,11 +247,11 @@ func (m *memoryStore) Delete(ctx context.Context, id string) error {
 		}
 
 		// Update @latest alias
-		delete(m.prompts, baseID+"@latest")
+		delete(m.prompts, baseID.String()+"@latest")
 		if previousVersion != nil {
-			m.prompts[baseID+"@latest"] = previousVersion
+			m.prompts[baseID.String()+"@latest"] = previousVersion
 			// Add @latest tag
-			previousVersion.Tags = append(previousVersion.Tags, baseID+"@latest")
+			previousVersion.Tags = append(previousVersion.Tags, baseID.String()+"@latest")
 			previousVersion.UpdatedAt = now
 		}
 	}
@@ -289,7 +289,7 @@ func (m *memoryStore) List(_ context.Context, filter *ListFilter) ([]*prompt.Pro
 			}
 
 			// Filter by IDs
-			if len(filter.IDs) > 0 && !containsAny(p.ID, filter.IDs) {
+			if len(filter.IDs) > 0 && !containsVersionedID(p.ID, filter.IDs) {
 				continue
 			}
 		}
@@ -301,12 +301,12 @@ func (m *memoryStore) List(_ context.Context, filter *ListFilter) ([]*prompt.Pro
 	return result, nil
 }
 
-// Exists checks if a prompt exists by ID.
-func (m *memoryStore) Exists(_ context.Context, id string) (bool, error) {
+// Exists checks if a prompt exists by versioned ID or alias.
+func (m *memoryStore) Exists(_ context.Context, versionedIDOrAlias prompt.VersionedPromptID) (bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	_, exists := m.prompts[id]
+	_, exists := m.prompts[versionedIDOrAlias.String()]
 	return exists, nil
 }
 
@@ -330,11 +330,13 @@ func (m *memoryStore) ListTags(_ context.Context) ([]string, error) {
 	return result, nil
 }
 
-// ResolveAlias resolves shortcuts to versioned IDs.
-// Resolves "subagent" -> "subagent@latest" -> versioned ID.
-func (m *memoryStore) ResolveAlias(_ context.Context, id string) (*prompt.Prompt, error) {
+// ResolveAlias resolves a base ID or alias to the actual versioned prompt.
+// Returns nil if not found.
+func (m *memoryStore) ResolveAlias(_ context.Context, versionedIDOrAlias prompt.VersionedPromptID) (*prompt.Prompt, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+
+	id := versionedIDOrAlias.String()
 
 	// Direct lookup
 	if p, exists := m.prompts[id]; exists {
@@ -359,8 +361,8 @@ func (m *memoryStore) ResolveAlias(_ context.Context, id string) (*prompt.Prompt
 	return nil, nil
 }
 
-// ListVersions returns all versions of a prompt base ID.
-func (m *memoryStore) ListVersions(_ context.Context, baseID string) ([]*prompt.Prompt, error) {
+// ListVersions returns all versions of a prompt by base ID.
+func (m *memoryStore) ListVersions(_ context.Context, baseID prompt.PromptID) ([]*prompt.Prompt, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -368,7 +370,7 @@ func (m *memoryStore) ListVersions(_ context.Context, baseID string) ([]*prompt.
 
 	for id, p := range m.prompts {
 		// Match prompts with this base ID (including versioned ones)
-		if strings.HasPrefix(id, baseID+"@") && !strings.HasSuffix(id, "@latest") {
+		if strings.HasPrefix(id, baseID.String()+"@") && !strings.HasSuffix(id, "@latest") {
 			// Use a map to avoid duplicates
 			found := false
 			for _, existing := range result {
@@ -388,26 +390,26 @@ func (m *memoryStore) ListVersions(_ context.Context, baseID string) ([]*prompt.
 
 // SetLatestAlias sets the @latest alias to a specific version.
 // Removes @latest from all other versions of the same base ID.
-func (m *memoryStore) SetLatestAlias(ctx context.Context, baseID, versionID string) error {
+func (m *memoryStore) SetLatestAlias(ctx context.Context, baseID prompt.PromptID, targetVersionedID prompt.VersionedPromptID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	now := m.getTime(ctx)
 
 	// Find the target prompt
-	targetPrompt, exists := m.prompts[versionID]
+	targetPrompt, exists := m.prompts[targetVersionedID.String()]
 	if !exists {
 		return ErrPromptNotFound
 	}
 
 	// Remove @latest from all versions of this base ID
 	for id, p := range m.prompts {
-		if strings.HasPrefix(id, baseID+"@") && id != baseID+"@latest" {
+		if strings.HasPrefix(id, baseID.String()+"@") && id != baseID.String()+"@latest" {
 			// Remove @latest tag
 			var newTags []string
 			if p.Tags != nil {
 				for _, tag := range p.Tags {
-					if tag != baseID+"@latest" {
+					if tag != baseID.String()+"@latest" {
 						newTags = append(newTags, tag)
 					}
 				}
@@ -421,16 +423,18 @@ func (m *memoryStore) SetLatestAlias(ctx context.Context, baseID, versionID stri
 	if targetPrompt.Tags == nil {
 		targetPrompt.Tags = []string{}
 	}
-	targetPrompt.Tags = append(targetPrompt.Tags, baseID+"@latest")
+	targetPrompt.Tags = append(targetPrompt.Tags, baseID.String()+"@latest")
 	targetPrompt.UpdatedAt = now
 
 	// Update the @latest alias
-	m.prompts[baseID+"@latest"] = targetPrompt
+	m.prompts[baseID.String()+"@latest"] = targetPrompt
 
 	return nil
 }
 
+// =============================================================================
 // Helper functions
+// =============================================================================
 
 // copyPrompt creates a deep copy of a prompt.
 func copyPrompt(p *prompt.Prompt) *prompt.Prompt {
@@ -439,7 +443,7 @@ func copyPrompt(p *prompt.Prompt) *prompt.Prompt {
 	}
 
 	// Copy context
-	contextCopy := make(map[string]interface{})
+	contextCopy := make(map[string]any)
 	for k, v := range p.Context {
 		contextCopy[k] = v
 	}
@@ -477,10 +481,10 @@ func hasAnyTag(tags []string, filter []string) bool {
 	return false
 }
 
-// containsAny checks if the ID matches any of the filter IDs.
-func containsAny(id string, ids []string) bool {
+// containsVersionedID checks if the ID matches any of the filter versioned IDs.
+func containsVersionedID(id string, ids []prompt.VersionedPromptID) bool {
 	for _, filterID := range ids {
-		if strings.Contains(id, filterID) {
+		if strings.Contains(id, filterID.String()) {
 			return true
 		}
 	}
@@ -491,15 +495,6 @@ func containsAny(id string, ids []string) bool {
 func incrementPatchVersion(v *semver.Version) *semver.Version {
 	inc := v.IncPatch()
 	return &inc
-}
-
-// extractBaseID extracts the base ID from a versioned ID.
-func (m *memoryStore) extractBaseID(id string) string {
-	idx := strings.Index(id, "@")
-	if idx == -1 {
-		return ""
-	}
-	return id[:idx]
 }
 
 // getTime returns the current time or a time from context if available.

@@ -43,32 +43,32 @@ func (m *MockPromptStore) EXPECT() *MockPromptStoreMockRecorder {
 }
 
 // Delete mocks base method.
-func (m *MockPromptStore) Delete(ctx context.Context, id string) error {
+func (m *MockPromptStore) Delete(ctx context.Context, versionedID prompt.VersionedPromptID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", ctx, id)
+	ret := m.ctrl.Call(m, "Delete", ctx, versionedID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockPromptStoreMockRecorder) Delete(ctx, id any) *gomock.Call {
+func (mr *MockPromptStoreMockRecorder) Delete(ctx, versionedID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockPromptStore)(nil).Delete), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockPromptStore)(nil).Delete), ctx, versionedID)
 }
 
 // Exists mocks base method.
-func (m *MockPromptStore) Exists(ctx context.Context, id string) (bool, error) {
+func (m *MockPromptStore) Exists(ctx context.Context, versionedIDOrAlias prompt.VersionedPromptID) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Exists", ctx, id)
+	ret := m.ctrl.Call(m, "Exists", ctx, versionedIDOrAlias)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Exists indicates an expected call of Exists.
-func (mr *MockPromptStoreMockRecorder) Exists(ctx, id any) *gomock.Call {
+func (mr *MockPromptStoreMockRecorder) Exists(ctx, versionedIDOrAlias any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockPromptStore)(nil).Exists), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockPromptStore)(nil).Exists), ctx, versionedIDOrAlias)
 }
 
 // List mocks base method.
@@ -102,7 +102,7 @@ func (mr *MockPromptStoreMockRecorder) ListTags(ctx any) *gomock.Call {
 }
 
 // ListVersions mocks base method.
-func (m *MockPromptStore) ListVersions(ctx context.Context, baseID string) ([]*prompt.Prompt, error) {
+func (m *MockPromptStore) ListVersions(ctx context.Context, baseID prompt.PromptID) ([]*prompt.Prompt, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListVersions", ctx, baseID)
 	ret0, _ := ret[0].([]*prompt.Prompt)
@@ -117,37 +117,37 @@ func (mr *MockPromptStoreMockRecorder) ListVersions(ctx, baseID any) *gomock.Cal
 }
 
 // Load mocks base method.
-func (m *MockPromptStore) Load(ctx context.Context, id string) (*prompt.Prompt, error) {
+func (m *MockPromptStore) Load(ctx context.Context, versionedIDOrAlias prompt.VersionedPromptID) (*prompt.Prompt, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Load", ctx, id)
+	ret := m.ctrl.Call(m, "Load", ctx, versionedIDOrAlias)
 	ret0, _ := ret[0].(*prompt.Prompt)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Load indicates an expected call of Load.
-func (mr *MockPromptStoreMockRecorder) Load(ctx, id any) *gomock.Call {
+func (mr *MockPromptStoreMockRecorder) Load(ctx, versionedIDOrAlias any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Load", reflect.TypeOf((*MockPromptStore)(nil).Load), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Load", reflect.TypeOf((*MockPromptStore)(nil).Load), ctx, versionedIDOrAlias)
 }
 
 // ResolveAlias mocks base method.
-func (m *MockPromptStore) ResolveAlias(ctx context.Context, id string) (*prompt.Prompt, error) {
+func (m *MockPromptStore) ResolveAlias(ctx context.Context, versionedIDOrAlias prompt.VersionedPromptID) (*prompt.Prompt, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResolveAlias", ctx, id)
+	ret := m.ctrl.Call(m, "ResolveAlias", ctx, versionedIDOrAlias)
 	ret0, _ := ret[0].(*prompt.Prompt)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ResolveAlias indicates an expected call of ResolveAlias.
-func (mr *MockPromptStoreMockRecorder) ResolveAlias(ctx, id any) *gomock.Call {
+func (mr *MockPromptStoreMockRecorder) ResolveAlias(ctx, versionedIDOrAlias any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveAlias", reflect.TypeOf((*MockPromptStore)(nil).ResolveAlias), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveAlias", reflect.TypeOf((*MockPromptStore)(nil).ResolveAlias), ctx, versionedIDOrAlias)
 }
 
 // SaveBuiltinVersion mocks base method.
-func (m *MockPromptStore) SaveBuiltinVersion(ctx context.Context, baseID, content, name string) (*prompt.Prompt, error) {
+func (m *MockPromptStore) SaveBuiltinVersion(ctx context.Context, baseID prompt.PromptID, content, name string) (*prompt.Prompt, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SaveBuiltinVersion", ctx, baseID, content, name)
 	ret0, _ := ret[0].(*prompt.Prompt)
@@ -162,7 +162,7 @@ func (mr *MockPromptStoreMockRecorder) SaveBuiltinVersion(ctx, baseID, content, 
 }
 
 // SaveNewVersion mocks base method.
-func (m *MockPromptStore) SaveNewVersion(ctx context.Context, baseID, content, name string) (*prompt.Prompt, error) {
+func (m *MockPromptStore) SaveNewVersion(ctx context.Context, baseID prompt.PromptID, content, name string) (*prompt.Prompt, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SaveNewVersion", ctx, baseID, content, name)
 	ret0, _ := ret[0].(*prompt.Prompt)
@@ -177,15 +177,15 @@ func (mr *MockPromptStoreMockRecorder) SaveNewVersion(ctx, baseID, content, name
 }
 
 // SetLatestAlias mocks base method.
-func (m *MockPromptStore) SetLatestAlias(ctx context.Context, baseID, versionID string) error {
+func (m *MockPromptStore) SetLatestAlias(ctx context.Context, baseID prompt.PromptID, targetVersionedID prompt.VersionedPromptID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetLatestAlias", ctx, baseID, versionID)
+	ret := m.ctrl.Call(m, "SetLatestAlias", ctx, baseID, targetVersionedID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetLatestAlias indicates an expected call of SetLatestAlias.
-func (mr *MockPromptStoreMockRecorder) SetLatestAlias(ctx, baseID, versionID any) *gomock.Call {
+func (mr *MockPromptStoreMockRecorder) SetLatestAlias(ctx, baseID, targetVersionedID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLatestAlias", reflect.TypeOf((*MockPromptStore)(nil).SetLatestAlias), ctx, baseID, versionID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLatestAlias", reflect.TypeOf((*MockPromptStore)(nil).SetLatestAlias), ctx, baseID, targetVersionedID)
 }

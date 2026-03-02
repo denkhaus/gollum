@@ -9,26 +9,20 @@ import (
 	promptstore "github.com/denkhaus/gollum/pkg/prompt/store"
 )
 
-//go:embed templates/*.md
+//go:embed templates/*.md templates/partials/*.md
 var promptTemplates embed.FS
 
 // PromptManager provides prompt management services.
-// It ONLY manages prompts - workspace state is handled by WorkspaceService.
 type PromptManager interface {
 	// ID-based prompt access with store integration
-	GetPromptByID(ctx context.Context, id string) (*prompt.Prompt, error)
-	GetPromptWithContext(ctx context.Context, id string, renderCtx *prompt.RenderContext) (string, error)
-	SetPrompt(ctx context.Context, id string, content string, name string) (*prompt.Prompt, error)
-	DeletePrompt(ctx context.Context, id string) error
+	GetPromptByID(ctx context.Context, id prompt.PromptID) (*prompt.Prompt, error)
+	GetPromptWithContext(ctx context.Context, id prompt.PromptID, renderCtx *prompt.RenderContext) (string, error)
+	SetPrompt(ctx context.Context, id prompt.PromptID, content string, name string) (*prompt.Prompt, error)
+	DeletePrompt(ctx context.Context, id prompt.PromptID) error
 	ListPrompts(ctx context.Context, filter *prompt.ListFilter) ([]*prompt.Prompt, error)
 	RenderPrompt(ctx context.Context, p *prompt.Prompt, renderCtx *prompt.RenderContext) (string, error)
 	GetStore() promptstore.PromptStore
-
-	// Existing methods for backward compatibility
-	GetCompacterPrompt(data any) (string, error)
-	GetSystemPrompt() (string, error)
-	GetSupervisorPrompt() (string, error)
-	GetSubagentPrompt(role, description string) (string, error)
+	GetSubagentTaskPrompt(role, description string) (string, error)
 }
 
 type promptManager struct {

@@ -170,7 +170,7 @@ func TestMemoryStore_List(t *testing.T) {
 	})
 
 	t.Run("list with ID filter", func(t *testing.T) {
-		list, err := store.List(ctx, &ListFilter{IDs: []string{"prompt1"}})
+		list, err := store.List(ctx, &ListFilter{IDs: []prompt.VersionedPromptID{"prompt1@1.0.0"}})
 		assert.NoError(t, err)
 		assert.GreaterOrEqual(t, len(list), 1)
 	})
@@ -282,7 +282,7 @@ func TestMemoryStore_SetLatestAlias(t *testing.T) {
 		_, _ = store.SaveNewVersion(ctx, "settest", "v3", "Test")
 
 		// Set v2 as latest
-		err := store.SetLatestAlias(ctx, "settest", v2.ID)
+		err := store.SetLatestAlias(ctx, "settest", prompt.VersionedPromptID(v2.ID))
 		assert.NoError(t, err)
 
 		// Check v2 has @latest
@@ -527,10 +527,10 @@ func TestFileStore_SetLatestAlias(t *testing.T) {
 
 	t.Run("set latest updates file", func(t *testing.T) {
 		v1, _ := store.SaveNewVersion(ctx, "setlatest", "v1", "Test")
-		v2, _ := store.SaveNewVersion(ctx, "setlatest", "v2", "Test")
+		_, _ = store.SaveNewVersion(ctx, "setlatest", "v2", "Test")
 
 		// Set v1 as latest
-		err := store.SetLatestAlias(ctx, "setlatest", v1.ID)
+		err := store.SetLatestAlias(ctx, "setlatest", prompt.VersionedPromptID(v1.ID))
 		assert.NoError(t, err)
 
 		// Check v1 is now latest
@@ -539,7 +539,6 @@ func TestFileStore_SetLatestAlias(t *testing.T) {
 		assert.NotNil(t, p, "ResolveAlias returned nil")
 		if p != nil {
 			assert.Equal(t, v1.ID, p.ID)
-			assert.NotEqual(t, v2.ID, p.ID)
 		}
 	})
 }
@@ -622,7 +621,7 @@ func TestFileStore_SaveBuiltinVersion_SetsIsBuiltinTrue(t *testing.T) {
 
 	t.Run("IsBuiltin persists across load", func(t *testing.T) {
 		saved, _ := store.SaveBuiltinVersion(ctx, "persist-builtin", "content", "Persist")
-		loaded, err := store.Load(ctx, saved.ID)
+		loaded, err := store.Load(ctx, prompt.VersionedPromptID(saved.ID))
 		assert.NoError(t, err)
 		assert.NotNil(t, loaded)
 		assert.True(t, loaded.IsBuiltin, "IsBuiltin should persist when loaded from file")
@@ -641,7 +640,7 @@ func TestFileStore_DeleteBuiltinPrompt_ReturnsError(t *testing.T) {
 		assert.Equal(t, ErrPromptIsBuiltin, err)
 
 		// Verify prompt still exists
-		loaded, _ := store.Load(ctx, "file-protected@1.0.0")
+		loaded, _ := store.Load(ctx, prompt.VersionedPromptID("file-protected@1.0.0"))
 		assert.NotNil(t, loaded, "Builtin prompt should still exist in file store after failed delete")
 	})
 }

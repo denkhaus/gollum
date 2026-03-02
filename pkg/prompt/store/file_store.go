@@ -32,9 +32,11 @@ func NewFileStore(dir string, enableCache bool) PromptStore {
 	}
 }
 
-// Load retrieves a prompt by ID.
+// Load retrieves a prompt by versioned ID or alias.
 // Returns nil if not found (not an error).
-func (f *fileStore) Load(_ context.Context, id string) (*prompt.Prompt, error) {
+func (f *fileStore) Load(_ context.Context, versionedIDOrAlias prompt.VersionedPromptID) (*prompt.Prompt, error) {
+	id := versionedIDOrAlias.String()
+
 	// Check cache first
 	if f.enableCache {
 		f.mu.RLock()
@@ -72,8 +74,8 @@ func (f *fileStore) Load(_ context.Context, id string) (*prompt.Prompt, error) {
 }
 
 // SaveNewVersion creates a new version with auto-incremented patch version.
-// Returns new prompt with versioned ID (e.g., "subagent@1.0.1").
-func (f *fileStore) SaveNewVersion(ctx context.Context, baseID string, content string, name string) (*prompt.Prompt, error) {
+// Returns new prompt with versioned ID (e.g., "subagent_system@1.0.1").
+func (f *fileStore) SaveNewVersion(ctx context.Context, baseID prompt.PromptID, content string, name string) (*prompt.Prompt, error) {
 	_ = ctx // Reserved for future use (cancellation, logging, tracing)
 	// Find the latest version
 	latestVersion, latestPrompt, err := f.findLatestVersion(baseID)
@@ -92,16 +94,16 @@ func (f *fileStore) SaveNewVersion(ctx context.Context, baseID string, content s
 	}
 
 	// Create versioned ID
-	versionID := fmt.Sprintf("%s@%s", baseID, newVersion.String())
+	versionedID := baseID.WithSemVer(newVersion)
 
 	now := time.Now()
 
 	// Create new prompt
 	newPrompt := &prompt.Prompt{
-		ID:        versionID,
+		ID:        versionedID.String(),
 		Name:      name,
 		Content:   content,
-		Context:   make(map[string]interface{}),
+		Context:   make(map[string]any),
 		Tags:      []string{},
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -117,7 +119,7 @@ func (f *fileStore) SaveNewVersion(ctx context.Context, baseID string, content s
 	}
 
 	// Add aliases to new version
-	newPrompt.Tags = append(newPrompt.Tags, baseID, baseID+"@latest")
+	newPrompt.Tags = append(newPrompt.Tags, baseID.String(), baseID.String()+"@latest")
 
 	// Write to file with locking
 	if err := f.writePromptLocked(newPrompt); err != nil {
@@ -130,7 +132,7 @@ func (f *fileStore) SaveNewVersion(ctx context.Context, baseID string, content s
 		var newTags []string
 		if latestPrompt.Tags != nil {
 			for _, tag := range latestPrompt.Tags {
-				if tag != baseID+"@latest" {
+				if tag != baseID.String()+"@latest" {
 					newTags = append(newTags, tag)
 				}
 			}
@@ -147,8 +149,8 @@ func (f *fileStore) SaveNewVersion(ctx context.Context, baseID string, content s
 		if f.enableCache {
 			f.mu.Lock()
 			f.cache[latestPrompt.ID] = latestPrompt
-			delete(f.cache, baseID)
-			delete(f.cache, baseID+"@latest")
+			delete(f.cache, baseID.String())
+			delete(f.cache, baseID.String()+"@latest")
 			f.mu.Unlock()
 		}
 	}
@@ -156,9 +158,9 @@ func (f *fileStore) SaveNewVersion(ctx context.Context, baseID string, content s
 	// Update cache
 	if f.enableCache {
 		f.mu.Lock()
-		f.cache[versionID] = newPrompt
-		f.cache[baseID] = newPrompt
-		f.cache[baseID+"@latest"] = newPrompt
+		f.cache[versionedID.String()] = newPrompt
+		f.cache[baseID.String()] = newPrompt
+		f.cache[baseID.String()+"@latest"] = newPrompt
 		f.mu.Unlock()
 	}
 
@@ -167,8 +169,8 @@ func (f *fileStore) SaveNewVersion(ctx context.Context, baseID string, content s
 
 // SaveBuiltinVersion creates a new version with IsBuiltin=true.
 // Used for bootstrapping built-in prompts that cannot be deleted.
-// Returns new prompt with versioned ID (e.g., "system@1.0.0").
-func (f *fileStore) SaveBuiltinVersion(ctx context.Context, baseID string, content string, name string) (*prompt.Prompt, error) {
+// Returns new prompt with versioned ID (e.g., "subagent_system@1.0.0").
+func (f *fileStore) SaveBuiltinVersion(ctx context.Context, baseID prompt.PromptID, content string, name string) (*prompt.Prompt, error) {
 	_ = ctx // Reserved for future use (cancellation, logging, tracing)
 	// Find the latest version
 	latestVersion, latestPrompt, err := f.findLatestVersion(baseID)
@@ -187,16 +189,16 @@ func (f *fileStore) SaveBuiltinVersion(ctx context.Context, baseID string, conte
 	}
 
 	// Create versioned ID
-	versionID := fmt.Sprintf("%s@%s", baseID, newVersion.String())
+	versionedID := baseID.WithSemVer(newVersion)
 
 	now := time.Now()
 
 	// Create new prompt with IsBuiltin=true
 	newPrompt := &prompt.Prompt{
-		ID:        versionID,
+		ID:        versionedID.String(),
 		Name:      name,
 		Content:   content,
-		Context:   make(map[string]interface{}),
+		Context:   make(map[string]any),
 		Tags:      []string{},
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -212,7 +214,7 @@ func (f *fileStore) SaveBuiltinVersion(ctx context.Context, baseID string, conte
 	}
 
 	// Add aliases to new version
-	newPrompt.Tags = append(newPrompt.Tags, baseID, baseID+"@latest")
+	newPrompt.Tags = append(newPrompt.Tags, baseID.String(), baseID.String()+"@latest")
 
 	// Write to file with locking
 	if err := f.writePromptLocked(newPrompt); err != nil {
@@ -225,7 +227,7 @@ func (f *fileStore) SaveBuiltinVersion(ctx context.Context, baseID string, conte
 		var newTags []string
 		if latestPrompt.Tags != nil {
 			for _, tag := range latestPrompt.Tags {
-				if tag != baseID+"@latest" {
+				if tag != baseID.String()+"@latest" {
 					newTags = append(newTags, tag)
 				}
 			}
@@ -242,8 +244,8 @@ func (f *fileStore) SaveBuiltinVersion(ctx context.Context, baseID string, conte
 		if f.enableCache {
 			f.mu.Lock()
 			f.cache[latestPrompt.ID] = latestPrompt
-			delete(f.cache, baseID)
-			delete(f.cache, baseID+"@latest")
+			delete(f.cache, baseID.String())
+			delete(f.cache, baseID.String()+"@latest")
 			f.mu.Unlock()
 		}
 	}
@@ -251,21 +253,23 @@ func (f *fileStore) SaveBuiltinVersion(ctx context.Context, baseID string, conte
 	// Update cache
 	if f.enableCache {
 		f.mu.Lock()
-		f.cache[versionID] = newPrompt
-		f.cache[baseID] = newPrompt
-		f.cache[baseID+"@latest"] = newPrompt
+		f.cache[versionedID.String()] = newPrompt
+		f.cache[baseID.String()] = newPrompt
+		f.cache[baseID.String()+"@latest"] = newPrompt
 		f.mu.Unlock()
 	}
 
 	return copyPrompt(newPrompt), nil
 }
 
-// Delete removes a prompt by ID.
+// Delete removes a prompt by versioned ID.
 // Returns nil if not found.
 // Returns error for IsBuiltin prompts.
-func (f *fileStore) Delete(ctx context.Context, id string) error {
+func (f *fileStore) Delete(ctx context.Context, versionedID prompt.VersionedPromptID) error {
+	id := versionedID.String()
+
 	// Load the prompt first to check if it's builtin
-	p, err := f.Load(ctx, id)
+	p, err := f.Load(ctx, versionedID)
 	if err != nil {
 		return err
 	}
@@ -279,7 +283,7 @@ func (f *fileStore) Delete(ctx context.Context, id string) error {
 	}
 
 	// Delete all files associated with this prompt
-	baseID := f.extractBaseID(id)
+	baseID := versionedID.BaseID()
 	if baseID != "" {
 		// Delete all versions
 		versions, err := f.ListVersions(ctx, baseID)
@@ -295,7 +299,7 @@ func (f *fileStore) Delete(ctx context.Context, id string) error {
 		}
 
 		// Delete alias files
-		for _, aliasID := range []string{baseID, baseID + "@latest"} {
+		for _, aliasID := range []string{baseID.String(), baseID.String() + "@latest"} {
 			path := f.getFilePath(aliasID)
 			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 				// Ignore errors for aliases
@@ -309,8 +313,8 @@ func (f *fileStore) Delete(ctx context.Context, id string) error {
 			for _, v := range versions {
 				delete(f.cache, v.ID)
 			}
-			delete(f.cache, baseID)
-			delete(f.cache, baseID+"@latest")
+			delete(f.cache, baseID.String())
+			delete(f.cache, baseID.String()+"@latest")
 			f.mu.Unlock()
 		}
 	} else {
@@ -385,7 +389,7 @@ func (f *fileStore) List(_ context.Context, filter *ListFilter) ([]*prompt.Promp
 			}
 
 			// Filter by IDs
-			if len(filter.IDs) > 0 && !containsAny(p.ID, filter.IDs) {
+			if len(filter.IDs) > 0 && !containsVersionedID(p.ID, filter.IDs) {
 				continue
 			}
 		}
@@ -397,8 +401,10 @@ func (f *fileStore) List(_ context.Context, filter *ListFilter) ([]*prompt.Promp
 	return result, nil
 }
 
-// Exists checks if a prompt exists by ID.
-func (f *fileStore) Exists(_ context.Context, id string) (bool, error) {
+// Exists checks if a prompt exists by versioned ID or alias.
+func (f *fileStore) Exists(_ context.Context, versionedIDOrAlias prompt.VersionedPromptID) (bool, error) {
+	id := versionedIDOrAlias.String()
+
 	// Check cache first
 	if f.enableCache {
 		f.mu.RLock()
@@ -423,8 +429,8 @@ func (f *fileStore) Exists(_ context.Context, id string) (bool, error) {
 }
 
 // ListTags returns all unique tags across all prompts.
-func (f *fileStore) ListTags(_ context.Context) ([]string, error) {
-	prompts, err := f.List(_context, nil)
+func (f *fileStore) ListTags(ctx context.Context) ([]string, error) {
+	prompts, err := f.List(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -444,11 +450,13 @@ func (f *fileStore) ListTags(_ context.Context) ([]string, error) {
 	return result, nil
 }
 
-// ResolveAlias resolves shortcuts to versioned IDs.
-// Resolves "subagent" -> "subagent@latest" -> versioned ID.
-func (f *fileStore) ResolveAlias(ctx context.Context, id string) (*prompt.Prompt, error) {
+// ResolveAlias resolves a base ID or alias to the actual versioned prompt.
+// Returns nil if not found.
+func (f *fileStore) ResolveAlias(ctx context.Context, versionedIDOrAlias prompt.VersionedPromptID) (*prompt.Prompt, error) {
+	id := versionedIDOrAlias.String()
+
 	// Direct lookup first
-	p, err := f.Load(ctx, id)
+	p, err := f.Load(ctx, versionedIDOrAlias)
 	if err != nil {
 		return nil, err
 	}
@@ -456,23 +464,23 @@ func (f *fileStore) ResolveAlias(ctx context.Context, id string) (*prompt.Prompt
 		// If this is an alias (no version or @latest suffix), find the versioned ID
 		if !strings.Contains(id, "@") || strings.HasSuffix(id, "@latest") {
 			// For file store, we need to scan files to find the one with @latest tag
-			baseID := id
+			baseID := versionedIDOrAlias.BaseID()
 			if strings.HasSuffix(id, "@latest") {
-				baseID = strings.TrimSuffix(id, "@latest")
+				baseID = prompt.PromptID(strings.TrimSuffix(id, "@latest"))
 			}
-			return f.findLatestWithTag(ctx, baseID, baseID+"@latest")
+			return f.findLatestWithTag(ctx, baseID, baseID.String()+"@latest")
 		}
 		return copyPrompt(p), nil
 	}
 
 	// If still not found and input has @latest suffix, scan for it
 	if strings.HasSuffix(id, "@latest") {
-		baseID := strings.TrimSuffix(id, "@latest")
+		baseID := prompt.PromptID(strings.TrimSuffix(id, "@latest"))
 		return f.findLatestWithTag(ctx, baseID, id)
 	}
 
 	// Try @latest
-	latestID := id + "@latest"
+	latestID := prompt.VersionedPromptID(id + "@latest")
 	p, err = f.Load(ctx, latestID)
 	if err != nil {
 		return nil, err
@@ -483,14 +491,15 @@ func (f *fileStore) ResolveAlias(ctx context.Context, id string) (*prompt.Prompt
 
 	// If still not found, try to scan for it
 	if !strings.Contains(id, "@") {
-		return f.findLatestWithTag(ctx, id, id+"@latest")
+		baseID := prompt.PromptID(id)
+		return f.findLatestWithTag(ctx, baseID, baseID.String()+"@latest")
 	}
 
 	return nil, nil
 }
 
 // findLatestWithTag scans files to find the prompt with the specified tag.
-func (f *fileStore) findLatestWithTag(_ context.Context, baseID, tag string) (*prompt.Prompt, error) {
+func (f *fileStore) findLatestWithTag(_ context.Context, baseID prompt.PromptID, tag string) (*prompt.Prompt, error) {
 	// Read directory
 	entries, err := os.ReadDir(f.dir)
 	if err != nil {
@@ -502,7 +511,7 @@ func (f *fileStore) findLatestWithTag(_ context.Context, baseID, tag string) (*p
 
 	for _, entry := range entries {
 		// Check if file matches baseID@version.json pattern
-		if !strings.HasPrefix(entry.Name(), baseID+"@") {
+		if !strings.HasPrefix(entry.Name(), baseID.String()+"@") {
 			continue
 		}
 		if !strings.HasSuffix(entry.Name(), ".json") {
@@ -537,8 +546,8 @@ func (f *fileStore) findLatestWithTag(_ context.Context, baseID, tag string) (*p
 	return nil, nil
 }
 
-// ListVersions returns all versions of a prompt base ID.
-func (f *fileStore) ListVersions(_ context.Context, baseID string) ([]*prompt.Prompt, error) {
+// ListVersions returns all versions of a prompt by base ID.
+func (f *fileStore) ListVersions(_ context.Context, baseID prompt.PromptID) ([]*prompt.Prompt, error) {
 	// Read directory
 	entries, err := os.ReadDir(f.dir)
 	if err != nil {
@@ -553,7 +562,7 @@ func (f *fileStore) ListVersions(_ context.Context, baseID string) ([]*prompt.Pr
 
 	for _, entry := range entries {
 		// Check if file matches baseID@version.json pattern
-		if !strings.HasPrefix(entry.Name(), baseID+"@") {
+		if !strings.HasPrefix(entry.Name(), baseID.String()+"@") {
 			continue
 		}
 		if !strings.HasSuffix(entry.Name(), ".json") {
@@ -590,11 +599,11 @@ func (f *fileStore) ListVersions(_ context.Context, baseID string) ([]*prompt.Pr
 	return result, nil
 }
 
-// SetLatestAlias sets the @latest alias to a specific version.
+// SetLatestAlias sets the @latest alias to point to a specific version.
 // Removes @latest from all other versions of the same base ID.
-func (f *fileStore) SetLatestAlias(ctx context.Context, baseID, versionID string) error {
+func (f *fileStore) SetLatestAlias(ctx context.Context, baseID prompt.PromptID, targetVersionedID prompt.VersionedPromptID) error {
 	// Find the target prompt
-	targetPrompt, err := f.Load(ctx, versionID)
+	targetPrompt, err := f.Load(ctx, targetVersionedID)
 	if err != nil {
 		return err
 	}
@@ -615,7 +624,7 @@ func (f *fileStore) SetLatestAlias(ctx context.Context, baseID, versionID string
 		var newTags []string
 		if v.Tags != nil {
 			for _, tag := range v.Tags {
-				if tag != baseID+"@latest" {
+				if tag != baseID.String()+"@latest" {
 					newTags = append(newTags, tag)
 				}
 			}
@@ -640,7 +649,7 @@ func (f *fileStore) SetLatestAlias(ctx context.Context, baseID, versionID string
 	if targetPrompt.Tags == nil {
 		targetPrompt.Tags = []string{}
 	}
-	targetPrompt.Tags = append(targetPrompt.Tags, baseID+"@latest")
+	targetPrompt.Tags = append(targetPrompt.Tags, baseID.String()+"@latest")
 	targetPrompt.UpdatedAt = now
 
 	// Write target prompt
@@ -651,15 +660,17 @@ func (f *fileStore) SetLatestAlias(ctx context.Context, baseID, versionID string
 	// Update cache
 	if f.enableCache {
 		f.mu.Lock()
-		f.cache[versionID] = targetPrompt
-		f.cache[baseID+"@latest"] = targetPrompt
+		f.cache[targetVersionedID.String()] = targetPrompt
+		f.cache[baseID.String()+"@latest"] = targetPrompt
 		f.mu.Unlock()
 	}
 
 	return nil
 }
 
+// =============================================================================
 // Helper functions
+// =============================================================================
 
 // getFilePath returns the file path for a prompt ID.
 func (f *fileStore) getFilePath(id string) string {
@@ -669,6 +680,11 @@ func (f *fileStore) getFilePath(id string) string {
 // writePromptLocked writes a prompt to file with exclusive locking.
 func (f *fileStore) writePromptLocked(p *prompt.Prompt) error {
 	path := f.getFilePath(p.ID)
+
+	// Ensure directory exists
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
 
 	// Open file with locking
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
@@ -698,7 +714,7 @@ func (f *fileStore) writePromptLocked(p *prompt.Prompt) error {
 }
 
 // findLatestVersion finds the latest version of a prompt by base ID.
-func (f *fileStore) findLatestVersion(baseID string) (*semver.Version, *prompt.Prompt, error) {
+func (f *fileStore) findLatestVersion(baseID prompt.PromptID) (*semver.Version, *prompt.Prompt, error) {
 	versions, err := f.ListVersions(context.Background(), baseID)
 	if err != nil {
 		return nil, nil, err
@@ -716,15 +732,3 @@ func (f *fileStore) findLatestVersion(baseID string) (*semver.Version, *prompt.P
 
 	return latestVersion, latestPrompt, nil
 }
-
-// extractBaseID extracts the base ID from a versioned ID.
-func (f *fileStore) extractBaseID(id string) string {
-	idx := strings.Index(id, "@")
-	if idx == -1 {
-		return ""
-	}
-	return id[:idx]
-}
-
-// _context is a nil context for internal calls.
-var _context = context.Background()

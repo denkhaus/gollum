@@ -75,7 +75,7 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 		}).AnyTimes()
 
 		// Expect factory call - capture the config to get the agent ID
-		mockPromptMgr.EXPECT().GetSubagentPrompt("Concurrent Agent", "Concurrent task").Return("You are a helpful assistant", nil)
+		mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Concurrent Agent", "Concurrent task").Return("You are a helpful assistant", nil)
 		mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, config *shared.AgentConfig) (shared.Agent, error) {
 			spawnedID = config.ID
 			spawnedAgentIDs[spawnedIndex] = spawnedID
@@ -214,7 +214,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	}
 
 	// Step 1: Root spawns child
-	mockPromptMgr.EXPECT().GetSubagentPrompt("Child", "Child task").Return("You are a helpful assistant", nil)
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Child", "Child task").Return("You are a helpful assistant", nil)
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, config *shared.AgentConfig) (shared.Agent, error) {
 		childID = config.ID
 		return childAgent, nil
@@ -250,7 +250,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 		senderID:        childID,
 	}
 
-	mockPromptMgr.EXPECT().GetSubagentPrompt("Grandchild", "Grandchild task").Return("You are a helpful assistant", nil)
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Grandchild", "Grandchild task").Return("You are a helpful assistant", nil)
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, config *shared.AgentConfig) (shared.Agent, error) {
 		grandchildID = config.ID
 		return grandchildAgent, nil

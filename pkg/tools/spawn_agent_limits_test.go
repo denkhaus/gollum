@@ -39,7 +39,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_LimitExceeded(t *testing.T) {
 		nil, fmt.Errorf("maximum agent limit reached (50)"),
 	)
 
-	mockPromptMgr.EXPECT().GetSubagentPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
 	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
 	// No StoreTaskResult expected when CreateAgent fails
 
@@ -92,7 +92,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_SubAgentLimitExceeded(t *testing.T
 		nil, fmt.Errorf("maximum sub-agent limit reached for parent (3)"),
 	)
 
-	mockPromptMgr.EXPECT().GetSubagentPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
 	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
 	// No StoreTaskResult expected when CreateAgent fails
 
@@ -145,7 +145,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_GenericError(t *testing.T) {
 		nil, fmt.Errorf("LLM provider not supported"),
 	)
 
-	mockPromptMgr.EXPECT().GetSubagentPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
 	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
 	// No StoreTaskResult expected when CreateAgent fails
 

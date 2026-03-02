@@ -122,7 +122,7 @@ func TestNewPromptManagerProvider_FileStore(t *testing.T) {
 	assert.Equal(t, "test-di-file@1.0.0", saved.ID, "Should have correct versioned ID")
 
 	// Verify prompt can be retrieved using the versioned ID returned from save
-	loaded, err := pm.GetPromptByID(ctx, saved.ID)
+	loaded, err := pm.GetPromptByID(ctx, saved.BaseID())
 	require.NoError(t, err, "Should load prompt from file store")
 	require.NotNil(t, loaded, "Loaded prompt should not be nil")
 	assert.Equal(t, "Test content for file store", loaded.Content, "Should have correct content")

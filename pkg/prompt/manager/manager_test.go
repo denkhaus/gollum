@@ -26,7 +26,7 @@ func TestLazyBuiltinBootstrap(t *testing.T) {
 	require.NoError(t, err)
 
 	// Load the bootstrapped prompt
-	loaded, err := st.Load(ctx, prompt.PromptIDSubagentSystem)
+	loaded, err := st.Load(ctx, prompt.FromBaseID(prompt.PromptIDSubagentSystem, "latest"))
 	require.NoError(t, err)
 	require.NotNil(t, loaded)
 
@@ -136,8 +136,8 @@ func TestListPrompts(t *testing.T) {
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(listed), 2, "Should have at least 2 prompts")
 
-	// List with filter (convert prompt.ListFilter to promptstore.ListFilter)
-	filter := &promptstore.ListFilter{IDs: []string{prompt.PromptIDSubagentSystem}}
+	// List with filter using tags (base ID is stored as a tag)
+	filter := &promptstore.ListFilter{Tags: []string{prompt.PromptIDSubagentSystem.String()}}
 	listed, err = st.List(ctx, filter)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(listed), 1, "Filter should return at least 1 prompt")
@@ -166,11 +166,11 @@ func TestDeleteCustomPrompt(t *testing.T) {
 
 // TestAllBuiltinPrompts verifies that all built-in prompt constants are defined
 func TestAllBuiltinPrompts(t *testing.T) {
-	// Verify all built-in prompt ID constants are defined
-	assert.Equal(t, "subagent_system", prompt.PromptIDSubagentSystem)
-	assert.Equal(t, "supervisor_system", prompt.PromptIDSupervisorSystem)
-	assert.Equal(t, "compacter", prompt.PromptIDCompacter)
-	assert.Equal(t, "subagent_task", prompt.PromptIDSubagentTask)
+	// Verify all built-in prompt ID constants are defined (as PromptID type)
+	assert.Equal(t, prompt.PromptID("subagent_system"), prompt.PromptIDSubagentSystem)
+	assert.Equal(t, prompt.PromptID("supervisor_system"), prompt.PromptIDSupervisorSystem)
+	assert.Equal(t, prompt.PromptID("compacter"), prompt.PromptIDCompacter)
+	assert.Equal(t, prompt.PromptID("subagent_task"), prompt.PromptIDSubagentTask)
 }
 
 // TestListFilter verifies that ListFilter type is properly defined
@@ -178,7 +178,7 @@ func TestListFilter(t *testing.T) {
 	// Create a filter
 	filter := &prompt.ListFilter{
 		Tags: []string{"tag1", "tag2"},
-		IDs:  []string{"id1", "id2"},
+		IDs:  []prompt.VersionedPromptID{"id1@1.0.0", "id2@1.0.0"},
 	}
 
 	assert.Len(t, filter.Tags, 2)
@@ -386,7 +386,7 @@ func TestBackwardCompatibility_GetSystemPrompt(t *testing.T) {
 	pm := manager.NewPromptManager(st)
 
 	// Call GetSystemPrompt
-	result, err := pm.GetSystemPrompt()
+	result, err := pm.GetPromptWithContext(context.Background(), prompt.PromptIDSubagentSystem, nil)
 	require.NoError(t, err)
 	assert.NotEmpty(t, result, "System prompt should not be empty")
 	assert.Contains(t, result, "multi-agent system", "Should contain expected content from template")
@@ -401,7 +401,7 @@ func TestBackwardCompatibility_GetSubagentPrompt(t *testing.T) {
 	pm := manager.NewPromptManager(st)
 
 	// Call GetSubagentPrompt
-	result, err := pm.GetSubagentPrompt("coder", "write clean code")
+	result, err := pm.GetSubagentTaskPrompt("coder", "write clean code")
 	require.NoError(t, err)
 	assert.NotEmpty(t, result, "Subagent prompt should not be empty")
 	assert.Contains(t, result, "coder", "Should contain role")
@@ -418,34 +418,33 @@ func TestBackwardCompatibility_GetSupervisorPrompt(t *testing.T) {
 	pm := manager.NewPromptManager(st)
 
 	// Call GetSupervisorPrompt
-	result, err := pm.GetSupervisorPrompt()
+	result, err := pm.GetPromptWithContext(context.Background(),
+		prompt.PromptIDSupervisorSystem,
+		nil,
+	)
 	require.NoError(t, err)
 	assert.NotEmpty(t, result, "Supervisor prompt should not be empty")
 	assert.Contains(t, result, "helpful agent", "Should contain supervisor content from template")
 }
 
-// TestBackwardCompatibility_GetCompacterPrompt tests backward-compatible GetCompacterPrompt
-func TestBackwardCompatibility_GetCompacterPrompt(t *testing.T) {
+// TestCompacterPrompt tests retrieving the compacter prompt by ID
+func TestCompacterPrompt(t *testing.T) {
 	// Create in-memory store
 	st := promptstore.NewMemoryStore()
 
 	// Create prompt manager
 	pm := manager.NewPromptManager(st)
 
-	// Call GetCompacterPrompt with data
-	// The built-in compacter template doesn't use template variables,
-	// so we test that the method works and returns the built-in template
-	data := map[string]interface{}{
-		"Data": "User asked about fixing a bug, we provided a solution.",
-	}
-	result, err := pm.GetCompacterPrompt(data)
+	// Get the compacter prompt by ID
+	compacterPrompt, err := pm.GetPromptByID(context.Background(), prompt.PromptIDCompacter)
 	require.NoError(t, err)
-	assert.NotEmpty(t, result, "Compacter prompt should not be empty")
-	assert.Contains(t, result, "Summarize", "Should contain compacter content")
+	require.NotNil(t, compacterPrompt, "Compacter prompt should not be nil")
+	assert.NotEmpty(t, compacterPrompt.Content, "Compacter prompt content should not be empty")
+	assert.Contains(t, compacterPrompt.Content, "Summarize", "Should contain compacter content")
 }
 
-// TestBackwardCompatibility_GetCompacterPromptWithCustomTemplate tests custom compacter prompt with variables
-func TestBackwardCompatibility_GetCompacterPromptWithCustomTemplate(t *testing.T) {
+// TestCompacterPromptWithCustomTemplate tests custom compacter prompt with variables
+func TestCompacterPromptWithCustomTemplate(t *testing.T) {
 	// Create in-memory store
 	st := promptstore.NewMemoryStore()
 
@@ -595,18 +594,18 @@ func TestDeletePrompt_BuiltinPromptReturnsError(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify it was saved with IsBuiltin=true
-	loaded, err := st.Load(ctx, prompt.PromptIDSubagentSystem)
+	loaded, err := st.Load(ctx, prompt.FromBaseID(prompt.PromptIDSubagentSystem, "latest"))
 	require.NoError(t, err)
 	require.NotNil(t, loaded)
 	assert.True(t, loaded.IsBuiltin, "Prompt saved via SaveBuiltinVersion should have IsBuiltin=true")
 
 	// Try to delete the built-in prompt
-	err = st.Delete(ctx, prompt.PromptIDSubagentSystem)
+	err = st.Delete(ctx, prompt.FromBaseID(prompt.PromptIDSubagentSystem, "latest"))
 	assert.Error(t, err, "Deleting built-in prompt should return an error")
 	assert.Equal(t, promptstore.ErrPromptIsBuiltin, err, "Error should be ErrPromptIsBuiltin")
 
 	// Verify prompt still exists after failed delete
-	stillExists, err := st.Load(ctx, prompt.PromptIDSubagentSystem)
+	stillExists, err := st.Load(ctx, prompt.FromBaseID(prompt.PromptIDSubagentSystem, "latest"))
 	require.NoError(t, err)
 	assert.NotNil(t, stillExists, "Built-in prompt should still exist after failed delete")
 }
@@ -679,4 +678,92 @@ func TestRenderPrompt_EmptyMessageHistory(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, rendered, "Agent agent-empty", "Should contain substituted AgentID")
 	assert.Contains(t, rendered, "Task: test task", "Should contain substituted Task")
+}
+
+// TestRenderPrompt_SkillsPartial tests the skills partial template rendering
+func TestRenderPrompt_SkillsPartial(t *testing.T) {
+	ctx := context.Background()
+
+	// Create in-memory store
+	st := promptstore.NewMemoryStore()
+
+	// Save a test prompt that uses the skills partial (no define block - plain template)
+	testContent := `Agent prompt content.
+{{template "skills" .}}
+End of prompt.`
+	_, err := st.SaveNewVersion(ctx, "test-skills", testContent, "Test Skills")
+	require.NoError(t, err)
+
+	// Get the prompt
+	loaded, err := st.Load(ctx, "test-skills")
+	require.NoError(t, err)
+	require.NotNil(t, loaded)
+
+	// Create render context with WorkspaceContext containing skills
+	renderCtx := &prompt.RenderContext{
+		Workspace: &prompt.WorkspaceContext{
+			CurrentPath: "/home/user/project",
+			SkillsXML: `<skill name="test-skill">
+  <description>A test skill</description>
+</skill>`,
+			Skills: []prompt.SkillInfo{
+				{Name: "test-skill", Description: "A test skill", Location: "/home/user/project/.claude/skills/test-skill.md"},
+				{Name: "another-skill", Description: "Another skill", Location: "/home/user/project/.claude/skills/another-skill.md"},
+			},
+		},
+	}
+
+	// Create prompt manager
+	pm := manager.NewPromptManager(st)
+
+	// Render the prompt
+	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
+	require.NoError(t, err)
+
+	// Verify skills partial was rendered correctly
+	assert.Contains(t, rendered, "## Available Skills", "Should contain skills header")
+	assert.Contains(t, rendered, "/home/user/project", "Should contain workspace path")
+	assert.Contains(t, rendered, "<skill name=\"test-skill\">", "Should contain skills XML")
+	assert.Contains(t, rendered, "**test-skill**: A test skill", "Should contain skill name and description")
+	assert.Contains(t, rendered, "**another-skill**: Another skill", "Should contain second skill")
+}
+
+// TestRenderPrompt_SkillsPartial_NoSkills tests skills partial with no skills available
+func TestRenderPrompt_SkillsPartial_NoSkills(t *testing.T) {
+	ctx := context.Background()
+
+	// Create in-memory store
+	st := promptstore.NewMemoryStore()
+
+	// Save a test prompt that uses the skills partial (no define block - plain template)
+	testContent := `Agent prompt content.
+{{template "skills" .}}
+End of prompt.`
+	_, err := st.SaveNewVersion(ctx, "test-no-skills", testContent, "Test No Skills")
+	require.NoError(t, err)
+
+	// Get the prompt
+	loaded, err := st.Load(ctx, "test-no-skills")
+	require.NoError(t, err)
+	require.NotNil(t, loaded)
+
+	// Create render context with empty WorkspaceContext
+	renderCtx := &prompt.RenderContext{
+		Workspace: &prompt.WorkspaceContext{
+			CurrentPath: "/home/user/project",
+			SkillsXML:   "",
+			Skills:      nil,
+		},
+	}
+
+	// Create prompt manager
+	pm := manager.NewPromptManager(st)
+
+	// Render the prompt
+	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
+	require.NoError(t, err)
+
+	// When SkillsXML is empty, the skills section should not be rendered
+	assert.NotContains(t, rendered, "## Available Skills", "Should not contain skills header when no skills")
+	assert.Contains(t, rendered, "Agent prompt content.", "Should still contain main content")
 }

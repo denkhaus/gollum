@@ -161,7 +161,7 @@ func (t *SpawnAgentTool) runSpawnAgent(ctx context.Context, args map[string]any)
 	t.logService.Infof("Spawning subagent: role=%s description=%s background=%v share_context=%v", role, description, runInBackground, shareContext)
 
 	// Get specialized subagent prompt from PromptManager (includes role, description, and tool names)
-	systemPrompt, err := t.promptManager.GetSubagentPrompt(role, description)
+	systemPrompt, err := t.promptManager.GetSubagentTaskPrompt(role, description)
 	if err != nil {
 		t.logService.Errorf("Failed to get subagent prompt: %v", err)
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to get subagent prompt: %v", err)), nil

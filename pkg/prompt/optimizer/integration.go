@@ -9,13 +9,13 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/denkhaus/gollum/pkg/prompt"
-	"github.com/denkhaus/gollum/pkg/prompt/store"
+	promptstore "github.com/denkhaus/gollum/pkg/prompt/store"
 )
 
-// OptimizeAndSave orchestrates the optimization workflow and saves the result to the store.
+// OptimizeAndSave orchestrates the optimization workflow and saves the result to store.
 // It loads the current prompt, runs optimization, and saves the optimized version with
 // incremented SemVer if warranted.
-func OptimizeAndSave(ctx context.Context, optimizer PromptOptimizer, store store.PromptStore, promptID string, input *OptimizerInput) (*prompt.Prompt, error) {
+func OptimizeAndSave(ctx context.Context, optimizer PromptOptimizer, store promptstore.PromptStore, promptID prompt.VersionedPromptID, input *OptimizerInput) (*prompt.Prompt, error) {
 	// Load current prompt from store
 	current, err := store.Load(ctx, promptID)
 	if err != nil {
@@ -43,7 +43,7 @@ func OptimizeAndSave(ctx context.Context, optimizer PromptOptimizer, store store
 	baseID := ExtractBaseID(current.ID)
 
 	// Save new version to store
-	saved, err := store.SaveNewVersion(ctx, baseID, result.NewPrompt, current.Name)
+	saved, err := store.SaveNewVersion(ctx, prompt.PromptID(baseID), result.NewPrompt, current.Name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save optimized prompt: %w", err)
 	}

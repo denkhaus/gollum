@@ -5,32 +5,49 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/denkhaus/gollum/pkg/prompt"
 	promptstore "github.com/denkhaus/gollum/pkg/prompt/store"
 )
 
+// partialsCache caches parsed partials templates
+var partialsCache struct {
+	once      sync.Once
+	templates *template.Template
+	err       error
+}
+
 // templateNameMap maps prompt IDs to their template names
-var templateNameMap = map[string]string{
+var templateNameMap = map[prompt.PromptID]string{
 	prompt.PromptIDSubagentSystem:   "systemprompt",
 	prompt.PromptIDSupervisorSystem: "supervisorprompt",
 	prompt.PromptIDCompacter:        "compacter",
 	prompt.PromptIDSubagentTask:     "subagenttaskprompt",
 	// Optimizer templates (not loaded from store, embedded only)
-	"optimizer_gradient_prompt":     "optimizergradientprompt",
-	"optimizer_gradient_metaprompt": "optimizergradientmetaprompt",
-	"optimizer_metaprompt":          "optimizermetapromptprompt",
-	"optimizer_prompt_memory":       "optimizerpromptmemory",
+	prompt.PromptIDOptimizerGradient:     "optimizergradientprompt",
+	prompt.PromptIDOptimizerGradientMeta: "optimizergradientmetaprompt",
+	prompt.PromptIDOptimizerMeta:         "optimizermetapromptprompt",
+	prompt.PromptIDOptimizerMemory:       "optimizerpromptmemory",
 }
 
 // extractBaseID extracts the base prompt ID from a versioned ID
 // e.g., "system@1.0.0" -> "system", "system" -> "system"
-func extractBaseID(id string) string {
+func extractBaseID(id string) prompt.PromptID {
 	if idx := strings.Index(id, "@"); idx != -1 {
-		return id[:idx]
+		return prompt.PromptID(id[:idx])
 	}
-	return id
+	return prompt.PromptID(id)
+}
+
+// loadPartials loads partial templates from embedded FS
+func loadPartials() (*template.Template, error) {
+	partialsCache.once.Do(func() {
+		// Parse all partials from the embedded FS
+		partialsCache.templates, partialsCache.err = template.ParseFS(promptTemplates, "templates/partials/*.md")
+	})
+	return partialsCache.templates, partialsCache.err
 }
 
 // RenderPrompt renders a prompt template with the given context
@@ -41,8 +58,19 @@ func (p *promptManager) RenderPrompt(ctx context.Context, prompt *prompt.Prompt,
 		return "", fmt.Errorf("prompt cannot be nil")
 	}
 
-	// Parse template
-	tmpl, err := template.New(prompt.ID).Parse(prompt.Content)
+	// Load partials
+	partials, err := loadPartials()
+	if err != nil {
+		return "", fmt.Errorf("failed to load partials: %w", err)
+	}
+
+	// Parse template with partials
+	tmpl, err := partials.Clone()
+	if err != nil {
+		return "", fmt.Errorf("failed to clone partials: %w", err)
+	}
+
+	tmpl, err = tmpl.New(prompt.ID).Parse(prompt.Content)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse template for prompt %s: %w", prompt.ID, err)
 	}
@@ -77,7 +105,7 @@ func (p *promptManager) RenderPrompt(ctx context.Context, prompt *prompt.Prompt,
 }
 
 // GetPromptWithContext retrieves a prompt by ID and renders it with context
-func (p *promptManager) GetPromptWithContext(ctx context.Context, id string, renderCtx *prompt.RenderContext) (string, error) {
+func (p *promptManager) GetPromptWithContext(ctx context.Context, id prompt.PromptID, renderCtx *prompt.RenderContext) (string, error) {
 	// Get prompt
 	loadedPrompt, err := p.GetPromptByID(ctx, id)
 	if err != nil {

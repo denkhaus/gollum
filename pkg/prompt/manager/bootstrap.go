@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/denkhaus/gollum/pkg/prompt"
+	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 // Bootstrap entries for each built-in prompt.
@@ -29,7 +30,7 @@ type templateInfo struct {
 }
 
 // templateRegistry maps built-in prompt IDs to their template entries.
-var templateRegistry = map[string]templateInfo{
+var templateRegistry = map[prompt.PromptID]templateInfo{
 	prompt.PromptIDSubagentSystem:        {"subagent_system_prompt.md", "System Prompt", &systemOnce},
 	prompt.PromptIDSupervisorSystem:      {"supervisor_system_prompt.md", "Supervisor System Prompt", &supervisorOnce},
 	prompt.PromptIDCompacter:             {"compacter_prompt.md", "Compacter Prompt", &compacterOnce},
@@ -41,13 +42,13 @@ var templateRegistry = map[string]templateInfo{
 }
 
 // isBuiltinID checks if an ID is a built-in prompt.
-func (p *promptManager) isBuiltinID(id string) bool {
+func (p *promptManager) isBuiltinID(id prompt.PromptID) bool {
 	_, ok := templateRegistry[id]
 	return ok
 }
 
 // getBootstrapOnce returns the sync.Once for a given built-in ID.
-func (p *promptManager) getBootstrapOnce(id string) (*sync.Once, error) {
+func (p *promptManager) getBootstrapOnce(id prompt.PromptID) (*sync.Once, error) {
 	info, ok := templateRegistry[id]
 	if !ok {
 		return nil, fmt.Errorf("unknown built-in prompt ID: %s", id)
@@ -56,7 +57,7 @@ func (p *promptManager) getBootstrapOnce(id string) (*sync.Once, error) {
 }
 
 // getTemplateInfo returns the template file and name for a built-in ID.
-func (p *promptManager) getTemplateInfo(id string) (string, string, error) {
+func (p *promptManager) getTemplateInfo(id prompt.PromptID) (string, string, error) {
 	info, ok := templateRegistry[id]
 	if !ok {
 		return "", "", fmt.Errorf("no template info for built-in prompt ID: %s", id)
@@ -65,7 +66,7 @@ func (p *promptManager) getTemplateInfo(id string) (string, string, error) {
 }
 
 // bootstrapBuiltinPrompt loads a built-in prompt from embedded FS and saves to store.
-func (p *promptManager) bootstrapBuiltinPrompt(ctx context.Context, baseID string, once *sync.Once, templateFile string, promptName string) (*prompt.Prompt, error) {
+func (p *promptManager) bootstrapBuiltinPrompt(ctx context.Context, baseID prompt.PromptID, once *sync.Once, templateFile string, promptName string) (*prompt.Prompt, error) {
 	var bootstrapped *prompt.Prompt
 	var bootstrapErr error
 
@@ -92,4 +93,21 @@ func (p *promptManager) bootstrapBuiltinPrompt(ctx context.Context, baseID strin
 	}
 
 	return bootstrapped, nil
+}
+
+// GetSubagentTaskPrompt returns the subagent task prompt with role and description
+func (p *promptManager) GetSubagentTaskPrompt(role, description string) (string, error) {
+	ctx := context.Background()
+	renderCtx := &prompt.RenderContext{
+		SubAgent: &prompt.SubAgentContext{
+			Role:            role,
+			Description:     description,
+			SpawnAgentTool:  shared.ToolNameSpawnAgent,
+			RemoveAgentTool: shared.ToolNameRemoveAgent,
+			ResumeAgentTool: shared.ToolNameResumeAgent,
+			AgentOutputTool: shared.ToolNameAgentOutput,
+			ListAgentsTool:  shared.ToolNameListAgents,
+		},
+	}
+	return p.GetPromptWithContext(ctx, prompt.PromptIDSubagentTask, renderCtx)
 }

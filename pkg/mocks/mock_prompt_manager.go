@@ -43,7 +43,7 @@ func (m *MockPromptManager) EXPECT() *MockPromptManagerMockRecorder {
 }
 
 // DeletePrompt mocks base method.
-func (m *MockPromptManager) DeletePrompt(ctx context.Context, id string) error {
+func (m *MockPromptManager) DeletePrompt(ctx context.Context, id prompt.PromptID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeletePrompt", ctx, id)
 	ret0, _ := ret[0].(error)
@@ -56,23 +56,8 @@ func (mr *MockPromptManagerMockRecorder) DeletePrompt(ctx, id any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePrompt", reflect.TypeOf((*MockPromptManager)(nil).DeletePrompt), ctx, id)
 }
 
-// GetCompacterPrompt mocks base method.
-func (m *MockPromptManager) GetCompacterPrompt(data any) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCompacterPrompt", data)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCompacterPrompt indicates an expected call of GetCompacterPrompt.
-func (mr *MockPromptManagerMockRecorder) GetCompacterPrompt(data any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCompacterPrompt", reflect.TypeOf((*MockPromptManager)(nil).GetCompacterPrompt), data)
-}
-
 // GetPromptByID mocks base method.
-func (m *MockPromptManager) GetPromptByID(ctx context.Context, id string) (*prompt.Prompt, error) {
+func (m *MockPromptManager) GetPromptByID(ctx context.Context, id prompt.PromptID) (*prompt.Prompt, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPromptByID", ctx, id)
 	ret0, _ := ret[0].(*prompt.Prompt)
@@ -87,7 +72,7 @@ func (mr *MockPromptManagerMockRecorder) GetPromptByID(ctx, id any) *gomock.Call
 }
 
 // GetPromptWithContext mocks base method.
-func (m *MockPromptManager) GetPromptWithContext(ctx context.Context, id string, renderCtx *prompt.RenderContext) (string, error) {
+func (m *MockPromptManager) GetPromptWithContext(ctx context.Context, id prompt.PromptID, renderCtx *prompt.RenderContext) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPromptWithContext", ctx, id, renderCtx)
 	ret0, _ := ret[0].(string)
@@ -130,34 +115,19 @@ func (mr *MockPromptManagerMockRecorder) GetSubagentPrompt(role, description any
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSubagentPrompt", reflect.TypeOf((*MockPromptManager)(nil).GetSubagentPrompt), role, description)
 }
 
-// GetSupervisorPrompt mocks base method.
-func (m *MockPromptManager) GetSupervisorPrompt() (string, error) {
+// GetSubagentTaskPrompt mocks base method.
+func (m *MockPromptManager) GetSubagentTaskPrompt(role, description string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSupervisorPrompt")
+	ret := m.ctrl.Call(m, "GetSubagentTaskPrompt", role, description)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetSupervisorPrompt indicates an expected call of GetSupervisorPrompt.
-func (mr *MockPromptManagerMockRecorder) GetSupervisorPrompt() *gomock.Call {
+// GetSubagentTaskPrompt indicates an expected call of GetSubagentTaskPrompt.
+func (mr *MockPromptManagerMockRecorder) GetSubagentTaskPrompt(role, description any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSupervisorPrompt", reflect.TypeOf((*MockPromptManager)(nil).GetSupervisorPrompt))
-}
-
-// GetSystemPrompt mocks base method.
-func (m *MockPromptManager) GetSystemPrompt() (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSystemPrompt")
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetSystemPrompt indicates an expected call of GetSystemPrompt.
-func (mr *MockPromptManagerMockRecorder) GetSystemPrompt() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSystemPrompt", reflect.TypeOf((*MockPromptManager)(nil).GetSystemPrompt))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSubagentTaskPrompt", reflect.TypeOf((*MockPromptManager)(nil).GetSubagentTaskPrompt), role, description)
 }
 
 // ListPrompts mocks base method.
@@ -191,7 +161,7 @@ func (mr *MockPromptManagerMockRecorder) RenderPrompt(ctx, p, renderCtx any) *go
 }
 
 // SetPrompt mocks base method.
-func (m *MockPromptManager) SetPrompt(ctx context.Context, id, content, name string) (*prompt.Prompt, error) {
+func (m *MockPromptManager) SetPrompt(ctx context.Context, id prompt.PromptID, content, name string) (*prompt.Prompt, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetPrompt", ctx, id, content, name)
 	ret0, _ := ret[0].(*prompt.Prompt)

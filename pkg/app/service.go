@@ -10,6 +10,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/markdown"
 	"github.com/denkhaus/gollum/pkg/mcp"
 	"github.com/denkhaus/gollum/pkg/middleware"
+	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -134,7 +135,10 @@ func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (sha
 		return nil, nil, fmt.Errorf("failed to create toolset: %w", err)
 	}
 	// Get supervisor prompt from PromptManager
-	systemPrompt, err := p.promptMgr.GetSupervisorPrompt()
+	systemPrompt, err := p.promptMgr.GetPromptWithContext(ctx,
+		prompt.PromptIDSupervisorSystem,
+		nil,
+	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get supervisor prompt: %w", err)
 	}

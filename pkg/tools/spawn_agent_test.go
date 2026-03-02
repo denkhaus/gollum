@@ -186,8 +186,8 @@ func TestSpawnAgentToolSynchronousExecution(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Expect GetSubagentPrompt to be called
-	mockPromptMgr.EXPECT().GetSubagentPrompt(gomock.Any(), gomock.Any()).Return("You are a helpful assistant", nil)
+	// Expect GetSubagentTaskPrompt to be called
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("You are a helpful assistant", nil)
 
 	// Expect registry calls
 	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)               // No parent
@@ -264,7 +264,7 @@ func TestSpawnAgentToolAsynchronousExecution(t *testing.T) {
 
 	ctx := context.Background()
 
-	mockPromptMgr.EXPECT().GetSubagentPrompt(gomock.Any(), gomock.Any()).Return("You are a helpful assistant", nil)
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("You are a helpful assistant", nil)
 	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
 	mockRegistry.EXPECT().StoreAgentResult(gomock.Any()).Return(nil).Times(1) // Initial result
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Return(mockAgent, nil)
@@ -340,7 +340,7 @@ func TestSpawnAgentToolExecutionError(t *testing.T) {
 
 	ctx := context.Background()
 
-	mockPromptMgr.EXPECT().GetSubagentPrompt(gomock.Any(), gomock.Any()).Return("You are a helpful assistant", nil)
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("You are a helpful assistant", nil)
 	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
 	mockRegistry.EXPECT().StoreAgentResult(gomock.Any()).Return(nil).Times(1) // Initial result
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Return(mockAgent, nil)
@@ -406,7 +406,7 @@ func TestSpawnAgentToolInheritsLLMProvider(t *testing.T) {
 
 	ctx := context.Background()
 
-	mockPromptMgr.EXPECT().GetSubagentPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
 	// Expect GetAgent to be called and return parent
 	mockRegistry.EXPECT().GetAgent(senderID).Return(mockParentAgent, true)
 	mockRegistry.EXPECT().StoreAgentResult(gomock.Any()).Return(nil).Times(1) // Initial result
@@ -508,7 +508,7 @@ func TestSpawnAgentTool_WithShareContext_NoParent(t *testing.T) {
 
 	// No parent agent exists
 	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
-	mockPromptMgr.EXPECT().GetSubagentPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
 
 	// Create the mock agent that will be returned by CreateAgent
 	mockSubagent := mocks.NewMockAgent(ctrl)

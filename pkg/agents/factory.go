@@ -8,6 +8,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/middleware"
+	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -29,21 +30,21 @@ type defaultAgentFactory struct {
 	displayProvider middleware.DisplayMiddlewareProvider
 	summaryProvider middleware.SummaryMiddlewareProvider
 	// Tool providers for adding default tools to all agents
-	spawnAgentToolProv  tools.SpawnAgentToolProvider
-	agentOutputToolProv tools.AgentOutputToolProvider
-	removeAgentToolProv tools.RemoveAgentToolProvider
-	resumeAgentToolProv tools.ResumeAgentToolProvider
-	listAgentsToolProv  tools.ListAgentsToolProvider
-	currentTimeToolProv tools.CurrentTimeToolProvider
-	bashToolProv        tools.BashToolProvider
-	writeFileToolProv   tools.WriteFileToolProvider
-	readFileToolProv    tools.ReadFileToolProvider
-	globToolProv        tools.GlobToolProvider
-	grepToolProv        tools.GrepToolProvider
-	editToolProv        tools.EditToolProvider
-	sessionLogsToolProv tools.SessionLogsToolProvider
+	spawnAgentToolProv      tools.SpawnAgentToolProvider
+	agentOutputToolProv     tools.AgentOutputToolProvider
+	removeAgentToolProv     tools.RemoveAgentToolProvider
+	resumeAgentToolProv     tools.ResumeAgentToolProvider
+	listAgentsToolProv      tools.ListAgentsToolProvider
+	currentTimeToolProv     tools.CurrentTimeToolProvider
+	bashToolProv            tools.BashToolProvider
+	writeFileToolProv       tools.WriteFileToolProvider
+	readFileToolProv        tools.ReadFileToolProvider
+	globToolProv            tools.GlobToolProvider
+	grepToolProv            tools.GrepToolProvider
+	editToolProv            tools.EditToolProvider
+	sessionLogsToolProv     tools.SessionLogsToolProvider
 	changeDirectoryToolProv tools.ChangeDirectoryToolProvider
-	invokeSkillToolProv    tools.InvokeSkillToolProvider
+	invokeSkillToolProv     tools.InvokeSkillToolProvider
 }
 
 // NewAgentFactory creates a new AgentFactory
@@ -74,28 +75,28 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 	invokeSkillToolProv := do.MustInvoke[tools.InvokeSkillToolProvider](injector)
 
 	return &defaultAgentFactory{
-		logService:          logService,
-		configService:       configService,
-		clientProvider:      clientProvider,
-		registry:            registry,
-		promptManager:       promptManager,
-		displayProvider:     displayProvider,
-		summaryProvider:     summaryProvider,
-		spawnAgentToolProv:  spawnAgentToolProv,
-		agentOutputToolProv: agentOutputToolProv,
-		removeAgentToolProv: removeAgentToolProv,
-		resumeAgentToolProv: resumeAgentToolProv,
-		listAgentsToolProv:  listAgentsToolProv,
-		currentTimeToolProv: currentTimeToolProv,
-		bashToolProv:        bashToolProv,
-		writeFileToolProv:   writeFileToolProv,
-		readFileToolProv:    readFileToolProv,
-		globToolProv:        globToolProv,
-		grepToolProv:        grepToolProv,
-		editToolProv:        editToolProv,
-		sessionLogsToolProv: sessionLogsToolProv,
+		logService:              logService,
+		configService:           configService,
+		clientProvider:          clientProvider,
+		registry:                registry,
+		promptManager:           promptManager,
+		displayProvider:         displayProvider,
+		summaryProvider:         summaryProvider,
+		spawnAgentToolProv:      spawnAgentToolProv,
+		agentOutputToolProv:     agentOutputToolProv,
+		removeAgentToolProv:     removeAgentToolProv,
+		resumeAgentToolProv:     resumeAgentToolProv,
+		listAgentsToolProv:      listAgentsToolProv,
+		currentTimeToolProv:     currentTimeToolProv,
+		bashToolProv:            bashToolProv,
+		writeFileToolProv:       writeFileToolProv,
+		readFileToolProv:        readFileToolProv,
+		globToolProv:            globToolProv,
+		grepToolProv:            grepToolProv,
+		editToolProv:            editToolProv,
+		sessionLogsToolProv:     sessionLogsToolProv,
 		changeDirectoryToolProv: changeDirectoryToolProv,
-		invokeSkillToolProv:    invokeSkillToolProv,
+		invokeSkillToolProv:     invokeSkillToolProv,
 	}, nil
 }
 
@@ -171,14 +172,14 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 
 	if config.AllowCompaction {
 		// Create context compacter
-		compacterPrompt, err := f.promptManager.GetCompacterPrompt(nil)
+		compacterPrompt, err := f.promptManager.GetPromptByID(ctx, prompt.PromptIDCompacter)
 		if err != nil {
 			return nil, errs.Wrap(err, errs.TypeInternal, "failed to get compacter prompt").
 				WithContext("agent_id", config.ID)
 		}
 
 		contextCompacter := compacter.NewContentBlockMiddleware(client,
-			compacter.WithSummaryPrompt(compacterPrompt),
+			compacter.WithSummaryPrompt(compacterPrompt.Content),
 		)
 
 		baseOptions = append(baseOptions,

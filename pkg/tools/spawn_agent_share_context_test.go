@@ -64,7 +64,7 @@ func TestSpawnAgentTool_WithShareContext(t *testing.T) {
 
 	ctx := context.Background()
 
-	mockPromptMgr.EXPECT().GetSubagentPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
 	mockRegistry.EXPECT().GetAgent(senderID).Return(mockParentAgent, true)
 	mockRegistry.EXPECT().StoreAgentResult(gomock.Any()).Return(nil).Times(1)
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Do(func(_ context.Context, cfg *shared.AgentConfig) {

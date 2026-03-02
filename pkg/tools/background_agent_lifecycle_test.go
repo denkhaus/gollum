@@ -63,7 +63,7 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 	ctx := context.Background()
 
 	// Step 1: Spawn the agent
-	mockPromptMgr.EXPECT().GetSubagentPrompt("Lifecycle Agent", "Lifecycle task").Return("You are a helpful assistant", nil)
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Lifecycle Agent", "Lifecycle task").Return("You are a helpful assistant", nil)
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, config *shared.AgentConfig) (shared.Agent, error) {
 		spawnedAgentID = config.ID
 		return mockAgent, nil
