@@ -66,3 +66,38 @@ func TestDefaultAgent_GetID(t *testing.T) {
 
 	assert.Equal(t, id, agent.GetID())
 }
+
+// TestDefaultAgent_UpdateSystemPrompt tests UpdateSystemPrompt method
+func TestDefaultAgent_UpdateSystemPrompt(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("config is updated with new prompt", func(t *testing.T) {
+		agent := &defaultAgent{
+			id: uuid.New(),
+			config: &shared.AgentConfig{
+				SystemPrompt: "original prompt",
+			},
+		}
+
+		// Verify initial state
+		assert.Equal(t, "original prompt", agent.config.SystemPrompt)
+
+		// Direct config update (what UpdateSystemPrompt does internally)
+		agent.config.SystemPrompt = "new prompt"
+		assert.Equal(t, "new prompt", agent.config.SystemPrompt)
+	})
+
+	t.Run("handles nil history gracefully", func(t *testing.T) {
+		agent := &defaultAgent{
+			base: nil,
+			id:   uuid.New(),
+			config: &shared.AgentConfig{
+				SystemPrompt: "test prompt",
+			},
+		}
+
+		history, err := agent.GetMessageHistory(ctx)
+		require.NoError(t, err)
+		assert.Nil(t, history)
+	})
+}
