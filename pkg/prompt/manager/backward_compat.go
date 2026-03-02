@@ -34,13 +34,13 @@ func (p *promptManager) GetCompacterPrompt(data any) (string, error) {
 // GetSystemPrompt returns the system prompt
 func (p *promptManager) GetSystemPrompt() (string, error) {
 	ctx := context.Background()
-	return p.GetPromptWithContext(ctx, prompt.PromptIDSystem, nil)
+	return p.GetPromptWithContext(ctx, prompt.PromptIDSubagentSystem, nil)
 }
 
 // GetSupervisorPrompt returns the supervisor prompt
 func (p *promptManager) GetSupervisorPrompt() (string, error) {
 	ctx := context.Background()
-	return p.GetPromptWithContext(ctx, prompt.PromptIDSupervisor, nil)
+	return p.GetPromptWithContext(ctx, prompt.PromptIDSupervisorSystem, nil)
 }
 
 // GetSubagentPrompt returns the subagent prompt with role and description
@@ -57,5 +57,5 @@ func (p *promptManager) GetSubagentPrompt(role, description string) (string, err
 			ListAgentsTool:  shared.ToolNameListAgents,
 		},
 	}
-	return p.GetPromptWithContext(ctx, prompt.PromptIDSubagent, renderCtx)
+	return p.GetPromptWithContext(ctx, prompt.PromptIDSubagentTask, renderCtx)
 }

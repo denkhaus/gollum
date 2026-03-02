@@ -22,11 +22,11 @@ func TestLazyBuiltinBootstrap(t *testing.T) {
 	st := promptstore.NewMemoryStore()
 
 	// Bootstrap system prompt by saving it directly
-	_, err := st.SaveNewVersion(ctx, prompt.PromptIDSystem, "You are a helpful AI assistant working as part of a multi-agent system.", "System Prompt")
+	_, err := st.SaveNewVersion(ctx, prompt.PromptIDSubagentSystem, "You are a helpful AI assistant working as part of a multi-agent system.", "System Prompt")
 	require.NoError(t, err)
 
 	// Load the bootstrapped prompt
-	loaded, err := st.Load(ctx, prompt.PromptIDSystem)
+	loaded, err := st.Load(ctx, prompt.PromptIDSubagentSystem)
 	require.NoError(t, err)
 	require.NotNil(t, loaded)
 
@@ -81,14 +81,14 @@ func TestConcurrentBootstrap(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, _ = st.SaveNewVersion(ctx, prompt.PromptIDSystem, "System content", "System Prompt")
+			_, _ = st.SaveNewVersion(ctx, prompt.PromptIDSubagentSystem, "System content", "System Prompt")
 		}()
 	}
 
 	wg.Wait()
 
 	// Verify at least one version was created (save is thread-safe)
-	versions, err := st.ListVersions(ctx, prompt.PromptIDSystem)
+	versions, err := st.ListVersions(ctx, prompt.PromptIDSubagentSystem)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(versions), 1, "At least one version should be created")
 }
@@ -124,7 +124,7 @@ func TestListPrompts(t *testing.T) {
 	st := promptstore.NewMemoryStore()
 
 	// Save a built-in prompt
-	_, err := st.SaveNewVersion(ctx, prompt.PromptIDSystem, "System content", "System Prompt")
+	_, err := st.SaveNewVersion(ctx, prompt.PromptIDSubagentSystem, "System content", "System Prompt")
 	require.NoError(t, err)
 
 	// Add a custom prompt
@@ -137,7 +137,7 @@ func TestListPrompts(t *testing.T) {
 	assert.GreaterOrEqual(t, len(listed), 2, "Should have at least 2 prompts")
 
 	// List with filter (convert prompt.ListFilter to promptstore.ListFilter)
-	filter := &promptstore.ListFilter{IDs: []string{prompt.PromptIDSystem}}
+	filter := &promptstore.ListFilter{IDs: []string{prompt.PromptIDSubagentSystem}}
 	listed, err = st.List(ctx, filter)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(listed), 1, "Filter should return at least 1 prompt")
@@ -167,10 +167,10 @@ func TestDeleteCustomPrompt(t *testing.T) {
 // TestAllBuiltinPrompts verifies that all built-in prompt constants are defined
 func TestAllBuiltinPrompts(t *testing.T) {
 	// Verify all built-in prompt ID constants are defined
-	assert.Equal(t, "system", prompt.PromptIDSystem)
-	assert.Equal(t, "supervisor", prompt.PromptIDSupervisor)
+	assert.Equal(t, "subagent_system", prompt.PromptIDSubagentSystem)
+	assert.Equal(t, "supervisor_system", prompt.PromptIDSupervisorSystem)
 	assert.Equal(t, "compacter", prompt.PromptIDCompacter)
-	assert.Equal(t, "subagent", prompt.PromptIDSubagent)
+	assert.Equal(t, "subagent_task", prompt.PromptIDSubagentTask)
 }
 
 // TestListFilter verifies that ListFilter type is properly defined
@@ -591,22 +591,22 @@ func TestDeletePrompt_BuiltinPromptReturnsError(t *testing.T) {
 	st := promptstore.NewMemoryStore()
 
 	// Save a prompt using SaveBuiltinVersion (like bootstrap does)
-	_, err := st.SaveBuiltinVersion(ctx, prompt.PromptIDSystem, "Built-in system prompt content", "System Prompt")
+	_, err := st.SaveBuiltinVersion(ctx, prompt.PromptIDSubagentSystem, "Built-in system prompt content", "System Prompt")
 	require.NoError(t, err)
 
 	// Verify it was saved with IsBuiltin=true
-	loaded, err := st.Load(ctx, prompt.PromptIDSystem)
+	loaded, err := st.Load(ctx, prompt.PromptIDSubagentSystem)
 	require.NoError(t, err)
 	require.NotNil(t, loaded)
 	assert.True(t, loaded.IsBuiltin, "Prompt saved via SaveBuiltinVersion should have IsBuiltin=true")
 
 	// Try to delete the built-in prompt
-	err = st.Delete(ctx, prompt.PromptIDSystem)
+	err = st.Delete(ctx, prompt.PromptIDSubagentSystem)
 	assert.Error(t, err, "Deleting built-in prompt should return an error")
 	assert.Equal(t, promptstore.ErrPromptIsBuiltin, err, "Error should be ErrPromptIsBuiltin")
 
 	// Verify prompt still exists after failed delete
-	stillExists, err := st.Load(ctx, prompt.PromptIDSystem)
+	stillExists, err := st.Load(ctx, prompt.PromptIDSubagentSystem)
 	require.NoError(t, err)
 	assert.NotNil(t, stillExists, "Built-in prompt should still exist after failed delete")
 }
@@ -680,4 +680,3 @@ func TestRenderPrompt_EmptyMessageHistory(t *testing.T) {
 	assert.Contains(t, rendered, "Agent agent-empty", "Should contain substituted AgentID")
 	assert.Contains(t, rendered, "Task: test task", "Should contain substituted Task")
 }
-

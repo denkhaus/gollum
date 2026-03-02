@@ -13,10 +13,10 @@ import (
 
 // templateNameMap maps prompt IDs to their template names
 var templateNameMap = map[string]string{
-	prompt.PromptIDSystem:     "systemprompt",
-	prompt.PromptIDSupervisor: "supervisorprompt",
-	prompt.PromptIDCompacter:  "compacter",
-	prompt.PromptIDSubagent:   "subagenttaskprompt",
+	prompt.PromptIDSubagentSystem:   "systemprompt",
+	prompt.PromptIDSupervisorSystem: "supervisorprompt",
+	prompt.PromptIDCompacter:        "compacter",
+	prompt.PromptIDSubagentTask:     "subagenttaskprompt",
 	// Optimizer templates (not loaded from store, embedded only)
 	"optimizer_gradient_prompt":     "optimizergradientprompt",
 	"optimizer_gradient_metaprompt": "optimizergradientmetaprompt",

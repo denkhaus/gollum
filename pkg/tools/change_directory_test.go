@@ -32,6 +32,17 @@ func TestChangeDirectoryTool_Run_ValidDirectory(t *testing.T) {
 	mockWorkspaceService := mocks.NewMockService(ctrl)
 	mockSkillService := mocks.NewMockSkillService(ctrl)
 
+	// Save original directory and restore after test
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get working directory: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(originalDir); err != nil {
+			t.Fatalf("Failed to restore working directory: %v", err)
+		}
+	}()
+
 	// Create temp directory for testing
 	tempDir := t.TempDir()
 
@@ -192,6 +203,17 @@ func TestChangeDirectoryTool_Run_RelativePath(t *testing.T) {
 	mockWorkspaceService := mocks.NewMockService(ctrl)
 	mockSkillService := mocks.NewMockSkillService(ctrl)
 
+	// Save original directory and restore after test
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get working directory: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(originalDir); err != nil {
+			t.Fatalf("Failed to restore working directory: %v", err)
+		}
+	}()
+
 	// Create temp directory
 	tempDir := t.TempDir()
 
@@ -240,6 +262,17 @@ func TestChangeDirectoryTool_Run_SkillDiscoveryFailure(t *testing.T) {
 
 	mockWorkspaceService := mocks.NewMockService(ctrl)
 	mockSkillService := mocks.NewMockSkillService(ctrl)
+
+	// Save original directory and restore after test
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get working directory: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(originalDir); err != nil {
+			t.Fatalf("Failed to restore working directory: %v", err)
+		}
+	}()
 
 	tempDir := t.TempDir()
 

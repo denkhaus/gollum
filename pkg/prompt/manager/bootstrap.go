@@ -30,10 +30,10 @@ type templateInfo struct {
 
 // templateRegistry maps built-in prompt IDs to their template entries.
 var templateRegistry = map[string]templateInfo{
-	prompt.PromptIDSystem:                {"subagent_system_prompt.md", "System Prompt", &systemOnce},
-	prompt.PromptIDSupervisor:            {"supervisor_system_prompt.md", "Supervisor System Prompt", &supervisorOnce},
+	prompt.PromptIDSubagentSystem:        {"subagent_system_prompt.md", "System Prompt", &systemOnce},
+	prompt.PromptIDSupervisorSystem:      {"supervisor_system_prompt.md", "Supervisor System Prompt", &supervisorOnce},
 	prompt.PromptIDCompacter:             {"compacter_prompt.md", "Compacter Prompt", &compacterOnce},
-	prompt.PromptIDSubagent:              {"subagent_task_prompt.md", "Subagent Task Prompt", &subagentOnce},
+	prompt.PromptIDSubagentTask:          {"subagent_task_prompt.md", "Subagent Task Prompt", &subagentOnce},
 	prompt.PromptIDOptimizerGradient:     {"optimizer_gradient_prompt.md", "Optimizer Gradient Reflection Prompt", &optimizerGradientOnce},
 	prompt.PromptIDOptimizerGradientMeta: {"optimizer_gradient_metaprompt.md", "Optimizer Gradient Metaprompt", &optimizerGradientMetaOnce},
 	prompt.PromptIDOptimizerMeta:         {"optimizer_metaprompt.md", "Optimizer Metaprompt", &optimizerMetaOnce},

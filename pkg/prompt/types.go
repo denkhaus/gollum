@@ -10,13 +10,13 @@ import (
 
 // Built-in prompt ID constants
 const (
-	PromptIDSystem = "system"
-	// PromptIDSupervisor is the supervisor system prompt.
-	PromptIDSupervisor = "supervisor"
+	PromptIDSubagentSystem = "subagent_system"
+	// PromptIDSupervisorSystem is the supervisor system prompt.
+	PromptIDSupervisorSystem = "supervisor_system"
 	// PromptIDCompacter is the compacter prompt.
 	PromptIDCompacter = "compacter"
-	// PromptIDSubagent is the subagent task prompt.
-	PromptIDSubagent = "subagent"
+	// PromptIDSubagentTask is the subagent task prompt.
+	PromptIDSubagentTask = "subagent_task"
 
 	// Optimizer prompt IDs
 	// PromptIDOptimizerGradient is the gradient strategy reflection prompt.
