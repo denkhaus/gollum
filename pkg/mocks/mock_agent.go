@@ -119,3 +119,31 @@ func (mr *MockAgentMockRecorder) Session() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Session", reflect.TypeOf((*MockAgent)(nil).Session))
 }
+
+// UpdateHistory mocks base method.
+func (m *MockAgent) UpdateHistory(ctx context.Context, modifier func(*gollem.History) (*gollem.History, error)) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateHistory", ctx, modifier)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateHistory indicates an expected call of UpdateHistory.
+func (mr *MockAgentMockRecorder) UpdateHistory(ctx, modifier any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHistory", reflect.TypeOf((*MockAgent)(nil).UpdateHistory), ctx, modifier)
+}
+
+// UpdateSystemPrompt mocks base method.
+func (m *MockAgent) UpdateSystemPrompt(ctx context.Context, newPrompt string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSystemPrompt", ctx, newPrompt)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateSystemPrompt indicates an expected call of UpdateSystemPrompt.
+func (mr *MockAgentMockRecorder) UpdateSystemPrompt(ctx, newPrompt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSystemPrompt", reflect.TypeOf((*MockAgent)(nil).UpdateSystemPrompt), ctx, newPrompt)
+}
