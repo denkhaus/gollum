@@ -130,12 +130,15 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 
 	// Create the base agent
 	defAgent := &defaultAgent{
-		clientProvider: f.clientProvider,
-		configService:  f.configService,
-		logService:     f.logService,
-		registry:       f.registry,
-		id:             config.ID,
-		config:         config,
+		clientProvider:   f.clientProvider,
+		configService:    f.configService,
+		logService:       f.logService,
+		registry:         f.registry,
+		id:               config.ID,
+		config:           config,
+		displayProvider:  f.displayProvider,
+		summaryProvider:  f.summaryProvider,
+		promptManager:    f.promptManager,
 	}
 
 	// Get LLM client
@@ -145,6 +148,9 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 			WithContext("agent_id", config.ID).
 			WithContext("llm_provider", config.LLMProvider)
 	}
+
+	// Set the LLM client for session recreation
+	defAgent.llmClient = client
 
 	// Set default strategy
 	if config.Strategy == nil {
