@@ -9,11 +9,13 @@ import (
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/middleware"
+	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
+	"github.com/m-mizutani/gollem/middleware/compacter"
 	"go.uber.org/zap"
 )
 
@@ -124,4 +126,52 @@ func (p *defaultAgent) UpdateHistory(ctx context.Context, modifier func(*gollem.
 		zap.Int("messages_after", len(modifiedHistory.Messages)))
 
 	return nil
+}
+
+// buildOptionsWithHistory consolidates options for agent recreation.
+// It rebuilds all gollem options including middlewares based on current config.
+func (p *defaultAgent) buildOptionsWithHistory(history *gollem.History) []gollem.Option {
+	options := []gollem.Option{
+		gollem.WithStrategy(p.config.Strategy),
+		gollem.WithTools(p.config.Tools...),
+		gollem.WithToolSets(p.config.ToolSets...),
+		gollem.WithSystemPrompt(p.config.SystemPrompt),
+	}
+
+	// Add history if present
+	if history != nil && len(history.Messages) > 0 {
+		options = append(options, gollem.WithHistory(history))
+	}
+
+	// Recreate middlewares based on OutputMode
+	switch p.config.OutputMode {
+	case shared.OutputModeSummary:
+		summaryMW := p.summaryProvider.CreateSummaryMiddleware(p.id, p.config.Role)
+		options = append(options,
+			gollem.WithContentBlockMiddleware(summaryMW.ContentBlockMiddleware),
+			gollem.WithToolMiddleware(summaryMW.ToolMiddleware),
+		)
+	case shared.OutputModeFull:
+		displayMW := p.displayProvider.CreateDisplayMiddleware(p.id, p.config.Role)
+		options = append(options,
+			gollem.WithContentBlockMiddleware(displayMW.ContentBlockMiddleware),
+			gollem.WithToolMiddleware(displayMW.ToolMiddleware),
+		)
+	// OutputModeSilent: no middlewares
+	}
+
+	// Add compacter middleware if enabled
+	if p.config.AllowCompaction {
+		compacterPrompt, err := p.promptManager.GetPromptByID(context.Background(), prompt.PromptIDCompacter)
+		if err == nil {
+			contextCompacter := compacter.NewContentBlockMiddleware(p.llmClient,
+				compacter.WithSummaryPrompt(compacterPrompt.Content),
+			)
+			options = append(options,
+				gollem.WithContentBlockMiddleware(contextCompacter),
+			)
+		}
+	}
+
+	return options
 }
