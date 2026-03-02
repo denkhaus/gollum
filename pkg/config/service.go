@@ -172,6 +172,18 @@ type PromptOptimizerConfig struct {
 	MinReflectionSteps int `envconfig:"MIN_REFLECTION" default:"2"`
 }
 
+// EventsConfig holds configuration for the event bus.
+type EventsConfig struct {
+	// MaxRetries is the maximum number of retry attempts for failed handlers.
+	MaxRetries int `envconfig:"MAX_RETRIES" default:"3"`
+
+	// RetryDelayMs is the initial delay between retries in milliseconds.
+	RetryDelayMs int `envconfig:"RETRY_DELAY_MS" default:"100"`
+
+	// RetryBackoff is the multiplier for exponential backoff.
+	RetryBackoff int `envconfig:"RETRY_BACKOFF" default:"2"`
+}
+
 // ConfigService defines the configuration service interface
 //
 //revive:disable-next-line:exported
@@ -189,6 +201,7 @@ type ConfigService interface {
 	GetPromptStoreConfig() *PromptStoreConfig
 	GetPromptOptimizerConfig() *PromptOptimizerConfig
 	GetLangfuseConfig() *LangfuseConfig
+	GetEventsConfig() *EventsConfig
 }
 
 // serviceImpl implements the ConfigService interface
@@ -205,6 +218,7 @@ type serviceImpl struct {
 	Development     bool                  `envconfig:"DEVELOPMENT" default:"false"`
 	PromptStore     PromptStoreConfig     `envconfig:"PROMPT_STORE"`
 	PromptOptimizer PromptOptimizerConfig `envconfig:"OPTIMIZER"`
+	Events          EventsConfig          `envconfig:"EVENTS"`
 }
 
 // NewService creates a new configuration service
@@ -277,4 +291,8 @@ func (s *serviceImpl) GetPromptOptimizerConfig() *PromptOptimizerConfig {
 
 func (s *serviceImpl) GetLangfuseConfig() *LangfuseConfig {
 	return (*LangfuseConfig)(&s.Hooks)
+}
+
+func (s *serviceImpl) GetEventsConfig() *EventsConfig {
+	return &s.Events
 }

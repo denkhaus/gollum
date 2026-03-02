@@ -8,6 +8,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/app"
 	"github.com/denkhaus/gollum/pkg/builtin"
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/events"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
@@ -66,6 +67,9 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	// Hooks
 	do.Provide(p.injector, hooks.NewHookManager)
 	do.Provide(p.injector, builtin.NewBuiltinHooksProvider)
+
+	// Event Bus - must be before services that use it
+	do.Provide(p.injector, events.NewBusProvider)
 
 	// Registry
 	do.Provide(p.injector, registry.NewAgentRegistry)
