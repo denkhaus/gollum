@@ -30,10 +30,10 @@ type (
 		config         *shared.AgentConfig
 
 		// Required for session recreation
-		llmClient        gollem.LLMClient
-		displayProvider  middleware.DisplayMiddlewareProvider
-		summaryProvider  middleware.SummaryMiddlewareProvider
-		promptManager    manager.PromptManager
+		llmClient       gollem.LLMClient
+		displayProvider middleware.DisplayMiddlewareProvider
+		summaryProvider middleware.SummaryMiddlewareProvider
+		promptManager   manager.PromptManager
 	}
 )
 
@@ -157,7 +157,7 @@ func (p *defaultAgent) buildOptionsWithHistory(history *gollem.History) []gollem
 			gollem.WithContentBlockMiddleware(displayMW.ContentBlockMiddleware),
 			gollem.WithToolMiddleware(displayMW.ToolMiddleware),
 		)
-	// OutputModeSilent: no middlewares
+		// OutputModeSilent: no middlewares
 	}
 
 	// Add compacter middleware if enabled

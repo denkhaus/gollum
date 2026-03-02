@@ -130,15 +130,15 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 
 	// Create the base agent
 	defAgent := &defaultAgent{
-		clientProvider:   f.clientProvider,
-		configService:    f.configService,
-		logService:       f.logService,
-		registry:         f.registry,
-		id:               config.ID,
-		config:           config,
-		displayProvider:  f.displayProvider,
-		summaryProvider:  f.summaryProvider,
-		promptManager:    f.promptManager,
+		clientProvider:  f.clientProvider,
+		configService:   f.configService,
+		logService:      f.logService,
+		registry:        f.registry,
+		id:              config.ID,
+		config:          config,
+		displayProvider: f.displayProvider,
+		summaryProvider: f.summaryProvider,
+		promptManager:   f.promptManager,
 	}
 
 	// Get LLM client

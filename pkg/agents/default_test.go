@@ -17,8 +17,8 @@ func TestDefaultAgent_GetMessageHistory(t *testing.T) {
 
 	t.Run("handles nil session", func(t *testing.T) {
 		agent := &defaultAgent{
-			base:  nil, // No base agent set
-			id:    uuid.New(),
+			base:   nil, // No base agent set
+			id:     uuid.New(),
 			config: &shared.AgentConfig{},
 		}
 
@@ -31,8 +31,8 @@ func TestDefaultAgent_GetMessageHistory(t *testing.T) {
 		// This test verifies that when base exists but Session() returns nil
 		// The method handles it gracefully
 		agent := &defaultAgent{
-			base:  nil, // No base agent means no session
-			id:    uuid.New(),
+			base:   nil, // No base agent means no session
+			id:     uuid.New(),
 			config: &shared.AgentConfig{},
 		}
 
@@ -45,9 +45,9 @@ func TestDefaultAgent_GetMessageHistory(t *testing.T) {
 // TestDefaultAgent_GetConfig tests GetConfig method
 func TestDefaultAgent_GetConfig(t *testing.T) {
 	config := &shared.AgentConfig{
-		ID:          uuid.New(),
+		ID:           uuid.New(),
 		SystemPrompt: "test prompt",
-		Role:        "test role",
+		Role:         "test role",
 	}
 
 	agent := &defaultAgent{
