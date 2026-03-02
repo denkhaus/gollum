@@ -91,24 +91,24 @@ func TestLangfuseHook_LLMSpanCreation(t *testing.T) {
 				hook.createTraceContext(tt.sessionID)
 			}
 
-			// Create HookContext
-			hookCtx := &hooks.HookContext{
-				SessionID:  tt.sessionID,
-				LLMModel:   tt.llmModel,
-				LLMInput:   tt.llmInput,
-				LLMOptions: make(map[string]any),
-				Data:       make(map[string]any),
-			}
+			// Create TypedHookContext with LLMPayload
+			hookCtx := hooks.NewTypedHookContext(
+				hooks.BaseContext{SessionID: tt.sessionID},
+				hooks.LLMPayload{
+					Model:   tt.llmModel,
+					Input:   tt.llmInput,
+					Options: make(map[string]any),
+				},
+			)
 
 			// Call beforeLLMRequestHook
 			err := hook.beforeLLMRequestHook(context.Background(), hookCtx, func() error { return nil })
 			require.NoError(t, err)
 
-			// Verify span creation
-			spanID, hasSpanID := hookCtx.Data["langfuse_span_id"].(string)
+			// Verify span creation via Tracing.SpanID
+			spanID := hookCtx.Tracing.SpanID
 
 			if tt.wantSpanCreated {
-				assert.True(t, hasSpanID, "Should have span ID in Data")
 				assert.NotEmpty(t, spanID, "Span ID should not be empty")
 
 				// Verify span stored in TraceContext
@@ -123,7 +123,7 @@ func TestLangfuseHook_LLMSpanCreation(t *testing.T) {
 				assert.Equal(t, tt.llmInput, spanCtx.Input)
 				assert.False(t, spanCtx.StartTime.IsZero(), "StartTime should be set")
 			} else {
-				assert.False(t, hasSpanID, "Should not have span ID when disabled or nil session")
+				assert.Empty(t, spanID, "Should not have span ID when disabled or nil session")
 			}
 		})
 	}
@@ -166,16 +166,16 @@ func TestLangfuseHook_LLMSpanUpdate(t *testing.T) {
 		Input:     "Hello, world!",
 	}
 
-	// Create HookContext with span ID and response
-	hookCtx := &hooks.HookContext{
-		SessionID:   sessionID,
-		LLMModel:    "claude-3-5-sonnet",
-		LLMResponse: "Hi there!",
-		LLMOptions:  make(map[string]any),
-		Data: map[string]any{
-			"langfuse_span_id": spanID,
+	// Create TypedHookContext with span ID in Tracing and response in Payload
+	hookCtx := hooks.NewTypedHookContextWithTracing(
+		hooks.BaseContext{SessionID: sessionID},
+		hooks.LLMPayload{
+			Model:    "claude-3-5-sonnet",
+			Response: "Hi there!",
+			Options:  make(map[string]any),
 		},
-	}
+		hooks.TracingPayload{SpanID: spanID},
+	)
 
 	// Call afterLLMResponseHook
 	err := hook.afterLLMResponseHook(context.Background(), hookCtx, func() error { return nil })
@@ -214,12 +214,11 @@ func TestLangfuseHook_LLMSpanUpdate_MissingSpanID(t *testing.T) {
 
 	hook.createTraceContext(sessionID)
 
-	// Create HookContext without span ID
-	hookCtx := &hooks.HookContext{
-		SessionID:   sessionID,
-		LLMResponse: "Response!",
-		Data:        make(map[string]any),
-	}
+	// Create TypedHookContext without span ID in Tracing
+	hookCtx := hooks.NewTypedHookContext(
+		hooks.BaseContext{SessionID: sessionID},
+		hooks.LLMPayload{Response: "Response!"},
+	)
 
 	// Should not error, just skip
 	err := hook.afterLLMResponseHook(context.Background(), hookCtx, func() error { return nil })
@@ -249,14 +248,12 @@ func TestLangfuseHook_LLMSpanUpdate_NilTraceContext(t *testing.T) {
 
 	// Don't create trace context
 
-	// Create HookContext with span ID but no trace context
-	hookCtx := &hooks.HookContext{
-		SessionID:   sessionID,
-		LLMResponse: "Response!",
-		Data: map[string]any{
-			"langfuse_span_id": "nonexistent-span",
-		},
-	}
+	// Create TypedHookContext with span ID but no trace context
+	hookCtx := hooks.NewTypedHookContextWithTracing(
+		hooks.BaseContext{SessionID: sessionID},
+		hooks.LLMPayload{Response: "Response!"},
+		hooks.TracingPayload{SpanID: "nonexistent-span"},
+	)
 
 	// Should not error, just skip
 	err := hook.afterLLMResponseHook(context.Background(), hookCtx, func() error { return nil })

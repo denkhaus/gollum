@@ -206,16 +206,11 @@ func (h *LangfuseHook) Shutdown() error {
 // Priority 500 runs after LoggingHook (1000) but before custom user hooks.
 const LangfuseHookPriority = 500
 
-// hookRegisterer is a minimal interface for hook registration.
-// This allows RegisterLangfuseHooks to work with any type that implements RegisterHook.
-type hookRegisterer interface {
-	RegisterHook(fn hooks.HookFunc, meta hooks.HookMetadata) error
-}
 
 // RegisterLangfuseHooks registers all Langfuse tracing hooks with HookManager.
 // It creates and manages trace contexts for session-based tracing.
 // Hooks are registered at priority 500 (after logging, before custom hooks).
-func RegisterLangfuseHooks(hm hookRegisterer, hook *LangfuseHook) error {
+func RegisterLangfuseHooks(hm hooks.HookManager, hook *LangfuseHook) error {
 	// Check if Langfuse tracing is enabled
 	if !hook.config.LangfuseEnabled {
 		return nil // Skip registration if tracing is disabled
@@ -224,72 +219,97 @@ func RegisterLangfuseHooks(hm hookRegisterer, hook *LangfuseHook) error {
 	priority := LangfuseHookPriority
 	fatalError := false // Tracing failures should not stop execution
 
+	// Helper to create TypedHookMetadata
+	meta := func(name string, point hooks.HookPoint) hooks.TypedHookMetadata {
+		return hooks.TypedHookMetadata{
+			Name:       name,
+			Point:      point,
+			Priority:   priority,
+			FatalError: fatalError,
+		}
+	}
+
 	// Helper to register hook and log errors (non-fatal)
-	register := func(fn hooks.HookFunc, meta hooks.HookMetadata) {
-		if err := hm.RegisterHook(fn, meta); err != nil {
-			// Log but don't fail - tracing hooks are non-critical
+	registerTool := func(fn hooks.TypedHookFunc[hooks.ToolPayload], name string, point hooks.HookPoint) {
+		if err := hm.RegisterToolHook(fn, meta(name, point)); err != nil {
 			hook.log.Warn("Failed to register Langfuse hook",
-				zap.String("hook_name", meta.Name),
-				zap.String("hook_point", string(meta.Point)),
+				zap.String("hook_name", name),
+				zap.String("hook_point", string(point)),
+				zap.Error(err))
+		}
+	}
+
+	registerLLM := func(fn hooks.TypedHookFunc[hooks.LLMPayload], name string, point hooks.HookPoint) {
+		if err := hm.RegisterLLMHook(fn, meta(name, point)); err != nil {
+			hook.log.Warn("Failed to register Langfuse hook",
+				zap.String("hook_name", name),
+				zap.String("hook_point", string(point)),
+				zap.Error(err))
+		}
+	}
+
+	registerFile := func(fn hooks.TypedHookFunc[hooks.FilePayload], name string, point hooks.HookPoint) {
+		if err := hm.RegisterFileHook(fn, meta(name, point)); err != nil {
+			hook.log.Warn("Failed to register Langfuse hook",
+				zap.String("hook_name", name),
+				zap.String("hook_point", string(point)),
+				zap.Error(err))
+		}
+	}
+
+	registerSession := func(fn hooks.TypedHookFunc[hooks.SessionPayload], name string, point hooks.HookPoint) {
+		if err := hm.RegisterSessionHook(fn, meta(name, point)); err != nil {
+			hook.log.Warn("Failed to register Langfuse hook",
+				zap.String("hook_name", name),
+				zap.String("hook_point", string(point)),
+				zap.Error(err))
+		}
+	}
+
+	registerAgent := func(fn hooks.TypedHookFunc[hooks.AgentPayload], name string, point hooks.HookPoint) {
+		if err := hm.RegisterAgentHook(fn, meta(name, point)); err != nil {
+			hook.log.Warn("Failed to register Langfuse hook",
+				zap.String("hook_name", name),
+				zap.String("hook_point", string(point)),
 				zap.Error(err))
 		}
 	}
 
 	// Session lifecycle hooks
-	register(hook.beforeSessionStartHook,
-		hooks.HookMetadata{Name: "langfuse-before-session-start", Point: hooks.BeforeSessionStart, Priority: priority, FatalError: fatalError})
-	register(hook.afterSessionEndHook,
-		hooks.HookMetadata{Name: "langfuse-after-session-end", Point: hooks.AfterSessionEnd, Priority: priority, FatalError: fatalError})
+	registerSession(hook.beforeSessionStartHook, "langfuse-before-session-start", hooks.BeforeSessionStart)
+	registerSession(hook.afterSessionEndHook, "langfuse-after-session-end", hooks.AfterSessionEnd)
 
 	// Agent lifecycle hooks
-	register(hook.beforeAgentSpawnHook,
-		hooks.HookMetadata{Name: "langfuse-before-agent-spawn", Point: hooks.BeforeAgentSpawn, Priority: priority, FatalError: fatalError})
-	register(hook.afterAgentSpawnHook,
-		hooks.HookMetadata{Name: "langfuse-after-agent-spawn", Point: hooks.AfterAgentSpawn, Priority: priority, FatalError: fatalError})
-	register(hook.beforeAgentRemoveHook,
-		hooks.HookMetadata{Name: "langfuse-before-agent-remove", Point: hooks.BeforeAgentRemove, Priority: priority, FatalError: fatalError})
-	register(hook.afterAgentRemoveHook,
-		hooks.HookMetadata{Name: "langfuse-after-agent-remove", Point: hooks.AfterAgentRemove, Priority: priority, FatalError: fatalError})
+	registerAgent(hook.beforeAgentSpawnHook, "langfuse-before-agent-spawn", hooks.BeforeAgentSpawn)
+	registerAgent(hook.afterAgentSpawnHook, "langfuse-after-agent-spawn", hooks.AfterAgentSpawn)
+	registerAgent(hook.beforeAgentRemoveHook, "langfuse-before-agent-remove", hooks.BeforeAgentRemove)
+	registerAgent(hook.afterAgentRemoveHook, "langfuse-after-agent-remove", hooks.AfterAgentRemove)
 
 	// Tool execution hooks
-	register(hook.beforeToolExecutionHook,
-		hooks.HookMetadata{Name: "langfuse-before-tool-execution", Point: hooks.BeforeToolExecution, Priority: priority, FatalError: fatalError})
-	register(hook.afterToolExecutionHook,
-		hooks.HookMetadata{Name: "langfuse-after-tool-execution", Point: hooks.AfterToolExecution, Priority: priority, FatalError: fatalError})
-	register(hook.onToolErrorHook,
-		hooks.HookMetadata{Name: "langfuse-on-tool-error", Point: hooks.OnToolError, Priority: priority, FatalError: fatalError})
+	registerTool(hook.beforeToolExecutionHook, "langfuse-before-tool-execution", hooks.BeforeToolExecution)
+	registerTool(hook.afterToolExecutionHook, "langfuse-after-tool-execution", hooks.AfterToolExecution)
+	registerTool(hook.onToolErrorHook, "langfuse-on-tool-error", hooks.OnToolError)
 
 	// File operation hooks
-	register(hook.beforeFileReadHook,
-		hooks.HookMetadata{Name: "langfuse-before-file-read", Point: hooks.BeforeFileRead, Priority: priority, FatalError: fatalError})
-	register(hook.afterFileReadHook,
-		hooks.HookMetadata{Name: "langfuse-after-file-read", Point: hooks.AfterFileRead, Priority: priority, FatalError: fatalError})
-	register(hook.beforeFileWriteHook,
-		hooks.HookMetadata{Name: "langfuse-before-file-write", Point: hooks.BeforeFileWrite, Priority: priority, FatalError: fatalError})
-	register(hook.afterFileWriteHook,
-		hooks.HookMetadata{Name: "langfuse-after-file-write", Point: hooks.AfterFileWrite, Priority: priority, FatalError: fatalError})
-	register(hook.beforeFileDeleteHook,
-		hooks.HookMetadata{Name: "langfuse-before-file-delete", Point: hooks.BeforeFileDelete, Priority: priority, FatalError: fatalError})
-	register(hook.afterFileDeleteHook,
-		hooks.HookMetadata{Name: "langfuse-after-file-delete", Point: hooks.AfterFileDelete, Priority: priority, FatalError: fatalError})
-	register(hook.beforeFileModifyHook,
-		hooks.HookMetadata{Name: "langfuse-before-file-modify", Point: hooks.BeforeFileModify, Priority: priority, FatalError: fatalError})
-	register(hook.afterFileModifyHook,
-		hooks.HookMetadata{Name: "langfuse-after-file-modify", Point: hooks.AfterFileModify, Priority: priority, FatalError: fatalError})
+	registerFile(hook.beforeFileReadHook, "langfuse-before-file-read", hooks.BeforeFileRead)
+	registerFile(hook.afterFileReadHook, "langfuse-after-file-read", hooks.AfterFileRead)
+	registerFile(hook.beforeFileWriteHook, "langfuse-before-file-write", hooks.BeforeFileWrite)
+	registerFile(hook.afterFileWriteHook, "langfuse-after-file-write", hooks.AfterFileWrite)
+	registerFile(hook.beforeFileDeleteHook, "langfuse-before-file-delete", hooks.BeforeFileDelete)
+	registerFile(hook.afterFileDeleteHook, "langfuse-after-file-delete", hooks.AfterFileDelete)
+	registerFile(hook.beforeFileModifyHook, "langfuse-before-file-modify", hooks.BeforeFileModify)
+	registerFile(hook.afterFileModifyHook, "langfuse-after-file-modify", hooks.AfterFileModify)
 
 	// LLM hooks
-	register(hook.beforeLLMRequestHook,
-		hooks.HookMetadata{Name: "langfuse-before-llm-request", Point: hooks.BeforeLLMRequest, Priority: priority, FatalError: fatalError})
-	register(hook.afterLLMResponseHook,
-		hooks.HookMetadata{Name: "langfuse-after-llm-response", Point: hooks.AfterLLMResponse, Priority: priority, FatalError: fatalError})
-	register(hook.onLLMErrorHook,
-		hooks.HookMetadata{Name: "langfuse-on-llm-error", Point: hooks.OnLLMError, Priority: priority, FatalError: fatalError})
+	registerLLM(hook.beforeLLMRequestHook, "langfuse-before-llm-request", hooks.BeforeLLMRequest)
+	registerLLM(hook.afterLLMResponseHook, "langfuse-after-llm-response", hooks.AfterLLMResponse)
+	registerLLM(hook.onLLMErrorHook, "langfuse-on-llm-error", hooks.OnLLMError)
 
 	return nil
 }
 
 // Session lifecycle hook methods - creates actual Langfuse SDK trace
-func (h *LangfuseHook) beforeSessionStartHook(ctx context.Context, hookCtx *hooks.HookContext, next func() error) error {
+func (h *LangfuseHook) beforeSessionStartHook(ctx context.Context, hookCtx *hooks.TypedHookContext[hooks.SessionPayload], next func() error) error {
 	// Only create trace if Langfuse is enabled
 	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
 		return next()
@@ -324,8 +344,8 @@ func (h *LangfuseHook) beforeSessionStartHook(ctx context.Context, hookCtx *hook
 	h.traceCtxs[hookCtx.SessionID] = tc
 	h.traceCtxsMu.Unlock()
 
-	// Propagate trace ID to HookContext for child spans
-	hookCtx.Data["langfuse_trace_id"] = tc.TraceID
+	// Propagate trace ID to TypedHookContext.Tracing for child spans
+	hookCtx.Tracing.TraceID = tc.TraceID
 
 	h.log.Info("Langfuse session trace created",
 		zap.String("trace_id", tc.TraceID),
@@ -334,7 +354,7 @@ func (h *LangfuseHook) beforeSessionStartHook(ctx context.Context, hookCtx *hook
 	return next()
 }
 
-func (h *LangfuseHook) afterSessionEndHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+func (h *LangfuseHook) afterSessionEndHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.SessionPayload], next func() error) error {
 	// Call next first to let session cleanup complete
 	err := next()
 	if err != nil {
@@ -397,11 +417,21 @@ func (h *LangfuseHook) flushTraces() error {
 	return nil
 }
 
+// propagateTracingToContext sets trace ID in TypedHookContext.Tracing for span correlation.
+func (h *LangfuseHook) propagateTracingToContext(sessionID uuid.UUID, tracing *hooks.TracingPayload) {
+	if sessionID != uuid.Nil && tracing != nil {
+		tc := h.getTraceContext(sessionID)
+		if tc != nil {
+			tracing.TraceID = tc.TraceID
+		}
+	}
+}
+
 // Agent lifecycle hook methods (span creation in Phase 9)
-func (h *LangfuseHook) beforeAgentSpawnHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+func (h *LangfuseHook) beforeAgentSpawnHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.AgentPayload], next func() error) error {
 	// Only create spans if Langfuse is enabled and client is available
 	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return next()
 	}
 
@@ -410,7 +440,7 @@ func (h *LangfuseHook) beforeAgentSpawnHook(_ context.Context, hookCtx *hooks.Ho
 	if err != nil {
 		// Client not configured - log debug and continue
 		h.log.Debug("Langfuse client not available, skipping agent span creation", zap.Error(err))
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return next()
 	}
 
@@ -421,17 +451,17 @@ func (h *LangfuseHook) beforeAgentSpawnHook(_ context.Context, hookCtx *hooks.Ho
 		tc = h.createTraceContext(hookCtx.SessionID)
 	}
 
-	// Generate span ID and store in HookContext for correlation
+	// Generate span ID and store in Tracing for correlation
 	spanID := uuid.New().String()
-	hookCtx.Data["langfuse_span_id"] = spanID
-	hookCtx.Data["langfuse_agent_event_start"] = time.Now()
+	hookCtx.Tracing.SpanID = spanID
+	hookCtx.Tracing.StartTime = time.Now()
 
 	// Store incomplete span in TraceContext
 	h.traceCtxsMu.Lock()
 	if tc.Spans == nil {
 		tc.Spans = make(map[string]interface{})
 	}
-	// Create placeholder span object (will be replaced with actual SDK span in Phase 10)
+	// Create placeholder span object
 	tc.Spans[spanID] = &AgentSpanContext{
 		StartTime:     time.Now(),
 		EventType:     "spawn",
@@ -443,11 +473,11 @@ func (h *LangfuseHook) beforeAgentSpawnHook(_ context.Context, hookCtx *hooks.Ho
 		zap.String("span_id", spanID),
 		zap.String("parent_agent_id", hookCtx.AgentID.String()))
 
-	h.propagateTraceID(hookCtx)
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return next()
 }
 
-func (h *LangfuseHook) afterAgentSpawnHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+func (h *LangfuseHook) afterAgentSpawnHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.AgentPayload], next func() error) error {
 	// Call next first to let the spawn complete
 	err := next()
 	if err != nil {
@@ -456,21 +486,21 @@ func (h *LangfuseHook) afterAgentSpawnHook(_ context.Context, hookCtx *hooks.Hoo
 
 	// Only update spans if Langfuse is enabled
 	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
-	// Get span ID from HookContext.Data
-	spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-	if !ok || spanID == "" {
-		h.propagateTraceID(hookCtx)
+	// Get span ID from Tracing
+	spanID := hookCtx.Tracing.SpanID
+	if spanID == "" {
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
 	// Get trace context
 	tc := h.getTraceContext(hookCtx.SessionID)
 	if tc == nil {
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
@@ -479,15 +509,12 @@ func (h *LangfuseHook) afterAgentSpawnHook(_ context.Context, hookCtx *hooks.Hoo
 	spanCtx, ok := tc.Spans[spanID].(*AgentSpanContext)
 	if !ok {
 		h.traceCtxsMu.Unlock()
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
-	// Update span with new agent ID if available
-	// The new agent ID should be set by the caller in HookContext.Data
-	if newAgentID, ok := hookCtx.Data["new_agent_id"].(string); ok {
-		spanCtx.NewAgentID = newAgentID
-	}
+	// Update span with new agent ID from payload
+	spanCtx.NewAgentID = hookCtx.Payload.NewAgentID.String()
 
 	// Calculate latency
 	latency := time.Since(spanCtx.StartTime)
@@ -504,14 +531,14 @@ func (h *LangfuseHook) afterAgentSpawnHook(_ context.Context, hookCtx *hooks.Hoo
 		zap.String("new_agent_id", spanCtx.NewAgentID),
 		zap.Duration("latency", latency))
 
-	h.propagateTraceID(hookCtx)
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return nil
 }
 
-func (h *LangfuseHook) beforeAgentRemoveHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+func (h *LangfuseHook) beforeAgentRemoveHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.AgentPayload], next func() error) error {
 	// Only create spans if Langfuse is enabled and client is available
 	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return next()
 	}
 
@@ -519,7 +546,7 @@ func (h *LangfuseHook) beforeAgentRemoveHook(_ context.Context, hookCtx *hooks.H
 	_, err := h.getClient()
 	if err != nil {
 		h.log.Debug("Langfuse client not available, skipping agent removal span creation", zap.Error(err))
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return next()
 	}
 
@@ -529,10 +556,10 @@ func (h *LangfuseHook) beforeAgentRemoveHook(_ context.Context, hookCtx *hooks.H
 		tc = h.createTraceContext(hookCtx.SessionID)
 	}
 
-	// Generate span ID and store in HookContext for correlation
+	// Generate span ID and store in Tracing for correlation
 	spanID := uuid.New().String()
-	hookCtx.Data["langfuse_span_id"] = spanID
-	hookCtx.Data["langfuse_agent_event_start"] = time.Now()
+	hookCtx.Tracing.SpanID = spanID
+	hookCtx.Tracing.StartTime = time.Now()
 
 	// Store incomplete span in TraceContext
 	h.traceCtxsMu.Lock()
@@ -550,11 +577,11 @@ func (h *LangfuseHook) beforeAgentRemoveHook(_ context.Context, hookCtx *hooks.H
 		zap.String("span_id", spanID),
 		zap.String("agent_id", hookCtx.AgentID.String()))
 
-	h.propagateTraceID(hookCtx)
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return next()
 }
 
-func (h *LangfuseHook) afterAgentRemoveHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+func (h *LangfuseHook) afterAgentRemoveHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.AgentPayload], next func() error) error {
 	// Call next first to let the removal complete
 	err := next()
 	if err != nil {
@@ -563,21 +590,21 @@ func (h *LangfuseHook) afterAgentRemoveHook(_ context.Context, hookCtx *hooks.Ho
 
 	// Only update spans if Langfuse is enabled
 	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
-	// Get span ID from HookContext.Data
-	spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-	if !ok || spanID == "" {
-		h.propagateTraceID(hookCtx)
+	// Get span ID from Tracing
+	spanID := hookCtx.Tracing.SpanID
+	if spanID == "" {
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
 	// Get trace context
 	tc := h.getTraceContext(hookCtx.SessionID)
 	if tc == nil {
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
@@ -586,7 +613,7 @@ func (h *LangfuseHook) afterAgentRemoveHook(_ context.Context, hookCtx *hooks.Ho
 	spanCtx, ok := tc.Spans[spanID].(*AgentSpanContext)
 	if !ok {
 		h.traceCtxsMu.Unlock()
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
@@ -604,15 +631,15 @@ func (h *LangfuseHook) afterAgentRemoveHook(_ context.Context, hookCtx *hooks.Ho
 		zap.String("agent_id", spanCtx.AgentID),
 		zap.Duration("latency", latency))
 
-	h.propagateTraceID(hookCtx)
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return nil
 }
 
-// Tool execution hook methods (span creation in Phase 9)
-func (h *LangfuseHook) beforeToolExecutionHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+// Tool execution hook methods
+func (h *LangfuseHook) beforeToolExecutionHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.ToolPayload], next func() error) error {
 	// Only create spans if Langfuse is enabled and client is available
 	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return next()
 	}
 
@@ -621,7 +648,7 @@ func (h *LangfuseHook) beforeToolExecutionHook(_ context.Context, hookCtx *hooks
 	if err != nil {
 		// Client not configured - log debug and continue
 		h.log.Debug("Langfuse client not available, skipping tool span creation", zap.Error(err))
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return next()
 	}
 
@@ -632,32 +659,29 @@ func (h *LangfuseHook) beforeToolExecutionHook(_ context.Context, hookCtx *hooks
 		tc = h.createTraceContext(hookCtx.SessionID)
 	}
 
-	// Store span metadata in HookContext for AfterToolExecution to complete
-	hookCtx.Data["langfuse_tool_start"] = time.Now()
-	hookCtx.Data["langfuse_tool_name"] = hookCtx.ToolName
-
-	// Generate span ID and store in HookContext for correlation
+	// Generate span ID and store in Tracing for correlation
 	spanID := uuid.New().String()
-	hookCtx.Data["langfuse_span_id"] = spanID
+	hookCtx.Tracing.SpanID = spanID
+	hookCtx.Tracing.StartTime = time.Now()
 
 	// Store incomplete span in TraceContext
 	h.traceCtxsMu.Lock()
 	if tc.Spans == nil {
 		tc.Spans = make(map[string]interface{})
 	}
-	// Create placeholder span object (will be replaced with actual SDK span in Phase 10)
+	// Create placeholder span object - access tool data via Payload
 	tc.Spans[spanID] = &ToolSpanContext{
 		StartTime: time.Now(),
-		ToolName:  hookCtx.ToolName,
-		Input:     hookCtx.ToolArgs,
+		ToolName:  hookCtx.Payload.Name,
+		Input:     hookCtx.Payload.Args,
 	}
 	h.traceCtxsMu.Unlock()
 
-	h.propagateTraceID(hookCtx)
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return next()
 }
 
-func (h *LangfuseHook) afterToolExecutionHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+func (h *LangfuseHook) afterToolExecutionHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.ToolPayload], next func() error) error {
 	// Call next first to get the actual tool result
 	err := next()
 	if err != nil {
@@ -666,21 +690,21 @@ func (h *LangfuseHook) afterToolExecutionHook(_ context.Context, hookCtx *hooks.
 
 	// Only update spans if Langfuse is enabled
 	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
-	// Get span ID from HookContext.Data
-	spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-	if !ok || spanID == "" {
-		h.propagateTraceID(hookCtx)
+	// Get span ID from Tracing
+	spanID := hookCtx.Tracing.SpanID
+	if spanID == "" {
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
 	// Get trace context
 	tc := h.getTraceContext(hookCtx.SessionID)
 	if tc == nil {
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
@@ -689,12 +713,12 @@ func (h *LangfuseHook) afterToolExecutionHook(_ context.Context, hookCtx *hooks.
 	spanCtx, ok := tc.Spans[spanID].(*ToolSpanContext)
 	if !ok {
 		h.traceCtxsMu.Unlock()
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
-	// Update span with result data
-	spanCtx.Output = hookCtx.ToolResult
+	// Update span with result data - access via Payload
+	spanCtx.Output = hookCtx.Payload.Result
 
 	// Calculate latency
 	latency := time.Since(spanCtx.StartTime)
@@ -704,16 +728,17 @@ func (h *LangfuseHook) afterToolExecutionHook(_ context.Context, hookCtx *hooks.
 	spanCtx.StatusMessage = "success"
 	h.traceCtxsMu.Unlock()
 
-	// Log span completion (actual span submission to Langfuse in Phase 10)
+	// Log span completion
 	h.log.Debug("Tool span completed",
 		zap.String("span_id", spanID),
 		zap.String("tool_name", spanCtx.ToolName),
 		zap.Duration("latency", latency))
-	h.propagateTraceID(hookCtx)
+
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return nil
 }
 
-func (h *LangfuseHook) onToolErrorHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+func (h *LangfuseHook) onToolErrorHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.ToolPayload], next func() error) error {
 	// Call next first to ensure error chain continues
 	err := next()
 	if err != nil {
@@ -722,21 +747,21 @@ func (h *LangfuseHook) onToolErrorHook(_ context.Context, hookCtx *hooks.HookCon
 
 	// Only update spans if Langfuse is enabled
 	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
-	// Get span ID from HookContext.Data
-	spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-	if !ok || spanID == "" {
-		h.propagateTraceID(hookCtx)
+	// Get span ID from Tracing
+	spanID := hookCtx.Tracing.SpanID
+	if spanID == "" {
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
 	// Get trace context
 	tc := h.getTraceContext(hookCtx.SessionID)
 	if tc == nil {
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
@@ -745,16 +770,16 @@ func (h *LangfuseHook) onToolErrorHook(_ context.Context, hookCtx *hooks.HookCon
 	spanCtx, ok := tc.Spans[spanID].(*ToolSpanContext)
 	if !ok {
 		h.traceCtxsMu.Unlock()
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
 	// Mark span as failed
 	spanCtx.Level = traces.ObservationLevelError
 
-	// Set error message from HookContext.ToolError
-	if hookCtx.ToolError != nil {
-		spanCtx.StatusMessage = hookCtx.ToolError.Error()
+	// Set error message from Payload.Error
+	if hookCtx.Payload.Error != nil {
+		spanCtx.StatusMessage = hookCtx.Payload.Error.Error()
 	} else {
 		spanCtx.StatusMessage = "unknown error"
 	}
@@ -767,56 +792,55 @@ func (h *LangfuseHook) onToolErrorHook(_ context.Context, hookCtx *hooks.HookCon
 		zap.String("span_id", spanID),
 		zap.String("tool_name", spanCtx.ToolName),
 		zap.Duration("latency", latency),
-		zap.Error(hookCtx.ToolError))
+		zap.Error(hookCtx.Payload.Error))
 	h.traceCtxsMu.Unlock()
 
-	h.propagateTraceID(hookCtx)
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return nil
 }
 
-// File operation hook methods (span creation in Phase 9)
-func (h *LangfuseHook) beforeFileReadHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
-	h.propagateTraceID(hookCtx)
+// File operation hook methods
+func (h *LangfuseHook) beforeFileReadHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return next()
 }
 
-func (h *LangfuseHook) afterFileReadHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
-	h.propagateTraceID(hookCtx)
+func (h *LangfuseHook) afterFileReadHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return next()
 }
 
-func (h *LangfuseHook) beforeFileWriteHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
-	h.propagateTraceID(hookCtx)
+func (h *LangfuseHook) beforeFileWriteHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return next()
 }
 
-func (h *LangfuseHook) afterFileWriteHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
-	h.propagateTraceID(hookCtx)
+func (h *LangfuseHook) afterFileWriteHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return next()
 }
 
-func (h *LangfuseHook) beforeFileDeleteHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
-	h.propagateTraceID(hookCtx)
+func (h *LangfuseHook) beforeFileDeleteHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return next()
 }
 
-func (h *LangfuseHook) afterFileDeleteHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
-	h.propagateTraceID(hookCtx)
+func (h *LangfuseHook) afterFileDeleteHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return next()
 }
 
-func (h *LangfuseHook) beforeFileModifyHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
-	h.propagateTraceID(hookCtx)
+func (h *LangfuseHook) beforeFileModifyHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return next()
 }
 
-func (h *LangfuseHook) afterFileModifyHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
-	h.propagateTraceID(hookCtx)
+func (h *LangfuseHook) afterFileModifyHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return next()
 }
 
 // LLMSpanContext holds LLM span data for correlation between before/after hooks.
-// This placeholder struct stores span data until actual Langfuse SDK spans are created in Phase 10.
 type LLMSpanContext struct {
 	StartTime     time.Time
 	Model         string
@@ -828,7 +852,6 @@ type LLMSpanContext struct {
 }
 
 // ToolSpanContext holds tool span data for correlation between before/after/error hooks.
-// This placeholder struct stores span data until actual Langfuse SDK spans are created in Phase 10.
 type ToolSpanContext struct {
 	StartTime     time.Time
 	ToolName      string
@@ -839,7 +862,6 @@ type ToolSpanContext struct {
 }
 
 // AgentSpanContext holds agent span data for correlation between before/after hooks.
-// This placeholder struct stores span data until actual Langfuse SDK spans are created in Phase 10.
 type AgentSpanContext struct {
 	StartTime     time.Time
 	EventType     string // "spawn" or "remove"
@@ -850,11 +872,11 @@ type AgentSpanContext struct {
 	StatusMessage string
 }
 
-// LLM hook methods (span creation in Phase 8)
-func (h *LangfuseHook) beforeLLMRequestHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+// LLM hook methods
+func (h *LangfuseHook) beforeLLMRequestHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.LLMPayload], next func() error) error {
 	// Only create spans if Langfuse is enabled and client is available
 	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return next()
 	}
 
@@ -863,7 +885,7 @@ func (h *LangfuseHook) beforeLLMRequestHook(_ context.Context, hookCtx *hooks.Ho
 	if err != nil {
 		// Client not configured - log debug and continue
 		h.log.Debug("Langfuse client not available, skipping LLM span creation", zap.Error(err))
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return next()
 	}
 
@@ -874,41 +896,29 @@ func (h *LangfuseHook) beforeLLMRequestHook(_ context.Context, hookCtx *hooks.Ho
 		tc = h.createTraceContext(hookCtx.SessionID)
 	}
 
-	// Create LLM Generation span using Langfuse SDK
-	// StartGeneration creates a child observation for LLM interactions
-	spanName := "llm-" + hookCtx.LLMModel
-	if spanName == "llm-" {
-		spanName = "llm-request" // Fallback if model is empty
-	}
-
-	// Store span metadata in HookContext for AfterLLMResponse to complete
-	hookCtx.Data["langfuse_llm_start"] = time.Now()
-	hookCtx.Data["langfuse_llm_model"] = hookCtx.LLMModel
-	hookCtx.Data["langfuse_llm_input"] = hookCtx.LLMInput
-
-	// For Phase 8, we'll create the actual span when session tracing is ready
-	// Store span reference in TraceContext for AfterLLMResponse
+	// Generate span ID and store in Tracing for correlation
 	spanID := uuid.New().String()
-	hookCtx.Data["langfuse_span_id"] = spanID
+	hookCtx.Tracing.SpanID = spanID
+	hookCtx.Tracing.StartTime = time.Now()
 
 	// Store incomplete span in TraceContext
 	h.traceCtxsMu.Lock()
 	if tc.Spans == nil {
 		tc.Spans = make(map[string]interface{})
 	}
-	// Create placeholder span object (will be replaced with actual SDK span in Phase 10)
+	// Create placeholder span object - access LLM data via Payload
 	tc.Spans[spanID] = &LLMSpanContext{
 		StartTime: time.Now(),
-		Model:     hookCtx.LLMModel,
-		Input:     hookCtx.LLMInput,
+		Model:     hookCtx.Payload.Model,
+		Input:     hookCtx.Payload.Input,
 	}
 	h.traceCtxsMu.Unlock()
 
-	h.propagateTraceID(hookCtx)
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return next()
 }
 
-func (h *LangfuseHook) afterLLMResponseHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+func (h *LangfuseHook) afterLLMResponseHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.LLMPayload], next func() error) error {
 	// Call next first to get the actual LLM response
 	err := next()
 	if err != nil {
@@ -917,21 +927,21 @@ func (h *LangfuseHook) afterLLMResponseHook(_ context.Context, hookCtx *hooks.Ho
 
 	// Only update spans if Langfuse is enabled
 	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
-	// Get span ID from HookContext.Data
-	spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-	if !ok || spanID == "" {
-		h.propagateTraceID(hookCtx)
+	// Get span ID from Tracing
+	spanID := hookCtx.Tracing.SpanID
+	if spanID == "" {
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
 	// Get trace context
 	tc := h.getTraceContext(hookCtx.SessionID)
 	if tc == nil {
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
@@ -940,22 +950,20 @@ func (h *LangfuseHook) afterLLMResponseHook(_ context.Context, hookCtx *hooks.Ho
 	spanCtx, ok := tc.Spans[spanID].(*LLMSpanContext)
 	if !ok {
 		h.traceCtxsMu.Unlock()
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
-	// Update span with response data
-	spanCtx.Output = hookCtx.LLMResponse
+	// Update span with response data - access via Payload
+	spanCtx.Output = hookCtx.Payload.Response
 
 	// Calculate latency
 	latency := time.Since(spanCtx.StartTime)
-	endTime := spanCtx.StartTime.Add(latency)
 
-	// Create Usage struct (token counts not available in HookContext yet)
-	// In Phase 9/10, we'll extract token counts from actual LLM responses
+	// Create Usage struct (token counts not available yet)
 	spanCtx.Usage = &traces.Usage{
 		Input:  0, // Will be populated from actual LLM response
-		Output: 0, // Will be populated from actual LLM response
+		Output: 0,
 		Total:  0,
 		Unit:   "TOKENS",
 	}
@@ -965,8 +973,7 @@ func (h *LangfuseHook) afterLLMResponseHook(_ context.Context, hookCtx *hooks.Ho
 	spanCtx.StatusMessage = "success"
 	h.traceCtxsMu.Unlock()
 
-	// Log span completion (actual span submission to Langfuse in Phase 10)
-	_ = endTime // Used for latency calculation
+	// Log span completion
 	h.log.Debug("LLM span completed",
 		zap.String("span_id", spanID),
 		zap.String("model", spanCtx.Model),
@@ -974,11 +981,11 @@ func (h *LangfuseHook) afterLLMResponseHook(_ context.Context, hookCtx *hooks.Ho
 		zap.Int("input_length", len(spanCtx.Input)),
 		zap.Int("output_length", len(spanCtx.Output)))
 
-	h.propagateTraceID(hookCtx)
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return nil
 }
 
-func (h *LangfuseHook) onLLMErrorHook(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
+func (h *LangfuseHook) onLLMErrorHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.LLMPayload], next func() error) error {
 	// Call next first to ensure error chain continues
 	err := next()
 	if err != nil {
@@ -987,21 +994,21 @@ func (h *LangfuseHook) onLLMErrorHook(_ context.Context, hookCtx *hooks.HookCont
 
 	// Only update spans if Langfuse is enabled
 	if !h.config.LangfuseEnabled || hookCtx.SessionID == uuid.Nil {
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
-	// Get span ID from HookContext.Data
-	spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-	if !ok || spanID == "" {
-		h.propagateTraceID(hookCtx)
+	// Get span ID from Tracing
+	spanID := hookCtx.Tracing.SpanID
+	if spanID == "" {
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
 	// Get trace context
 	tc := h.getTraceContext(hookCtx.SessionID)
 	if tc == nil {
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
@@ -1010,23 +1017,23 @@ func (h *LangfuseHook) onLLMErrorHook(_ context.Context, hookCtx *hooks.HookCont
 	spanCtx, ok := tc.Spans[spanID].(*LLMSpanContext)
 	if !ok {
 		h.traceCtxsMu.Unlock()
-		h.propagateTraceID(hookCtx)
+		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
 
 	// Mark span as failed
 	spanCtx.Level = traces.ObservationLevelError
 
-	// Set error message from HookContext.LLMError
-	if hookCtx.LLMError != nil {
-		spanCtx.StatusMessage = hookCtx.LLMError.Error()
+	// Set error message from Payload.Error
+	if hookCtx.Payload.Error != nil {
+		spanCtx.StatusMessage = hookCtx.Payload.Error.Error()
 	} else {
 		spanCtx.StatusMessage = "unknown error"
 	}
 
-	// Preserve partial response if available (e.g., streaming error mid-response)
-	if hookCtx.LLMResponse != "" {
-		spanCtx.Output = hookCtx.LLMResponse
+	// Preserve partial response if available
+	if hookCtx.Payload.Response != "" {
+		spanCtx.Output = hookCtx.Payload.Response
 	}
 
 	// Calculate latency (time from start to error)
@@ -1037,22 +1044,9 @@ func (h *LangfuseHook) onLLMErrorHook(_ context.Context, hookCtx *hooks.HookCont
 		zap.String("span_id", spanID),
 		zap.String("model", spanCtx.Model),
 		zap.Duration("latency", latency),
-		zap.Error(hookCtx.LLMError))
+		zap.Error(hookCtx.Payload.Error))
 	h.traceCtxsMu.Unlock()
 
-	// Note: Output field may contain partial response if available
-	// The span is marked as ERROR to indicate failure
-
-	h.propagateTraceID(hookCtx)
+	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 	return nil
-}
-
-// propagateTraceID sets the langfuse_trace_id in HookContext.Data for span correlation.
-func (h *LangfuseHook) propagateTraceID(hookCtx *hooks.HookContext) {
-	if hookCtx.SessionID != uuid.Nil && hookCtx.Data != nil {
-		tc := h.getTraceContext(hookCtx.SessionID)
-		if tc != nil {
-			hookCtx.Data["langfuse_trace_id"] = tc.TraceID
-		}
-	}
 }

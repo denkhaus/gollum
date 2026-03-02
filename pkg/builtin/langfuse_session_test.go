@@ -21,14 +21,14 @@ func TestLangfuseHook_AgentSpanLifecycle_Integration(t *testing.T) {
 	tests := []struct {
 		name          string
 		parentAgentID uuid.UUID
-		newAgentID    string
-		eventType     string
+		newAgentID    uuid.UUID
+		eventType     hooks.AgentEvent
 	}{
 		{
 			name:          "agent spawn with hierarchy",
 			parentAgentID: uuid.New(),
-			newAgentID:    "child-agent-456",
-			eventType:     "spawn",
+			newAgentID:    uuid.MustParse("00000000-0000-0000-0000-000000000456"),
+			eventType:     hooks.AgentEventSpawn,
 		},
 	}
 
@@ -61,20 +61,18 @@ func TestLangfuseHook_AgentSpanLifecycle_Integration(t *testing.T) {
 			hook.createTraceContext(sessionID)
 			tc := hook.getTraceContext(sessionID)
 
-			// Simulate agent spawn flow
-			hookCtx := &hooks.HookContext{
-				SessionID: sessionID,
-				AgentID:   tt.parentAgentID,
-				Data:      make(map[string]any),
-			}
+			// Simulate agent spawn flow with TypedHookContext
+			hookCtx := hooks.NewTypedHookContext(
+				hooks.BaseContext{SessionID: sessionID, AgentID: tt.parentAgentID},
+				hooks.AgentPayload{Event: tt.eventType, NewAgentID: tt.newAgentID},
+			)
 
 			// Call beforeAgentSpawnHook (creates span)
 			err := hook.beforeAgentSpawnHook(context.Background(), hookCtx, func() error { return nil })
 			require.NoError(t, err)
 
-			// Get span ID
-			spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-			require.True(t, ok, "Should have span ID")
+			// Get span ID from Tracing
+			spanID := hookCtx.Tracing.SpanID
 			require.NotEmpty(t, spanID, "Span ID should not be empty")
 
 			// Verify initial span state
@@ -84,16 +82,13 @@ func TestLangfuseHook_AgentSpanLifecycle_Integration(t *testing.T) {
 			assert.Equal(t, tt.parentAgentID.String(), spanCtx.ParentAgentID)
 			assert.False(t, spanCtx.StartTime.IsZero())
 
-			// Set new agent ID (simulating what caller would do)
-			hookCtx.Data["new_agent_id"] = tt.newAgentID
-
 			// Call afterAgentSpawnHook
 			err = hook.afterAgentSpawnHook(context.Background(), hookCtx, func() error { return nil })
 			require.NoError(t, err)
 
 			// Verify final span state
 			spanCtx = tc.Spans[spanID].(*AgentSpanContext)
-			assert.Equal(t, tt.newAgentID, spanCtx.NewAgentID, "NewAgentID should be set")
+			assert.Equal(t, tt.newAgentID.String(), spanCtx.NewAgentID, "NewAgentID should be set")
 			assert.Equal(t, traces.ObservationLevelDefault, spanCtx.Level, "Level should be DEFAULT")
 			assert.Equal(t, "success", spanCtx.StatusMessage, "Status message should be success")
 
@@ -160,10 +155,10 @@ func TestLangfuseHook_SessionTraceLifecycle(t *testing.T) {
 				traceCtxsMu: &sync.RWMutex{},
 			}
 
-			hookCtx := &hooks.HookContext{
-				SessionID: tt.sessionID,
-				Data:      make(map[string]any),
-			}
+			hookCtx := hooks.NewTypedHookContext(
+				hooks.BaseContext{SessionID: tt.sessionID},
+				hooks.SessionPayload{},
+			)
 
 			// Call beforeSessionStartHook
 			err := hook.beforeSessionStartHook(context.Background(), hookCtx, func() error { return nil })
@@ -177,10 +172,9 @@ func TestLangfuseHook_SessionTraceLifecycle(t *testing.T) {
 				assert.NotEmpty(t, tc.TraceID, "TraceID should be set")
 				assert.NotNil(t, tc.Spans, "Spans map should be initialized")
 
-				// Verify trace ID propagation
-				traceID, hasTraceID := hookCtx.Data["langfuse_trace_id"].(string)
-				assert.True(t, hasTraceID, "Should have langfuse_trace_id in Data")
-				assert.Equal(t, tc.TraceID, traceID, "Trace ID should match")
+				// Verify trace ID propagation via Tracing
+				assert.NotEmpty(t, hookCtx.Tracing.TraceID, "Should have trace ID in Tracing")
+				assert.Equal(t, tc.TraceID, hookCtx.Tracing.TraceID, "Trace ID should match")
 
 				// Call afterSessionEndHook
 				err = hook.afterSessionEndHook(context.Background(), hookCtx, func() error { return nil })
@@ -232,10 +226,10 @@ func TestLangfuseHook_SessionTraceFlush(t *testing.T) {
 	tc := hook.getTraceContext(sessionID)
 	require.NotNil(t, tc)
 
-	hookCtx := &hooks.HookContext{
-		SessionID: sessionID,
-		Data:      make(map[string]any),
-	}
+	hookCtx := hooks.NewTypedHookContext(
+		hooks.BaseContext{SessionID: sessionID},
+		hooks.SessionPayload{},
+	)
 
 	// Call afterSessionEndHook - should not fail even without client
 	err := hook.afterSessionEndHook(context.Background(), hookCtx, func() error { return nil })
@@ -246,8 +240,8 @@ func TestLangfuseHook_SessionTraceFlush(t *testing.T) {
 	assert.Nil(t, tc, "TraceContext should be removed even if flush fails")
 }
 
-// TestLangfuseHook_PropagateTraceID tests trace ID propagation via propagateTraceID
-func TestLangfuseHook_PropagateTraceID(t *testing.T) {
+// TestLangfuseHook_PropagateTracing tests trace ID propagation via propagateTracingToContext
+func TestLangfuseHook_PropagateTracing(t *testing.T) {
 	sessionID := uuid.New()
 
 	ctrl := gomock.NewController(t)
@@ -271,16 +265,15 @@ func TestLangfuseHook_PropagateTraceID(t *testing.T) {
 	tc := hook.getTraceContext(sessionID)
 	require.NotNil(t, tc)
 
-	hookCtx := &hooks.HookContext{
-		SessionID: sessionID,
-		Data:      make(map[string]any),
-	}
+	hookCtx := hooks.NewTypedHookContext(
+		hooks.BaseContext{SessionID: sessionID},
+		hooks.ToolPayload{Name: "test"},
+	)
 
-	hook.propagateTraceID(hookCtx)
+	hook.propagateTracingToContext(sessionID, &hookCtx.Tracing)
 
-	traceID, ok := hookCtx.Data["langfuse_trace_id"].(string)
-	assert.True(t, ok, "Should have langfuse_trace_id")
-	assert.Equal(t, tc.TraceID, traceID, "Trace ID should match TraceContext.TraceID")
+	assert.NotEmpty(t, hookCtx.Tracing.TraceID, "Should have trace ID in Tracing")
+	assert.Equal(t, tc.TraceID, hookCtx.Tracing.TraceID, "Trace ID should match TraceContext.TraceID")
 }
 
 // TestLangfuseHook_FullTraceLifecycle tests complete trace lifecycle from session start to shutdown
@@ -321,40 +314,36 @@ func TestLangfuseHook_FullTraceLifecycle(t *testing.T) {
 	assert.NotEmpty(t, tc.TraceID, "TraceID should be set")
 
 	// Step 2: LLM span
-	llmCtx := &hooks.HookContext{
-		SessionID: sessionID,
-		LLMModel:  "claude-3-5-sonnet",
-		LLMInput:  "Hello",
-		Data:      make(map[string]any),
-	}
+	llmCtx := hooks.NewTypedHookContext(
+		hooks.BaseContext{SessionID: sessionID},
+		hooks.LLMPayload{Model: "claude-3-5-sonnet", Input: "Hello"},
+	)
 	err := hook.beforeLLMRequestHook(context.Background(), llmCtx, func() error { return nil })
 	require.NoError(t, err)
 
-	llmSpanID, ok := llmCtx.Data["langfuse_span_id"].(string)
-	require.True(t, ok, "Should have LLM span ID")
+	llmSpanID := llmCtx.Tracing.SpanID
+	require.NotEmpty(t, llmSpanID, "Should have LLM span ID")
 	assert.Contains(t, tc.Spans, llmSpanID, "LLM span should be in TraceContext")
 
 	// Complete LLM span
-	llmCtx.LLMResponse = "Hi there!"
+	llmCtx.Payload.Response = "Hi there!"
 	err = hook.afterLLMResponseHook(context.Background(), llmCtx, func() error { return nil })
 	require.NoError(t, err)
 
 	// Step 3: Tool span
-	toolCtx := &hooks.HookContext{
-		SessionID: sessionID,
-		ToolName:  "read_file",
-		ToolArgs:  map[string]any{"path": "/test.txt"},
-		Data:      make(map[string]any),
-	}
+	toolCtx := hooks.NewTypedHookContext(
+		hooks.BaseContext{SessionID: sessionID},
+		hooks.ToolPayload{Name: "read_file", Args: map[string]any{"path": "/test.txt"}},
+	)
 	err = hook.beforeToolExecutionHook(context.Background(), toolCtx, func() error { return nil })
 	require.NoError(t, err)
 
-	toolSpanID, ok := toolCtx.Data["langfuse_span_id"].(string)
-	require.True(t, ok, "Should have tool span ID")
+	toolSpanID := toolCtx.Tracing.SpanID
+	require.NotEmpty(t, toolSpanID, "Should have tool span ID")
 	assert.Contains(t, tc.Spans, toolSpanID, "Tool span should be in TraceContext")
 
 	// Complete tool span
-	toolCtx.ToolResult = map[string]any{"content": "hello"}
+	toolCtx.Payload.Result = map[string]any{"content": "hello"}
 	err = hook.afterToolExecutionHook(context.Background(), toolCtx, func() error { return nil })
 	require.NoError(t, err)
 
@@ -362,16 +351,15 @@ func TestLangfuseHook_FullTraceLifecycle(t *testing.T) {
 	assert.GreaterOrEqual(t, len(tc.Spans), 2, "Should have at least LLM and tool spans")
 
 	// Step 4: Agent span
-	agentCtx := &hooks.HookContext{
-		SessionID: sessionID,
-		AgentID:   uuid.New(),
-		Data:      make(map[string]any),
-	}
+	agentCtx := hooks.NewTypedHookContext(
+		hooks.BaseContext{SessionID: sessionID, AgentID: uuid.New()},
+		hooks.AgentPayload{Event: hooks.AgentEventSpawn, NewAgentID: uuid.New()},
+	)
 	err = hook.beforeAgentSpawnHook(context.Background(), agentCtx, func() error { return nil })
 	require.NoError(t, err)
 
-	agentSpanID, ok := agentCtx.Data["langfuse_span_id"].(string)
-	require.True(t, ok, "Should have agent span ID")
+	agentSpanID := agentCtx.Tracing.SpanID
+	require.NotEmpty(t, agentSpanID, "Should have agent span ID")
 	assert.Contains(t, tc.Spans, agentSpanID, "Agent span should be in TraceContext")
 
 	// Step 5: Session end - simulate by removing trace context

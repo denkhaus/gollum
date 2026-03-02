@@ -27,6 +27,7 @@ func TestLangfuseHook_OnLLMError(t *testing.T) {
 		llmError        error
 		wantErrorLevel  bool
 		wantStatusMsg   string
+		skipSpanID      bool
 	}{
 		{
 			name:            "marks span as ERROR with error message",
@@ -57,6 +58,7 @@ func TestLangfuseHook_OnLLMError(t *testing.T) {
 			sessionID:       sessionID,
 			llmError:        fmt.Errorf("network error"),
 			wantErrorLevel:  false, // Can't mark without span ID
+			skipSpanID:      true,
 		},
 	}
 
@@ -95,17 +97,18 @@ func TestLangfuseHook_OnLLMError(t *testing.T) {
 				Level:     traces.ObservationLevelDefault,
 			}
 
-			// Create HookContext
-			hookCtx := &hooks.HookContext{
-				SessionID:  tt.sessionID,
-				LLMError:   tt.llmError,
-				LLMOptions: make(map[string]any),
-				Data:       make(map[string]any),
-			}
+			// Create TypedHookContext with LLMPayload
+			hookCtx := hooks.NewTypedHookContext(
+				hooks.BaseContext{SessionID: tt.sessionID},
+				hooks.LLMPayload{
+					Error:   tt.llmError,
+					Options: make(map[string]any),
+				},
+			)
 
-			// Add span ID to Data (except for missing span ID test)
-			if tt.name != "skips when span ID missing" {
-				hookCtx.Data["langfuse_span_id"] = spanID
+			// Add span ID to Tracing (except for missing span ID test)
+			if !tt.skipSpanID {
+				hookCtx.Tracing.SpanID = spanID
 			}
 
 			// Call onLLMErrorHook
@@ -205,23 +208,23 @@ func TestLangfuseHook_LLMSpanLifecycle_Integration(t *testing.T) {
 			tc := hook.getTraceContext(sessionID)
 
 			// Simulate LLM flow: BeforeLLMRequest -> LLM call -> AfterLLMResponse/OnLLMError
-			hookCtx := &hooks.HookContext{
-				SessionID:   sessionID,
-				LLMModel:    tt.llmModel,
-				LLMInput:    tt.llmInput,
-				LLMResponse: tt.llmResponse,
-				LLMError:    tt.llmError,
-				LLMOptions:  make(map[string]any),
-				Data:        make(map[string]any),
-			}
+			hookCtx := hooks.NewTypedHookContext(
+				hooks.BaseContext{SessionID: sessionID},
+				hooks.LLMPayload{
+					Model:    tt.llmModel,
+					Input:    tt.llmInput,
+					Response: tt.llmResponse,
+					Error:    tt.llmError,
+					Options:  make(map[string]any),
+				},
+			)
 
 			// Call beforeLLMRequestHook (creates span)
 			err := hook.beforeLLMRequestHook(context.Background(), hookCtx, func() error { return nil })
 			require.NoError(t, err)
 
-			// Get span ID
-			spanID, ok := hookCtx.Data["langfuse_span_id"].(string)
-			require.True(t, ok, "Should have span ID")
+			// Get span ID from Tracing
+			spanID := hookCtx.Tracing.SpanID
 			require.NotEmpty(t, spanID, "Span ID should not be empty")
 
 			// Verify initial span state

@@ -35,10 +35,10 @@ func TestLangfuseHook_DisabledConfig(t *testing.T) {
 
 		ctx := context.Background()
 		sessionID := uuid.New()
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			Data:      make(map[string]interface{}),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID},
+			hooks.SessionPayload{},
+		)
 
 		nextCalled := false
 		next := func() error {
@@ -74,12 +74,13 @@ func TestLangfuseHook_DisabledConfig(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		hookCtx := &hooks.HookContext{
-			SessionID: uuid.New(),
-			LLMModel:  "gpt-4",
-			LLMInput:  "test input",
-			Data:      make(map[string]interface{}),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: uuid.New()},
+			hooks.LLMPayload{
+				Model: "gpt-4",
+				Input: "test input",
+			},
+		)
 
 		nextCalled := false
 		next := func() error {
@@ -114,12 +115,13 @@ func TestLangfuseHook_DisabledConfig(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		hookCtx := &hooks.HookContext{
-			SessionID: uuid.New(),
-			ToolName:  "test-tool",
-			ToolArgs:  map[string]interface{}{"arg": "value"},
-			Data:      make(map[string]interface{}),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: uuid.New()},
+			hooks.ToolPayload{
+				Name: "test-tool",
+				Args: map[string]any{"arg": "value"},
+			},
+		)
 
 		nextCalled := false
 		next := func() error {
@@ -158,13 +160,14 @@ func TestLangfuseHook_MissingSpanID(t *testing.T) {
 
 		ctx := context.Background()
 		sessionID := uuid.New()
-		hookCtx := &hooks.HookContext{
-			SessionID:   sessionID,
-			LLMModel:    "gpt-4",
-			LLMResponse: "test response",
-			Data:        make(map[string]interface{}),
-			// No span_id set
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID},
+			hooks.LLMPayload{
+				Model:    "gpt-4",
+				Response: "test response",
+			},
+		)
+		// No Tracing.SpanID set
 
 		nextCalled := false
 		next := func() error {
@@ -200,13 +203,14 @@ func TestLangfuseHook_MissingSpanID(t *testing.T) {
 
 		ctx := context.Background()
 		sessionID := uuid.New()
-		hookCtx := &hooks.HookContext{
-			SessionID:  sessionID,
-			ToolName:   "test-tool",
-			ToolResult: map[string]interface{}{"result": "value"},
-			Data:       make(map[string]interface{}),
-			// No span_id set
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID},
+			hooks.ToolPayload{
+				Name:   "test-tool",
+				Result: map[string]any{"result": "value"},
+			},
+		)
+		// No Tracing.SpanID set
 
 		nextCalled := false
 		next := func() error {
@@ -242,12 +246,11 @@ func TestLangfuseHook_MissingSpanID(t *testing.T) {
 
 		ctx := context.Background()
 		sessionID := uuid.New()
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			AgentID:   uuid.New(),
-			Data:      make(map[string]interface{}),
-			// No span_id set
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: sessionID, AgentID: uuid.New()},
+			hooks.AgentPayload{},
+		)
+		// No Tracing.SpanID set
 
 		nextCalled := false
 		next := func() error {
@@ -264,7 +267,7 @@ func TestLangfuseHook_MissingSpanID(t *testing.T) {
 
 // TestLangfuseHook_NilContextHandling tests hooks with nil HookContext
 func TestLangfuseHook_NilContextHandling(t *testing.T) {
-	t.Run("beforeLLMRequestHook handles nil HookContext.Data", func(t *testing.T) {
+	t.Run("beforeLLMRequestHook handles empty Tracing", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -285,12 +288,14 @@ func TestLangfuseHook_NilContextHandling(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		hookCtx := &hooks.HookContext{
-			SessionID: uuid.New(),
-			LLMModel:  "gpt-4",
-			LLMInput:  "test input",
-			Data:      nil, // nil Data
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: uuid.New()},
+			hooks.LLMPayload{
+				Model: "gpt-4",
+				Input: "test input",
+			},
+		)
+		// Tracing is empty (zero value) by default
 
 		nextCalled := false
 		next := func() error {
@@ -300,11 +305,11 @@ func TestLangfuseHook_NilContextHandling(t *testing.T) {
 
 		err := hook.beforeLLMRequestHook(ctx, hookCtx, next)
 
-		assert.NoError(t, err, "Should not error with nil Data")
+		assert.NoError(t, err, "Should not error with empty Tracing")
 		assert.True(t, nextCalled, "next() should be called")
 	})
 
-	t.Run("propagateTraceID handles nil HookContext.Data", func(t *testing.T) {
+	t.Run("propagateTracingToContext handles nil trace context", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -324,18 +329,14 @@ func TestLangfuseHook_NilContextHandling(t *testing.T) {
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
-		// Create a trace context
-		hook.createTraceContext(sessionID)
+		// Do NOT create a trace context for this session
 
-		// propagateTraceID with nil Data should not panic
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			Data:      nil, // nil Data
-		}
+		// propagateTracingToContext with no trace context should not panic
+		tracing := &hooks.TracingPayload{}
 
-		// This should not panic
-		hook.propagateTraceID(hookCtx)
+		// This should not panic - just return without setting anything
+		hook.propagateTracingToContext(sessionID, tracing)
 
-		assert.Nil(t, hookCtx.Data, "Data should remain nil")
+		assert.Empty(t, tracing.TraceID, "TraceID should remain empty")
 	})
 }
