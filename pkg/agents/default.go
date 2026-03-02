@@ -96,3 +96,32 @@ func (p *defaultAgent) UpdateSystemPrompt(ctx context.Context, newPrompt string)
 
 	return nil
 }
+
+// UpdateHistory modifies the history using a modifier function.
+// This allows flexible transformations like summarization, filtering, or replacement.
+func (p *defaultAgent) UpdateHistory(ctx context.Context, modifier func(*gollem.History) (*gollem.History, error)) error {
+	// 1. Get current history
+	currentHistory, err := p.GetMessageHistory(ctx)
+	if err != nil {
+		return errs.Wrap(err, errs.TypeInternal, "failed to get message history").
+			WithContext("agent_id", p.id)
+	}
+
+	// 2. Apply modifier (transformation)
+	modifiedHistory, err := modifier(currentHistory)
+	if err != nil {
+		return errs.Wrap(err, errs.TypeInternal, "history modifier failed").
+			WithContext("agent_id", p.id)
+	}
+
+	// 3. Recreate agent with modified history
+	newOptions := p.buildOptionsWithHistory(modifiedHistory)
+	p.base = gollem.New(p.llmClient, newOptions...)
+
+	p.logService.GetLogger().Info("History updated",
+		zap.String("agent_id", p.id.String()),
+		zap.Int("messages_before", len(currentHistory.Messages)),
+		zap.Int("messages_after", len(modifiedHistory.Messages)))
+
+	return nil
+}
