@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/events"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/mocks"
@@ -31,6 +32,7 @@ func TestChangeDirectoryTool_Run_ValidDirectory(t *testing.T) {
 	// Create mock workspace and skill services
 	mockWorkspaceService := mocks.NewMockService(ctrl)
 	mockSkillService := mocks.NewMockSkillService(ctrl)
+	mockEventBus := mocks.NewMockBus(ctrl)
 
 	// Save original directory and restore after test
 	originalDir, err := os.Getwd()
@@ -51,12 +53,14 @@ func TestChangeDirectoryTool_Run_ValidDirectory(t *testing.T) {
 	mockWorkspaceService.EXPECT().SetCurrentWorkspace(gomock.Any()).Return(nil)
 	mockWorkspaceService.EXPECT().GetWorkspaceHistory().Return([]string{tempDir, "/old/workspace"})
 	mockSkillService.EXPECT().AddSearchPathAndDiscover(gomock.Any(), gomock.Any()).Return(nil)
+	mockEventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil)
 
 	tool := &ChangeDirectoryTool{
 		logService:       logService,
 		hookManager:      mockHookManager,
 		workspaceService: mockWorkspaceService,
 		skillService:     mockSkillService,
+		eventBus:         mockEventBus,
 		agentID:          uuid.New(),
 	}
 
@@ -202,6 +206,7 @@ func TestChangeDirectoryTool_Run_RelativePath(t *testing.T) {
 
 	mockWorkspaceService := mocks.NewMockService(ctrl)
 	mockSkillService := mocks.NewMockSkillService(ctrl)
+	mockEventBus := mocks.NewMockBus(ctrl)
 
 	// Save original directory and restore after test
 	originalDir, err := os.Getwd()
@@ -228,12 +233,14 @@ func TestChangeDirectoryTool_Run_RelativePath(t *testing.T) {
 	mockWorkspaceService.EXPECT().SetCurrentWorkspace(gomock.Any()).Return(nil)
 	mockWorkspaceService.EXPECT().GetWorkspaceHistory().Return([]string{})
 	mockSkillService.EXPECT().AddSearchPathAndDiscover(gomock.Any(), gomock.Any()).Return(nil)
+	mockEventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil)
 
 	tool := &ChangeDirectoryTool{
 		logService:       logService,
 		hookManager:      mockHookManager,
 		workspaceService: mockWorkspaceService,
 		skillService:     mockSkillService,
+		eventBus:         mockEventBus,
 		agentID:          uuid.New(),
 	}
 
@@ -262,6 +269,7 @@ func TestChangeDirectoryTool_Run_SkillDiscoveryFailure(t *testing.T) {
 
 	mockWorkspaceService := mocks.NewMockService(ctrl)
 	mockSkillService := mocks.NewMockSkillService(ctrl)
+	mockEventBus := mocks.NewMockBus(ctrl)
 
 	// Save original directory and restore after test
 	originalDir, err := os.Getwd()
@@ -280,12 +288,14 @@ func TestChangeDirectoryTool_Run_SkillDiscoveryFailure(t *testing.T) {
 	mockWorkspaceService.EXPECT().SetCurrentWorkspace(gomock.Any()).Return(nil)
 	mockWorkspaceService.EXPECT().GetWorkspaceHistory().Return([]string{})
 	mockSkillService.EXPECT().AddSearchPathAndDiscover(gomock.Any(), gomock.Any()).Return(skills.ErrSkillNotFound("test")) // Skill discovery fails
+	mockEventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil)
 
 	tool := &ChangeDirectoryTool{
 		logService:       logService,
 		hookManager:      mockHookManager,
 		workspaceService: mockWorkspaceService,
 		skillService:     mockSkillService,
+		eventBus:         mockEventBus,
 		agentID:          uuid.New(),
 	}
 
@@ -336,12 +346,14 @@ func TestChangeDirectoryToolProvider_CreateTool(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(nil)
 	mockWorkspaceService := mocks.NewMockService(nil)
 	mockSkillService := mocks.NewMockSkillService(nil)
+	mockEventBus := mocks.NewMockBus(nil)
 
 	provider := &changeDirectoryToolProvider{
 		logService:       logService,
 		hookManager:      mockHookManager,
 		workspaceService: mockWorkspaceService,
 		skillService:     mockSkillService,
+		eventBus:         mockEventBus,
 	}
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
@@ -374,6 +386,10 @@ func TestNewChangeDirectoryToolProvider(t *testing.T) {
 	// Use mock for SkillService
 	mockSkillService := mocks.NewMockSkillService(ctrl)
 	do.ProvideValue[skills.SkillService](injector, mockSkillService)
+
+	// Use mock for EventBus
+	mockEventBus := mocks.NewMockBus(ctrl)
+	do.ProvideValue[events.Bus](injector, mockEventBus)
 
 	provider, err := NewChangeDirectoryToolProvider(injector)
 	if err != nil {

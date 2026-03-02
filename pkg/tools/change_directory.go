@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/denkhaus/gollum/pkg/events"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -23,6 +24,7 @@ type (
 		hookManager     hooks.HookManager
 		workspaceService workspace.Service
 		skillService    skills.SkillService
+		eventBus        events.Bus
 		agentID         uuid.UUID
 	}
 
@@ -36,6 +38,7 @@ type (
 		hookManager     hooks.HookManager
 		workspaceService workspace.Service
 		skillService    skills.SkillService
+		eventBus        events.Bus
 	}
 )
 
@@ -45,12 +48,14 @@ func NewChangeDirectoryToolProvider(injector do.Injector) (ChangeDirectoryToolPr
 	hookManager := do.MustInvoke[hooks.HookManager](injector)
 	wsService := do.MustInvoke[workspace.Service](injector)
 	skillSvc := do.MustInvoke[skills.SkillService](injector)
+	bus := do.MustInvoke[events.Bus](injector)
 
 	return &changeDirectoryToolProvider{
 		logService:      logService,
 		hookManager:     hookManager,
 		workspaceService: wsService,
 		skillService:    skillSvc,
+		eventBus:        bus,
 	}, nil
 }
 
@@ -61,6 +66,7 @@ func (p *changeDirectoryToolProvider) CreateTool(agentID uuid.UUID) *ChangeDirec
 		hookManager:     p.hookManager,
 		workspaceService: p.workspaceService,
 		skillService:    p.skillService,
+		eventBus:        p.eventBus,
 		agentID:         agentID,
 	}
 }
@@ -120,6 +126,19 @@ func (t *ChangeDirectoryTool) runChangeDirectory(ctx context.Context, args map[s
 	}
 
 	t.logService.Infof("Changed workspace from %s to %s", previousWorkspace, absPath)
+
+	// Publish directory changed event
+	if err := events.PublishTyped(t.eventBus, ctx,
+		events.EventDirectoryChanged,
+		shared.ToolNameChangeDirectory,
+		events.DirectoryChangedPayload{
+			OldPath: previousWorkspace,
+			NewPath: absPath,
+		},
+	); err != nil {
+		t.logService.Warnf("Failed to publish directory changed event: %v", err)
+		// Don't fail the operation - event publishing is non-critical
+	}
 
 	// Build result
 	result := map[string]any{
