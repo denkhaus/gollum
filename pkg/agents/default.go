@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/errs"
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/middleware"
@@ -13,6 +14,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
+	"go.uber.org/zap"
 )
 
 type (
@@ -67,4 +69,30 @@ func (p *defaultAgent) GetMessageHistory(ctx context.Context) (*gollem.History, 
 	}
 
 	return history, nil
+}
+
+// UpdateSystemPrompt replaces the system prompt immediately (blocking).
+// It preserves the existing message history while updating the system prompt.
+func (p *defaultAgent) UpdateSystemPrompt(ctx context.Context, newPrompt string) error {
+	// 1. Preserve existing history
+	history, err := p.GetMessageHistory(ctx)
+	if err != nil {
+		return errs.Wrap(err, errs.TypeInternal, "failed to get message history").
+			WithContext("agent_id", p.id)
+	}
+
+	// 2. Update config with new prompt
+	p.config.SystemPrompt = newPrompt
+
+	// 3. Build new options with preserved history
+	newOptions := p.buildOptionsWithHistory(history)
+
+	// 4. Create new agent (blocking)
+	p.base = gollem.New(p.llmClient, newOptions...)
+
+	p.logService.GetLogger().Info("System prompt updated",
+		zap.String("agent_id", p.id.String()),
+		zap.Int("history_messages", len(history.Messages)))
+
+	return nil
 }
