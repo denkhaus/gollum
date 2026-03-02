@@ -20,7 +20,7 @@ func TestNewBuiltinHooksProvider_WithLangfuse(t *testing.T) {
 	t.Run("registers Langfuse hooks successfully", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		mockHM := &mockHookManager{}
+		mockHM := mocks.NewMockHookManager(ctrl)
 		mockLog := mocks.NewMockLoggerService(ctrl)
 		cfg := &config.LangfuseConfig{
 			LangfuseEnabled: true,
@@ -34,16 +34,22 @@ func TestNewBuiltinHooksProvider_WithLangfuse(t *testing.T) {
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
+		// Expect all typed hook registrations (20 total)
+		mockHM.EXPECT().RegisterSessionHook(gomock.Any(), gomock.Any()).Times(2)
+		mockHM.EXPECT().RegisterAgentHook(gomock.Any(), gomock.Any()).Times(4)
+		mockHM.EXPECT().RegisterToolHook(gomock.Any(), gomock.Any()).Times(3)
+		mockHM.EXPECT().RegisterFileHook(gomock.Any(), gomock.Any()).Times(8)
+		mockHM.EXPECT().RegisterLLMHook(gomock.Any(), gomock.Any()).Times(3)
+
 		err := RegisterLangfuseHooks(mockHM, hook)
 
 		assert.NoError(t, err)
-		assert.Equal(t, 20, mockHM.registerCount, "All 20 Langfuse hooks should be registered")
 	})
 
 	t.Run("skips registration when Langfuse disabled", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		mockHM := &mockHookManager{}
+		mockHM := mocks.NewMockHookManager(ctrl)
 		mockLog := mocks.NewMockLoggerService(ctrl)
 		cfg := &config.LangfuseConfig{
 			LangfuseEnabled: false,
@@ -57,18 +63,21 @@ func TestNewBuiltinHooksProvider_WithLangfuse(t *testing.T) {
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
+		// No expectations = no calls should be made
+
 		err := RegisterLangfuseHooks(mockHM, hook)
 
 		assert.NoError(t, err)
-		assert.Equal(t, 0, mockHM.registerCount, "No hooks should be registered when disabled")
 	})
 
 	t.Run("verifies hook metadata", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		// Create a more detailed mock to capture metadata
-		metadataTracker := &metadataTrackingHookManager{}
+		// Track captured metadata
+		var capturedMetadata []hooks.TypedHookMetadata
+
+		mockHM := mocks.NewMockHookManager(ctrl)
 		mockLog := mocks.NewMockLoggerService(ctrl)
 		cfg := &config.LangfuseConfig{
 			LangfuseEnabled: true,
@@ -82,14 +91,25 @@ func TestNewBuiltinHooksProvider_WithLangfuse(t *testing.T) {
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
-		err := RegisterLangfuseHooks(metadataTracker, hook)
+		// Capture metadata from all registrations
+		captureMeta := func(_ any, meta any) {
+			capturedMetadata = append(capturedMetadata, meta.(hooks.TypedHookMetadata))
+		}
+
+		mockHM.EXPECT().RegisterSessionHook(gomock.Any(), gomock.Any()).Do(captureMeta).Times(2)
+		mockHM.EXPECT().RegisterAgentHook(gomock.Any(), gomock.Any()).Do(captureMeta).Times(4)
+		mockHM.EXPECT().RegisterToolHook(gomock.Any(), gomock.Any()).Do(captureMeta).Times(3)
+		mockHM.EXPECT().RegisterFileHook(gomock.Any(), gomock.Any()).Do(captureMeta).Times(8)
+		mockHM.EXPECT().RegisterLLMHook(gomock.Any(), gomock.Any()).Do(captureMeta).Times(3)
+
+		err := RegisterLangfuseHooks(mockHM, hook)
 
 		assert.NoError(t, err)
-		assert.Equal(t, 20, len(metadataTracker.metadata), "Should have 20 registered hooks")
+		assert.Equal(t, 20, len(capturedMetadata), "Should have 20 registered hooks")
 
 		// Verify some expected hook names
-		hookNames := make([]string, 0, len(metadataTracker.metadata))
-		for _, meta := range metadataTracker.metadata {
+		hookNames := make([]string, 0, len(capturedMetadata))
+		for _, meta := range capturedMetadata {
 			hookNames = append(hookNames, meta.Name)
 		}
 
@@ -107,30 +127,9 @@ func TestNewBuiltinHooksProvider_WithLangfuse(t *testing.T) {
 		assert.Contains(t, hookNames, "langfuse-on-llm-error")
 
 		// Verify all hooks have correct priority
-		for _, meta := range metadataTracker.metadata {
+		for _, meta := range capturedMetadata {
 			assert.Equal(t, LangfuseHookPriority, meta.Priority, "All hooks should have priority 500")
 			assert.False(t, meta.FatalError, "Langfuse hooks should not be fatal")
 		}
 	})
-}
-
-// metadataTrackingHookManager is a mock that tracks all registered hook metadata
-type metadataTrackingHookManager struct {
-	metadata []hooks.HookMetadata
-}
-
-func (m *metadataTrackingHookManager) RegisterHook(fn hooks.HookFunc, meta hooks.HookMetadata) error {
-	m.metadata = append(m.metadata, meta)
-	return nil
-}
-
-// mockHookManager is a minimal mock for testing hook registration
-// It only implements RegisterHook since that's all RegisterLangfuseHooks needs
-type mockHookManager struct {
-	registerCount int
-}
-
-func (m *mockHookManager) RegisterHook(fn hooks.HookFunc, meta hooks.HookMetadata) error {
-	m.registerCount++
-	return nil
 }

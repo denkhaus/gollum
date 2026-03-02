@@ -37,10 +37,10 @@ func TestLangfuseHook_NilSessionID(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		hookCtx := &hooks.HookContext{
-			SessionID: uuid.Nil, // Nil SessionID
-			Data:      make(map[string]interface{}),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: uuid.Nil}, // Nil SessionID
+			hooks.SessionPayload{},
+		)
 
 		nextCalled := false
 		next := func() error {
@@ -75,10 +75,10 @@ func TestLangfuseHook_NilSessionID(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		hookCtx := &hooks.HookContext{
-			SessionID: uuid.Nil, // Nil SessionID
-			Data:      make(map[string]interface{}),
-		}
+		hookCtx := hooks.NewTypedHookContext(
+			hooks.BaseContext{SessionID: uuid.Nil}, // Nil SessionID
+			hooks.SessionPayload{},
+		)
 
 		nextCalled := false
 		next := func() error {
@@ -126,13 +126,14 @@ func TestLangfuseHook_onToolErrorHook_NilError(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			ToolName:  "test-tool",
-			ToolError: nil, // nil error
-			Data:      make(map[string]interface{}),
-		}
-		hookCtx.Data["langfuse_span_id"] = spanID
+		hookCtx := hooks.NewTypedHookContextWithTracing(
+			hooks.BaseContext{SessionID: sessionID},
+			hooks.ToolPayload{
+				Name:  "test-tool",
+				Error: nil, // nil error
+			},
+			hooks.TracingPayload{SpanID: spanID},
+		)
 
 		nextCalled := false
 		next := func() error {
@@ -187,13 +188,14 @@ func TestLangfuseHook_onLLMErrorHook_NilError(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		hookCtx := &hooks.HookContext{
-			SessionID: sessionID,
-			LLMModel:  "gpt-4",
-			LLMError:  nil, // nil error
-			Data:      make(map[string]interface{}),
-		}
-		hookCtx.Data["langfuse_span_id"] = spanID
+		hookCtx := hooks.NewTypedHookContextWithTracing(
+			hooks.BaseContext{SessionID: sessionID},
+			hooks.LLMPayload{
+				Model: "gpt-4",
+				Error: nil, // nil error
+			},
+			hooks.TracingPayload{SpanID: spanID},
+		)
 
 		nextCalled := false
 		next := func() error {
@@ -260,7 +262,7 @@ func TestLangfuseHook_FileOperationHooks_AreStubs(t *testing.T) {
 
 		fileHooks := []struct {
 			name string
-			hook func(context.Context, *hooks.HookContext, func() error) error
+			hook func(context.Context, *hooks.TypedHookContext[hooks.FilePayload], func() error) error
 		}{
 			{"beforeFileReadHook", hook.beforeFileReadHook},
 			{"afterFileReadHook", hook.afterFileReadHook},
@@ -274,15 +276,15 @@ func TestLangfuseHook_FileOperationHooks_AreStubs(t *testing.T) {
 
 		for _, fh := range fileHooks {
 			t.Run(fh.name, func(t *testing.T) {
-				hookCtx := &hooks.HookContext{
-					SessionID: sessionID,
-					Data:      make(map[string]interface{}),
-				}
+				hookCtx := hooks.NewTypedHookContext(
+					hooks.BaseContext{SessionID: sessionID},
+					hooks.FilePayload{},
+				)
 
 				err := fh.hook(ctx, hookCtx, next)
 
 				assert.NoError(t, err, "File hook should not error")
-				assert.Equal(t, tc.TraceID, hookCtx.Data["langfuse_trace_id"],
+				assert.Equal(t, tc.TraceID, hookCtx.Tracing.TraceID,
 					"Trace ID should be propagated")
 			})
 		}
