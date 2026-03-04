@@ -30,7 +30,7 @@ func TestAgentOutputTool_Spec(t *testing.T) {
 	spec := tool.Spec()
 
 	// Verify spec structure
-	assert.Equal(t, shared.ToolNameAgentOutput, spec.Name)
+	assert.Equal(t, shared.ToolNameAgentOutput.String(), spec.Name)
 	assert.NotEmpty(t, spec.Description)
 
 	// Verify required parameters

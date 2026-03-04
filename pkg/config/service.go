@@ -13,14 +13,14 @@ import (
 // AnthropicConfig holds configuration for Anthropic's Claude API.
 type AnthropicConfig struct {
 	APIKey  string `envconfig:"API_KEY"`
-	BaseURL string `envconfig:"BASE_URL"` // Fixed var-naming: was BaseUrl
+	BaseURL string `envconfig:"BASE_URL"`
 	Model   string `envconfig:"MODEL"`
 }
 
 // OpenAIConfig holds configuration for OpenAI's GPT API.
 type OpenAIConfig struct {
 	APIKey  string `envconfig:"API_KEY"`
-	BaseURL string `envconfig:"BASE_URL"` // Fixed var-naming: was BaseUrl
+	BaseURL string `envconfig:"BASE_URL"`
 	Model   string `envconfig:"MODEL"`
 }
 

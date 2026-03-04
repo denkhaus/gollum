@@ -5,8 +5,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/markdown"
@@ -29,14 +27,13 @@ const gollumDirName = ".gollum"
 // ApplicationService defines the main application service interface
 type ApplicationService interface {
 	// Run starts the application, performing all initialization and running the interactive loop
-	Run(ctx context.Context, startupDirectory string) error
+	Run(ctx context.Context) error
 	// Cleanup restores terminal state and performs other cleanup
 	Cleanup()
 }
 
 // applicationServiceImpl implements the ApplicationService interface
 type applicationServiceImpl struct {
-	startupDirectory string
 	gollumDir        string
 	logService       logger.LoggerService
 	fsm              state.FileStateManager
@@ -78,9 +75,7 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 }
 
 // Run starts the application, performing all initialization and running the interactive loop
-func (p *applicationServiceImpl) Run(ctx context.Context, startupDirectory string) error {
-
-	p.startupDirectory = startupDirectory
+func (p *applicationServiceImpl) Run(ctx context.Context) error {
 
 	// Create .gollum directory
 	if err := p.ensureGollumDirectory(); err != nil {
@@ -108,12 +103,6 @@ func (p *applicationServiceImpl) Run(ctx context.Context, startupDirectory strin
 	return p.runInteractiveLoop(ctx, agent)
 }
 
-// ensureGollumDirectory creates .gollum directory if it doesn't exist
-func (p *applicationServiceImpl) ensureGollumDirectory() error {
-	p.gollumDir = filepath.Join(p.startupDirectory, gollumDirName)
-	return os.MkdirAll(p.gollumDir, 0755)
-}
-
 // primeFileStateManager primes the file state manager with directory scan
 func (p *applicationServiceImpl) primeFileStateManager(ctx context.Context) error {
 	p.logService.Infof("Priming FileStateManager - scanning working directory...")
@@ -130,12 +119,12 @@ func (p *applicationServiceImpl) createToolSet(ctx context.Context) ([]gollem.To
 
 	toolSet := []gollem.ToolSet{}
 
-	brainMCP, err := mcp.NewBrainMCPClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create brain MCP client: %w", err)
-	}
+	// brainMCP, err := mcp.NewBrainMCPClient(ctx)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to create brain MCP client: %w", err)
+	// }
 
-	toolSet = append(toolSet, brainMCP)
+	// toolSet = append(toolSet, brainMCP)
 
 	exaSearchMCP, err := mcp.NewExaSearchMCPClient(ctx)
 	if err != nil {
@@ -188,7 +177,7 @@ func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (sha
 		AllowCompaction: true,
 		SystemPrompt:    systemPrompt,
 		Role:            "Supervisor Agent",
-		LLMProvider:     shared.LLMProviderAnthropic,
+		LLMProvider:     shared.LLMProviderOpenAI,
 		ToolSets:        toolSet,
 	}
 

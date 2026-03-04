@@ -32,7 +32,7 @@ func TestListAgentsTool_Spec(t *testing.T) {
 	}
 
 	spec := tool.Spec()
-	assert.Equal(t, shared.ToolNameListAgents, spec.Name)
+	assert.Equal(t, shared.ToolNameListAgents.String(), spec.Name)
 	assert.NotEmpty(t, spec.Parameters) // Now has --recursive and --tree parameters
 
 	// Verify new parameters exist

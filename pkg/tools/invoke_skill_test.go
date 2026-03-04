@@ -25,7 +25,7 @@ func TestInvokeSkillTool_Spec(t *testing.T) {
 
 	spec := tool.Spec()
 
-	assert.Equal(t, shared.ToolNameInvokeSkill, spec.Name)
+	assert.Equal(t, shared.ToolNameInvokeSkill.String(), spec.Name)
 	assert.Contains(t, spec.Description, "skill")
 	assert.Contains(t, spec.Parameters, "name")
 	assert.Contains(t, spec.Parameters, "input")

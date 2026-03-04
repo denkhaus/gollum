@@ -22,12 +22,12 @@ func loadEnvVar(key string) (string, error) {
 }
 
 // NewBrainMCPClient creates a new MCP client for brain service
-func NewBrainMCPClient(ctx context.Context) (*mcp.Client, error) {
-	// Local brain MCP client for supervisor agents
-	return mcp.NewStreamableHTTP(ctx, "http://localhost:8555/mcp",
-		mcp.WithStreamableHTTPClientInfo("brain-mcp-client", "1.0.0"),
-	)
-}
+// func NewBrainMCPClient(ctx context.Context) (*mcp.Client, error) {
+// 	// Local brain MCP client for supervisor agents
+// 	return mcp.NewStreamableHTTP(ctx, "http://localhost:8555/mcp",
+// 		mcp.WithStreamableHTTPClientInfo("brain-mcp-client", "1.0.0"),
+// 	)
+// }
 
 // NewExaSearchMCPClient creates a new MCP client for Exa search
 func NewExaSearchMCPClient(ctx context.Context) (*mcp.Client, error) {

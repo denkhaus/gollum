@@ -53,6 +53,8 @@ func (m *mockLogger) GetLogs(_ logger.LogFilter) []logger.LogEntry { return nil 
 func (m *mockLogger) GetLogStats() map[string]interface{}          { return nil }
 func (m *mockLogger) IsTUIMode() bool                              { return false }
 func (m *mockLogger) SetTUIMode(_ bool)                            {}
+func (m *mockLogger) EnableFileLogging(_ string, _ uuid.UUID) error { return nil }
+func (m *mockLogger) CloseFileLogging() error                       { return nil }
 
 var _ logger.LoggerService = (*mockLogger)(nil)
 

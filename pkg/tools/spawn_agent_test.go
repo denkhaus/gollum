@@ -47,7 +47,7 @@ func TestSpawnAgentToolSpec(t *testing.T) {
 
 	spec := tool.Spec()
 
-	assert.Equal(t, shared.ToolNameSpawnAgent, spec.Name)
+	assert.Equal(t, shared.ToolNameSpawnAgent.String(), spec.Name)
 	assert.Contains(t, spec.Description, "immediately")
 	// Verify cross-reference to resume_agent tool
 	assert.Contains(t, spec.Description, shared.ToolNameResumeAgent)

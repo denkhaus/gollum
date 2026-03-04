@@ -57,13 +57,11 @@ func startup(startupCtx context.Context) error {
 	// Ensure terminal is restored on exit
 	defer applicationService.Cleanup()
 
-	// Run the application in simple CLI mode
 	return applicationService.Run(ctx)
 }
 
 func main() {
 	ctx := context.Background()
-
 	if err := startup(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		log.Fatalf("application error: %v", err)
 	}

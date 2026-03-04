@@ -21,7 +21,7 @@ func TestResumeAgentToolSpec(t *testing.T) {
 
 	spec := tool.Spec()
 
-	assert.Equal(t, shared.ToolNameResumeAgent, spec.Name)
+	assert.Equal(t, shared.ToolNameResumeAgent.String(), spec.Name)
 	assert.Contains(t, spec.Description, "new prompt")
 
 	// Check required parameters

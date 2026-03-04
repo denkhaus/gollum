@@ -404,7 +404,7 @@ func TestSessionLogsTool_Spec(t *testing.T) {
 	}
 
 	spec := tool.Spec()
-	assert.Equal(t, shared.ToolNameSessionLogs, spec.Name)
+	assert.Equal(t, shared.ToolNameSessionLogs.String(), spec.Name)
 	assert.NotEmpty(t, spec.Description)
 	assert.NotEmpty(t, spec.Parameters)
 
