@@ -55,6 +55,7 @@ func (m *mockLogger) IsTUIMode() bool                              { return fals
 func (m *mockLogger) SetTUIMode(_ bool)                            {}
 func (m *mockLogger) EnableFileLogging(_ string, _ uuid.UUID) error { return nil }
 func (m *mockLogger) CloseFileLogging() error                       { return nil }
+func (m *mockLogger) Flush() error                                  { return nil }
 
 var _ logger.LoggerService = (*mockLogger)(nil)
 

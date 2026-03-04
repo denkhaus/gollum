@@ -33,6 +33,7 @@ func (n *nopLogger) SetTUIMode(enabled bool)                           {}
 func (n *nopLogger) IsTUIMode() bool                                   { return false }
 func (n *nopLogger) EnableFileLogging(_ string, _ uuid.UUID) error     { return nil }
 func (n *nopLogger) CloseFileLogging() error                           { return nil }
+func (n *nopLogger) Flush() error                                      { return nil }
 
 // testGetEnvOrDefault gets an environment variable or returns the default value.
 func testGetEnvOrDefault(key, defaultValue string) string {

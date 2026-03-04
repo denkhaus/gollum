@@ -3,13 +3,17 @@ package agents
 
 import (
 	"context"
+	"errors"
 	"testing"
 
+	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func TestDefaultAgent_GetMessageHistory(t *testing.T) {
@@ -66,6 +70,40 @@ func TestDefaultAgent_GetID(t *testing.T) {
 	}
 
 	assert.Equal(t, id, agent.GetID())
+}
+
+// TestDefaultAgent_Execute tests Execute method delegation with nil base
+func TestDefaultAgent_Execute_NilBase(t *testing.T) {
+	ctx := context.Background()
+
+	agent := &defaultAgent{
+		base: nil,
+		id:   uuid.New(),
+		config: &shared.AgentConfig{
+			SystemPrompt: "test prompt",
+		},
+	}
+
+	// Should panic when calling Execute on nil base
+	assert.Panics(t, func() {
+		agent.Execute(ctx, gollem.Text("test input"))
+	})
+}
+
+// TestDefaultAgent_Session_NilBase tests Session with nil base
+func TestDefaultAgent_Session_NilBase(t *testing.T) {
+	agent := &defaultAgent{
+		base: nil,
+		id:   uuid.New(),
+		config: &shared.AgentConfig{
+			SystemPrompt: "test prompt",
+		},
+	}
+
+	// Should panic when calling Session on nil base
+	assert.Panics(t, func() {
+		agent.Session()
+	})
 }
 
 // TestDefaultAgent_UpdateSystemPrompt tests UpdateSystemPrompt method
@@ -184,5 +222,147 @@ func TestDefaultAgent_UpdateHistory(t *testing.T) {
 		for _, msg := range result.Messages {
 			assert.NotEqual(t, gollem.RoleAssistant, msg.Role)
 		}
+	})
+}
+
+// TestDefaultAgent_UpdateHistory_NilBase tests error handling when base is nil
+func TestDefaultAgent_UpdateHistory_NilBase(t *testing.T) {
+	ctx := context.Background()
+	agentID := uuid.New()
+
+	agent := &defaultAgent{
+		base: nil,
+		id:   agentID,
+		config: &shared.AgentConfig{
+			SystemPrompt: "test prompt",
+		},
+	}
+
+	// Modifier that returns an error
+	modifier := func(h *gollem.History) (*gollem.History, error) {
+		return nil, errors.New("modifier failed")
+	}
+
+	err := agent.UpdateHistory(ctx, modifier)
+	// With nil base, GetMessageHistory returns nil, nil (no error)
+	// Then modifier is called with nil history and returns error
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "history modifier failed")
+}
+
+// TestBuildOptionsWithHistory_BaseOptions tests basic option building
+func TestBuildOptionsWithHistory_BaseOptions(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	agentID := uuid.New()
+
+	mockLLMClient := mocks.NewMockLLMClient(ctrl)
+	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+
+	t.Run("with nil history and silent mode", func(t *testing.T) {
+		mockPromptMgr.EXPECT().GetPromptByID(gomock.Any(), gomock.Any()).Return(&prompt.Prompt{Content: "compacter prompt"}, nil).AnyTimes()
+
+		agent := &defaultAgent{
+			id:           agentID,
+			llmClient:     mockLLMClient,
+			promptManager: mockPromptMgr,
+			config: &shared.AgentConfig{
+				SystemPrompt:    "test prompt",
+				Role:            "test role",
+				Strategy:        nil,
+				Tools:           []gollem.Tool{},
+				ToolSets:        []gollem.ToolSet{},
+				OutputMode:      shared.OutputModeSilent,
+				AllowCompaction: false,
+			},
+		}
+
+		options := agent.buildOptionsWithHistory(nil)
+		assert.NotNil(t, options)
+		// Should have at least: strategy, tools, system prompt
+		assert.GreaterOrEqual(t, len(options), 2)
+	})
+
+	t.Run("with empty history messages", func(t *testing.T) {
+		history := &gollem.History{
+			Version:  gollem.HistoryVersion,
+			Messages: []gollem.Message{}, // Empty but not nil
+		}
+
+		mockPromptMgr.EXPECT().GetPromptByID(gomock.Any(), gomock.Any()).Return(&prompt.Prompt{Content: "compacter prompt"}, nil).AnyTimes()
+
+		agent := &defaultAgent{
+			id:           agentID,
+			llmClient:     mockLLMClient,
+			promptManager: mockPromptMgr,
+			config: &shared.AgentConfig{
+				SystemPrompt:    "test prompt",
+				Role:            "test role",
+				Strategy:        nil,
+				Tools:           []gollem.Tool{},
+				ToolSets:        []gollem.ToolSet{},
+				OutputMode:      shared.OutputModeSilent,
+				AllowCompaction: false,
+			},
+		}
+
+		options := agent.buildOptionsWithHistory(history)
+		assert.NotNil(t, options)
+		// Empty message history should not be added
+		assert.GreaterOrEqual(t, len(options), 2)
+	})
+
+	t.Run("with history messages", func(t *testing.T) {
+		history := &gollem.History{
+			Version:  gollem.HistoryVersion,
+			Messages: []gollem.Message{{Role: gollem.RoleUser}},
+		}
+
+		mockPromptMgr.EXPECT().GetPromptByID(gomock.Any(), gomock.Any()).Return(&prompt.Prompt{Content: "compacter prompt"}, nil).AnyTimes()
+
+		agent := &defaultAgent{
+			id:           agentID,
+			llmClient:     mockLLMClient,
+			promptManager: mockPromptMgr,
+			config: &shared.AgentConfig{
+				SystemPrompt:    "test prompt",
+				Role:            "test role",
+				Strategy:        nil,
+				Tools:           []gollem.Tool{},
+				ToolSets:        []gollem.ToolSet{},
+				OutputMode:      shared.OutputModeSilent,
+				AllowCompaction: false,
+			},
+		}
+
+		options := agent.buildOptionsWithHistory(history)
+		assert.NotNil(t, options)
+		// Should have: strategy, tools, system prompt, history
+		assert.GreaterOrEqual(t, len(options), 3)
+	})
+
+	t.Run("with AllowCompaction true", func(t *testing.T) {
+		mockPromptMgr.EXPECT().GetPromptByID(gomock.Any(), gomock.Any()).Return(&prompt.Prompt{Content: "compacter prompt"}, nil).AnyTimes()
+
+		agent := &defaultAgent{
+			id:           agentID,
+			llmClient:     mockLLMClient,
+			promptManager: mockPromptMgr,
+			config: &shared.AgentConfig{
+				SystemPrompt:    "test prompt",
+				Role:            "test role",
+				Strategy:        nil,
+				Tools:           []gollem.Tool{},
+				ToolSets:        []gollem.ToolSet{},
+				OutputMode:      shared.OutputModeSilent,
+				AllowCompaction: true,
+			},
+		}
+
+		options := agent.buildOptionsWithHistory(nil)
+		assert.NotNil(t, options)
+		// Should include compacter middleware
+		assert.GreaterOrEqual(t, len(options), 3)
 	})
 }

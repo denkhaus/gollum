@@ -177,7 +177,7 @@ func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (sha
 		AllowCompaction: true,
 		SystemPrompt:    systemPrompt,
 		Role:            "Supervisor Agent",
-		LLMProvider:     shared.LLMProviderOpenAI,
+		LLMProvider:     shared.LLMProviderAnthropic,
 		ToolSets:        toolSet,
 	}
 

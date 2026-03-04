@@ -3,10 +3,17 @@ package app
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/prompt"
+	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
@@ -76,4 +83,361 @@ func TestAgentExecutorAdapter_MultipleExecutions(t *testing.T) {
 	if ctx.Err() != nil {
 		t.Error("context was canceled after multiple executions")
 	}
+}
+
+// TestAgentExecutorAdapter_PropagatesAgentError tests that agent errors are propagated
+func TestAgentExecutorAdapter_PropagatesAgentError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	expectedErr := assert.AnError
+
+	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).Return(nil, expectedErr).Times(1)
+
+	adapter := &agentExecutorAdapter{agent: mockAgent}
+
+	response, err := adapter.Execute(ctx, "test input")
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, expectedErr)
+	assert.Nil(t, response)
+}
+
+// TestEnsureGollumDirectory_CreatesDirectory tests that .gollum directory is created
+func TestEnsureGollumDirectory_CreatesDirectory(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Create temp directory for testing
+	tempDir := t.TempDir()
+
+	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return(tempDir).Times(1)
+
+	p := &applicationServiceImpl{
+		workspaceService: mockWorkspaceService,
+	}
+
+	err := p.ensureGollumDirectory()
+	require.NoError(t, err)
+
+	expectedPath := filepath.Join(tempDir, gollumDirName)
+	info, err := os.Stat(expectedPath)
+	require.NoError(t, err)
+	assert.True(t, info.IsDir(), "expected a directory")
+}
+
+// TestEnsureGollumDirectory_CreatesGitignore tests that .gitignore is created
+func TestEnsureGollumDirectory_CreatesGitignore(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tempDir := t.TempDir()
+
+	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return(tempDir).Times(1)
+
+	p := &applicationServiceImpl{
+		workspaceService: mockWorkspaceService,
+	}
+
+	err := p.ensureGollumDirectory()
+	require.NoError(t, err)
+
+	gitignorePath := filepath.Join(tempDir, gollumDirName, ".gitignore")
+	content, err := os.ReadFile(gitignorePath)
+	require.NoError(t, err)
+	assert.Equal(t, "/logs\n", string(content))
+}
+
+// TestEnsureGollumDirectory_DoesNotOverwriteGitignore tests that existing .gitignore is preserved
+func TestEnsureGollumDirectory_DoesNotOverwriteGitignore(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tempDir := t.TempDir()
+
+	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return(tempDir).Times(2) // Called twice by ensureGollumDirectory
+
+	p := &applicationServiceImpl{
+		workspaceService: mockWorkspaceService,
+	}
+
+	// First call creates the directory and .gitignore
+	err := p.ensureGollumDirectory()
+	require.NoError(t, err)
+
+	gitignorePath := filepath.Join(tempDir, gollumDirName, ".gitignore")
+
+	// Modify the .gitignore
+	customContent := "/logs\n/custom\n"
+	err = os.WriteFile(gitignorePath, []byte(customContent), 0644)
+	require.NoError(t, err)
+
+	// Second call should not overwrite
+	err = p.ensureGollumDirectory()
+	require.NoError(t, err)
+
+	// Verify custom content is preserved
+	content, err := os.ReadFile(gitignorePath)
+	require.NoError(t, err)
+	assert.Equal(t, customContent, string(content))
+}
+
+// TestEnsureGollumDirectory_MkdirAllError tests error handling when directory creation fails
+func TestEnsureGollumDirectory_MkdirAllError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceService := mocks.NewMockService(ctrl)
+	// Use an invalid path that will fail
+	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/dev/null/invalid/path/that/cannot/be/created").Times(1)
+
+	p := &applicationServiceImpl{
+		workspaceService: mockWorkspaceService,
+	}
+
+	err := p.ensureGollumDirectory()
+	assert.Error(t, err)
+}
+
+// TestPrimeFileStateManager_Success tests successful priming of FileStateManager
+func TestPrimeFileStateManager_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+
+	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM.EXPECT().Prime(ctx).Return(nil).Times(1)
+
+	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().Infof("Priming FileStateManager - scanning working directory...").Times(1)
+	mockLogger.EXPECT().Infof("FileStateManager primed successfully").Times(1)
+
+	p := &applicationServiceImpl{
+		logService: mockLogger,
+		fsm:        mockFSM,
+	}
+
+	err := p.primeFileStateManager(ctx)
+	assert.NoError(t, err)
+}
+
+// TestPrimeFileStateManager_PrimeError tests error handling when Prime fails
+func TestPrimeFileStateManager_PrimeError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	expectedErr := assert.AnError
+
+	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM.EXPECT().Prime(ctx).Return(expectedErr).Times(1)
+
+	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().Infof("Priming FileStateManager - scanning working directory...").Times(1)
+
+	p := &applicationServiceImpl{
+		logService: mockLogger,
+		fsm:        mockFSM,
+	}
+
+	err := p.primeFileStateManager(ctx)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, expectedErr)
+}
+
+// TestCreateToolSet_MCPCreationError tests error handling when MCP client creation fails
+// Note: The success case requires network connectivity to MCP servers and is tested in integration tests
+func TestCreateToolSet_MCPCreationError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	cancelCtx, cancel := context.WithCancel(ctx)
+	cancel() // Cancel to force errors
+
+	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().Info("create tool-set for main agent").Times(1)
+
+	p := &applicationServiceImpl{
+		logService: mockLogger,
+	}
+
+	_, err := p.createToolSet(cancelCtx)
+	assert.Error(t, err)
+}
+
+// TestCreateSupervisorAgent_ToolSetError tests error handling when tool set creation fails
+func TestCreateSupervisorAgent_ToolSetError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	cancelCtx, cancel := context.WithCancel(ctx)
+	cancel()
+
+	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().Info("create tool-set for main agent").Times(1)
+
+	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockSkillsService := mocks.NewMockSkillService(ctrl)
+
+	p := &applicationServiceImpl{
+		logService:       mockLogger,
+		fsm:              mockFSM,
+		agentRegistry:    mockRegistry,
+		promptMgr:        mockPromptMgr,
+		agentFactory:     mockAgentFactory,
+		workspaceService: mockWorkspaceService,
+		skillsService:    mockSkillsService,
+	}
+
+	_, _, err := p.createSupervisorAgent(cancelCtx)
+	assert.Error(t, err)
+}
+
+// TestCreateSupervisorAgent_PromptError tests error handling when prompt retrieval fails
+func TestCreateSupervisorAgent_PromptError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+
+	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().Info("create tool-set for main agent").Times(1)
+
+	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+
+	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockPromptMgr.EXPECT().GetPromptWithContext(ctx, prompt.PromptIDSupervisorSystem, gomock.Any()).
+		Return("", assert.AnError).Times(1)
+
+	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockSkillsService := mocks.NewMockSkillService(ctrl)
+	mockSkillsService.EXPECT().GetSkillsXML().Return("<skills></skills>").Times(1)
+	mockSkillsService.EXPECT().GetSkillInfos().Return([]shared.SkillInfo{}).Times(1)
+	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/test/workspace").Times(1)
+
+	p := &applicationServiceImpl{
+		logService:       mockLogger,
+		fsm:              mockFSM,
+		agentRegistry:    mockRegistry,
+		promptMgr:        mockPromptMgr,
+		agentFactory:     mockAgentFactory,
+		workspaceService: mockWorkspaceService,
+		skillsService:    mockSkillsService,
+	}
+
+	_, _, err := p.createSupervisorAgent(ctx)
+	assert.Error(t, err)
+}
+
+// TestCreateSupervisorAgent_AgentFactoryError tests error handling when agent creation fails
+func TestCreateSupervisorAgent_AgentFactoryError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+
+	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().Info("create tool-set for main agent").Times(1)
+
+	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+
+	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockPromptMgr.EXPECT().GetPromptWithContext(ctx, prompt.PromptIDSupervisorSystem, gomock.Any()).
+		Return("test prompt", nil).Times(1)
+
+	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Return(nil, assert.AnError).Times(1)
+
+	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/test/workspace").Times(1)
+
+	mockSkillsService := mocks.NewMockSkillService(ctrl)
+	mockSkillsService.EXPECT().GetSkillsXML().Return("<skills></skills>").Times(1)
+	mockSkillsService.EXPECT().GetSkillInfos().Return([]shared.SkillInfo{}).Times(1)
+
+	p := &applicationServiceImpl{
+		logService:       mockLogger,
+		fsm:              mockFSM,
+		agentRegistry:    mockRegistry,
+		promptMgr:        mockPromptMgr,
+		agentFactory:     mockAgentFactory,
+		workspaceService: mockWorkspaceService,
+		skillsService:    mockSkillsService,
+	}
+
+	_, _, err := p.createSupervisorAgent(ctx)
+	assert.Error(t, err)
+}
+
+// TestCreateSupervisorAgent_RegistryError tests error handling when registration fails
+func TestCreateSupervisorAgent_RegistryError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	agentID := uuid.New()
+
+	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().Info("create tool-set for main agent").Times(1)
+
+	mockFSM := mocks.NewMockFileStateManager(ctrl)
+
+	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).Return(assert.AnError).Times(1)
+
+	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockPromptMgr.EXPECT().GetPromptWithContext(ctx, prompt.PromptIDSupervisorSystem, gomock.Any()).
+		Return("test prompt", nil).Times(1)
+
+	mockSession := mocks.NewMockSession(ctrl)
+	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().Session().Return(mockSession).AnyTimes()
+
+	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Return(mockAgent, nil).Times(1)
+
+	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/test/workspace").Times(1)
+
+	mockSkillsService := mocks.NewMockSkillService(ctrl)
+	mockSkillsService.EXPECT().GetSkillsXML().Return("<skills></skills>").Times(1)
+	mockSkillsService.EXPECT().GetSkillInfos().Return([]shared.SkillInfo{}).Times(1)
+
+	p := &applicationServiceImpl{
+		logService:       mockLogger,
+		fsm:              mockFSM,
+		agentRegistry:    mockRegistry,
+		promptMgr:        mockPromptMgr,
+		agentFactory:     mockAgentFactory,
+		workspaceService: mockWorkspaceService,
+		skillsService:    mockSkillsService,
+	}
+
+	_, _, err := p.createSupervisorAgent(ctx)
+	assert.Error(t, err)
+}
+
+// TestCleanup_NoOp tests that Cleanup is a no-op (kept for interface compatibility)
+func TestCleanup_NoOp(t *testing.T) {
+	p := &applicationServiceImpl{}
+
+	// Should not panic
+	assert.NotPanics(t, func() {
+		p.Cleanup()
+	})
 }

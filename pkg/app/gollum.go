@@ -26,5 +26,5 @@ func (p *applicationServiceImpl) ensureGollumGitignore() error {
 	}
 
 	// Create .gitignore with log directory exclusion
-	return os.WriteFile(gitignorePath, []byte("/log\n"), 0644)
+	return os.WriteFile(gitignorePath, []byte("/logs\n"), 0644)
 }

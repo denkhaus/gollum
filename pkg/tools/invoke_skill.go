@@ -180,7 +180,7 @@ func (t *InvokeSkillTool) runInvokeSkill(ctx context.Context, args map[string]an
 			"skill_name":    skill.Name,
 			"skill_type":    string(skill.Type),
 			"context_mode":  string(contextMode),
-			"model":         string(llmProvider),
+			"llm_provider":  string(llmProvider),
 			"invoker_id":    t.senderID.String(),
 			"skill_path":    skill.FilePath,
 			"skill_version": skill.Version,

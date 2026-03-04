@@ -80,7 +80,7 @@ func (t *BashTool) Spec() gollem.ToolSpec {
 			},
 			"timeout": {
 				Type:        gollem.TypeNumber,
-				Description: "Optional timeout in seconds (default: 30, max: 120)",
+				Description: "Optional timeout in seconds (default: 60, max: 300 = 5 minutes)",
 			},
 		},
 	}
@@ -110,12 +110,12 @@ func (t *BashTool) runBashCommand(ctx context.Context, args map[string]any) (map
 		beforeStats = t.fileState.GetAllStats()
 	}
 
-	// Get timeout, default to 30 seconds, max 120
-	timeoutSeconds := 30.0
+	// Get timeout, default to 60 seconds, max 300 (5 minutes)
+	timeoutSeconds := 60.0
 	if timeout, exists := args["timeout"].(float64); exists && timeout > 0 {
 		timeoutSeconds = timeout
-		if timeoutSeconds > 120 {
-			timeoutSeconds = 120
+		if timeoutSeconds > 300 {
+			timeoutSeconds = 300
 		}
 	}
 

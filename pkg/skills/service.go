@@ -2,6 +2,8 @@ package skills
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -439,23 +441,42 @@ func (s *skillServiceImpl) GetSkillInfos() []shared.SkillInfo {
 	return result
 }
 
-// getEffectiveSearchPaths returns search paths including workspace history
+// getEffectiveSearchPaths returns search paths for skill discovery.
+// Searches in:
+// 1. ~/.config/gollum/skills/ (global skills)
+// 2. <workspace>/.gollum/skills/ (workspace-specific skills)
 func (s *skillServiceImpl) getEffectiveSearchPaths() []string {
 	paths := make(map[string]bool)
+
+	// Add global skills directory: ~/.config/gollum/skills/
+	homeDir, err := os.UserHomeDir()
+	if err == nil {
+		globalSkillsDir := filepath.Join(homeDir, ".config", "gollum", "skills")
+		paths[globalSkillsDir] = true
+	}
 
 	// Add configured search paths
 	for _, p := range s.searchPaths {
 		paths[p] = true
 	}
 
-	// Add current workspace
-	if ws := s.workspace.GetCurrentWorkspace(); ws != "" {
-		paths[ws] = true
+	// Helper to add .gollum/skills subdirectory from a workspace path
+	addWorkspaceSkillsDir := func(workspacePath string) {
+		if workspacePath == "" {
+			return
+		}
+		workspaceSkillsDir := filepath.Join(workspacePath, ".gollum", "skills")
+		paths[workspaceSkillsDir] = true
 	}
 
-	// Add workspace history
+	// Add current workspace's .gollum/skills/
+	if ws := s.workspace.GetCurrentWorkspace(); ws != "" {
+		addWorkspaceSkillsDir(ws)
+	}
+
+	// Add workspace history's .gollum/skills/ directories
 	for _, p := range s.workspace.GetWorkspaceHistory() {
-		paths[p] = true
+		addWorkspaceSkillsDir(p)
 	}
 
 	// Convert to slice
