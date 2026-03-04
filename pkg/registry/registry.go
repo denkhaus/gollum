@@ -8,10 +8,20 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/errs"
+	"github.com/denkhaus/gollum/pkg/events"
+	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/prompt"
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/skills"
+	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
+	"go.uber.org/zap"
 )
+
+// SourceName is the event source identifier for this service
+const SourceName = "agent_registry"
 
 type (
 	// AgentRegistry manages all active agents and their communication
@@ -50,30 +60,231 @@ type (
 	}
 
 	agentHandle struct {
-		agent      shared.Agent
-		config     *shared.AgentConfig
-		cancel     context.CancelFunc // For cancelling background agent execution
-		registered time.Time
-		lastUsed   time.Time
+		agent          shared.Agent
+		config         *shared.AgentConfig
+		cancel         context.CancelFunc       // For cancelling background agent execution
+		pendingContext *shared.WorkspaceContext // Pending workspace context update for running agents
+		registered     time.Time
+		lastUsed       time.Time
 	}
 
 	agentRegistry struct {
-		agents       map[uuid.UUID]*agentHandle
-		agentResults map[uuid.UUID]*shared.AgentResult
-		config       *config.AgentLimitsConfig
-		mutex        sync.RWMutex
+		agents           map[uuid.UUID]*agentHandle
+		agentResults     map[uuid.UUID]*shared.AgentResult
+		config           *config.AgentLimitsConfig
+		eventBus         events.Bus
+		promptManager    manager.PromptManager
+		workspaceService workspace.Service
+		workspaceContext shared.WorkspaceContext
+		skillService     skills.SkillService
+		log              *zap.Logger
+		mutex            sync.RWMutex
 	}
 )
 
 // NewAgentRegistry creates a new agent registry service
 func NewAgentRegistry(injector do.Injector) (AgentRegistry, error) {
 	configService := do.MustInvoke[config.ConfigService](injector)
+	logService := do.MustInvoke[logger.LoggerService](injector)
+	bus := do.MustInvoke[events.Bus](injector)
+	pm := do.MustInvoke[manager.PromptManager](injector)
+	ws := do.MustInvoke[workspace.Service](injector)
+	ss := do.MustInvoke[skills.SkillService](injector)
 
-	return &agentRegistry{
-		agents:       make(map[uuid.UUID]*agentHandle),
-		agentResults: make(map[uuid.UUID]*shared.AgentResult),
-		config:       configService.GetAgentLimits(),
-	}, nil
+	// Create registry first (without skillService - will be set later)
+	registry := &agentRegistry{
+		agents:           make(map[uuid.UUID]*agentHandle),
+		agentResults:     make(map[uuid.UUID]*shared.AgentResult),
+		config:           configService.GetAgentLimits(),
+		eventBus:         bus,
+		promptManager:    pm,
+		workspaceService: ws,
+		skillService:     ss,
+		log:              logService.GetLogger(),
+		workspaceContext: shared.WorkspaceContext{
+			SkillsXML:   ss.GetSkillsXML(),
+			Skills:      ss.GetSkillInfos(),
+			CurrentPath: ws.GetCurrentWorkspace(),
+		},
+	}
+
+	if err := registry.subscribeToEvents(); err != nil {
+		return nil, err
+	}
+
+	return registry, nil
+}
+
+// subscribeToEvents registers event handlers for the registry
+func (r *agentRegistry) subscribeToEvents() error {
+	// Subscribe to skills updated - async with normal priority
+	_, err := events.SubscribeTyped(r.eventBus, events.EventSkillsUpdated,
+		r.handleSkillsUpdated,
+		events.WithAsync(),
+		events.WithPriority(50),
+	)
+	if err != nil {
+		return err
+	}
+
+	// Subscribe to directory changes - async with normal priority
+	_, err = events.SubscribeTyped(r.eventBus, events.EventDirectoryChanged,
+		r.handleDirectoryChanged,
+		events.WithAsync(),
+		events.WithPriority(50),
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// handleSkillsUpdated handles skills updated events
+// When skills change, we update idle agents' system prompts
+func (r *agentRegistry) handleSkillsUpdated(ctx context.Context, payload events.SkillsUpdatedPayload) error {
+	r.log.Debug("agent registry received skills updated event",
+		zap.Int("skill_count", len(payload.Skills)),
+		zap.Bool("has_skills_xml", payload.SkillsXML != ""),
+	)
+
+	r.workspaceContext.Skills = payload.Skills
+	r.workspaceContext.SkillsXML = payload.SkillsXML
+	return r.updateIdleAgentsWithWorkspaceContext(ctx)
+}
+
+// handleDirectoryChanged handles directory change events
+// When directory changes, we update idle agents' system prompts with new path
+func (r *agentRegistry) handleDirectoryChanged(ctx context.Context, payload events.DirectoryChangedPayload) error {
+	r.log.Debug("agent registry received directory changed event",
+		zap.String("old_path", payload.OldPath),
+		zap.String("new_path", payload.NewPath))
+
+	r.workspaceContext.CurrentPath = payload.NewPath
+	return r.updateIdleAgentsWithWorkspaceContext(ctx)
+}
+
+// updateIdleAgentsWithWorkspaceContext updates all agents with the current workspace context.
+// Idle agents are updated immediately, running agents receive a pending update that is applied
+// when they become idle.
+func (r *agentRegistry) updateIdleAgentsWithWorkspaceContext(ctx context.Context) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	// Track counts for logging
+	idleUpdatedCount := 0
+	runningPendingCount := 0
+
+	// Create a copy of the workspace context for pending updates
+	contextCopy := r.copyWorkspaceContext(&r.workspaceContext)
+
+	for id, handle := range r.agents {
+		// Determine the correct prompt ID based on agent type
+		promptID := r.getPromptIDForAgent(handle)
+
+		if r.isAgentIdle(handle) {
+			// Agent is idle - update immediately
+			if err := r.updateAgentPrompt(ctx, handle, promptID, nil); err != nil {
+				r.log.Warn("failed to update idle agent system prompt",
+					zap.Error(err),
+					zap.String("agent_id", id.String()),
+					zap.String("prompt_id", string(promptID)))
+				continue
+			}
+			idleUpdatedCount++
+			r.log.Debug("updated idle agent system prompt",
+				zap.String("agent_id", id.String()),
+				zap.String("prompt_id", string(promptID)))
+		} else {
+			// Agent is running - store pending context for later application
+			handle.pendingContext = contextCopy
+			runningPendingCount++
+			r.log.Debug("stored pending context update for running agent",
+				zap.String("agent_id", id.String()))
+		}
+	}
+
+	r.log.Info("workspace context update processed",
+		zap.Int("total_agents", len(r.agents)),
+		zap.Int("idle_updated", idleUpdatedCount),
+		zap.Int("running_pending", runningPendingCount))
+
+	return nil
+}
+
+// isAgentIdle checks if an agent is currently idle (not running).
+// An agent is considered idle if:
+// 1. It has no active cancel function (not a background execution), OR
+// 2. Its result status is not "running" (completed, failed, or no result yet)
+func (r *agentRegistry) isAgentIdle(handle *agentHandle) bool {
+	// If there's an active cancel function, check the result status
+	if handle.cancel != nil {
+		// This is a background agent with cancel - check if still running
+		result, exists := r.agentResults[handle.config.ID]
+		if exists && result.Status == shared.AgentStatusRunning {
+			return false // Still running
+		}
+		return true // Has cancel but not running anymore
+	}
+
+	// No cancel function - check result status
+	result, exists := r.agentResults[handle.config.ID]
+	if !exists {
+		return true // No result = never started = idle
+	}
+	return result.Status != shared.AgentStatusRunning
+}
+
+// getPromptIDForAgent returns the appropriate prompt ID based on whether the agent is a supervisor or subagent.
+func (r *agentRegistry) getPromptIDForAgent(handle *agentHandle) prompt.PromptID {
+	if handle.config.ParentID == nil {
+		return prompt.PromptIDSupervisorSystem
+	}
+	return prompt.PromptIDSubagentSystem
+}
+
+// updateAgentPrompt renders and applies a new system prompt to an agent.
+// If wsContext is nil, uses the registry's current workspace context.
+func (r *agentRegistry) updateAgentPrompt(ctx context.Context,
+	handle *agentHandle,
+	promptID prompt.PromptID,
+	wsContext *shared.WorkspaceContext,
+) error {
+	// Use provided context or fall back to registry's current context
+	if wsContext == nil {
+		wsContext = &r.workspaceContext
+	}
+
+	renderCtx := &prompt.RenderContext{
+		Workspace: wsContext,
+	}
+
+	newPrompt, err := r.promptManager.GetPromptWithContext(ctx, promptID, renderCtx)
+	if err != nil {
+		return err
+	}
+
+	return handle.agent.UpdateSystemPrompt(ctx, newPrompt)
+}
+
+// copyWorkspaceContext creates a deep copy of WorkspaceContext to avoid shared state issues.
+func (r *agentRegistry) copyWorkspaceContext(src *shared.WorkspaceContext) *shared.WorkspaceContext {
+	if src == nil {
+		return nil
+	}
+
+	dst := &shared.WorkspaceContext{
+		CurrentPath: src.CurrentPath,
+		SkillsXML:   src.SkillsXML,
+	}
+
+	// Deep copy Skills slice
+	if src.Skills != nil {
+		dst.Skills = make([]shared.SkillInfo, len(src.Skills))
+		copy(dst.Skills, src.Skills)
+	}
+
+	return dst
 }
 
 func (r *agentRegistry) Register(agent shared.Agent, config *shared.AgentConfig, cancel ...context.CancelFunc) error {
@@ -276,14 +487,46 @@ func (r *agentRegistry) GetSubAgentCount(parentID uuid.UUID) int {
 	return count
 }
 
-// StoreAgentResult stores an agent result for background agent tracking
+// StoreAgentResult stores an agent result for background agent tracking.
+// When an agent transitions from running to completed/failed, pending context updates are applied.
 func (r *agentRegistry) StoreAgentResult(result shared.AgentResult) error {
 	r.mutex.Lock()
-	defer r.mutex.Unlock()
+
+	// Check if this is a transition from running to completed/failed
+	isCompletion := result.Status == shared.AgentStatusCompleted || result.Status == shared.AgentStatusFailed
 
 	// Store a copy to avoid external modifications
 	stored := result
 	r.agentResults[result.AgentID] = &stored
+
+	// Extract pending context for later application (if any)
+	var pendingContext *shared.WorkspaceContext
+	var handle *agentHandle
+	if isCompletion {
+		if h, exists := r.agents[result.AgentID]; exists && h.pendingContext != nil {
+			pendingContext = h.pendingContext
+			h.pendingContext = nil // Clear it while we hold the lock
+			handle = h
+		}
+	}
+
+	r.mutex.Unlock()
+
+	// Apply pending context update outside the lock
+	// This is safe because we've already extracted and cleared the pending context
+	if pendingContext != nil && handle != nil {
+		ctx := context.Background()
+		promptID := r.getPromptIDForAgent(handle)
+		if err := r.updateAgentPrompt(ctx, handle, promptID, pendingContext); err != nil {
+			r.log.Warn("failed to apply pending update on agent completion",
+				zap.Error(err),
+				zap.String("agent_id", result.AgentID.String()))
+		} else {
+			r.log.Debug("applied pending context update to completed agent",
+				zap.String("agent_id", result.AgentID.String()))
+		}
+	}
+
 	return nil
 }
 

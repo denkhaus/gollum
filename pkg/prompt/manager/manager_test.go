@@ -10,6 +10,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	promptstore "github.com/denkhaus/gollum/pkg/prompt/store"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -701,12 +702,12 @@ End of prompt.`
 
 	// Create render context with WorkspaceContext containing skills
 	renderCtx := &prompt.RenderContext{
-		Workspace: &prompt.WorkspaceContext{
+		Workspace: &shared.WorkspaceContext{
 			CurrentPath: "/home/user/project",
 			SkillsXML: `<skill name="test-skill">
   <description>A test skill</description>
 </skill>`,
-			Skills: []prompt.SkillInfo{
+			Skills: []shared.SkillInfo{
 				{Name: "test-skill", Description: "A test skill", Location: "/home/user/project/.claude/skills/test-skill.md"},
 				{Name: "another-skill", Description: "Another skill", Location: "/home/user/project/.claude/skills/another-skill.md"},
 			},
@@ -749,7 +750,7 @@ End of prompt.`
 
 	// Create render context with empty WorkspaceContext
 	renderCtx := &prompt.RenderContext{
-		Workspace: &prompt.WorkspaceContext{
+		Workspace: &shared.WorkspaceContext{
 			CurrentPath: "/home/user/project",
 			SkillsXML:   "",
 			Skills:      nil,

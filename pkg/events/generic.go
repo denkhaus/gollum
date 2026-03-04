@@ -20,7 +20,7 @@ type TypedHandler[T any] func(ctx context.Context, payload T) error
 //	    },
 //	    events.WithSync(),
 //	)
-func SubscribeTyped[T any](bus Bus, eventType string, handler TypedHandler[T], opts ...SubscriptionOption) (string, error) {
+func SubscribeTyped[T any](bus Bus, eventType EventType, handler TypedHandler[T], opts ...SubscriptionOption) (string, error) {
 	wrapper := func(ctx context.Context, event Event) error {
 		typed, ok := event.(*TypedEvent[T])
 		if !ok {
@@ -28,7 +28,7 @@ func SubscribeTyped[T any](bus Bus, eventType string, handler TypedHandler[T], o
 		}
 		return handler(ctx, typed.Payload())
 	}
-	return bus.Subscribe(eventType, wrapper, opts...)
+	return bus.Subscribe(eventType.String(), wrapper, opts...)
 }
 
 // PublishTyped publishes a typed event with the given payload.
@@ -41,6 +41,6 @@ func SubscribeTyped[T any](bus Bus, eventType string, handler TypedHandler[T], o
 //	        OldPath: "/old",
 //	        NewPath: "/new",
 //	    })
-func PublishTyped[T any](bus Bus, ctx context.Context, eventType, source string, payload T) error {
-	return bus.Publish(ctx, NewEvent(eventType, source, payload))
+func PublishTyped[T any](bus Bus, ctx context.Context, eventType EventType, source string, payload T) error {
+	return bus.Publish(ctx, NewEvent(eventType.String(), source, payload))
 }

@@ -77,6 +77,10 @@ type LoggingConfig struct {
 	SessionLogBufferSize int `envconfig:"SESSION_LOG_BUFFER_SIZE" default:"1000"`
 	// SessionLogEnabled enables or disables in-memory log buffering.
 	SessionLogEnabled bool `envconfig:"SESSION_LOG_ENABLED" default:"true"`
+	// MaxSessionLogFiles is the maximum number of session log files to retain.
+	// Min: 0 (unlimited), Max: 100, Default: 10
+	// When set to 0, no automatic cleanup is performed.
+	MaxSessionLogFiles int `envconfig:"MAX_SESSION_LOG_FILES" default:"10"`
 }
 
 // BashConfig defines configuration for the Bash tool's file change tracking
@@ -235,6 +239,12 @@ func NewService(_ do.Injector) (ConfigService, error) {
 	}
 	if s.Logging.SessionLogBufferSize > 100000 {
 		s.Logging.SessionLogBufferSize = 100000
+	}
+	if s.Logging.MaxSessionLogFiles < 0 {
+		s.Logging.MaxSessionLogFiles = 0
+	}
+	if s.Logging.MaxSessionLogFiles > 100 {
+		s.Logging.MaxSessionLogFiles = 100
 	}
 
 	return &s, nil

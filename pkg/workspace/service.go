@@ -3,44 +3,26 @@
 package workspace
 
 import (
+	"context"
 	"os"
 	"sync"
 
+	"github.com/denkhaus/gollum/pkg/events"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/samber/do/v2"
+	"go.uber.org/zap"
 )
 
-// SkillInfo holds information about a discovered skill
-type SkillInfo struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Location    string `json:"location"`
-}
-
-// WorkspaceContext holds the current workspace state
-type WorkspaceContext struct {
-	CurrentPath      string      `json:"current_path"`
-	WorkspaceHistory []string    `json:"workspace_history"`
-	Skills           []SkillInfo `json:"skills"`
-	SkillsXML        string      `json:"skills_xml"`
-}
+// SourceName is the event source identifier for this service
+const SourceName = "workspace_service"
 
 // Service manages workspace state during runtime.
-// It manages workspace paths and skills context.
+// It manages workspace paths and history.
 type Service interface {
 	// Workspace path management
-	SetCurrentWorkspace(path string) error
+
 	GetCurrentWorkspace() string
-	AddToHistory(path string)
 	GetWorkspaceHistory() []string
-	ClearHistory()
-
-	// Skills context (populated by SkillService)
-	SetSkillsContext(skills []SkillInfo, skillsXML string)
-	GetSkillsContext() []SkillInfo
-	GetSkillsXML() string
-
-	// Context export
-	GetWorkspaceContext() *WorkspaceContext
 }
 
 // serviceImpl implements the Service interface
@@ -49,8 +31,8 @@ type serviceImpl struct {
 	currentPath    string
 	history        []string
 	maxHistorySize int
-	skills         []SkillInfo
-	skillsXML      string
+	eventBus       events.Bus
+	logger         logger.LoggerService
 }
 
 // Ensure serviceImpl implements Service
@@ -58,24 +40,70 @@ var _ Service = (*serviceImpl)(nil)
 
 // NewServiceProvider creates a new workspace service for DI
 func NewServiceProvider(injector do.Injector) (Service, error) {
+	bus := do.MustInvoke[events.Bus](injector)
+	logService := do.MustInvoke[logger.LoggerService](injector)
+
 	service := &serviceImpl{
 		currentPath:    "",
 		history:        make([]string, 0),
 		maxHistorySize: 10, // Keep last 10 workspaces
-		skills:         make([]SkillInfo, 0),
-		skillsXML:      "",
+		eventBus:       bus,
+		logger:         logService,
 	}
 
 	// Initialize with current working directory
 	if wd, err := os.Getwd(); err == nil && wd != "" {
-		service.SetCurrentWorkspace(wd)
+		service.setCurrentWorkspace(wd)
+	}
+
+	// Subscribe to events
+	if err := service.subscribeToEvents(); err != nil {
+		return nil, err
 	}
 
 	return service, nil
 }
 
-// SetCurrentWorkspace sets the current workspace path
-func (s *serviceImpl) SetCurrentWorkspace(path string) error {
+// subscribeToEvents registers event handlers for the workspace service
+func (s *serviceImpl) subscribeToEvents() error {
+	// Subscribe to directory changes - sync with high priority
+	_, err := events.SubscribeTyped[events.DirectoryChangedPayload](s.eventBus, events.EventDirectoryChanged,
+		s.handleDirectoryChanged,
+		events.WithSync(),
+		events.WithPriority(100),
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// handleDirectoryChanged handles directory change events
+func (s *serviceImpl) handleDirectoryChanged(ctx context.Context, payload events.DirectoryChangedPayload) error {
+	s.logger.Debug("workspace service received directory changed event",
+		zap.String("old_path", payload.OldPath),
+		zap.String("new_path", payload.NewPath))
+
+	// Update the current workspace path
+	if err := s.setCurrentWorkspace(payload.NewPath); err != nil {
+		s.logger.Error("failed to set current workspace",
+			zap.String("path", payload.NewPath),
+			zap.Error(err))
+		return err
+	}
+
+	s.logger.Info("workspace updated",
+		zap.String("old_path", payload.OldPath),
+		zap.String("new_path", payload.NewPath))
+
+	return nil
+}
+
+// setCurrentWorkspace sets the current workspace path
+// only used for internal purposes. The current workspace path
+// gets updated by subscription
+func (s *serviceImpl) setCurrentWorkspace(path string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -91,14 +119,6 @@ func (s *serviceImpl) GetCurrentWorkspace() string {
 	defer s.mu.RUnlock()
 
 	return s.currentPath
-}
-
-// AddToHistory adds a path to the workspace history
-func (s *serviceImpl) AddToHistory(path string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.addToHistoryLocked(path)
 }
 
 // addToHistoryLocked adds to history without locking (internal use)
@@ -132,59 +152,4 @@ func (s *serviceImpl) GetWorkspaceHistory() []string {
 	result := make([]string, len(s.history))
 	copy(result, s.history)
 	return result
-}
-
-// ClearHistory clears the workspace history
-func (s *serviceImpl) ClearHistory() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.history = make([]string, 0)
-}
-
-// GetWorkspaceContext returns the workspace context (for prompt rendering)
-func (s *serviceImpl) GetWorkspaceContext() *WorkspaceContext {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	history := make([]string, len(s.history))
-	copy(history, s.history)
-
-	skills := make([]SkillInfo, len(s.skills))
-	copy(skills, s.skills)
-
-	return &WorkspaceContext{
-		CurrentPath:      s.currentPath,
-		WorkspaceHistory: history,
-		Skills:           skills,
-		SkillsXML:        s.skillsXML,
-	}
-}
-
-// SetSkillsContext updates the skills context
-func (s *serviceImpl) SetSkillsContext(skills []SkillInfo, skillsXML string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.skills = make([]SkillInfo, len(skills))
-	copy(s.skills, skills)
-	s.skillsXML = skillsXML
-}
-
-// GetSkillsContext returns the current skills
-func (s *serviceImpl) GetSkillsContext() []SkillInfo {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	result := make([]SkillInfo, len(s.skills))
-	copy(result, s.skills)
-	return result
-}
-
-// GetSkillsXML returns the skills in XML format
-func (s *serviceImpl) GetSkillsXML() string {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	return s.skillsXML
 }

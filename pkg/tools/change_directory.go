@@ -10,22 +10,19 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
-	"github.com/denkhaus/gollum/pkg/skills"
-	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 )
 
 type (
-	// ChangeDirectoryTool changes the current working directory and triggers skill discovery
+	// ChangeDirectoryTool changes the current working directory and publishes an event
+	// Services subscribe to the event to update their state (workspace, skills, etc.)
 	ChangeDirectoryTool struct {
-		logService      logger.LoggerService
-		hookManager     hooks.HookManager
-		workspaceService workspace.Service
-		skillService    skills.SkillService
-		eventBus        events.Bus
-		agentID         uuid.UUID
+		logService  logger.LoggerService
+		hookManager hooks.HookManager
+		eventBus    events.Bus
+		agentID     uuid.UUID
 	}
 
 	// ChangeDirectoryToolProvider creates ChangeDirectoryTool instances via DI
@@ -34,11 +31,9 @@ type (
 	}
 
 	changeDirectoryToolProvider struct {
-		logService      logger.LoggerService
-		hookManager     hooks.HookManager
-		workspaceService workspace.Service
-		skillService    skills.SkillService
-		eventBus        events.Bus
+		logService  logger.LoggerService
+		hookManager hooks.HookManager
+		eventBus    events.Bus
 	}
 )
 
@@ -46,28 +41,22 @@ type (
 func NewChangeDirectoryToolProvider(injector do.Injector) (ChangeDirectoryToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	hookManager := do.MustInvoke[hooks.HookManager](injector)
-	wsService := do.MustInvoke[workspace.Service](injector)
-	skillSvc := do.MustInvoke[skills.SkillService](injector)
 	bus := do.MustInvoke[events.Bus](injector)
 
 	return &changeDirectoryToolProvider{
-		logService:      logService,
-		hookManager:     hookManager,
-		workspaceService: wsService,
-		skillService:    skillSvc,
-		eventBus:        bus,
+		logService:  logService,
+		hookManager: hookManager,
+		eventBus:    bus,
 	}, nil
 }
 
 // CreateTool creates a new ChangeDirectoryTool with agent ID
 func (p *changeDirectoryToolProvider) CreateTool(agentID uuid.UUID) *ChangeDirectoryTool {
 	return &ChangeDirectoryTool{
-		logService:      p.logService,
-		hookManager:     p.hookManager,
-		workspaceService: p.workspaceService,
-		skillService:    p.skillService,
-		eventBus:        p.eventBus,
-		agentID:         agentID,
+		logService:  p.logService,
+		hookManager: p.hookManager,
+		eventBus:    p.eventBus,
+		agentID:     agentID,
 	}
 }
 
@@ -80,6 +69,8 @@ func (t *ChangeDirectoryTool) Run(ctx context.Context, args map[string]any) (map
 }
 
 // runChangeDirectory implements the core ChangeDirectory logic
+// It only validates, changes the actual directory, and publishes an event.
+// Services (WorkspaceService, SkillService) subscribe to the event to update their state.
 func (t *ChangeDirectoryTool) runChangeDirectory(ctx context.Context, args map[string]any) (map[string]any, error) {
 	// Get path from args
 	path, ok := args["path"].(string)
@@ -105,34 +96,35 @@ func (t *ChangeDirectoryTool) runChangeDirectory(ctx context.Context, args map[s
 		return nil, fmt.Errorf("path is not a directory: %s", absPath)
 	}
 
-	// Get previous workspace
-	previousWorkspace := t.workspaceService.GetCurrentWorkspace()
-
-	// Update workspace configuration
-	if err := t.workspaceService.SetCurrentWorkspace(absPath); err != nil {
-		return nil, fmt.Errorf("failed to set workspace: %w", err)
+	// Get previous working directory
+	previousPath, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current directory: %w", err)
 	}
 
-	// Add new path to skill service search paths and trigger discovery
-	if err := t.skillService.AddSearchPathAndDiscover(ctx, absPath); err != nil {
-		t.logService.Warnf("Failed to discover skills in new workspace: %v", err)
-		// Don't fail the operation, just log the warning
+	// Skip if already in the target directory
+	if previousPath == absPath {
+		return map[string]any{
+			"success":       true,
+			"previous_path": previousPath,
+			"current_path":  absPath,
+			"message":       "Already in target directory",
+		}, nil
 	}
 
 	// Actually change the working directory
 	if err := os.Chdir(absPath); err != nil {
-		t.logService.Warnf("Failed to change working directory: %v", err)
-		// Don't fail the operation, workspace config is updated
+		return nil, fmt.Errorf("failed to change directory: %w", err)
 	}
 
-	t.logService.Infof("Changed workspace from %s to %s", previousWorkspace, absPath)
+	t.logService.Infof("Changed directory from %s to %s", previousPath, absPath)
 
-	// Publish directory changed event
+	// Publish directory changed event - services will react to this
 	if err := events.PublishTyped(t.eventBus, ctx,
 		events.EventDirectoryChanged,
-		shared.ToolNameChangeDirectory,
+		shared.ToolNameChangeDirectory.String(),
 		events.DirectoryChangedPayload{
-			OldPath: previousWorkspace,
+			OldPath: previousPath,
 			NewPath: absPath,
 		},
 	); err != nil {
@@ -142,10 +134,9 @@ func (t *ChangeDirectoryTool) runChangeDirectory(ctx context.Context, args map[s
 
 	// Build result
 	result := map[string]any{
-		"success":           true,
-		"previous_path":     previousWorkspace,
-		"current_path":      absPath,
-		"workspace_history": t.workspaceService.GetWorkspaceHistory(),
+		"success":       true,
+		"previous_path": previousPath,
+		"current_path":  absPath,
 	}
 
 	return result, nil
@@ -170,7 +161,7 @@ func resolvePath(path string) (string, error) {
 // Spec returns the tool specification for the ChangeDirectory tool
 func (t *ChangeDirectoryTool) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
-		Name:        shared.ToolNameChangeDirectory,
+		Name:        shared.ToolNameChangeDirectory.String(),
 		Description: "Changes the current working directory, updates workspace configuration, and triggers automatic skill discovery in the new directory. Use this tool to switch between different project workspaces.",
 		Parameters: map[string]*gollem.Parameter{
 			"path": {

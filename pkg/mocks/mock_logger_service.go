@@ -13,6 +13,7 @@ import (
 	reflect "reflect"
 
 	logger "github.com/denkhaus/gollum/pkg/logger"
+	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
 	zap "go.uber.org/zap"
 )
@@ -39,6 +40,20 @@ func NewMockLoggerService(ctrl *gomock.Controller) *MockLoggerService {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockLoggerService) EXPECT() *MockLoggerServiceMockRecorder {
 	return m.recorder
+}
+
+// CloseFileLogging mocks base method.
+func (m *MockLoggerService) CloseFileLogging() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CloseFileLogging")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CloseFileLogging indicates an expected call of CloseFileLogging.
+func (mr *MockLoggerServiceMockRecorder) CloseFileLogging() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseFileLogging", reflect.TypeOf((*MockLoggerService)(nil).CloseFileLogging))
 }
 
 // Debug mocks base method.
@@ -73,6 +88,20 @@ func (mr *MockLoggerServiceMockRecorder) Debugf(template any, args ...any) *gomo
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{template}, args...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Debugf", reflect.TypeOf((*MockLoggerService)(nil).Debugf), varargs...)
+}
+
+// EnableFileLogging mocks base method.
+func (m *MockLoggerService) EnableFileLogging(gollumDir string, sessionID uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableFileLogging", gollumDir, sessionID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// EnableFileLogging indicates an expected call of EnableFileLogging.
+func (mr *MockLoggerServiceMockRecorder) EnableFileLogging(gollumDir, sessionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableFileLogging", reflect.TypeOf((*MockLoggerService)(nil).EnableFileLogging), gollumDir, sessionID)
 }
 
 // Error mocks base method.

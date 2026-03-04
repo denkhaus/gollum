@@ -56,7 +56,7 @@ func (p *agentOutputToolProvider) CreateTool(senderID uuid.UUID) *AgentOutputToo
 // Spec returns the tool specification for the AgentOutput tool
 func (t *AgentOutputTool) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
-		Name:        shared.ToolNameAgentOutput,
+		Name:        shared.ToolNameAgentOutput.String(),
 		Description: "Retrieves results from agents running in background (async execution mode).",
 		Parameters: map[string]*gollem.Parameter{
 			"agent_id": {

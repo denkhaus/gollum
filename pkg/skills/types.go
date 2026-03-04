@@ -112,14 +112,3 @@ var DefaultIgnoredDirs = []string{
 	"tmp",
 	"temp",
 }
-
-// ToolNameValidator defines the interface for validating tool names.
-// This interface is implemented by the tools package (ToolRegistry) and injected via DI
-// to maintain modular architecture and avoid circular dependencies.
-type ToolNameValidator interface {
-	// IsValidTool checks if a tool name is a valid registered tool
-	IsValidTool(name string) bool
-
-	// GetValidToolNames returns all valid tool names
-	GetValidToolNames() []string
-}

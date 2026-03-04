@@ -69,7 +69,7 @@ func (p *grepToolProvider) CreateTool(agentID uuid.UUID) *GrepTool {
 // Spec returns the tool specification for the Grep tool
 func (t *GrepTool) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
-		Name:        shared.ToolNameGrep,
+		Name:        shared.ToolNameGrep.String(),
 		Description: "A powerful search tool built on ripgrep. Use Grep for searching file content. ALWAYS use Grep for search tasks - NEVER invoke grep or rg as Bash command.",
 		Parameters: map[string]*gollem.Parameter{
 			"pattern": {

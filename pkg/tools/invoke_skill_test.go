@@ -74,9 +74,12 @@ func TestInvokeSkillTool_MissingRequiredParameters(t *testing.T) {
 			mockLogger := mocks.NewMockLoggerService(ctrl)
 			mockHookManager := mocks.NewMockHookManager(ctrl)
 
+			// Allow any logger calls
+			mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
 			// Set up hook manager to pass through
 			mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-				DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ string, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+				DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 					return work()
 				})
 
@@ -105,7 +108,7 @@ func TestInvokeSkillTool_SkillNotFound(t *testing.T) {
 
 	// Set up hook manager to pass through
 	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ string, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 			return work()
 		})
 
@@ -141,7 +144,7 @@ func TestInvokeSkillTool_InvalidContextMode(t *testing.T) {
 
 	// Set up hook manager to pass through
 	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ string, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 			return work()
 		})
 
@@ -184,7 +187,7 @@ func TestInvokeSkillTool_InvalidModel(t *testing.T) {
 
 	// Set up hook manager to pass through
 	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ string, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 			return work()
 		})
 
@@ -229,7 +232,7 @@ func TestInvokeSkillTool_SkillWithNoContent(t *testing.T) {
 
 	// Set up hook manager to pass through
 	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ string, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 			return work()
 		})
 
@@ -349,7 +352,7 @@ func TestInvokeSkillTool_TriggersSkillHooks(t *testing.T) {
 
 	// Tool hooks pass through
 	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), shared.ToolNameInvokeSkill, gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ string, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 			return work()
 		})
 

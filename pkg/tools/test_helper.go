@@ -4,11 +4,16 @@ import (
 	"context"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/events"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
+	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/skills"
 	"github.com/denkhaus/gollum/pkg/state"
+	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"go.uber.org/mock/gomock"
@@ -16,6 +21,8 @@ import (
 
 // setupTestInjector creates an injector with all required services for testing
 func setupTestInjector() do.Injector {
+	ctrl := gomock.NewController(nil)
+
 	injector := do.New()
 
 	// Register config service
@@ -23,6 +30,27 @@ func setupTestInjector() do.Injector {
 
 	// Register logger service
 	do.Provide(injector, logger.NewService)
+
+	// Register mock event bus (required by registry)
+	mockEventBus := mocks.NewMockBus(ctrl)
+	mockEventBus.EXPECT().Subscribe(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("test-subscription-id", nil).AnyTimes()
+	do.ProvideValue[events.Bus](injector, mockEventBus)
+
+	// Register mock prompt manager (required by registry)
+	mockPromptManager := mocks.NewMockPromptManager(ctrl)
+	do.ProvideValue[manager.PromptManager](injector, mockPromptManager)
+
+	// Register mock workspace service (required by registry)
+	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/test/workspace").AnyTimes()
+	do.ProvideValue[workspace.Service](injector, mockWorkspaceService)
+
+	// Register mock skill service (required by registry)
+	mockSkillService := mocks.NewMockSkillService(ctrl)
+	mockSkillService.EXPECT().GetSkillsXML().Return("").AnyTimes()
+	mockSkillService.EXPECT().GetSkillInfos().Return([]shared.SkillInfo{}).AnyTimes()
+	do.ProvideValue[skills.SkillService](injector, mockSkillService)
 
 	// Register HookManager (needed by tool providers)
 	do.Provide(injector, hooks.NewHookManager)
@@ -50,7 +78,7 @@ func setupTestInjector() do.Injector {
 func setupMockHookManagerPassThrough(mockHookManager *mocks.MockHookManager) {
 	// WithToolHooks - pass through to work function
 	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ string, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 			return work()
 		}).AnyTimes()
 

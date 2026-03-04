@@ -7,6 +7,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/errs"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -109,7 +110,7 @@ type HookManager interface {
 	WithToolHooks(
 		ctx context.Context,
 		sessionID, agentID uuid.UUID,
-		toolName string,
+		toolName shared.ToolName,
 		args map[string]any,
 		work func() (map[string]any, error),
 	) (map[string]any, error)

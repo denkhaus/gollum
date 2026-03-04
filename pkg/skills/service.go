@@ -6,7 +6,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/denkhaus/gollum/pkg/events"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -40,13 +42,20 @@ type SkillService interface {
 	RemoveSearchPath(path string)
 	// GetSearchPaths returns current search paths
 	GetSearchPaths() []string
+
+	// Workspace context methods
+	// GetSkillsXML returns all discovered skills in XML format for LLM prompts
+	GetSkillsXML() string
+	// GetSkillInfos returns skill information for all discovered skills
+	GetSkillInfos() []shared.SkillInfo
 }
 
 // skillServiceImpl implements SkillService
 type skillServiceImpl struct {
 	log               *zap.Logger
 	workspace         workspace.Service
-	toolNameValidator ToolNameValidator
+	toolNameValidator shared.ToolRegistry
+	eventBus          events.Bus
 	mu                sync.RWMutex
 	skills            map[string]*Skill // name -> skill
 	skillsByPath      map[string]*Skill // path -> skill
@@ -62,11 +71,12 @@ func NewService(injector do.Injector) (SkillService, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	log := logService.GetLogger()
 	ws := do.MustInvoke[workspace.Service](injector)
+	bus := do.MustInvoke[events.Bus](injector)
 
-	// Try to get ToolNameValidator from DI, but it's optional
+	// Try to get ToolRegistry from DI, but it's optional
 	// If not available, tool validation will be skipped
-	var toolNameValidator ToolNameValidator
-	if tv, err := do.Invoke[ToolNameValidator](injector); err == nil {
+	var toolNameValidator shared.ToolRegistry
+	if tv, err := do.Invoke[shared.ToolRegistry](injector); err == nil {
 		toolNameValidator = tv
 	}
 
@@ -74,9 +84,15 @@ func NewService(injector do.Injector) (SkillService, error) {
 		log:               log,
 		workspace:         ws,
 		toolNameValidator: toolNameValidator,
+		eventBus:          bus,
 		skills:            make(map[string]*Skill),
 		skillsByPath:      make(map[string]*Skill),
 		searchPaths:       make([]string, 0),
+	}
+
+	// Subscribe to events
+	if err := service.subscribeToEvents(); err != nil {
+		return nil, err
 	}
 
 	// Add workspace directory as default search path
@@ -98,8 +114,58 @@ func NewService(injector do.Injector) (SkillService, error) {
 	return service, nil
 }
 
+// subscribeToEvents registers event handlers for the skill service
+func (s *skillServiceImpl) subscribeToEvents() error {
+	// Subscribe to directory changes - sync with normal priority
+	_, err := events.SubscribeTyped[events.DirectoryChangedPayload](s.eventBus, events.EventDirectoryChanged,
+		s.handleDirectoryChanged,
+		events.WithSync(),
+		events.WithPriority(50),
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// handleDirectoryChanged handles directory change events
+func (s *skillServiceImpl) handleDirectoryChanged(ctx context.Context, payload events.DirectoryChangedPayload) error {
+	s.log.Debug("skill service received directory changed event",
+		zap.String("old_path", payload.OldPath),
+		zap.String("new_path", payload.NewPath))
+
+	// Trigger skill discovery in the new directory
+	if err := s.AddSearchPathAndDiscover(ctx, payload.NewPath); err != nil {
+		s.log.Warn("failed to discover skills in new directory",
+			zap.String("path", payload.NewPath),
+			zap.Error(err))
+		// Don't return error - skill discovery failure is non-critical
+	}
+
+	return nil
+}
+
+// publishSkillsUpdated publishes an event when skills are updated
+func (s *skillServiceImpl) publishSkillsUpdated(ctx context.Context, skills []shared.SkillInfo, skillsXML string) {
+	if s.eventBus == nil {
+		return
+	}
+
+	if err := events.PublishTyped(s.eventBus, ctx,
+		events.EventSkillsUpdated,
+		"skill_service",
+		events.SkillsUpdatedPayload{Skills: skills, SkillsXML: skillsXML},
+	); err != nil {
+		s.log.Warn("failed to publish skills updated event", zap.Error(err))
+	}
+}
+
 // discoverInternal performs skill discovery without locking (called from constructor)
 func (s *skillServiceImpl) discoverInternal(ctx context.Context) error {
+	// Store old skill count to detect changes
+	oldSkillCount := len(s.skills)
+
 	// Clear existing skills
 	s.skills = make(map[string]*Skill)
 	s.skillsByPath = make(map[string]*Skill)
@@ -148,6 +214,21 @@ func (s *skillServiceImpl) discoverInternal(ctx context.Context) error {
 		zap.Int("errors", len(result.Errors)),
 		zap.Int("search_paths_removed", len(removedPaths)),
 	)
+
+	// Publish SkillsUpdated event if skills changed
+	if len(s.skills) != oldSkillCount || len(s.skills) > 0 {
+		skillInfos := make([]shared.SkillInfo, 0, len(s.skills))
+		skills := make(Skills, 0, len(s.skills))
+		for _, skill := range s.skills {
+			skillInfos = append(skillInfos, shared.SkillInfo{
+				Name:        skill.Name,
+				Description: skill.Description,
+				Location:    skill.FilePath,
+			})
+			skills = append(skills, skill)
+		}
+		s.publishSkillsUpdated(ctx, skillInfos, skills.ToPromptXML())
+	}
 
 	return nil
 }
@@ -253,14 +334,14 @@ func (s *skillServiceImpl) ValidateTools(skill *Skill) []string {
 
 	// Validate tools whitelist
 	for _, tool := range skill.Tools {
-		if !s.toolNameValidator.IsValidTool(tool) {
+		if !s.toolNameValidator.IsValidTool(shared.ToolName(tool)) {
 			invalid = append(invalid, tool)
 		}
 	}
 
 	// Validate tool filter
 	for _, tool := range skill.ToolFilter {
-		if !s.toolNameValidator.IsValidTool(tool) {
+		if !s.toolNameValidator.IsValidTool(shared.ToolName(tool)) {
 			invalid = append(invalid, tool)
 		}
 	}
@@ -327,6 +408,34 @@ func (s *skillServiceImpl) GetSearchPaths() []string {
 
 	result := make([]string, len(s.searchPaths))
 	copy(result, s.searchPaths)
+	return result
+}
+
+// GetSkillsXML returns all discovered skills in XML format for LLM prompts
+func (s *skillServiceImpl) GetSkillsXML() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	skills := make(Skills, 0, len(s.skills))
+	for _, skill := range s.skills {
+		skills = append(skills, skill)
+	}
+	return skills.ToPromptXML()
+}
+
+// GetSkillInfos returns skill information for all discovered skills
+func (s *skillServiceImpl) GetSkillInfos() []shared.SkillInfo {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	result := make([]shared.SkillInfo, 0, len(s.skills))
+	for _, skill := range s.skills {
+		result = append(result, shared.SkillInfo{
+			Name:        skill.Name,
+			Description: skill.Description,
+			Location:    skill.FilePath,
+		})
+	}
 	return result
 }
 

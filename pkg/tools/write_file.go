@@ -62,7 +62,7 @@ func (p *writeFileToolProvider) CreateTool(agentID uuid.UUID) *WriteFileTool {
 // Spec returns the tool specification for the WriteFile tool
 func (t *WriteFileTool) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
-		Name:        shared.ToolNameWriteFile,
+		Name:        shared.ToolNameWriteFile.String(),
 		Description: "Writes a file to the local filesystem. Automatically prevents overwriting if the file was modified by another agent since you last read it. Creates parent directories if create_dirs is true.",
 		Parameters: map[string]*gollem.Parameter{
 			"file_path": {
@@ -184,7 +184,7 @@ func (t *WriteFileTool) runFileWrite(ctx context.Context, args map[string]any) (
 			t.logService.Warn("Write operation failed: file must be read before writing existing file",
 				zap.String("agent_id", t.agentID.String()),
 				zap.String("file_path", path),
-				zap.String("required_tool", shared.ToolNameReadFile))
+				zap.String("required_tool", shared.ToolNameReadFile.String()))
 			return map[string]any{
 				"success": false,
 				"error":   fmt.Sprintf("file was modified since you last read it on %s. Please use the %s tool to re-read the file before writing to get the latest content.", "unknown", shared.ToolNameReadFile),

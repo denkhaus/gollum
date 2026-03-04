@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 
 	hooks "github.com/denkhaus/gollum/pkg/hooks"
+	shared "github.com/denkhaus/gollum/pkg/shared"
 	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -339,7 +340,7 @@ func (mr *MockHookManagerMockRecorder) WithSessionHooks(ctx, sessionID, work any
 }
 
 // WithToolHooks mocks base method.
-func (m *MockHookManager) WithToolHooks(ctx context.Context, sessionID, agentID uuid.UUID, toolName string, args map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+func (m *MockHookManager) WithToolHooks(ctx context.Context, sessionID, agentID uuid.UUID, toolName shared.ToolName, args map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WithToolHooks", ctx, sessionID, agentID, toolName, args, work)
 	ret0, _ := ret[0].(map[string]any)

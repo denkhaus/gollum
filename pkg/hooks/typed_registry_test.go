@@ -6,6 +6,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -215,7 +216,7 @@ func TestTypedRegistry_Trigger(t *testing.T) {
 		assert.NoError(t, result.Error)
 
 		// Payload should be modified
-		assert.Equal(t, "modified", result.Payload.Name)
+		assert.Equal(t, shared.ToolName("modified"), result.Payload.Name)
 		assert.Equal(t, "value", result.Payload.Args["added"])
 	})
 
@@ -230,7 +231,7 @@ func TestTypedRegistry_Trigger(t *testing.T) {
 
 		assert.False(t, result.Stopped)
 		assert.NoError(t, result.Error)
-		assert.Equal(t, "test", result.Payload.Name)
+		assert.Equal(t, shared.ToolName("test"), result.Payload.Name)
 	})
 }
 

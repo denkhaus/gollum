@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/m-mizutani/gollem"
 )
 
@@ -251,21 +252,21 @@ func (p *Prompt) BaseID() PromptID {
 
 // RenderContext contains general context values for prompt rendering.
 type RenderContext struct {
-	Values    map[string]any   // General context values
-	SubAgent  *SubAgentContext // SubAgent-specific context
-	Agent     *AgentContext    // Agent-specific context
-	Workspace *WorkspaceContext // Workspace-specific context (skills, path)
+	Values    map[string]any           // General context values
+	SubAgent  *SubAgentContext         // SubAgent-specific context
+	Agent     *AgentContext            // Agent-specific context
+	Workspace *shared.WorkspaceContext // Workspace-specific context (skills, path)
 }
 
 // SubAgentContext contains context specific to subagent operations.
 type SubAgentContext struct {
-	Role            string // The role of the subagent
-	Description     string // Description of the subagent's purpose
-	SpawnAgentTool  string // Name of the tool to spawn new agents
-	RemoveAgentTool string // Name of the tool to remove agents
-	ResumeAgentTool string // Name of the tool to resume agents
-	AgentOutputTool string // Name of the tool for agent output
-	ListAgentsTool  string // Name of the tool to list agents
+	Role            string          // The role of the subagent
+	Description     string          // Description of the subagent's purpose
+	SpawnAgentTool  shared.ToolName // Name of the tool to spawn new agents
+	RemoveAgentTool shared.ToolName // Name of the tool to remove agents
+	ResumeAgentTool shared.ToolName // Name of the tool to resume agents
+	AgentOutputTool shared.ToolName // Name of the tool for agent output
+	ListAgentsTool  shared.ToolName // Name of the tool to list agents
 }
 
 // AgentContext contains context specific to agent operations.
@@ -273,20 +274,6 @@ type AgentContext struct {
 	AgentID        string           // The agent's unique identifier
 	Task           string           // The task the agent is working on
 	MessageHistory []gollem.Message // Optional message history for context awareness
-}
-
-// SkillInfo represents a discovered skill for template rendering.
-type SkillInfo struct {
-	Name        string `json:"name"`        // Skill name
-	Description string `json:"description"` // Brief description
-	Location    string `json:"location"`    // File path to the skill
-}
-
-// WorkspaceContext contains workspace-specific information for prompt rendering.
-type WorkspaceContext struct {
-	CurrentPath string      `json:"current_path"` // Current working directory
-	SkillsXML   string      `json:"skills_xml"`   // Skills in XML format for LLM prompts
-	Skills      []SkillInfo `json:"skills"`       // List of discovered skills
 }
 
 // ListFilter provides filtering options for listing prompts.

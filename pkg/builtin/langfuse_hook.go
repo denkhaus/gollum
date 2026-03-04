@@ -10,6 +10,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/shared"
 	langfuse "github.com/git-hulk/langfuse-go"
 	"github.com/git-hulk/langfuse-go/pkg/traces"
 	"github.com/google/uuid"
@@ -20,11 +21,11 @@ import (
 // LangfuseHook provides Langfuse tracing for LLM, tool, and agent operations.
 // It creates observation spans at hook points and flushes traces to Langfuse.
 type LangfuseHook struct {
-	log        logger.LoggerService
-	config     *config.LangfuseConfig
-	client     *langfuse.Langfuse
-	clientMu   *sync.Mutex // Protects lazy client initialization
-	traceCtxs  map[uuid.UUID]*TraceContext
+	log         logger.LoggerService
+	config      *config.LangfuseConfig
+	client      *langfuse.Langfuse
+	clientMu    *sync.Mutex // Protects lazy client initialization
+	traceCtxs   map[uuid.UUID]*TraceContext
 	traceCtxsMu *sync.RWMutex // Protects traceCtxs map for concurrent access
 }
 
@@ -136,8 +137,8 @@ func (h *LangfuseHook) createTraceContext(sessionID uuid.UUID) *TraceContext {
 	defer h.traceCtxsMu.Unlock()
 
 	tc := &TraceContext{
-		TraceID:   uuid.New().String(), // Generate unique trace ID for Langfuse
-		RootSpan:  nil,                  // Will be set in Phase 10 when root span created
+		TraceID:   uuid.New().String(),          // Generate unique trace ID for Langfuse
+		RootSpan:  nil,                          // Will be set in Phase 10 when root span created
 		Spans:     make(map[string]interface{}), // Initialize empty spans map
 		SessionID: sessionID,
 		CreatedAt: time.Now(),
@@ -205,7 +206,6 @@ func (h *LangfuseHook) Shutdown() error {
 // LangfuseHookPriority defines the execution order for Langfuse hooks.
 // Priority 500 runs after LoggingHook (1000) but before custom user hooks.
 const LangfuseHookPriority = 500
-
 
 // RegisterLangfuseHooks registers all Langfuse tracing hooks with HookManager.
 // It creates and manages trace contexts for session-based tracing.
@@ -335,8 +335,8 @@ func (h *LangfuseHook) beforeSessionStartHook(ctx context.Context, hookCtx *hook
 	// Create trace context with actual SDK objects
 	h.traceCtxsMu.Lock()
 	tc := &TraceContext{
-		TraceID:   trace.ID,      // Use actual trace ID from SDK
-		RootSpan:  rootSpan,      // Store actual SDK span
+		TraceID:   trace.ID, // Use actual trace ID from SDK
+		RootSpan:  rootSpan, // Store actual SDK span
 		Spans:     make(map[string]interface{}),
 		SessionID: hookCtx.SessionID,
 		CreatedAt: time.Now(),
@@ -731,7 +731,7 @@ func (h *LangfuseHook) afterToolExecutionHook(_ context.Context, hookCtx *hooks.
 	// Log span completion
 	h.log.Debug("Tool span completed",
 		zap.String("span_id", spanID),
-		zap.String("tool_name", spanCtx.ToolName),
+		zap.String("tool_name", spanCtx.ToolName.String()),
 		zap.Duration("latency", latency))
 
 	h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
@@ -790,7 +790,7 @@ func (h *LangfuseHook) onToolErrorHook(_ context.Context, hookCtx *hooks.TypedHo
 	// Log span error
 	h.log.Debug("Tool span failed",
 		zap.String("span_id", spanID),
-		zap.String("tool_name", spanCtx.ToolName),
+		zap.String("tool_name", spanCtx.ToolName.String()),
 		zap.Duration("latency", latency),
 		zap.Error(hookCtx.Payload.Error))
 	h.traceCtxsMu.Unlock()
@@ -854,7 +854,7 @@ type LLMSpanContext struct {
 // ToolSpanContext holds tool span data for correlation between before/after/error hooks.
 type ToolSpanContext struct {
 	StartTime     time.Time
-	ToolName      string
+	ToolName      shared.ToolName
 	Input         map[string]any
 	Output        map[string]any
 	Level         traces.ObservationLevel

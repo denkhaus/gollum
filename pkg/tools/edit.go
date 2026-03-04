@@ -42,10 +42,7 @@ type (
 // NewEditToolProvider creates a provider for Edit tools
 func NewEditToolProvider(injector do.Injector) (EditToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	fsm, err := do.Invoke[state.FileStateManager](injector)
-	if err != nil {
-		return nil, errs.Wrap(err, errs.TypeInternal, "failed to invoke FileStateManager")
-	}
+	fsm := do.MustInvoke[state.FileStateManager](injector)
 	hookManager := do.MustInvoke[hooks.HookManager](injector)
 
 	return &editToolProvider{
@@ -68,7 +65,7 @@ func (p *editToolProvider) CreateTool(agentID uuid.UUID) *EditTool {
 // Spec returns the tool specification for the Edit tool
 func (t *EditTool) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
-		Name:        shared.ToolNameEdit,
+		Name:        shared.ToolNameEdit.String(),
 		Description: "Performs exact string replacements in files. Requires the file to be read first. The old_string must be unique in the file. This tool does NOT use regex - it does exact string matching.",
 		Parameters: map[string]*gollem.Parameter{
 			"file_path": {
@@ -166,7 +163,7 @@ func (t *EditTool) runEdit(ctx context.Context, args map[string]any) (map[string
 		t.logService.Warn("Edit operation failed: file must be read before editing",
 			zap.String("agent_id", t.agentID.String()),
 			zap.String("file_path", filePath),
-			zap.String("required_tool", shared.ToolNameReadFile))
+			zap.String("required_tool", shared.ToolNameReadFile.String()))
 		return map[string]any{
 			"success": false,
 			"error":   fmt.Sprintf("file must be read before editing. Use the %s tool first.", shared.ToolNameReadFile),
@@ -190,7 +187,7 @@ func (t *EditTool) runEdit(ctx context.Context, args map[string]any) (map[string
 		t.logService.Warn("Edit operation failed: file must be read before editing",
 			zap.String("agent_id", t.agentID.String()),
 			zap.String("file_path", filePath),
-			zap.String("required_tool", shared.ToolNameReadFile))
+			zap.String("required_tool", shared.ToolNameReadFile.String()))
 		return map[string]any{
 			"success": false,
 			"error":   fmt.Sprintf("you must read this file before editing it. Use the %s tool first to get the latest content.", shared.ToolNameReadFile),

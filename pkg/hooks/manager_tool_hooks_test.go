@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/errs"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,7 +20,7 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		executed := []string{}
 		beforeHook := func(_ context.Context, hc *TypedHookContext[ToolPayload], next func() error) error {
 			executed = append(executed, "before")
-			assert.Equal(t, "test-tool", hc.Payload.Name)
+			assert.Equal(t, shared.ToolName("test-tool"), hc.Payload.Name)
 			assert.NotNil(t, hc.Payload.Args)
 			return next()
 		}
@@ -36,7 +37,7 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		agentID := uuid.New()
 		args := map[string]any{"input": "test"}
 
-		result, err := hm.WithToolHooks(context.Background(), sessionID, agentID, "test-tool", args, func() (map[string]any, error) {
+		result, err := hm.WithToolHooks(context.Background(), sessionID, agentID, shared.ToolName("test-tool"), args, func() (map[string]any, error) {
 			executed = append(executed, "work")
 			return map[string]any{"output": "success"}, nil
 		})

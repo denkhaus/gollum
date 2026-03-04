@@ -2,29 +2,37 @@
 // between services in the Gollum application.
 package events
 
+import "github.com/denkhaus/gollum/pkg/shared"
+
+type EventType string
+
+func (p EventType) String() string {
+	return string(p)
+}
+
 // Event type constants - centrally defined for type safety
 const (
 	// Workspace events
-	EventDirectoryChanged = "workspace.directory_changed"
+	EventDirectoryChanged EventType = "workspace.directory_changed"
 
 	// Skill events
-	EventSkillsUpdated    = "skills.updated"
-	EventSkillsDiscovered = "skills.discovered"
+	EventSkillsUpdated    EventType = "skills.updated"
+	EventSkillsDiscovered EventType = "skills.discovered"
 
 	// Agent events
-	EventAgentSpawned  = "agent.spawned"
-	EventAgentRemoved  = "agent.removed"
-	EventAgentIdle     = "agent.idle"
-	EventAgentBusy     = "agent.busy"
-	EventAgentResumed  = "agent.resumed"
-	EventAgentPaused   = "agent.paused"
+	EventAgentSpawned EventType = "agent.spawned"
+	EventAgentRemoved EventType = "agent.removed"
+	EventAgentIdle    EventType = "agent.idle"
+	EventAgentBusy    EventType = "agent.busy"
+	EventAgentResumed EventType = "agent.resumed"
+	EventAgentPaused  EventType = "agent.paused"
 
 	// Configuration events
-	EventConfigChanged = "config.changed"
+	EventConfigChanged EventType = "config.changed"
 
 	// Plugin events
-	EventPluginLoaded   = "plugin.loaded"
-	EventPluginUnloaded = "plugin.unloaded"
+	EventPluginLoaded   EventType = "plugin.loaded"
+	EventPluginUnloaded EventType = "plugin.unloaded"
 )
 
 // DirectoryChangedPayload is sent when the working directory changes.
@@ -35,7 +43,8 @@ type DirectoryChangedPayload struct {
 
 // SkillsUpdatedPayload is sent when skills are reloaded.
 type SkillsUpdatedPayload struct {
-	SkillPaths []string
+	Skills    []shared.SkillInfo
+	SkillsXML string // Skills in XML format for LLM prompts
 }
 
 // SkillsDiscoveredPayload is sent when new skills are discovered.

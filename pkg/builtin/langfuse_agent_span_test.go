@@ -8,6 +8,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/git-hulk/langfuse-go/pkg/traces"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -236,7 +237,7 @@ func TestLangfuseHook_SpanHierarchy_Integration(t *testing.T) {
 	// Verify tool span
 	toolSpan, ok := tc.Spans[toolSpanID].(*ToolSpanContext)
 	require.True(t, ok, "Tool span should exist")
-	assert.Equal(t, "read_file", toolSpan.ToolName)
+	assert.Equal(t, shared.ToolNameReadFile, toolSpan.ToolName)
 	assert.Equal(t, map[string]any{"path": "/test.txt"}, toolSpan.Input)
 	assert.Equal(t, map[string]any{"content": "file contents"}, toolSpan.Output)
 

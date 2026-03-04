@@ -302,7 +302,7 @@ func TestCurrentTimeTool_Spec(t *testing.T) {
 
 	spec := tool.Spec()
 
-	if spec.Name != shared.ToolNameCurrentTime {
+	if spec.Name != shared.ToolNameCurrentTime.String() {
 		t.Errorf("Expected tool name '%s', got '%s'", shared.ToolNameCurrentTime, spec.Name)
 	}
 

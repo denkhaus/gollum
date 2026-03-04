@@ -576,16 +576,8 @@ func TestAgentRegistry_Cleanup(t *testing.T) {
 func setupTestInjector() do.Injector {
 	ctrl := gomock.NewController(&testing.T{})
 
-	// Create a mock config service
-	mockConfigService := mocks.NewMockConfigService(ctrl)
-	mockConfigService.EXPECT().GetAgentLimits().Return(&config.AgentLimitsConfig{
+	return setupTestInjectorWithLimits(ctrl, &config.AgentLimitsConfig{
 		MaxTotalAgents:        100,
 		MaxSubAgentsPerParent: 50,
-	}).AnyTimes()
-
-	// Create a mock injector
-	injector := do.New()
-	do.ProvideValue[config.ConfigService](injector, mockConfigService)
-
-	return injector
+	})
 }

@@ -59,7 +59,7 @@ func (p *globToolProvider) CreateTool(agentID uuid.UUID) *GlobTool {
 // Spec returns the tool specification for the Glob tool
 func (t *GlobTool) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
-		Name:        shared.ToolNameGlob,
+		Name:        shared.ToolNameGlob.String(),
 		Description: "Fast file pattern matching tool that works with any codebase size. Supports glob patterns like '**/*.go' or 'pkg/**/*.ts'. Returns matching file paths sorted by modification time.",
 		Parameters: map[string]*gollem.Parameter{
 			"pattern": {

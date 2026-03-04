@@ -12,6 +12,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 )
 
@@ -307,7 +308,7 @@ func (n *NoOpHookManager) WithAgentHooks(_ context.Context, _, _ uuid.UUID, _ Ho
 }
 
 // WithToolHooks is a no-op implementation of HookManager.WithToolHooks.
-func (n *NoOpHookManager) WithToolHooks(_ context.Context, _, _ uuid.UUID, _ string, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+func (n *NoOpHookManager) WithToolHooks(_ context.Context, _, _ uuid.UUID, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 	return work()
 }
 

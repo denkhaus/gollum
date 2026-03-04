@@ -95,7 +95,7 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	do.Provide(p.injector, tools.NewAgentExecutionHelper)
 
 	// Tool validation
-	do.Provide[skills.ToolNameValidator](p.injector, tools.NewToolNameValidatorProvider)
+	do.Provide(p.injector, tools.NewToolNameValidatorProvider)
 
 	// Tools
 	do.Provide(p.injector, tools.NewSpawnAgentToolProvider)

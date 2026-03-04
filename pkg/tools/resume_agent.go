@@ -65,7 +65,7 @@ func (p *resumeAgentToolProvider) CreateTool(senderID uuid.UUID) *ResumeAgentToo
 // Spec returns the tool specification for ResumeAgentTool
 func (t *ResumeAgentTool) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
-		Name: shared.ToolNameResumeAgent,
+		Name: shared.ToolNameResumeAgent.String(),
 		Description: fmt.Sprintf(`Sends a new prompt to an existing agent created with the %s tool.
 			The agent preserves its conversation context across multiple prompts. Remove the agent when done using the %s tool.`,
 			shared.ToolNameSpawnAgent,

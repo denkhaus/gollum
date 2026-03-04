@@ -12,7 +12,6 @@ package mocks
 import (
 	reflect "reflect"
 
-	workspace "github.com/denkhaus/gollum/pkg/workspace"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -40,30 +39,6 @@ func (m *MockService) EXPECT() *MockServiceMockRecorder {
 	return m.recorder
 }
 
-// AddToHistory mocks base method.
-func (m *MockService) AddToHistory(path string) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddToHistory", path)
-}
-
-// AddToHistory indicates an expected call of AddToHistory.
-func (mr *MockServiceMockRecorder) AddToHistory(path any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToHistory", reflect.TypeOf((*MockService)(nil).AddToHistory), path)
-}
-
-// ClearHistory mocks base method.
-func (m *MockService) ClearHistory() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ClearHistory")
-}
-
-// ClearHistory indicates an expected call of ClearHistory.
-func (mr *MockServiceMockRecorder) ClearHistory() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearHistory", reflect.TypeOf((*MockService)(nil).ClearHistory))
-}
-
 // GetCurrentWorkspace mocks base method.
 func (m *MockService) GetCurrentWorkspace() string {
 	m.ctrl.T.Helper()
@@ -78,48 +53,6 @@ func (mr *MockServiceMockRecorder) GetCurrentWorkspace() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCurrentWorkspace", reflect.TypeOf((*MockService)(nil).GetCurrentWorkspace))
 }
 
-// GetSkillsContext mocks base method.
-func (m *MockService) GetSkillsContext() []workspace.SkillInfo {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSkillsContext")
-	ret0, _ := ret[0].([]workspace.SkillInfo)
-	return ret0
-}
-
-// GetSkillsContext indicates an expected call of GetSkillsContext.
-func (mr *MockServiceMockRecorder) GetSkillsContext() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSkillsContext", reflect.TypeOf((*MockService)(nil).GetSkillsContext))
-}
-
-// GetSkillsXML mocks base method.
-func (m *MockService) GetSkillsXML() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSkillsXML")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// GetSkillsXML indicates an expected call of GetSkillsXML.
-func (mr *MockServiceMockRecorder) GetSkillsXML() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSkillsXML", reflect.TypeOf((*MockService)(nil).GetSkillsXML))
-}
-
-// GetWorkspaceContext mocks base method.
-func (m *MockService) GetWorkspaceContext() *workspace.WorkspaceContext {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetWorkspaceContext")
-	ret0, _ := ret[0].(*workspace.WorkspaceContext)
-	return ret0
-}
-
-// GetWorkspaceContext indicates an expected call of GetWorkspaceContext.
-func (mr *MockServiceMockRecorder) GetWorkspaceContext() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkspaceContext", reflect.TypeOf((*MockService)(nil).GetWorkspaceContext))
-}
-
 // GetWorkspaceHistory mocks base method.
 func (m *MockService) GetWorkspaceHistory() []string {
 	m.ctrl.T.Helper()
@@ -132,30 +65,4 @@ func (m *MockService) GetWorkspaceHistory() []string {
 func (mr *MockServiceMockRecorder) GetWorkspaceHistory() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkspaceHistory", reflect.TypeOf((*MockService)(nil).GetWorkspaceHistory))
-}
-
-// SetCurrentWorkspace mocks base method.
-func (m *MockService) SetCurrentWorkspace(path string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetCurrentWorkspace", path)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetCurrentWorkspace indicates an expected call of SetCurrentWorkspace.
-func (mr *MockServiceMockRecorder) SetCurrentWorkspace(path any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCurrentWorkspace", reflect.TypeOf((*MockService)(nil).SetCurrentWorkspace), path)
-}
-
-// SetSkillsContext mocks base method.
-func (m *MockService) SetSkillsContext(skills []workspace.SkillInfo, skillsXML string) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetSkillsContext", skills, skillsXML)
-}
-
-// SetSkillsContext indicates an expected call of SetSkillsContext.
-func (mr *MockServiceMockRecorder) SetSkillsContext(skills, skillsXML any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetSkillsContext", reflect.TypeOf((*MockService)(nil).SetSkillsContext), skills, skillsXML)
 }

@@ -17,7 +17,7 @@ func TestGlobTool_Spec(t *testing.T) {
 
 	spec := tool.Spec()
 
-	if spec.Name != shared.ToolNameGlob {
+	if spec.Name != shared.ToolNameGlob.String() {
 		t.Errorf("Expected tool name '%s', got '%s'", shared.ToolNameGlob, spec.Name)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/denkhaus/gollum/pkg/errs"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -25,7 +26,7 @@ import (
 func (p *hookManagerImpl) WithToolHooks(
 	ctx context.Context,
 	sessionID, agentID uuid.UUID,
-	toolName string,
+	toolName shared.ToolName,
 	args map[string]any,
 	work func() (map[string]any, error),
 ) (map[string]any, error) {
@@ -84,7 +85,7 @@ func (p *hookManagerImpl) WithToolHooks(
 		// If hooks provided a fallback result, use it
 		if hookCtx.Payload.Result != nil {
 			p.log.Debug("Tool error recovered by hook",
-				zap.String("tool", toolName),
+				zap.String("tool", toolName.String()),
 				zap.Error(workErr))
 			return hookCtx.Payload.Result, nil
 		}

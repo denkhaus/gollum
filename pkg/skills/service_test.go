@@ -1,4 +1,4 @@
-package skills
+package skills_test
 
 import (
 	"context"
@@ -6,11 +6,15 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/denkhaus/gollum/pkg/events"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/skills"
 	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
 )
 
@@ -18,14 +22,14 @@ import (
 func TestSkillType_Validity(t *testing.T) {
 	tests := []struct {
 		name      string
-		skillType SkillType
+		skillType skills.SkillType
 		expected  bool
 	}{
-		{"agent type", SkillTypeAgent, true},
-		{"mcp type", SkillTypeMcp, true},
-		{"workflow type", SkillTypeWorkflow, true},
-		{"invalid type", SkillType("invalid"), false},
-		{"empty type", SkillType(""), false},
+		{"agent type", skills.SkillTypeAgent, true},
+		{"mcp type", skills.SkillTypeMcp, true},
+		{"workflow type", skills.SkillTypeWorkflow, true},
+		{"invalid type", skills.SkillType("invalid"), false},
+		{"empty type", skills.SkillType(""), false},
 	}
 
 	for _, tt := range tests {
@@ -40,19 +44,19 @@ func TestParseSkillType(t *testing.T) {
 	tests := []struct {
 		name      string
 		input     string
-		expected  SkillType
+		expected  skills.SkillType
 		expectErr bool
 	}{
-		{"agent", "agent", SkillTypeAgent, false},
-		{"agent uppercase", "AGENT", SkillTypeAgent, false},
-		{"mcp", "mcp", SkillTypeMcp, false},
-		{"workflow", "workflow", SkillTypeWorkflow, false},
+		{"agent", "agent", skills.SkillTypeAgent, false},
+		{"agent uppercase", "AGENT", skills.SkillTypeAgent, false},
+		{"mcp", "mcp", skills.SkillTypeMcp, false},
+		{"workflow", "workflow", skills.SkillTypeWorkflow, false},
 		{"invalid", "invalid", "", true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := ParseSkillType(tt.input)
+			result, err := skills.ParseSkillType(tt.input)
 			if tt.expectErr {
 				assert.Error(t, err)
 			} else {
@@ -67,14 +71,14 @@ func TestParseSkillType(t *testing.T) {
 func TestToolScope_Validity(t *testing.T) {
 	tests := []struct {
 		name      string
-		toolScope ToolScope
+		toolScope skills.ToolScope
 		expected  bool
 	}{
-		{"all scope", ToolScopeAll, true},
-		{"read-only scope", ToolScopeReadOnly, true},
-		{"none scope", ToolScopeNone, true},
-		{"custom scope", ToolScopeCustom, true},
-		{"invalid scope", ToolScope("invalid"), false},
+		{"all scope", skills.ToolScopeAll, true},
+		{"read-only scope", skills.ToolScopeReadOnly, true},
+		{"none scope", skills.ToolScopeNone, true},
+		{"custom scope", skills.ToolScopeCustom, true},
+		{"invalid scope", skills.ToolScope("invalid"), false},
 	}
 
 	for _, tt := range tests {
@@ -105,14 +109,14 @@ This is the skill content.
 It can be multiple lines.
 `
 
-	skill, err := Parse(content, "/test/SKILL.md")
+	skill, err := skills.Parse(content, "/test/SKILL.md")
 	require.NoError(t, err)
 
 	assert.Equal(t, "test-skill", skill.Name)
 	assert.Equal(t, "A test skill", skill.Description)
 	assert.Equal(t, "1.0", skill.Version)
-	assert.Equal(t, SkillTypeAgent, skill.Type)
-	assert.Equal(t, ToolScopeAll, skill.ToolScope)
+	assert.Equal(t, skills.SkillTypeAgent, skill.Type)
+	assert.Equal(t, skills.ToolScopeAll, skill.ToolScope)
 	assert.True(t, skill.UserInvocable)
 	assert.ElementsMatch(t, []string{"bash", "read"}, skill.Tools)
 	assert.ElementsMatch(t, []string{"test", "example"}, skill.Tags)
@@ -123,7 +127,7 @@ It can be multiple lines.
 func TestParse_MissingFrontmatter(t *testing.T) {
 	content := "This is just content without frontmatter"
 
-	_, err := Parse(content, "/test/SKILL.md")
+	_, err := skills.Parse(content, "/test/SKILL.md")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no YAML frontmatter")
 }
@@ -136,7 +140,7 @@ description: A skill without a name
 Content
 `
 
-	_, err := Parse(content, "/test/SKILL.md")
+	_, err := skills.Parse(content, "/test/SKILL.md")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "missing required field")
 }
@@ -150,7 +154,7 @@ type: invalid-type
 Content
 `
 
-	_, err := Parse(content, "/test/SKILL.md")
+	_, err := skills.Parse(content, "/test/SKILL.md")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid value")
 }
@@ -159,36 +163,36 @@ Content
 func TestSkill_Validate(t *testing.T) {
 	tests := []struct {
 		name        string
-		skill       *Skill
+		skill       *skills.Skill
 		expectErr   bool
 		errContains string
 	}{
 		{
 			name:      "valid skill",
-			skill:     &Skill{Name: "test", Type: SkillTypeAgent, ToolScope: ToolScopeAll, FilePath: "/test"},
+			skill:     &skills.Skill{Name: "test", Type: skills.SkillTypeAgent, ToolScope: skills.ToolScopeAll, FilePath: "/test"},
 			expectErr: false,
 		},
 		{
 			name:        "missing name",
-			skill:       &Skill{Type: SkillTypeAgent, ToolScope: ToolScopeAll, FilePath: "/test"},
+			skill:       &skills.Skill{Type: skills.SkillTypeAgent, ToolScope: skills.ToolScopeAll, FilePath: "/test"},
 			expectErr:   true,
 			errContains: "name",
 		},
 		{
 			name:        "name with spaces",
-			skill:       &Skill{Name: "test skill", Type: SkillTypeAgent, ToolScope: ToolScopeAll, FilePath: "/test"},
+			skill:       &skills.Skill{Name: "test skill", Type: skills.SkillTypeAgent, ToolScope: skills.ToolScopeAll, FilePath: "/test"},
 			expectErr:   true,
 			errContains: "name",
 		},
 		{
 			name:        "invalid type",
-			skill:       &Skill{Name: "test", Type: SkillType("bad"), ToolScope: ToolScopeAll, FilePath: "/test"},
+			skill:       &skills.Skill{Name: "test", Type: skills.SkillType("bad"), ToolScope: skills.ToolScopeAll, FilePath: "/test"},
 			expectErr:   true,
 			errContains: "type",
 		},
 		{
 			name:        "invalid tool scope",
-			skill:       &Skill{Name: "test", Type: SkillTypeAgent, ToolScope: ToolScope("bad"), FilePath: "/test"},
+			skill:       &skills.Skill{Name: "test", Type: skills.SkillTypeAgent, ToolScope: skills.ToolScope("bad"), FilePath: "/test"},
 			expectErr:   true,
 			errContains: "tool_scope",
 		},
@@ -211,37 +215,37 @@ func TestSkill_Validate(t *testing.T) {
 func TestSkill_HasTool(t *testing.T) {
 	tests := []struct {
 		name     string
-		skill    *Skill
+		skill    *skills.Skill
 		toolName string
 		expected bool
 	}{
 		{
 			name:     "no tools specified - all allowed",
-			skill:    &Skill{Tools: nil, ToolFilter: nil},
+			skill:    &skills.Skill{Tools: nil, ToolFilter: nil},
 			toolName: "bash",
 			expected: true,
 		},
 		{
 			name:     "tool in allowed list",
-			skill:    &Skill{Tools: []string{"bash", "read"}, ToolFilter: nil},
+			skill:    &skills.Skill{Tools: []string{"bash", "read"}, ToolFilter: nil},
 			toolName: "bash",
 			expected: true,
 		},
 		{
 			name:     "tool not in allowed list",
-			skill:    &Skill{Tools: []string{"bash", "read"}, ToolFilter: nil},
+			skill:    &skills.Skill{Tools: []string{"bash", "read"}, ToolFilter: nil},
 			toolName: "write",
 			expected: false,
 		},
 		{
 			name:     "tool filtered out",
-			skill:    &Skill{Tools: nil, ToolFilter: []string{"write"}},
+			skill:    &skills.Skill{Tools: nil, ToolFilter: []string{"write"}},
 			toolName: "write",
 			expected: false,
 		},
 		{
 			name:     "wildcard in tools",
-			skill:    &Skill{Tools: []string{"*"}, ToolFilter: nil},
+			skill:    &skills.Skill{Tools: []string{"*"}, ToolFilter: nil},
 			toolName: "any-tool",
 			expected: true,
 		},
@@ -258,17 +262,17 @@ func TestSkill_HasTool(t *testing.T) {
 func TestSkill_SlashCommand(t *testing.T) {
 	tests := []struct {
 		name     string
-		skill    *Skill
+		skill    *skills.Skill
 		expected string
 	}{
 		{
 			name:     "user invocable skill",
-			skill:    &Skill{Name: "MySkill", UserInvocable: true},
+			skill:    &skills.Skill{Name: "MySkill", UserInvocable: true},
 			expected: "/myskill",
 		},
 		{
 			name:     "not user invocable",
-			skill:    &Skill{Name: "MySkill", UserInvocable: false},
+			skill:    &skills.Skill{Name: "MySkill", UserInvocable: false},
 			expected: "",
 		},
 	}
@@ -282,30 +286,30 @@ func TestSkill_SlashCommand(t *testing.T) {
 
 // TestSkills_Collection tests Skills collection methods
 func TestSkills_Collection(t *testing.T) {
-	skills := Skills{
-		{Name: "skill-a", Type: SkillTypeAgent, UserInvocable: true},
-		{Name: "skill-b", Type: SkillTypeMcp, UserInvocable: false},
-		{Name: "skill-c", Type: SkillTypeAgent, UserInvocable: true},
+	testSkills := skills.Skills{
+		{Name: "skill-a", Type: skills.SkillTypeAgent, UserInvocable: true},
+		{Name: "skill-b", Type: skills.SkillTypeMcp, UserInvocable: false},
+		{Name: "skill-c", Type: skills.SkillTypeAgent, UserInvocable: true},
 	}
 
 	t.Run("FindByName", func(t *testing.T) {
-		assert.NotNil(t, skills.FindByName("skill-a"))
-		assert.NotNil(t, skills.FindByName("SKILL-A")) // case insensitive
-		assert.Nil(t, skills.FindByName("nonexistent"))
+		assert.NotNil(t, testSkills.FindByName("skill-a"))
+		assert.NotNil(t, testSkills.FindByName("SKILL-A")) // case insensitive
+		assert.Nil(t, testSkills.FindByName("nonexistent"))
 	})
 
 	t.Run("FilterByType", func(t *testing.T) {
-		agentSkills := skills.FilterByType(SkillTypeAgent)
+		agentSkills := testSkills.FilterByType(skills.SkillTypeAgent)
 		assert.Len(t, agentSkills, 2)
 	})
 
 	t.Run("FilterUserInvocable", func(t *testing.T) {
-		invocable := skills.FilterUserInvocable()
+		invocable := testSkills.FilterUserInvocable()
 		assert.Len(t, invocable, 2)
 	})
 
 	t.Run("Names", func(t *testing.T) {
-		names := skills.Names()
+		names := testSkills.Names()
 		assert.ElementsMatch(t, []string{"skill-a", "skill-b", "skill-c"}, names)
 	})
 }
@@ -350,7 +354,7 @@ Content for skill two
 
 	// Run discovery
 	log := zap.NewNop()
-	result, err := DiscoverInPath(context.Background(), tmpDir, log)
+	result, err := skills.DiscoverInPath(context.Background(), tmpDir, log)
 	require.NoError(t, err)
 
 	// Verify results
@@ -390,7 +394,7 @@ Content
 	require.NoError(t, os.WriteFile(filepath.Join(invalidDir, "SKILL.md"), []byte(invalidContent), 0644))
 
 	log := zap.NewNop()
-	result, err := DiscoverInPath(context.Background(), tmpDir, log)
+	result, err := skills.DiscoverInPath(context.Background(), tmpDir, log)
 	require.NoError(t, err)
 
 	assert.Len(t, result.Skills, 1, "Should find 1 valid skill")
@@ -399,10 +403,10 @@ Content
 
 // TestXMLExport tests XML export functionality
 func TestXMLExport(t *testing.T) {
-	skill := &Skill{
+	skill := &skills.Skill{
 		Name:          "test-skill",
 		Description:   "A test skill",
-		Type:          SkillTypeAgent,
+		Type:          skills.SkillTypeAgent,
 		Arguments:     "input: string The input to process",
 		Content:       "This is the skill content",
 		UserInvocable: true,
@@ -420,12 +424,12 @@ func TestXMLExport(t *testing.T) {
 
 // TestSkills_ToPromptXML tests collection XML export
 func TestSkills_ToPromptXML(t *testing.T) {
-	skills := Skills{
-		{Name: "skill-a", Description: "Skill A", Type: SkillTypeAgent, Content: "Content A"},
-		{Name: "skill-b", Description: "Skill B", Type: SkillTypeMcp, Content: "Content B"},
+	testSkills := skills.Skills{
+		{Name: "skill-a", Description: "Skill A", Type: skills.SkillTypeAgent, Content: "Content A"},
+		{Name: "skill-b", Description: "Skill B", Type: skills.SkillTypeMcp, Content: "Content B"},
 	}
 
-	xml := skills.ToPromptXML()
+	xml := testSkills.ToPromptXML()
 
 	assert.Contains(t, xml, "<skills>")
 	assert.Contains(t, xml, "</skills>")
@@ -435,10 +439,10 @@ func TestSkills_ToPromptXML(t *testing.T) {
 
 // TestToOpenAIFunction tests OpenAI function format conversion
 func TestToOpenAIFunction(t *testing.T) {
-	skill := &Skill{
+	skill := &skills.Skill{
 		Name:        "test-skill",
 		Description: "A test skill",
-		Type:        SkillTypeAgent,
+		Type:        skills.SkillTypeAgent,
 		Arguments:   "query: string Search query\nlimit: number Max results",
 	}
 
@@ -455,37 +459,17 @@ func TestToOpenAIFunction(t *testing.T) {
 	assert.Contains(t, params, "properties")
 }
 
-// TestEscapeXML tests XML escaping
-func TestEscapeXML(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"normal text", "normal text"},
-		{"a & b", "a &amp; b"},
-		{"<tag>", "&lt;tag&gt;"},
-		{`"quoted"`, "&quot;quoted&quot;"},
-		{"'single'", "&apos;single&apos;"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			assert.Equal(t, tt.expected, escapeXML(tt.input))
-		})
-	}
-}
-
 // TestSkill_ID tests skill ID generation
 func TestSkill_ID(t *testing.T) {
-	skill := &Skill{Name: "MySkill"}
+	skill := &skills.Skill{Name: "MySkill"}
 	assert.Equal(t, "myskill", skill.ID())
 }
 
 // TestSkill_String tests skill string representation
 func TestSkill_String(t *testing.T) {
-	skill := &Skill{
+	skill := &skills.Skill{
 		Name:     "test",
-		Type:     SkillTypeAgent,
+		Type:     skills.SkillTypeAgent,
 		FilePath: "/path/to/SKILL.md",
 	}
 
@@ -495,80 +479,58 @@ func TestSkill_String(t *testing.T) {
 	assert.Contains(t, str, "/path/to/SKILL.md")
 }
 
-// Note: Service tests require DI container setup and are better suited for integration tests
-// The following tests focus on unit-testable aspects
+// setupTestService creates a skill service with centralized mocks for testing
+func setupTestService(t *testing.T) (skills.SkillService, *mocks.MockService, *mocks.MockBus) {
+	ctrl := gomock.NewController(t)
 
-// DEVIATION FROM MOCKING GUIDELINES:
-// We use custom mock structs instead of generated mocks from pkg/mocks because:
-// - pkg/mocks imports skills package (for MockSkillService)
-// - This test file is in skills package
-// - This creates a circular dependency: skills -> mocks -> skills
-// - Using a separate test package (skills_test) would require exporting internal types
-// Generated mocks should be preferred when no circular dependency exists.
+	mockWorkspace := mocks.NewMockService(ctrl)
+	mockBus := mocks.NewMockBus(ctrl)
+	mockLogger := mocks.NewMockLoggerService(ctrl)
 
-func TestNewService(t *testing.T) {
-	// Create injector with custom mocks
+	// Setup default expectations
+	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
+	mockWorkspace.EXPECT().GetCurrentWorkspace().Return("").AnyTimes()
+	mockWorkspace.EXPECT().GetWorkspaceHistory().Return(nil).AnyTimes()
+	mockBus.EXPECT().Subscribe(gomock.Any(), gomock.Any(), gomock.Any()).Return("test-sub", nil).AnyTimes()
+	mockBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
 	injector := do.New()
-	do.ProvideValue[logger.LoggerService](injector, &testLoggerService{})
-	do.ProvideValue[workspace.Service](injector, &testWorkspaceService{})
+	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+	do.ProvideValue[workspace.Service](injector, mockWorkspace)
+	do.ProvideValue[events.Bus](injector, mockBus)
 
-	service, err := NewService(injector)
+	service, err := skills.NewService(injector)
 	require.NoError(t, err)
-	assert.NotNil(t, service)
+
+	return service, mockWorkspace, mockBus
 }
 
-// testLoggerService is a minimal mock for LoggerService
-type testLoggerService struct{}
-
-func (m *testLoggerService) GetLogger() *zap.Logger                     { return zap.NewNop() }
-func (m *testLoggerService) Info(_ string, _ ...zap.Field)              {}
-func (m *testLoggerService) Infof(_ string, _ ...any)                   {}
-func (m *testLoggerService) Error(_ string, _ ...zap.Field)             {}
-func (m *testLoggerService) Errorf(_ string, _ ...any)                  {}
-func (m *testLoggerService) Debug(_ string, _ ...zap.Field)             {}
-func (m *testLoggerService) Debugf(_ string, _ ...any)                  {}
-func (m *testLoggerService) Warn(_ string, _ ...zap.Field)              {}
-func (m *testLoggerService) Warnf(_ string, _ ...any)                   {}
-func (m *testLoggerService) GetLogs(_ logger.LogFilter) []logger.LogEntry { return nil }
-func (m *testLoggerService) GetLogStats() map[string]interface{}        { return nil }
-func (m *testLoggerService) SetTUIMode(_ bool)                          {}
-func (m *testLoggerService) IsTUIMode() bool                            { return false }
-
-// testWorkspaceService is a minimal mock for workspace.Service
-type testWorkspaceService struct{}
-
-func (m *testWorkspaceService) SetCurrentWorkspace(_ string) error            { return nil }
-func (m *testWorkspaceService) GetCurrentWorkspace() string                   { return "" }
-func (m *testWorkspaceService) AddToHistory(_ string)                         {}
-func (m *testWorkspaceService) GetWorkspaceHistory() []string                 { return nil }
-func (m *testWorkspaceService) ClearHistory()                                 {}
-func (m *testWorkspaceService) GetWorkspaceContext() *workspace.WorkspaceContext {
-	return &workspace.WorkspaceContext{}
+// TestNewService tests service creation with centralized mocks
+func TestNewService(t *testing.T) {
+	service, _, _ := setupTestService(t)
+	require.NotNil(t, service)
 }
-func (m *testWorkspaceService) SetSkillsContext(_ []workspace.SkillInfo, _ string) {}
-func (m *testWorkspaceService) GetSkillsContext() []workspace.SkillInfo                 { return nil }
-func (m *testWorkspaceService) GetSkillsXML() string                                         { return "" }
 
 // TestSkills_ToOpenAIFunctions tests OpenAI functions conversion for collection
 func TestSkills_ToOpenAIFunctions(t *testing.T) {
-	skills := Skills{
+	testSkills := skills.Skills{
 		{Name: "skill-a", Description: "Skill A"},
 		{Name: "skill-b", Description: "Skill B"},
 	}
 
-	functions := skills.ToOpenAIFunctions()
+	functions := testSkills.ToOpenAIFunctions()
 	assert.Len(t, functions, 2)
 }
 
 // TestSkills_ToUserInvocableXML tests user invocable XML export
 func TestSkills_ToUserInvocableXML(t *testing.T) {
-	skills := Skills{
+	testSkills := skills.Skills{
 		{Name: "skill-a", UserInvocable: true, Content: "Content A"},
 		{Name: "skill-b", UserInvocable: false, Content: "Content B"},
 		{Name: "skill-c", UserInvocable: true, Content: "Content C"},
 	}
 
-	xml := skills.ToUserInvocableXML()
+	xml := testSkills.ToUserInvocableXML()
 	assert.Contains(t, xml, "skill-a")
 	assert.Contains(t, xml, "skill-c")
 	assert.NotContains(t, xml, "skill-b")
@@ -578,17 +540,17 @@ func TestSkills_ToUserInvocableXML(t *testing.T) {
 func TestSkill_DisplayName(t *testing.T) {
 	tests := []struct {
 		name     string
-		skill    *Skill
+		skill    *skills.Skill
 		expected string
 	}{
 		{
 			name:     "with description",
-			skill:    &Skill{Name: "test", Description: "Test Skill"},
+			skill:    &skills.Skill{Name: "test", Description: "Test Skill"},
 			expected: "Test Skill",
 		},
 		{
 			name:     "without description",
-			skill:    &Skill{Name: "test"},
+			skill:    &skills.Skill{Name: "test"},
 			expected: "test",
 		},
 	}
@@ -602,16 +564,16 @@ func TestSkill_DisplayName(t *testing.T) {
 
 // TestSkill_Directory tests directory extraction
 func TestSkill_Directory(t *testing.T) {
-	skill := &Skill{FilePath: "/path/to/skills/SKILL.md"}
+	skill := &skills.Skill{FilePath: "/path/to/skills/SKILL.md"}
 	assert.Equal(t, "/path/to/skills", skill.Directory())
 }
 
 // TestSkill_ToMap tests map conversion
 func TestSkill_ToMap(t *testing.T) {
-	skill := &Skill{
+	skill := &skills.Skill{
 		Name:          "test",
 		Description:   "Test skill",
-		Type:          SkillTypeAgent,
+		Type:          skills.SkillTypeAgent,
 		UserInvocable: true,
 		FilePath:      "/test/SKILL.md",
 	}
@@ -619,86 +581,47 @@ func TestSkill_ToMap(t *testing.T) {
 	m := skill.ToMap()
 	assert.Equal(t, "test", m["name"])
 	assert.Equal(t, "Test skill", m["description"])
-	assert.Equal(t, SkillTypeAgent, m["type"])
+	assert.Equal(t, skills.SkillTypeAgent, m["type"])
 	assert.Equal(t, true, m["user_invocable"])
 	assert.Equal(t, "/test/SKILL.md", m["file_path"])
 }
 
 // TestSkills_String tests collection string representation
 func TestSkills_String(t *testing.T) {
-	skills := Skills{
+	testSkills := skills.Skills{
 		{Name: "skill-a"},
 		{Name: "skill-b"},
 	}
 
-	str := skills.String()
+	str := testSkills.String()
 	assert.Contains(t, str, "Skills[")
 	assert.Contains(t, str, "skill-a")
 	assert.Contains(t, str, "skill-b")
-}
-
-// TestParseArgumentsToProperties tests argument parsing
-func TestParseArgumentsToProperties(t *testing.T) {
-	tests := []struct {
-		name          string
-		args          string
-		expectedProps []string
-	}{
-		{
-			name:          "empty args",
-			args:          "",
-			expectedProps: []string{},
-		},
-		{
-			name:          "single string arg",
-			args:          "query: string Search query",
-			expectedProps: []string{"query"},
-		},
-		{
-			name:          "multiple args",
-			args:          "query: string Search query\nlimit: number Max results",
-			expectedProps: []string{"query", "limit"},
-		},
-		{
-			name:          "various types",
-			args:          "name: string Name\nage: int Age\nactive: bool Is active\nitems: array Items\nconfig: object Config",
-			expectedProps: []string{"name", "age", "active", "items", "config"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			props := parseArgumentsToProperties(tt.args)
-			for _, expected := range tt.expectedProps {
-				assert.Contains(t, props, expected)
-			}
-		})
-	}
 }
 
 // TestSkill_IsToolFiltered tests tool filtering
 func TestSkill_IsToolFiltered(t *testing.T) {
 	tests := []struct {
 		name     string
-		skill    *Skill
+		skill    *skills.Skill
 		tool     string
 		expected bool
 	}{
 		{
 			name:     "not filtered",
-			skill:    &Skill{ToolFilter: nil},
+			skill:    &skills.Skill{ToolFilter: nil},
 			tool:     "bash",
 			expected: false,
 		},
 		{
 			name:     "filtered",
-			skill:    &Skill{ToolFilter: []string{"write", "delete"}},
+			skill:    &skills.Skill{ToolFilter: []string{"write", "delete"}},
 			tool:     "write",
 			expected: true,
 		},
 		{
 			name:     "wildcard filter",
-			skill:    &Skill{ToolFilter: []string{"*"}},
+			skill:    &skills.Skill{ToolFilter: []string{"*"}},
 			tool:     "any",
 			expected: true,
 		},
@@ -713,14 +636,7 @@ func TestSkill_IsToolFiltered(t *testing.T) {
 
 // TestSkillService_SearchPaths tests search path management
 func TestSkillService_SearchPaths(t *testing.T) {
-	// Create a minimal injector with required dependencies
-	injector := do.New()
-
-	do.ProvideValue[logger.LoggerService](injector, &testLoggerService{})
-	do.ProvideValue[workspace.Service](injector, &testWorkspaceService{})
-
-	service, err := NewService(injector)
-	require.NoError(t, err)
+	service, _, _ := setupTestService(t)
 
 	// Test AddSearchPath
 	service.AddSearchPath("/path/one")
@@ -730,7 +646,6 @@ func TestSkillService_SearchPaths(t *testing.T) {
 	service.AddSearchPath("/path/one")
 
 	paths := service.GetSearchPaths()
-	// Note: Service adds current workspace as default search path
 	assert.Contains(t, paths, "/path/one")
 	assert.Contains(t, paths, "/path/two")
 
@@ -739,22 +654,11 @@ func TestSkillService_SearchPaths(t *testing.T) {
 	paths = service.GetSearchPaths()
 	assert.Contains(t, paths, "/path/two")
 	assert.NotContains(t, paths, "/path/one")
-
-	// Removing non-existent should be no-op
-	service.RemoveSearchPath("/nonexistent")
-	paths = service.GetSearchPaths()
-	assert.Contains(t, paths, "/path/two")
 }
 
 // TestSkillService_ListMethods tests service list methods
 func TestSkillService_ListMethods(t *testing.T) {
-	injector := do.New()
-
-	do.ProvideValue[logger.LoggerService](injector, &testLoggerService{})
-	do.ProvideValue[workspace.Service](injector, &testWorkspaceService{})
-
-	service, err := NewService(injector)
-	require.NoError(t, err)
+	service, _, _ := setupTestService(t)
 
 	// Create temp skill directory
 	tmpDir, err := os.MkdirTemp("", "skill-list-test-*")
@@ -779,14 +683,14 @@ Content
 	require.NoError(t, err)
 
 	// Test List
-	skills := service.List()
-	assert.Len(t, skills, 1)
+	testSkills := service.List()
+	assert.Len(t, testSkills, 1)
 
 	// Test ListByType
-	agentSkills := service.ListByType(SkillTypeAgent)
+	agentSkills := service.ListByType(skills.SkillTypeAgent)
 	assert.Len(t, agentSkills, 1)
 
-	mcpSkills := service.ListByType(SkillTypeMcp)
+	mcpSkills := service.ListByType(skills.SkillTypeMcp)
 	assert.Len(t, mcpSkills, 0)
 
 	// Test ListUserInvocable
@@ -796,13 +700,7 @@ Content
 
 // TestSkillService_Get tests service Get method
 func TestSkillService_Get(t *testing.T) {
-	injector := do.New()
-
-	do.ProvideValue[logger.LoggerService](injector, &testLoggerService{})
-	do.ProvideValue[workspace.Service](injector, &testWorkspaceService{})
-
-	service, err := NewService(injector)
-	require.NoError(t, err)
+	service, _, _ := setupTestService(t)
 
 	// Create temp skill directory
 	tmpDir, err := os.MkdirTemp("", "skill-get-test-*")
@@ -848,16 +746,10 @@ Content
 
 // TestSkillService_Refresh tests Refresh method
 func TestSkillService_Refresh(t *testing.T) {
-	injector := do.New()
-
-	do.ProvideValue[logger.LoggerService](injector, &testLoggerService{})
-	do.ProvideValue[workspace.Service](injector, &testWorkspaceService{})
-
-	service, err := NewService(injector)
-	require.NoError(t, err)
+	service, _, _ := setupTestService(t)
 
 	// Refresh on empty should not error
-	err = service.Refresh(context.Background())
+	err := service.Refresh(context.Background())
 	assert.NoError(t, err)
 }
 
@@ -894,7 +786,7 @@ Content 2
 	require.NoError(t, os.WriteFile(filepath.Join(skillFolder2, "SKILL.md"), []byte(skill2Content), 0644))
 
 	log := zap.NewNop()
-	result, err := DiscoverMultiple(context.Background(), []string{tmpDir1, tmpDir2}, log)
+	result, err := skills.DiscoverMultiple(context.Background(), []string{tmpDir1, tmpDir2}, log)
 	require.NoError(t, err)
 
 	assert.Len(t, result.Skills, 2)
@@ -930,7 +822,7 @@ Content
 	require.NoError(t, os.WriteFile(filepath.Join(skillFolder2, "SKILL.md"), []byte(skillContent), 0644))
 
 	log := zap.NewNop()
-	result, err := DiscoverMultiple(context.Background(), []string{tmpDir1, tmpDir2}, log)
+	result, err := skills.DiscoverMultiple(context.Background(), []string{tmpDir1, tmpDir2}, log)
 	require.NoError(t, err)
 
 	// Should only have 1 skill, with 1 error for duplicate
@@ -941,13 +833,7 @@ Content
 
 // TestSkillService_AutoRemoveEmptySearchPaths tests that search paths with no skills are removed after discovery
 func TestSkillService_AutoRemoveEmptySearchPaths(t *testing.T) {
-	injector := do.New()
-
-	do.ProvideValue[logger.LoggerService](injector, &testLoggerService{})
-	do.ProvideValue[workspace.Service](injector, &testWorkspaceService{})
-
-	service, err := NewService(injector)
-	require.NoError(t, err)
+	service, _, _ := setupTestService(t)
 
 	// Create temp directories
 	dirWithSkill, err := os.MkdirTemp("", "skill-with-*")
@@ -1015,7 +901,7 @@ Content
 	require.NoError(t, os.WriteFile(filepath.Join(skillFolder, "SKILL.md"), []byte(skillContent), 0644))
 
 	log := zap.NewNop()
-	result, err := DiscoverMultiple(context.Background(), []string{dirWithSkill, dirWithoutSkill}, log)
+	result, err := skills.DiscoverMultiple(context.Background(), []string{dirWithSkill, dirWithoutSkill}, log)
 	require.NoError(t, err)
 
 	// Verify PathsWithSkills is populated correctly

@@ -60,7 +60,7 @@ func (p *listAgentsToolProvider) CreateTool(senderID uuid.UUID) *ListAgentsTool 
 // Spec returns the tool specification for the ListAgents tool
 func (t *ListAgentsTool) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
-		Name: shared.ToolNameListAgents,
+		Name: shared.ToolNameListAgents.String(),
 		Description: `Shows your agent relationships with IDs, roles, descriptions, and types.
 
 VISIBILITY (what you can see):
@@ -69,9 +69,9 @@ VISIBILITY (what you can see):
 
 OPERATIONS (what you can do):
 - CRITICAL: All tools work on DIRECT children ONLY
-- ` + shared.ToolNameRemoveAgent + `: Remove your direct children only
-- ` + shared.ToolNameResumeAgent + `: Resume your direct children only
-- ` + shared.ToolNameAgentOutput + `: Get output from your direct children only
+- ` + shared.ToolNameRemoveAgent.String() + `: Remove your direct children only
+- ` + shared.ToolNameResumeAgent.String() + `: Resume your direct children only
+- ` + shared.ToolNameAgentOutput.String() + `: Get output from your direct children only
 - To operate on grandchildren: Must delegate through your direct child
 
 SCOPE:
@@ -79,7 +79,7 @@ SCOPE:
 - You CANNOT see or operate on unrelated branches
 - Each agent is responsible only for their own direct children
 
-See also: ` + shared.ToolNameSpawnAgent + `, ` + shared.ToolNameRemoveAgent + `, ` + shared.ToolNameResumeAgent + `, ` + shared.ToolNameAgentOutput,
+See also: ` + shared.ToolNameSpawnAgent.String() + `, ` + shared.ToolNameRemoveAgent.String() + `, ` + shared.ToolNameResumeAgent.String() + `, ` + shared.ToolNameAgentOutput.String(),
 		Parameters: map[string]*gollem.Parameter{
 			"recursive": {
 				Type:        gollem.TypeBoolean,

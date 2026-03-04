@@ -5,6 +5,8 @@ package app
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/markdown"
@@ -14,22 +16,28 @@ import (
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/skills"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/denkhaus/gollum/pkg/tui"
+	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 )
 
+const gollumDirName = ".gollum"
+
 // ApplicationService defines the main application service interface
 type ApplicationService interface {
 	// Run starts the application, performing all initialization and running the interactive loop
-	Run(ctx context.Context) error
+	Run(ctx context.Context, startupDirectory string) error
 	// Cleanup restores terminal state and performs other cleanup
 	Cleanup()
 }
 
 // applicationServiceImpl implements the ApplicationService interface
 type applicationServiceImpl struct {
+	startupDirectory string
+	gollumDir        string
 	logService       logger.LoggerService
 	fsm              state.FileStateManager
 	agentRegistry    registry.AgentRegistry
@@ -37,6 +45,8 @@ type applicationServiceImpl struct {
 	displayProv      middleware.DisplayMiddlewareProvider
 	agentFactory     shared.AgentFactory
 	markdownRenderer markdown.Renderer
+	workspaceService workspace.Service
+	skillsService    skills.SkillService
 }
 
 // Ensure implementation satisfies interface
@@ -51,11 +61,15 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 	displayProv := do.MustInvoke[middleware.DisplayMiddlewareProvider](injector)
 	agentFactory := do.MustInvoke[shared.AgentFactory](injector)
 	markdownRenderer := do.MustInvoke[markdown.Renderer](injector)
+	workspaceService := do.MustInvoke[workspace.Service](injector)
+	skillsService := do.MustInvoke[skills.SkillService](injector)
 
 	return &applicationServiceImpl{
 		logService:       logService,
 		fsm:              fsm,
 		agentRegistry:    agentRegistry,
+		workspaceService: workspaceService,
+		skillsService:    skillsService,
 		promptMgr:        promptMgr,
 		displayProv:      displayProv,
 		agentFactory:     agentFactory,
@@ -64,7 +78,15 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 }
 
 // Run starts the application, performing all initialization and running the interactive loop
-func (p *applicationServiceImpl) Run(ctx context.Context) error {
+func (p *applicationServiceImpl) Run(ctx context.Context, startupDirectory string) error {
+
+	p.startupDirectory = startupDirectory
+
+	// Create .gollum directory
+	if err := p.ensureGollumDirectory(); err != nil {
+		return fmt.Errorf("failed to create .gollum directory: %w", err)
+	}
+
 	// Prime FileStateManager
 	if err := p.primeFileStateManager(ctx); err != nil {
 		return err
@@ -76,8 +98,20 @@ func (p *applicationServiceImpl) Run(ctx context.Context) error {
 		return err
 	}
 
+	// Enable file logging (LoggerService handles logs/ subdir and cleanup)
+	if err := p.logService.EnableFileLogging(p.gollumDir, agent.GetID()); err != nil {
+		return fmt.Errorf("failed to enable file logging: %w", err)
+	}
+	defer p.logService.CloseFileLogging()
+
 	// Run interactive loop
 	return p.runInteractiveLoop(ctx, agent)
+}
+
+// ensureGollumDirectory creates .gollum directory if it doesn't exist
+func (p *applicationServiceImpl) ensureGollumDirectory() error {
+	p.gollumDir = filepath.Join(p.startupDirectory, gollumDirName)
+	return os.MkdirAll(p.gollumDir, 0755)
 }
 
 // primeFileStateManager primes the file state manager with directory scan
@@ -137,7 +171,13 @@ func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (sha
 	// Get supervisor prompt from PromptManager
 	systemPrompt, err := p.promptMgr.GetPromptWithContext(ctx,
 		prompt.PromptIDSupervisorSystem,
-		nil,
+		&prompt.RenderContext{
+			Workspace: &shared.WorkspaceContext{
+				SkillsXML:   p.skillsService.GetSkillsXML(),
+				Skills:      p.skillsService.GetSkillInfos(),
+				CurrentPath: p.workspaceService.GetCurrentWorkspace(),
+			},
+		},
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get supervisor prompt: %w", err)
@@ -174,6 +214,7 @@ func (p *applicationServiceImpl) runInteractiveLoop(ctx context.Context, agent s
 
 	// Enable TUI mode to disable stdout logging (logs go to buffer only)
 	p.logService.SetTUIMode(true)
+
 	defer p.logService.SetTUIMode(false) // Restore stdout logging on exit
 
 	// Create and run the TUI program with message channel integration, logger service, and markdown renderer

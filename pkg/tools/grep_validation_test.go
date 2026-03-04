@@ -142,7 +142,7 @@ func TestGrepTool_Spec(t *testing.T) {
 
 	spec := tool.Spec()
 
-	if spec.Name != shared.ToolNameGrep {
+	if spec.Name != shared.ToolNameGrep.String() {
 		t.Errorf("Expected tool name '%s', got '%s'", shared.ToolNameGrep, spec.Name)
 	}
 

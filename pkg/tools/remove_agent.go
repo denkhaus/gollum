@@ -60,7 +60,7 @@ func (p *removeAgentToolProvider) CreateTool(senderID uuid.UUID) *RemoveAgentToo
 // Spec returns the tool specification for the RemoveAgent tool
 func (t *RemoveAgentTool) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
-		Name:        shared.ToolNameRemoveAgent,
+		Name:        shared.ToolNameRemoveAgent.String(),
 		Description: "Removes an agent and all its subagents recursively. Only the agent creator or parent can remove an agent. Cannot remove yourself.",
 		Parameters: map[string]*gollem.Parameter{
 			"agent_id": {

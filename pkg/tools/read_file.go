@@ -61,7 +61,7 @@ func (p *readFileToolProvider) CreateTool(agentID uuid.UUID) *ReadFileTool {
 // Spec returns the tool specification for the ReadFile tool
 func (t *ReadFileTool) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
-		Name:        shared.ToolNameReadFile,
+		Name:        shared.ToolNameReadFile.String(),
 		Description: "Reads a file from the local filesystem. Returns the file content with line numbers. Automatically updates file stats in FileStateManager with shared locking (allows concurrent readers).",
 		Parameters: map[string]*gollem.Parameter{
 			"file_path": {

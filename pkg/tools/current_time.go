@@ -95,7 +95,7 @@ func (t *CurrentTimeTool) runCurrentTime(_ context.Context, args map[string]any)
 // Spec returns the tool specification for the CurrentTime tool
 func (t *CurrentTimeTool) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
-		Name:        shared.ToolNameCurrentTime,
+		Name:        shared.ToolNameCurrentTime.String(),
 		Description: "Returns the current date and time, optionally in a specific timezone",
 		Parameters: map[string]*gollem.Parameter{
 			"timezone": {

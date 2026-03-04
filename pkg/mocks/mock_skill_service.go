@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	shared "github.com/denkhaus/gollum/pkg/shared"
 	skills "github.com/denkhaus/gollum/pkg/skills"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -123,6 +124,34 @@ func (m *MockSkillService) GetSearchPaths() []string {
 func (mr *MockSkillServiceMockRecorder) GetSearchPaths() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSearchPaths", reflect.TypeOf((*MockSkillService)(nil).GetSearchPaths))
+}
+
+// GetSkillInfos mocks base method.
+func (m *MockSkillService) GetSkillInfos() []shared.SkillInfo {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSkillInfos")
+	ret0, _ := ret[0].([]shared.SkillInfo)
+	return ret0
+}
+
+// GetSkillInfos indicates an expected call of GetSkillInfos.
+func (mr *MockSkillServiceMockRecorder) GetSkillInfos() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSkillInfos", reflect.TypeOf((*MockSkillService)(nil).GetSkillInfos))
+}
+
+// GetSkillsXML mocks base method.
+func (m *MockSkillService) GetSkillsXML() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSkillsXML")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetSkillsXML indicates an expected call of GetSkillsXML.
+func (mr *MockSkillServiceMockRecorder) GetSkillsXML() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSkillsXML", reflect.TypeOf((*MockSkillService)(nil).GetSkillsXML))
 }
 
 // List mocks base method.

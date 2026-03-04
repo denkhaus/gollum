@@ -10,6 +10,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/git-hulk/langfuse-go/pkg/traces"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -85,7 +86,7 @@ func TestLangfuseHook_ToolSpanCreation(t *testing.T) {
 
 			hookCtx := hooks.NewTypedHookContext(
 				hooks.BaseContext{SessionID: tt.sessionID},
-				hooks.ToolPayload{Name: tt.toolName, Args: tt.toolArgs},
+				hooks.ToolPayload{Name: shared.ToolName(tt.toolName), Args: tt.toolArgs},
 			)
 
 			err := hook.beforeToolExecutionHook(context.Background(), hookCtx, func() error { return nil })
@@ -102,7 +103,7 @@ func TestLangfuseHook_ToolSpanCreation(t *testing.T) {
 
 				spanCtx, ok := tc.Spans[spanID].(*ToolSpanContext)
 				require.True(t, ok, "Span should be ToolSpanContext type")
-				assert.Equal(t, tt.toolName, spanCtx.ToolName)
+				assert.Equal(t, shared.ToolNameReadFile, spanCtx.ToolName)
 				assert.Equal(t, tt.toolArgs, spanCtx.Input)
 				assert.False(t, spanCtx.StartTime.IsZero(), "StartTime should be set")
 			} else {
@@ -307,7 +308,7 @@ func TestLangfuseHook_ToolSpanLifecycle_Integration(t *testing.T) {
 			hookCtx := hooks.NewTypedHookContext(
 				hooks.BaseContext{SessionID: sessionID},
 				hooks.ToolPayload{
-					Name:   tt.toolName,
+					Name:   shared.ToolName(tt.toolName),
 					Args:   tt.toolArgs,
 					Result: tt.toolResult,
 					Error:  tt.toolError,
@@ -325,7 +326,7 @@ func TestLangfuseHook_ToolSpanLifecycle_Integration(t *testing.T) {
 			// Verify initial span state
 			spanCtx, ok := tc.Spans[spanID].(*ToolSpanContext)
 			require.True(t, ok, "Span should be ToolSpanContext type")
-			assert.Equal(t, tt.toolName, spanCtx.ToolName)
+			assert.Equal(t, shared.ToolName(tt.toolName), spanCtx.ToolName)
 			assert.Equal(t, tt.toolArgs, spanCtx.Input)
 			assert.False(t, spanCtx.StartTime.IsZero())
 

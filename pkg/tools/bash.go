@@ -71,7 +71,7 @@ func (p *bashToolProvider) CreateTool(agentID uuid.UUID) *BashTool {
 // Spec returns the tool specification for the Bash tool
 func (t *BashTool) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
-		Name:        shared.ToolNameBash,
+		Name:        shared.ToolNameBash.String(),
 		Description: "Executes bash commands and returns the output. Useful for running shell commands, scripts, and system operations.",
 		Parameters: map[string]*gollem.Parameter{
 			"command": {

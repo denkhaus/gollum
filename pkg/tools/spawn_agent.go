@@ -82,7 +82,7 @@ func (t *SpawnAgentTool) Spec() gollem.ToolSpec {
 	maxSubAgents := t.configService.GetAgentLimits().MaxSubAgentsPerParent
 
 	return gollem.ToolSpec{
-		Name: shared.ToolNameSpawnAgent,
+		Name: shared.ToolNameSpawnAgent.String(),
 		// Description references ToolNameResumeAgent for cross-tool discoverability
 		Description: fmt.Sprintf(`Creates a new subagent with a task prompt and executes it immediately.
 			The agent preserves context and remains accessible for follow-up interactions via the %s tool.

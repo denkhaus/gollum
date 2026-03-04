@@ -2,16 +2,17 @@
 package logger
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
-	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -36,6 +37,11 @@ type LoggerService interface {
 	SetTUIMode(enabled bool)
 	// IsTUIMode returns whether TUI mode is enabled
 	IsTUIMode() bool
+	// EnableFileLogging enables file logging to .gollum/logs/<sessionID>.log
+	// Creates logs directory, cleans old logs, opens file for writing
+	EnableFileLogging(gollumDir string, sessionID uuid.UUID) error
+	// CloseFileLogging closes the current log file if open
+	CloseFileLogging() error
 }
 
 // service implements the Service interface
@@ -46,6 +52,9 @@ type service struct {
 	originalLogger *zap.Logger
 	logBuffer      *logBuffer
 	tuiMode        bool
+	configService  config.ConfigService
+	logFile        *os.File
+	logFilePath    string
 }
 
 // NewService creates a new logger service
@@ -71,17 +80,17 @@ func NewService(injector do.Injector) (LoggerService, error) {
 	atomicLevel := zap.NewAtomicLevelAt(getLogLevel(cnf.GetLogLevel()))
 	config.Level = atomicLevel
 
-	// logger, err := config.Build()
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to build logger: %w", err)
-	// }
+	logger, err := config.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build logger: %w", err)
+	}
 
 	// Build encoder with raw mode line endings (\r\n instead of \n)
 	// This is necessary for proper terminal output in raw terminal mode
-	encoder := newRawModeConsoleEncoder(config.EncoderConfig)
+	// encoder := newRawModeConsoleEncoder(config.EncoderConfig)
 
-	core := zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), atomicLevel.Level())
-	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+	// core := zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), atomicLevel.Level())
+	// logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 
 	// Initialize log buffer from config
 	loggingConfig := cnf.GetLoggingConfig()
@@ -94,6 +103,7 @@ func NewService(injector do.Injector) (LoggerService, error) {
 		originalLogger: logger,
 		logBuffer:      logBuffer,
 		tuiMode:        false,
+		configService:  cnf,
 	}, nil
 }
 
@@ -220,61 +230,117 @@ func (s *service) IsTUIMode() bool {
 	return s.tuiMode
 }
 
-
-// ============================================================================
-// Custom Console Encoder with \r\n line endings for raw terminal mode
-// ============================================================================
-
-// rawModeConsoleEncoder is a custom console encoder that uses \r\n instead of \n
-// for proper line endings in raw terminal mode.
-type rawModeConsoleEncoder struct {
-	zapcore.Encoder
-}
-
-// newRawModeConsoleEncoder creates a new console encoder with \r\n line endings.
-func newRawModeConsoleEncoder(encoderConfig zapcore.EncoderConfig) zapcore.Encoder {
-	return &rawModeConsoleEncoder{
-		Encoder: zapcore.NewConsoleEncoder(encoderConfig),
-	}
-}
-
-// Clone creates a copy of the encoder.
-func (e *rawModeConsoleEncoder) Clone() zapcore.Encoder {
-	return &rawModeConsoleEncoder{
-		Encoder: e.Encoder.Clone(),
-	}
-}
-
-// EncodeEntry encodes a log entry and replaces \n with \r\n for raw terminal mode.
-func (e *rawModeConsoleEncoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
-	buf, err := e.Encoder.EncodeEntry(entry, fields)
-	if err != nil {
-		return nil, err
+// EnableFileLogging enables file logging to .gollum/logs/<sessionID>.log.
+// It creates the logs directory, cleans up old logs if needed, and opens the log file.
+func (s *service) EnableFileLogging(gollumDir string, sessionID uuid.UUID) error {
+	// Create logs directory
+	logsDir := filepath.Join(gollumDir, "logs")
+	if err := os.MkdirAll(logsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create logs directory: %w", err)
 	}
 
-	// Replace all \n with \r\n for proper raw terminal mode handling
-	// We need to be careful not to double-replace existing \r\n
-	str := buf.String()
-	var result bytes.Buffer
-	result.Grow(len(str) + len(str)/10) // Pre-allocate with some extra space
-
-	for i := 0; i < len(str); i++ {
-		if str[i] == '\n' {
-			// Check if this is already \r\n
-			if i > 0 && str[i-1] == '\r' {
-				// Already \r\n, just write the \n
-				result.WriteByte('\n')
-			} else {
-				// Standalone \n, convert to \r\n
-				result.WriteString("\r\n")
-			}
-		} else {
-			result.WriteByte(str[i])
+	// Clean up old log files if configured
+	maxFiles := s.configService.GetLoggingConfig().MaxSessionLogFiles
+	if maxFiles > 0 {
+		if err := s.cleanupOldLogs(logsDir, maxFiles); err != nil {
+			// Log but don't fail - cleanup is best effort
+			s.Warnf("failed to cleanup old logs: %v", err)
 		}
 	}
 
-	// Create a new buffer from the pool and write our processed string to it
-	newBuf := buffer.NewPool().Get()
-	newBuf.WriteString(result.String())
-	return newBuf, nil
+	// Create log file path
+	logFilePath := filepath.Join(logsDir, sessionID.String()+".log")
+
+	// Open file for writing
+	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open log file: %w", err)
+	}
+
+	s.logFile = file
+	s.logFilePath = logFilePath
+
+	// Add file writer to logger using WrapCore
+	s.logger = s.logger.WithOptions(zap.WrapCore(func(core zapcore.Core) zapcore.Core {
+		// Create file encoder with the same config
+		encoder := newRawModeConsoleEncoder(s.config.EncoderConfig)
+		fileCore := zapcore.NewCore(encoder, zapcore.AddSync(file), s.atomicLevel)
+		// Combine existing core with file core
+		return zapcore.NewTee(core, fileCore)
+	}))
+
+	s.Infof("Session logging enabled: %s", logFilePath)
+	return nil
+}
+
+// CloseFileLogging closes the current log file if open.
+func (s *service) CloseFileLogging() error {
+	if s.logFile == nil {
+		return nil
+	}
+
+	// Sync and close the file
+	if err := s.logFile.Sync(); err != nil {
+		s.Warnf("failed to sync log file: %v", err)
+	}
+
+	if err := s.logFile.Close(); err != nil {
+		return fmt.Errorf("failed to close log file: %w", err)
+	}
+
+	s.logFile = nil
+	s.logFilePath = ""
+	return nil
+}
+
+// cleanupOldLogs removes the oldest log files when the count exceeds maxFiles.
+func (s *service) cleanupOldLogs(logsDir string, maxFiles int) error {
+	// Read all log files
+	entries, err := os.ReadDir(logsDir)
+	if err != nil {
+		return fmt.Errorf("failed to read logs directory: %w", err)
+	}
+
+	// Filter for .log files and get their info
+	type logFileInfo struct {
+		name    string
+		modTime time.Time
+	}
+	var logFiles []logFileInfo
+
+	for _, entry := range entries {
+		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".log" {
+			info, err := entry.Info()
+			if err != nil {
+				continue // Skip files we can't read
+			}
+			logFiles = append(logFiles, logFileInfo{
+				name:    entry.Name(),
+				modTime: info.ModTime(),
+			})
+		}
+	}
+
+	// Check if cleanup is needed
+	if len(logFiles) < maxFiles {
+		return nil
+	}
+
+	// Sort by modification time (oldest first)
+	sort.Slice(logFiles, func(i, j int) bool {
+		return logFiles[i].modTime.Before(logFiles[j].modTime)
+	})
+
+	// Delete oldest files until we're under the limit
+	filesToDelete := len(logFiles) - maxFiles + 1 // +1 because we're about to create a new one
+	for i := 0; i < filesToDelete && i < len(logFiles); i++ {
+		filePath := filepath.Join(logsDir, logFiles[i].name)
+		if err := os.Remove(filePath); err != nil {
+			s.Warnf("failed to remove old log file %s: %v", filePath, err)
+		} else {
+			s.Debugf("removed old log file: %s", filePath)
+		}
+	}
+
+	return nil
 }

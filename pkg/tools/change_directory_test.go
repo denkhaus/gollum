@@ -12,8 +12,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
-	"github.com/denkhaus/gollum/pkg/skills"
-	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
@@ -29,9 +27,7 @@ func TestChangeDirectoryTool_Run_ValidDirectory(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	// Create mock workspace and skill services
-	mockWorkspaceService := mocks.NewMockService(ctrl)
-	mockSkillService := mocks.NewMockSkillService(ctrl)
+	// Only need eventBus - services react via events
 	mockEventBus := mocks.NewMockBus(ctrl)
 
 	// Save original directory and restore after test
@@ -48,20 +44,14 @@ func TestChangeDirectoryTool_Run_ValidDirectory(t *testing.T) {
 	// Create temp directory for testing
 	tempDir := t.TempDir()
 
-	// Set up expectations
-	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/old/workspace")
-	mockWorkspaceService.EXPECT().SetCurrentWorkspace(gomock.Any()).Return(nil)
-	mockWorkspaceService.EXPECT().GetWorkspaceHistory().Return([]string{tempDir, "/old/workspace"})
-	mockSkillService.EXPECT().AddSearchPathAndDiscover(gomock.Any(), gomock.Any()).Return(nil)
+	// Set up expectations - only event publishing
 	mockEventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil)
 
 	tool := &ChangeDirectoryTool{
-		logService:       logService,
-		hookManager:      mockHookManager,
-		workspaceService: mockWorkspaceService,
-		skillService:     mockSkillService,
-		eventBus:         mockEventBus,
-		agentID:          uuid.New(),
+		logService:  logService,
+		hookManager: mockHookManager,
+		eventBus:    mockEventBus,
+		agentID:     uuid.New(),
 	}
 
 	args := map[string]any{
@@ -84,10 +74,6 @@ func TestChangeDirectoryTool_Run_ValidDirectory(t *testing.T) {
 
 	if _, exists := result["previous_path"]; !exists {
 		t.Error("Expected 'previous_path' field in result")
-	}
-
-	if _, exists := result["workspace_history"]; !exists {
-		t.Error("Expected 'workspace_history' field in result")
 	}
 }
 
@@ -204,8 +190,7 @@ func TestChangeDirectoryTool_Run_RelativePath(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	mockWorkspaceService := mocks.NewMockService(ctrl)
-	mockSkillService := mocks.NewMockSkillService(ctrl)
+	// Only need eventBus
 	mockEventBus := mocks.NewMockBus(ctrl)
 
 	// Save original directory and restore after test
@@ -229,19 +214,14 @@ func TestChangeDirectoryTool_Run_RelativePath(t *testing.T) {
 		t.Fatalf("Failed to change to parent dir: %v", err)
 	}
 
-	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/old/workspace")
-	mockWorkspaceService.EXPECT().SetCurrentWorkspace(gomock.Any()).Return(nil)
-	mockWorkspaceService.EXPECT().GetWorkspaceHistory().Return([]string{})
-	mockSkillService.EXPECT().AddSearchPathAndDiscover(gomock.Any(), gomock.Any()).Return(nil)
+	// Set up expectations - only event publishing
 	mockEventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil)
 
 	tool := &ChangeDirectoryTool{
-		logService:       logService,
-		hookManager:      mockHookManager,
-		workspaceService: mockWorkspaceService,
-		skillService:     mockSkillService,
-		eventBus:         mockEventBus,
-		agentID:          uuid.New(),
+		logService:  logService,
+		hookManager: mockHookManager,
+		eventBus:    mockEventBus,
+		agentID:     uuid.New(),
 	}
 
 	args := map[string]any{
@@ -258,68 +238,16 @@ func TestChangeDirectoryTool_Run_RelativePath(t *testing.T) {
 	}
 }
 
-func TestChangeDirectoryTool_Run_SkillDiscoveryFailure(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	injector := setupTestInjector()
-	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
-	setupMockHookManagerPassThrough(mockHookManager)
-
-	mockWorkspaceService := mocks.NewMockService(ctrl)
-	mockSkillService := mocks.NewMockSkillService(ctrl)
-	mockEventBus := mocks.NewMockBus(ctrl)
-
-	// Save original directory and restore after test
-	originalDir, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("Failed to get working directory: %v", err)
-	}
-	defer func() {
-		if err := os.Chdir(originalDir); err != nil {
-			t.Fatalf("Failed to restore working directory: %v", err)
-		}
-	}()
-
-	tempDir := t.TempDir()
-
-	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/old/workspace")
-	mockWorkspaceService.EXPECT().SetCurrentWorkspace(gomock.Any()).Return(nil)
-	mockWorkspaceService.EXPECT().GetWorkspaceHistory().Return([]string{})
-	mockSkillService.EXPECT().AddSearchPathAndDiscover(gomock.Any(), gomock.Any()).Return(skills.ErrSkillNotFound("test")) // Skill discovery fails
-	mockEventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil)
-
-	tool := &ChangeDirectoryTool{
-		logService:       logService,
-		hookManager:      mockHookManager,
-		workspaceService: mockWorkspaceService,
-		skillService:     mockSkillService,
-		eventBus:         mockEventBus,
-		agentID:          uuid.New(),
-	}
-
-	args := map[string]any{
-		"path": tempDir,
-	}
-
-	// Should not fail even if skill discovery fails
-	result, err := tool.Run(context.Background(), args)
-	if err != nil {
-		t.Fatalf("Should not fail when skill discovery fails: %v", err)
-	}
-
-	if success, ok := result["success"].(bool); !ok || !success {
-		t.Error("Expected success to be true even when skill discovery fails")
-	}
-}
+// TestChangeDirectoryTool_Run_SkillDiscoveryFailure removed
+// Skill discovery is now handled by SkillService subscribing to events,
+// not by the tool directly. The tool only publishes events.
 
 func TestChangeDirectoryTool_Spec(t *testing.T) {
 	tool := &ChangeDirectoryTool{}
 
 	spec := tool.Spec()
 
-	if spec.Name != shared.ToolNameChangeDirectory {
+	if spec.Name != shared.ToolNameChangeDirectory.String() {
 		t.Errorf("Expected tool name '%s', got '%s'", shared.ToolNameChangeDirectory, spec.Name)
 	}
 
@@ -344,16 +272,12 @@ func TestChangeDirectoryToolProvider_CreateTool(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockHookManager := mocks.NewMockHookManager(nil)
-	mockWorkspaceService := mocks.NewMockService(nil)
-	mockSkillService := mocks.NewMockSkillService(nil)
 	mockEventBus := mocks.NewMockBus(nil)
 
 	provider := &changeDirectoryToolProvider{
-		logService:       logService,
-		hookManager:      mockHookManager,
-		workspaceService: mockWorkspaceService,
-		skillService:     mockSkillService,
-		eventBus:         mockEventBus,
+		logService:  logService,
+		hookManager: mockHookManager,
+		eventBus:    mockEventBus,
 	}
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
@@ -381,11 +305,6 @@ func TestNewChangeDirectoryToolProvider(t *testing.T) {
 	do.Provide(injector, config.NewService)
 	do.Provide(injector, logger.NewService)
 	do.Provide(injector, hooks.NewHookManager)
-	do.Provide(injector, workspace.NewServiceProvider)
-
-	// Use mock for SkillService
-	mockSkillService := mocks.NewMockSkillService(ctrl)
-	do.ProvideValue[skills.SkillService](injector, mockSkillService)
 
 	// Use mock for EventBus
 	mockEventBus := mocks.NewMockBus(ctrl)

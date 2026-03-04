@@ -93,7 +93,7 @@ func (p *invokeSkillToolProvider) CreateTool(senderID uuid.UUID, agentFactory sh
 // Spec returns the tool specification for InvokeSkillTool
 func (t *InvokeSkillTool) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
-		Name:        shared.ToolNameInvokeSkill,
+		Name:        shared.ToolNameInvokeSkill.String(),
 		Description: "Executes a discovered skill by name. Skills can run as subagents with inherited or isolated context, or as simple template transformations. Use this to invoke specialized capabilities defined in SKILL.md files.",
 		Parameters: map[string]*gollem.Parameter{
 			"name": {

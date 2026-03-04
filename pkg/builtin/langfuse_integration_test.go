@@ -32,6 +32,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -141,7 +142,7 @@ func TestFullTraceLifecycle(t *testing.T) {
 	t.Run("ToolSpan", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
 			hooks.BaseContext{SessionID: sessionID},
-			hooks.ToolPayload{Name: "test_tool", Args: map[string]any{"arg1": "value1"}},
+			hooks.ToolPayload{Name: shared.ToolName("test_tool"), Args: map[string]any{"arg1": "value1"}},
 		)
 
 		// Before tool execution
@@ -170,7 +171,7 @@ func TestFullTraceLifecycle(t *testing.T) {
 		hook.traceCtxsMu.RUnlock()
 
 		require.True(t, ok, "Tool span should be stored in TraceContext.Spans")
-		assert.Equal(t, "test_tool", spanCtx.ToolName, "span tool name should match")
+		assert.Equal(t, shared.ToolName("test_tool"), spanCtx.ToolName, "span tool name should match")
 		assert.Equal(t, map[string]any{"arg1": "value1"}, spanCtx.Input, "span input should match")
 		assert.Equal(t, map[string]any{"result": "success"}, spanCtx.Output, "span output should match")
 		assert.Equal(t, "success", spanCtx.StatusMessage, "span status should be success")
@@ -291,7 +292,7 @@ func TestAgentSpanHierarchy(t *testing.T) {
 	t.Run("ExecuteTool", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
 			hooks.BaseContext{SessionID: sessionID, AgentID: agentBID}, // Executed from Agent B
-			hooks.ToolPayload{Name: "test_tool", Args: map[string]any{"arg1": "value1"}},
+			hooks.ToolPayload{Name: shared.ToolName("test_tool"), Args: map[string]any{"arg1": "value1"}},
 		)
 
 		err := hook.beforeToolExecutionHook(ctx, hookCtx, func() error {
@@ -388,7 +389,7 @@ func TestAgentSpanHierarchy(t *testing.T) {
 		// Verify tool span
 		toolSpan, ok := tc.Spans[toolSpanID].(*ToolSpanContext)
 		require.True(t, ok, "Tool span should be ToolSpanContext")
-		assert.Equal(t, "test_tool", toolSpan.ToolName, "Tool name should match")
+		assert.Equal(t, shared.ToolName("test_tool"), toolSpan.ToolName, "Tool name should match")
 
 		// Verify Agent B remove span
 		agentBRemoveSpan, ok := tc.Spans[agentBRemoveSpanID].(*AgentSpanContext)
@@ -512,7 +513,7 @@ func TestErrorHandlingIntegration(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
 			hooks.BaseContext{SessionID: sessionID},
 			hooks.ToolPayload{
-				Name:  "test_tool",
+				Name:  shared.ToolName("test_tool"),
 				Args:  map[string]any{"arg1": "value1"},
 				Error: errors.New("tool execution failed"),
 			},

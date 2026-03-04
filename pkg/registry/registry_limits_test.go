@@ -7,7 +7,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
-	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -17,18 +16,10 @@ func TestAgentRegistry_Register_TotalAgentLimit(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	// Create a mock injector
-	injector := do.New()
-
-	// Create a mock config service
-	mockConfigService := mocks.NewMockConfigService(ctrl)
-	mockConfigService.EXPECT().GetAgentLimits().Return(&config.AgentLimitsConfig{
+	injector := setupTestInjectorWithLimits(ctrl, &config.AgentLimitsConfig{
 		MaxTotalAgents:        2, // Small limit for testing
 		MaxSubAgentsPerParent: 3,
 	})
-
-	// Register the mock config service
-	do.ProvideValue[config.ConfigService](injector, mockConfigService)
 
 	// Create registry with mocked config
 	registry, err := NewAgentRegistry(injector)
@@ -73,18 +64,10 @@ func TestAgentRegistry_Register_SubAgentLimit(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	// Create a mock injector
-	injector := do.New()
-
-	// Create a mock config service
-	mockConfigService := mocks.NewMockConfigService(ctrl)
-	mockConfigService.EXPECT().GetAgentLimits().Return(&config.AgentLimitsConfig{
+	injector := setupTestInjectorWithLimits(ctrl, &config.AgentLimitsConfig{
 		MaxTotalAgents:        10,
 		MaxSubAgentsPerParent: 2, // Small limit for testing
 	})
-
-	// Register the mock config service
-	do.ProvideValue[config.ConfigService](injector, mockConfigService)
 
 	// Create registry with mocked config
 	registry, err := NewAgentRegistry(injector)
@@ -144,18 +127,10 @@ func TestAgentRegistry_GetSubAgentCount(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	// Create a mock injector
-	injector := do.New()
-
-	// Create a mock config service
-	mockConfigService := mocks.NewMockConfigService(ctrl)
-	mockConfigService.EXPECT().GetAgentLimits().Return(&config.AgentLimitsConfig{
+	injector := setupTestInjectorWithLimits(ctrl, &config.AgentLimitsConfig{
 		MaxTotalAgents:        10,
 		MaxSubAgentsPerParent: 3,
 	})
-
-	// Register the mock config service
-	do.ProvideValue[config.ConfigService](injector, mockConfigService)
 
 	// Create registry with mocked config
 	registry, err := NewAgentRegistry(injector)
@@ -227,18 +202,10 @@ func TestAgentRegistry_GetTotalAgentCount(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	// Create a mock injector
-	injector := do.New()
-
-	// Create a mock config service
-	mockConfigService := mocks.NewMockConfigService(ctrl)
-	mockConfigService.EXPECT().GetAgentLimits().Return(&config.AgentLimitsConfig{
+	injector := setupTestInjectorWithLimits(ctrl, &config.AgentLimitsConfig{
 		MaxTotalAgents:        10,
 		MaxSubAgentsPerParent: 3,
 	})
-
-	// Register the mock config service
-	do.ProvideValue[config.ConfigService](injector, mockConfigService)
 
 	// Create registry with mocked config
 	registry, err := NewAgentRegistry(injector)
@@ -250,12 +217,12 @@ func TestAgentRegistry_GetTotalAgentCount(t *testing.T) {
 	// Register some agents
 	for i := 0; i < 5; i++ {
 		agent := mocks.NewMockAgent(ctrl)
-		config := &shared.AgentConfig{
+		agentConfig := &shared.AgentConfig{
 			ID:           uuid.New(),
 			SystemPrompt: "Agent",
 			Role:         "Role",
 		}
-		err = registry.Register(agent, config)
+		err = registry.Register(agent, agentConfig)
 		assert.NoError(t, err)
 	}
 

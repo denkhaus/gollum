@@ -6,6 +6,7 @@ package hooks
 import (
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 )
 
@@ -28,7 +29,7 @@ type ToolPayload struct {
 	BaseContext
 
 	// Name is the tool name being executed.
-	Name string
+	Name shared.ToolName
 
 	// Args contains the tool arguments passed to the tool.
 	// Hooks can modify this map before tool execution.

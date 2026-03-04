@@ -20,7 +20,7 @@ func TestToolRegistry_IsValidTool(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		tool     string
+		tool     shared.ToolName
 		expected bool
 	}{
 		// Valid tools

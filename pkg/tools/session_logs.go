@@ -192,7 +192,7 @@ func (t *SessionLogsTool) runSessionLogs(_ context.Context, args map[string]any)
 // Spec returns the tool specification for the SessionLogs tool.
 func (t *SessionLogsTool) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
-		Name: shared.ToolNameSessionLogs,
+		Name: shared.ToolNameSessionLogs.String(),
 		Description: "Queries session logs with intelligent filtering. " +
 			"Supports multiple modes: '" + modeTail + "' (last N entries, default), '" + modeHead + "' (first N entries, newest first), " +
 			"'" + modeSince + "' (all entries after a datetime), and '" + modeAll + "' (all entries with optional count limit). " +
