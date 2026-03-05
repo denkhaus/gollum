@@ -22,3 +22,4 @@ package mocks
 //go:generate go run go.uber.org/mock/mockgen -source=../skills/service.go -destination=mock_skill_service.go -package=mocks github.com/denkhaus/gollum/pkg/skills SkillService
 //go:generate go run go.uber.org/mock/mockgen -source=../workspace/service.go -destination=mock_workspace_service.go -package=mocks github.com/denkhaus/gollum/pkg/workspace Service
 //go:generate go run go.uber.org/mock/mockgen -source=../events/bus.go -destination=mock_event_bus.go -package=mocks github.com/denkhaus/gollum/pkg/events Bus
+//go:generate go run go.uber.org/mock/mockgen -source=../diff/provider.go -destination=mock_diff_provider.go -package=mocks github.com/denkhaus/gollum/pkg/diff Provider
