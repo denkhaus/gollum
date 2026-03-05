@@ -1,0 +1,23 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Worktrunk Project Configuration for Gollum
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Dependency installation (fast, must complete for development)
+# Runs when creating a new worktree - ensures dependencies are available
+post-create = "go mod download"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Quality Gates
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Run tests and linting before committing
+# Prevents broken code from being committed
+[pre-commit]
+test = "go test ./..."
+lint = "golangci-lint run --timeout 5m"
+
+# Final validation before merging worktree back to main
+# Ensures only quality code enters trunk
+[pre-merge]
+test = "go test ./..."
+lint = "golangci-lint run --timeout 5m"
