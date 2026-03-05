@@ -61,7 +61,19 @@
       "mcp__forgejo__search_repos",
       "Bash(tmux list-sessions:*)",
       "Bash(tmux send-keys:*)",
-      "Bash(command tmux:*)"
+      "Bash(command tmux:*)",
+      "Read(//mnt/e/kb/agents/**)",
+      "Read(//home/denkhaus/**)",
+      "Bash(/usr/bin/tmux list-sessions:*)",
+      "Bash(/usr/bin/tmux display-message:*)",
+      "Bash(wt switch:*)",
+      "Bash(/usr/bin/tmux split-window:*)",
+      "Bash(/usr/bin/tmux list-panes:*)",
+      "Bash(/usr/bin/tmux send-keys:*)",
+      "Bash(/usr/bin/tmux capture-pane:*)",
+      "Bash(/usr/bin/tmux list-windows:*)",
+      "Bash(wt list:*)",
+      "Bash(/usr/bin/tmux kill-pane:*)"
     ],
     "deny": [],
     "ask": []
