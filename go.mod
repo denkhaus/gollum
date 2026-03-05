@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
+	github.com/aymanbagabas/go-udiff v0.3.1
 	github.com/charmbracelet/bubbles v1.0.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834

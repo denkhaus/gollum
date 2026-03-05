@@ -8,6 +8,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/app"
 	"github.com/denkhaus/gollum/pkg/builtin"
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/diff"
 	"github.com/denkhaus/gollum/pkg/events"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/llm"
@@ -81,6 +82,7 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	// UI
 	do.Provide(p.injector, ui.NewAgentMessenger)
 	do.Provide(p.injector, markdown.ProvideRenderer)
+	do.Provide(p.injector, diff.NewProvider)
 
 	// Middleware
 	do.Provide(p.injector, middleware.NewDisplayMiddlewareProvider)
