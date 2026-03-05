@@ -1,21 +1,14 @@
 // Package diff provides diff generation and formatting services.
 package diff
-
 import (
 	"strings"
-
 	"github.com/aymanbagabas/go-udiff"
 	"github.com/charmbracelet/lipgloss"
 )
-
-// Default context lines for unified diff output.
-const defaultContextLines = 3
-
 // getUnifiedDiff generates a unified diff string between two contents.
 func getUnifiedDiff(oldPath, newPath, oldContent, newContent string) string {
 	return udiff.Unified(oldPath, newPath, oldContent, newContent)
 }
-
 // diffStyler handles terminal styling for diff output.
 type diffStyler struct {
 	addedStyle    lipgloss.Style
@@ -24,7 +17,6 @@ type diffStyler struct {
 	metaStyle     lipgloss.Style
 	locationStyle lipgloss.Style
 }
-
 // newDiffStyler creates a new diff styler with predefined styles.
 func newDiffStyler() *diffStyler {
 	return &diffStyler{
@@ -42,26 +34,21 @@ func newDiffStyler() *diffStyler {
 			Bold(true),
 	}
 }
-
 // styleDiff applies terminal styling to a unified diff string.
 func (s *diffStyler) styleDiff(diff string) string {
 	if diff == "" {
 		return ""
 	}
-
 	var result strings.Builder
 	lines := strings.Split(diff, "\n")
-
 	for i, line := range lines {
 		if i > 0 {
 			result.WriteString("\n")
 		}
-
 		// Handle empty first line
 		if line == "" {
 			continue
 		}
-
 		switch {
 		case strings.HasPrefix(line, "+++ ") || strings.HasPrefix(line, "--- "):
 			// File path headers
@@ -87,25 +74,20 @@ func (s *diffStyler) styleDiff(diff string) string {
 			result.WriteString(line)
 		}
 	}
-
 	return result.String()
 }
-
 // styleCompact returns a compact, styled representation of the diff.
 // This format is optimized for terminal display with limited vertical space.
 func (s *diffStyler) styleCompact(diff string) string {
 	if diff == "" {
 		return ""
 	}
-
 	var result strings.Builder
 	lines := strings.Split(diff, "\n")
-
 	// Track state for compact display
 	inHunk := false
 	skippedContext := 0
-
-	for i, line := range lines {
+	for _, line := range lines {
 		// Skip file headers and metadata for compact view
 		if strings.HasPrefix(line, "diff ") ||
 			strings.HasPrefix(line, "index ") ||
@@ -114,7 +96,6 @@ func (s *diffStyler) styleCompact(diff string) string {
 			strings.HasPrefix(line, "Binary ") {
 			continue
 		}
-
 		// Show file paths
 		if strings.HasPrefix(line, "+++ ") || strings.HasPrefix(line, "--- ") {
 			if inHunk {
@@ -128,7 +109,6 @@ func (s *diffStyler) styleCompact(diff string) string {
 			result.WriteString("\n")
 			continue
 		}
-
 		// Hunk headers
 		if strings.HasPrefix(line, "@@ ") {
 			if skippedContext > 0 {
@@ -141,7 +121,6 @@ func (s *diffStyler) styleCompact(diff string) string {
 			result.WriteString("\n")
 			continue
 		}
-
 		// Changes within hunks
 		if inHunk {
 			if strings.HasPrefix(line, "+") {
@@ -152,7 +131,7 @@ func (s *diffStyler) styleCompact(diff string) string {
 				result.WriteString("\n")
 			} else if !strings.HasPrefix(line, "\\") {
 				// Context lines - skip consecutive context
-				if i > 0 && strings.HasPrefix(lines[i-1], " ") {
+				if strings.HasPrefix(line, " ") {
 					skippedContext++
 					if skippedContext <= 2 {
 						// Show first 2 context lines
@@ -168,6 +147,5 @@ func (s *diffStyler) styleCompact(diff string) string {
 			// Skip "No newline at end of file" markers
 		}
 	}
-
 	return result.String()
 }
