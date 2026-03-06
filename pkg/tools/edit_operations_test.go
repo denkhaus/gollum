@@ -237,11 +237,11 @@ func TestEditToolMultipleOccurrences(t *testing.T) {
 		resultMap := result.(map[string]any)
 		assert.False(t, resultMap["success"].(bool))
 		assert.Contains(t, resultMap["error"].(string), "appears 3 times")
-		assert.Equal(t, 3, resultMap["count"].(int))
+		assert.Equal(t, 3, resultMap["replacements"].(int))
 	}).Return(map[string]any{
 		"success": false,
 		"error":   "old_string appears 3 times in the file. For safety, it must be unique unless replace_all is set to true",
-		"count":   3,
+		"replacements":   3,
 	}, nil)
 
 	result, err := tool.Run(ctx, map[string]any{

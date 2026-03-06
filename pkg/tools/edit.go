@@ -109,8 +109,8 @@ func (t *EditTool) runEdit(ctx context.Context, args map[string]any) (map[string
 		t.logService.Error("Edit operation failed: file_path is required and must be a non-empty string",
 			zap.String("agent_id", t.agentID.String()))
 		return map[string]any{
-			"success": false,
-			"error":   "file_path is required and must be a non-empty string",
+			string(shared.KeySuccess): false,
+			string(shared.KeyError):   "file_path is required and must be a non-empty string",
 		}, nil
 	}
 
@@ -120,8 +120,8 @@ func (t *EditTool) runEdit(ctx context.Context, args map[string]any) (map[string
 			zap.String("agent_id", t.agentID.String()),
 			zap.String("file_path", filePath))
 		return map[string]any{
-			"success": false,
-			"error":   "old_string is required and must be a non-empty string",
+			string(shared.KeySuccess): false,
+			string(shared.KeyError):   "old_string is required and must be a non-empty string",
 		}, nil
 	}
 
@@ -131,8 +131,8 @@ func (t *EditTool) runEdit(ctx context.Context, args map[string]any) (map[string
 			zap.String("agent_id", t.agentID.String()),
 			zap.String("file_path", filePath))
 		return map[string]any{
-			"success": false,
-			"error":   "new_string is required and must be a string",
+			string(shared.KeySuccess): false,
+			string(shared.KeyError):   "new_string is required and must be a string",
 		}, nil
 	}
 
@@ -151,8 +151,8 @@ func (t *EditTool) runEdit(ctx context.Context, args map[string]any) (map[string
 			zap.String("file_path", originalPath),
 			zap.Error(err))
 		return map[string]any{
-			"success": false,
-			"error":   fmt.Sprintf("failed to resolve absolute path: %v", err),
+			string(shared.KeySuccess): false,
+			string(shared.KeyError):   fmt.Sprintf("failed to resolve absolute path: %v", err),
 		}, nil
 	}
 
@@ -171,8 +171,8 @@ func (t *EditTool) runEdit(ctx context.Context, args map[string]any) (map[string
 			zap.String("file_path", filePath),
 			zap.String("required_tool", shared.ToolNameReadFile.String()))
 		return map[string]any{
-			"success": false,
-			"error":   fmt.Sprintf("file must be read before editing. Use the %s tool first.", shared.ToolNameReadFile),
+			string(shared.KeySuccess): false,
+			string(shared.KeyError):   fmt.Sprintf("file must be read before editing. Use the %s tool first.", shared.ToolNameReadFile),
 		}, nil
 	}
 
@@ -184,8 +184,8 @@ func (t *EditTool) runEdit(ctx context.Context, args map[string]any) (map[string
 			zap.String("file_path", filePath),
 			zap.Error(err))
 		return map[string]any{
-			"success": false,
-			"error":   fmt.Sprintf("failed to check file state: %v", err),
+			string(shared.KeySuccess): false,
+			string(shared.KeyError):   fmt.Sprintf("failed to check file state: %v", err),
 		}, nil
 	}
 
@@ -195,8 +195,8 @@ func (t *EditTool) runEdit(ctx context.Context, args map[string]any) (map[string
 			zap.String("file_path", filePath),
 			zap.String("required_tool", shared.ToolNameReadFile.String()))
 		return map[string]any{
-			"success": false,
-			"error":   fmt.Sprintf("you must read this file before editing it. Use the %s tool first to get the latest content.", shared.ToolNameReadFile),
+			string(shared.KeySuccess): false,
+			string(shared.KeyError):   fmt.Sprintf("you must read this file before editing it. Use the %s tool first to get the latest content.", shared.ToolNameReadFile),
 		}, nil
 	}
 
@@ -239,8 +239,8 @@ func (t *EditTool) runEdit(ctx context.Context, args map[string]any) (map[string
 					zap.String("file_path", filePath),
 					zap.Int("old_string_length", len(oldString)))
 				return map[string]any{
-					"success": false,
-					"error":   "old_string not found in file",
+					string(shared.KeySuccess): false,
+					string(shared.KeyError):   "old_string not found in file",
 				}, nil
 			}
 
@@ -251,9 +251,9 @@ func (t *EditTool) runEdit(ctx context.Context, args map[string]any) (map[string
 					zap.String("file_path", filePath),
 					zap.Int("occurrence_count", count))
 				return map[string]any{
-					"success": false,
-					"error":   fmt.Sprintf("old_string appears %d times in the file. For safety, it must be unique unless replace_all is set to true", count),
-					"count":   count,
+					string(shared.KeySuccess): false,
+					string(shared.KeyError):   fmt.Sprintf("old_string appears %d times in the file. For safety, it must be unique unless replace_all is set to true", count),
+					string(shared.KeyReplacements): count,
 				}, nil
 			}
 
@@ -348,8 +348,8 @@ func (t *EditTool) runEdit(ctx context.Context, args map[string]any) (map[string
 			zap.String("file_path", filePath),
 			zap.Error(err))
 		return map[string]any{
-			"success": false,
-			"error":   err.Error(),
+			string(shared.KeySuccess): false,
+			string(shared.KeyError):   err.Error(),
 		}, nil
 	}
 
