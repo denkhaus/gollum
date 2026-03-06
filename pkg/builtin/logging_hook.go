@@ -160,10 +160,10 @@ func (h *LoggingHook) logToolEvent(hookCtx *hooks.TypedHookContext[hooks.ToolPay
 		fields = append(fields, zap.String("agent_id", hookCtx.AgentID.String()))
 	}
 	if len(hookCtx.Payload.Args) > 0 {
-		fields = append(fields, zap.Any("tool_args", hookCtx.Payload.Args))
+		fields = append(fields, zap.String("tool_args", truncateMap(hookCtx.Payload.Args, 100)))
 	}
 	if len(hookCtx.Payload.Result) > 0 {
-		fields = append(fields, zap.Any("tool_result", hookCtx.Payload.Result))
+		fields = append(fields, zap.String("tool_result", truncateMap(hookCtx.Payload.Result, 100)))
 	}
 	if err != nil {
 		fields = append(fields, zap.Error(err))
@@ -283,7 +283,16 @@ func (h *LoggingHook) logFileEvent(hookCtx *hooks.TypedHookContext[hooks.FilePay
 	if hookCtx.AgentID != uuid.Nil {
 		fields = append(fields, zap.String("agent_id", hookCtx.AgentID.String()))
 	}
-	if hookCtx.Payload.Content != "" {
+	// For modify operations, log old and new content lengths
+	if hookCtx.Payload.Operation == hooks.FileOperationModify {
+		if hookCtx.Payload.OldContent != "" || hookCtx.Payload.NewContent != "" {
+			fields = append(fields,
+				zap.Int("old_content_length", len(hookCtx.Payload.OldContent)),
+				zap.Int("new_content_length", len(hookCtx.Payload.NewContent)),
+			)
+		}
+	} else if hookCtx.Payload.Content != "" {
+		// For read/write operations, log content length
 		fields = append(fields, zap.Int("content_length", len(hookCtx.Payload.Content)))
 	}
 	if err != nil {

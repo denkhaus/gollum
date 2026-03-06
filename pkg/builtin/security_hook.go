@@ -165,6 +165,24 @@ func (h *SecurityHook) validateFilePath(path string) error {
 		return errs.Validationf("path traversal detected in cleaned path: %s", cleaned)
 	}
 
+	// Resolve symlinks to prevent symlink-based path bypass attacks
+	// filepath.Clean() does NOT resolve symlinks, so we must do this explicitly
+	// Note: EvalSymlinks only works for existing paths, so we check for errors
+	resolved, err := filepath.EvalSymlinks(cleaned)
+	if err == nil {
+		// Path was resolved successfully, check the resolved path for dangerous prefixes
+		dangerousPrefixes := []string{
+			"/etc/", "/sys/", "/proc/", "/dev/", "/boot/",
+			"\\Windows\\", "\\Program Files\\", "\\System32\\",
+		}
+		for _, prefix := range dangerousPrefixes {
+			if strings.HasPrefix(strings.ToLower(resolved), strings.ToLower(prefix)) {
+				return errs.Validationf("access to system directory not allowed: %s", path)
+			}
+		}
+	}
+	// If EvalSymlinks fails (e.g., path doesn't exist), we still check the cleaned path
+
 	// Check for absolute paths to system directories
 	dangerousPrefixes := []string{
 		"/etc/", "/sys/", "/proc/", "/dev/", "/boot/",

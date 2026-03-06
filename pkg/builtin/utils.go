@@ -11,3 +11,17 @@ func truncateString(s string, maxLen int) string {
 	}
 	return fmt.Sprintf("%s...", s[:maxLen])
 }
+
+// truncateMap truncates a map to a maximum string length and adds ellipsis if truncated.
+// This is useful for logging large map structures like tool args or results.
+func truncateMap(m map[string]any, maxLen int) string {
+	if m == nil {
+		return ""
+	}
+	// Convert map to string representation
+	s := fmt.Sprintf("%v", m)
+	if len(s) <= maxLen {
+		return s
+	}
+	return fmt.Sprintf("%s...", s[:maxLen])
+}
