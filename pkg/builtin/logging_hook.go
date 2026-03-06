@@ -34,14 +34,14 @@ func NewLoggingHook(injector do.Injector) (*LoggingHook, error) {
 // NewLoggingHookProvider creates a LoggingHook provider for DI registration.
 // This provider function registers the LoggingHook as a singleton in the DI container.
 func NewLoggingHookProvider(injector do.Injector) (hooks.HookFunc, error) {
-	hook, err := NewLoggingHook(injector)
+	_, err := NewLoggingHook(injector)
 	if err != nil {
 		return nil, err
 	}
 
-	// Return a HookFunc that logs before and after operations
+	// Return a no-op HookFunc - actual hooks registered via RegisterLoggingHooks
 	return func(ctx context.Context, hookCtx *hooks.HookContext, next func() error) error {
-		return hook.logOperation(ctx, hookCtx, next)
+		return next()
 	}, nil
 }
 
@@ -55,125 +55,286 @@ func RegisterLoggingHooks(hm hooks.HookManager, hook *LoggingHook) error {
 	priority := 1000    // High priority to log early in the chain
 	fatalError := false // Logging errors should not stop execution
 
+	// Helper to create TypedHookMetadata
+	meta := func(name string, point hooks.HookPoint) hooks.TypedHookMetadata {
+		return hooks.TypedHookMetadata{
+			Name:       name,
+			Point:      point,
+			Priority:   priority,
+			FatalError: fatalError,
+		}
+	}
+
 	// Helper to register hook and log errors (non-fatal)
-	register := func(fn hooks.HookFunc, meta hooks.HookMetadata) {
-		if err := hm.RegisterHook(fn, meta); err != nil {
+	registerTool := func(fn hooks.TypedHookFunc[hooks.ToolPayload], name string, point hooks.HookPoint) {
+		if err := hm.RegisterToolHook(fn, meta(name, point)); err != nil {
 			// Log but don't fail - logging hooks are non-critical
 			hook.log.Warn("Failed to register logging hook",
-				zap.String("hook_name", meta.Name),
+				zap.String("hook_name", name),
+				zap.Error(err))
+		}
+	}
+
+	registerAgent := func(fn hooks.TypedHookFunc[hooks.AgentPayload], name string, point hooks.HookPoint) {
+		if err := hm.RegisterAgentHook(fn, meta(name, point)); err != nil {
+			hook.log.Warn("Failed to register logging hook",
+				zap.String("hook_name", name),
+				zap.Error(err))
+		}
+	}
+
+	registerFile := func(fn hooks.TypedHookFunc[hooks.FilePayload], name string, point hooks.HookPoint) {
+		if err := hm.RegisterFileHook(fn, meta(name, point)); err != nil {
+			hook.log.Warn("Failed to register logging hook",
+				zap.String("hook_name", name),
+				zap.Error(err))
+		}
+	}
+
+	registerLLM := func(fn hooks.TypedHookFunc[hooks.LLMPayload], name string, point hooks.HookPoint) {
+		if err := hm.RegisterLLMHook(fn, meta(name, point)); err != nil {
+			hook.log.Warn("Failed to register logging hook",
+				zap.String("hook_name", name),
 				zap.Error(err))
 		}
 	}
 
 	// Tool execution hooks
-	register(hook.createHookFunc(hooks.BeforeToolExecution, "before_tool"),
-		hooks.HookMetadata{Name: "logging-before-tool", Point: hooks.BeforeToolExecution, Priority: priority, FatalError: fatalError})
-	register(hook.createHookFunc(hooks.AfterToolExecution, "after_tool"),
-		hooks.HookMetadata{Name: "logging-after-tool", Point: hooks.AfterToolExecution, Priority: priority, FatalError: fatalError})
-	register(hook.createHookFunc(hooks.OnToolError, "on_tool_error"),
-		hooks.HookMetadata{Name: "logging-on-tool-error", Point: hooks.OnToolError, Priority: priority, FatalError: fatalError})
+	registerTool(hook.beforeToolExecutionHook, "logging-before-tool", hooks.BeforeToolExecution)
+	registerTool(hook.afterToolExecutionHook, "logging-after-tool", hooks.AfterToolExecution)
+	registerTool(hook.onToolErrorHook, "logging-on-tool-error", hooks.OnToolError)
 
 	// Agent lifecycle hooks
-	register(hook.createHookFunc(hooks.BeforeAgentSpawn, "before_agent_spawn"),
-		hooks.HookMetadata{Name: "logging-before-agent-spawn", Point: hooks.BeforeAgentSpawn, Priority: priority, FatalError: fatalError})
-	register(hook.createHookFunc(hooks.AfterAgentSpawn, "after_agent_spawn"),
-		hooks.HookMetadata{Name: "logging-after-agent-spawn", Point: hooks.AfterAgentSpawn, Priority: priority, FatalError: fatalError})
-	register(hook.createHookFunc(hooks.BeforeAgentRemove, "before_agent_remove"),
-		hooks.HookMetadata{Name: "logging-before-agent-remove", Point: hooks.BeforeAgentRemove, Priority: priority, FatalError: fatalError})
-	register(hook.createHookFunc(hooks.AfterAgentRemove, "after_agent_remove"),
-		hooks.HookMetadata{Name: "logging-after-agent-remove", Point: hooks.AfterAgentRemove, Priority: priority, FatalError: fatalError})
+	registerAgent(hook.beforeAgentSpawnHook, "logging-before-agent-spawn", hooks.BeforeAgentSpawn)
+	registerAgent(hook.afterAgentSpawnHook, "logging-after-agent-spawn", hooks.AfterAgentSpawn)
+	registerAgent(hook.beforeAgentRemoveHook, "logging-before-agent-remove", hooks.BeforeAgentRemove)
+	registerAgent(hook.afterAgentRemoveHook, "logging-after-agent-remove", hooks.AfterAgentRemove)
 
 	// File operation hooks
-	register(hook.createHookFunc(hooks.BeforeFileRead, "before_file_read"),
-		hooks.HookMetadata{Name: "logging-before-file-read", Point: hooks.BeforeFileRead, Priority: priority, FatalError: fatalError})
-	register(hook.createHookFunc(hooks.AfterFileRead, "after_file_read"),
-		hooks.HookMetadata{Name: "logging-after-file-read", Point: hooks.AfterFileRead, Priority: priority, FatalError: fatalError})
-	register(hook.createHookFunc(hooks.BeforeFileWrite, "before_file_write"),
-		hooks.HookMetadata{Name: "logging-before-file-write", Point: hooks.BeforeFileWrite, Priority: priority, FatalError: fatalError})
-	register(hook.createHookFunc(hooks.AfterFileWrite, "after_file_write"),
-		hooks.HookMetadata{Name: "logging-after-file-write", Point: hooks.AfterFileWrite, Priority: priority, FatalError: fatalError})
-	register(hook.createHookFunc(hooks.BeforeFileDelete, "before_file_delete"),
-		hooks.HookMetadata{Name: "logging-before-file-delete", Point: hooks.BeforeFileDelete, Priority: priority, FatalError: fatalError})
-	register(hook.createHookFunc(hooks.AfterFileDelete, "after_file_delete"),
-		hooks.HookMetadata{Name: "logging-after-file-delete", Point: hooks.AfterFileDelete, Priority: priority, FatalError: fatalError})
-	register(hook.createHookFunc(hooks.BeforeFileModify, "before_file_modify"),
-		hooks.HookMetadata{Name: "logging-before-file-modify", Point: hooks.BeforeFileModify, Priority: priority, FatalError: fatalError})
-	register(hook.createHookFunc(hooks.AfterFileModify, "after_file_modify"),
-		hooks.HookMetadata{Name: "logging-after-file-modify", Point: hooks.AfterFileModify, Priority: priority, FatalError: fatalError})
+	registerFile(hook.beforeFileReadHook, "logging-before-file-read", hooks.BeforeFileRead)
+	registerFile(hook.afterFileReadHook, "logging-after-file-read", hooks.AfterFileRead)
+	registerFile(hook.beforeFileWriteHook, "logging-before-file-write", hooks.BeforeFileWrite)
+	registerFile(hook.afterFileWriteHook, "logging-after-file-write", hooks.AfterFileWrite)
+	registerFile(hook.beforeFileDeleteHook, "logging-before-file-delete", hooks.BeforeFileDelete)
+	registerFile(hook.afterFileDeleteHook, "logging-after-file-delete", hooks.AfterFileDelete)
+	registerFile(hook.beforeFileModifyHook, "logging-before-file-modify", hooks.BeforeFileModify)
+	registerFile(hook.afterFileModifyHook, "logging-after-file-modify", hooks.AfterFileModify)
 
 	// LLM hooks
-	register(hook.createHookFunc(hooks.BeforeLLMRequest, "before_llm_request"),
-		hooks.HookMetadata{Name: "logging-before-llm-request", Point: hooks.BeforeLLMRequest, Priority: priority, FatalError: fatalError})
-	register(hook.createHookFunc(hooks.AfterLLMResponse, "after_llm_response"),
-		hooks.HookMetadata{Name: "logging-after-llm-response", Point: hooks.AfterLLMResponse, Priority: priority, FatalError: fatalError})
-	register(hook.createHookFunc(hooks.OnLLMError, "on_llm_error"),
-		hooks.HookMetadata{Name: "logging-on-llm-error", Point: hooks.OnLLMError, Priority: priority, FatalError: fatalError})
+	registerLLM(hook.beforeLLMRequestHook, "logging-before-llm-request", hooks.BeforeLLMRequest)
+	registerLLM(hook.afterLLMResponseHook, "logging-after-llm-response", hooks.AfterLLMResponse)
+	registerLLM(hook.onLLMErrorHook, "logging-on-llm-error", hooks.OnLLMError)
 
 	return nil
 }
 
-// logOperation logs the hook event and calls the next function in the chain.
-func (h *LoggingHook) logOperation(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
-	// Call next first to allow other hooks to modify context
+// Tool execution hook methods
+func (h *LoggingHook) beforeToolExecutionHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.ToolPayload], next func() error) error {
 	err := next()
-
-	// Log after execution with context data
-	h.logWithContext(hookCtx, err)
-
+	h.logToolEvent(hookCtx, "before_tool", err)
 	return err
 }
 
-// logWithContext logs the hook context with structured fields.
-func (h *LoggingHook) logWithContext(hookCtx *hooks.HookContext, err error) {
-	fields := []zap.Field{}
+func (h *LoggingHook) afterToolExecutionHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.ToolPayload], next func() error) error {
+	err := next()
+	h.logToolEvent(hookCtx, "after_tool", err)
+	return err
+}
 
-	// Add session and agent IDs
+func (h *LoggingHook) onToolErrorHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.ToolPayload], next func() error) error {
+	err := next()
+	h.logToolEvent(hookCtx, "tool_error", err)
+	return err
+}
+
+// logToolEvent logs tool execution events with structured fields.
+func (h *LoggingHook) logToolEvent(hookCtx *hooks.TypedHookContext[hooks.ToolPayload], event string, err error) {
+	fields := []zap.Field{
+		zap.String("event", event),
+		zap.String("tool", hookCtx.Payload.Name.String()),
+	}
 	if hookCtx.SessionID != uuid.Nil {
 		fields = append(fields, zap.String("session_id", hookCtx.SessionID.String()))
 	}
 	if hookCtx.AgentID != uuid.Nil {
 		fields = append(fields, zap.String("agent_id", hookCtx.AgentID.String()))
 	}
-
-	// Add tool information
-	if hookCtx.ToolName != "" {
-		fields = append(fields, zap.String("tool", hookCtx.ToolName))
-		if len(hookCtx.ToolArgs) > 0 {
-			fields = append(fields, zap.Any("tool_args", hookCtx.ToolArgs))
-		}
-		if len(hookCtx.ToolResult) > 0 {
-			fields = append(fields, zap.Any("tool_result", hookCtx.ToolResult))
-		}
+	if len(hookCtx.Payload.Args) > 0 {
+		fields = append(fields, zap.Any("tool_args", hookCtx.Payload.Args))
 	}
-
-	// Add file information
-	if hookCtx.FilePath != "" {
-		fields = append(fields, zap.String("file_path", hookCtx.FilePath))
+	if len(hookCtx.Payload.Result) > 0 {
+		fields = append(fields, zap.Any("tool_result", hookCtx.Payload.Result))
 	}
-
-	// Add LLM information
-	if hookCtx.LLMModel != "" {
-		fields = append(fields, zap.String("llm_model", hookCtx.LLMModel))
-	}
-	if hookCtx.LLMInput != "" {
-		fields = append(fields, zap.String("llm_input", truncateString(hookCtx.LLMInput, 200)))
-	}
-	if hookCtx.LLMResponse != "" {
-		fields = append(fields, zap.String("llm_response", truncateString(hookCtx.LLMResponse, 200)))
-	}
-
-	// Add error if present
 	if err != nil {
 		fields = append(fields, zap.Error(err))
-		h.log.Error("Hook event", fields...)
+		h.log.Error("Tool hook event", fields...)
 	} else {
-		h.log.Info("Hook event", fields...)
+		h.log.Info("Tool hook event", fields...)
 	}
 }
 
-// createHookFunc creates a hook function for a specific hook point.
-func (h *LoggingHook) createHookFunc(_ hooks.HookPoint, _ string) hooks.HookFunc {
-	return func(ctx context.Context, hookCtx *hooks.HookContext, next func() error) error {
-		return h.logOperation(ctx, hookCtx, next)
+// Agent lifecycle hook methods
+func (h *LoggingHook) beforeAgentSpawnHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.AgentPayload], next func() error) error {
+	err := next()
+	h.logAgentEvent(hookCtx, "before_agent_spawn", err)
+	return err
+}
+
+func (h *LoggingHook) afterAgentSpawnHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.AgentPayload], next func() error) error {
+	err := next()
+	h.logAgentEvent(hookCtx, "after_agent_spawn", err)
+	return err
+}
+
+func (h *LoggingHook) beforeAgentRemoveHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.AgentPayload], next func() error) error {
+	err := next()
+	h.logAgentEvent(hookCtx, "before_agent_remove", err)
+	return err
+}
+
+func (h *LoggingHook) afterAgentRemoveHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.AgentPayload], next func() error) error {
+	err := next()
+	h.logAgentEvent(hookCtx, "after_agent_remove", err)
+	return err
+}
+
+// logAgentEvent logs agent lifecycle events with structured fields.
+func (h *LoggingHook) logAgentEvent(hookCtx *hooks.TypedHookContext[hooks.AgentPayload], event string, err error) {
+	fields := []zap.Field{
+		zap.String("event", event),
+		zap.String("agent_event", string(hookCtx.Payload.Event)),
+	}
+	if hookCtx.SessionID != uuid.Nil {
+		fields = append(fields, zap.String("session_id", hookCtx.SessionID.String()))
+	}
+	if hookCtx.AgentID != uuid.Nil {
+		fields = append(fields, zap.String("agent_id", hookCtx.AgentID.String()))
+	}
+	if hookCtx.Payload.NewAgentID != uuid.Nil {
+		fields = append(fields, zap.String("new_agent_id", hookCtx.Payload.NewAgentID.String()))
+	}
+	if err != nil {
+		fields = append(fields, zap.Error(err))
+		h.log.Error("Agent hook event", fields...)
+	} else {
+		h.log.Info("Agent hook event", fields...)
+	}
+}
+
+// File operation hook methods
+func (h *LoggingHook) beforeFileReadHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	err := next()
+	h.logFileEvent(hookCtx, "before_file_read", err)
+	return err
+}
+
+func (h *LoggingHook) afterFileReadHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	err := next()
+	h.logFileEvent(hookCtx, "after_file_read", err)
+	return err
+}
+
+func (h *LoggingHook) beforeFileWriteHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	err := next()
+	h.logFileEvent(hookCtx, "before_file_write", err)
+	return err
+}
+
+func (h *LoggingHook) afterFileWriteHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	err := next()
+	h.logFileEvent(hookCtx, "after_file_write", err)
+	return err
+}
+
+func (h *LoggingHook) beforeFileDeleteHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	err := next()
+	h.logFileEvent(hookCtx, "before_file_delete", err)
+	return err
+}
+
+func (h *LoggingHook) afterFileDeleteHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	err := next()
+	h.logFileEvent(hookCtx, "after_file_delete", err)
+	return err
+}
+
+func (h *LoggingHook) beforeFileModifyHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	err := next()
+	h.logFileEvent(hookCtx, "before_file_modify", err)
+	return err
+}
+
+func (h *LoggingHook) afterFileModifyHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	err := next()
+	h.logFileEvent(hookCtx, "after_file_modify", err)
+	return err
+}
+
+// logFileEvent logs file operation events with structured fields.
+func (h *LoggingHook) logFileEvent(hookCtx *hooks.TypedHookContext[hooks.FilePayload], event string, err error) {
+	fields := []zap.Field{
+		zap.String("event", event),
+		zap.String("file_path", hookCtx.Payload.Path),
+		zap.String("operation", string(hookCtx.Payload.Operation)),
+	}
+	if hookCtx.SessionID != uuid.Nil {
+		fields = append(fields, zap.String("session_id", hookCtx.SessionID.String()))
+	}
+	if hookCtx.AgentID != uuid.Nil {
+		fields = append(fields, zap.String("agent_id", hookCtx.AgentID.String()))
+	}
+	if hookCtx.Payload.Content != "" {
+		fields = append(fields, zap.Int("content_length", len(hookCtx.Payload.Content)))
+	}
+	if err != nil {
+		fields = append(fields, zap.Error(err))
+		h.log.Error("File hook event", fields...)
+	} else {
+		h.log.Info("File hook event", fields...)
+	}
+}
+
+// LLM hook methods
+func (h *LoggingHook) beforeLLMRequestHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.LLMPayload], next func() error) error {
+	err := next()
+	h.logLLMEvent(hookCtx, "before_llm_request", err)
+	return err
+}
+
+func (h *LoggingHook) afterLLMResponseHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.LLMPayload], next func() error) error {
+	err := next()
+	h.logLLMEvent(hookCtx, "after_llm_response", err)
+	return err
+}
+
+func (h *LoggingHook) onLLMErrorHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.LLMPayload], next func() error) error {
+	err := next()
+	h.logLLMEvent(hookCtx, "llm_error", err)
+	return err
+}
+
+// logLLMEvent logs LLM events with structured fields.
+func (h *LoggingHook) logLLMEvent(hookCtx *hooks.TypedHookContext[hooks.LLMPayload], event string, err error) {
+	fields := []zap.Field{
+		zap.String("event", event),
+		zap.String("model", hookCtx.Payload.Model),
+	}
+	if hookCtx.SessionID != uuid.Nil {
+		fields = append(fields, zap.String("session_id", hookCtx.SessionID.String()))
+	}
+	if hookCtx.AgentID != uuid.Nil {
+		fields = append(fields, zap.String("agent_id", hookCtx.AgentID.String()))
+	}
+	if hookCtx.Payload.Input != "" {
+		fields = append(fields, zap.String("llm_input", truncateString(hookCtx.Payload.Input, 200)))
+	}
+	if hookCtx.Payload.Response != "" {
+		fields = append(fields, zap.String("llm_response", truncateString(hookCtx.Payload.Response, 200)))
+	}
+	if err != nil {
+		fields = append(fields, zap.Error(err))
+		h.log.Error("LLM hook event", fields...)
+	} else {
+		h.log.Info("LLM hook event", fields...)
 	}
 }

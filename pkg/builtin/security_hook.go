@@ -35,14 +35,14 @@ func NewSecurityHook(injector do.Injector) (*SecurityHook, error) {
 
 // NewSecurityHookProvider creates a SecurityHook provider for DI registration.
 func NewSecurityHookProvider(injector do.Injector) (hooks.HookFunc, error) {
-	hook, err := NewSecurityHook(injector)
+	_, err := NewSecurityHook(injector)
 	if err != nil {
 		return nil, err
 	}
 
-	// Return a HookFunc that validates operations
+	// Return a no-op HookFunc - actual hooks registered via RegisterSecurityHooks
 	return func(ctx context.Context, hookCtx *hooks.HookContext, next func() error) error {
-		return hook.validateOperation(ctx, hookCtx, next)
+		return next()
 	}, nil
 }
 
@@ -55,66 +55,94 @@ func RegisterSecurityHooks(hm hooks.HookManager, hook *SecurityHook) error {
 	priority := 0      // Low priority to run validation first
 	fatalError := true // Security violations should stop execution
 
+	// Helper to create TypedHookMetadata
+	meta := func(name string, point hooks.HookPoint) hooks.TypedHookMetadata {
+		return hooks.TypedHookMetadata{
+			Name:       name,
+			Point:      point,
+			Priority:   priority,
+			FatalError: fatalError,
+		}
+	}
+
 	// Register each hook and return immediately on error
-	if err := hm.RegisterHook(hook.createHookFunc(hooks.BeforeToolExecution, "before_tool"),
-		hooks.HookMetadata{Name: "security-before-tool", Point: hooks.BeforeToolExecution, Priority: priority, FatalError: fatalError}); err != nil {
+	if err := hm.RegisterToolHook(hook.beforeToolExecutionHook, meta("security-before-tool", hooks.BeforeToolExecution)); err != nil {
 		return err
 	}
 
 	// File operation hooks - validate file paths
-	if err := hm.RegisterHook(hook.createHookFunc(hooks.BeforeFileRead, "before_file_read"),
-		hooks.HookMetadata{Name: "security-before-file-read", Point: hooks.BeforeFileRead, Priority: priority, FatalError: fatalError}); err != nil {
+	if err := hm.RegisterFileHook(hook.beforeFileReadHook, meta("security-before-file-read", hooks.BeforeFileRead)); err != nil {
 		return err
 	}
-	if err := hm.RegisterHook(hook.createHookFunc(hooks.BeforeFileWrite, "before_file_write"),
-		hooks.HookMetadata{Name: "security-before-file-write", Point: hooks.BeforeFileWrite, Priority: priority, FatalError: fatalError}); err != nil {
+	if err := hm.RegisterFileHook(hook.beforeFileWriteHook, meta("security-before-file-write", hooks.BeforeFileWrite)); err != nil {
 		return err
 	}
-	if err := hm.RegisterHook(hook.createHookFunc(hooks.BeforeFileDelete, "before_file_delete"),
-		hooks.HookMetadata{Name: "security-before-file-delete", Point: hooks.BeforeFileDelete, Priority: priority, FatalError: fatalError}); err != nil {
+	if err := hm.RegisterFileHook(hook.beforeFileDeleteHook, meta("security-before-file-delete", hooks.BeforeFileDelete)); err != nil {
 		return err
 	}
-	if err := hm.RegisterHook(hook.createHookFunc(hooks.BeforeFileModify, "before_file_modify"),
-		hooks.HookMetadata{Name: "security-before-file-modify", Point: hooks.BeforeFileModify, Priority: priority, FatalError: fatalError}); err != nil {
+	if err := hm.RegisterFileHook(hook.beforeFileModifyHook, meta("security-before-file-modify", hooks.BeforeFileModify)); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// validateOperation validates the operation and either blocks it or passes through.
-func (h *SecurityHook) validateOperation(_ context.Context, hookCtx *hooks.HookContext, next func() error) error {
-	// Validate file operations
-	if hookCtx.FilePath != "" {
-		if err := h.validateFilePath(hookCtx.FilePath); err != nil {
-			h.log.Warn("Security check failed for file path",
-				zap.String("file_path", hookCtx.FilePath),
-				zap.Error(err))
-			return err // Block the operation in strict mode
-		}
-	}
-
+// beforeToolExecutionHook validates tool operations before execution.
+func (h *SecurityHook) beforeToolExecutionHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.ToolPayload], next func() error) error {
 	// Validate tool operations
-	if hookCtx.ToolName != "" {
-		if err := h.validateToolOperation(hookCtx.ToolName, hookCtx.ToolArgs); err != nil {
+	if hookCtx.Payload.Name != "" {
+		if err := h.validateToolOperation(hookCtx.Payload.Name.String(), hookCtx.Payload.Args); err != nil {
 			h.log.Warn("Security check failed for tool operation",
-				zap.String("tool", hookCtx.ToolName),
+				zap.String("tool", hookCtx.Payload.Name.String()),
 				zap.Error(err))
 			return err // Block the operation in strict mode
 		}
 	}
 
-	// Validate LLM input for prompt injection
-	if hookCtx.LLMInput != "" {
-		if err := h.validateLLMInput(hookCtx.LLMInput); err != nil {
-			h.log.Warn("Security check failed for LLM input",
-				zap.String("llm_input", truncateString(hookCtx.LLMInput, 100)),
-				zap.Error(err))
-			return err // Block the operation in strict mode
-		}
-	}
+	return next()
+}
 
-	// All checks passed, continue with the operation
+// beforeFileReadHook validates file read operations.
+func (h *SecurityHook) beforeFileReadHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	if err := h.validateFilePath(hookCtx.Payload.Path); err != nil {
+		h.log.Warn("Security check failed for file path",
+			zap.String("file_path", hookCtx.Payload.Path),
+			zap.Error(err))
+		return err
+	}
+	return next()
+}
+
+// beforeFileWriteHook validates file write operations.
+func (h *SecurityHook) beforeFileWriteHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	if err := h.validateFilePath(hookCtx.Payload.Path); err != nil {
+		h.log.Warn("Security check failed for file path",
+			zap.String("file_path", hookCtx.Payload.Path),
+			zap.Error(err))
+		return err
+	}
+	return next()
+}
+
+// beforeFileDeleteHook validates file delete operations.
+func (h *SecurityHook) beforeFileDeleteHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	if err := h.validateFilePath(hookCtx.Payload.Path); err != nil {
+		h.log.Warn("Security check failed for file path",
+			zap.String("file_path", hookCtx.Payload.Path),
+			zap.Error(err))
+		return err
+	}
+	return next()
+}
+
+// beforeFileModifyHook validates file modify operations.
+func (h *SecurityHook) beforeFileModifyHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.FilePayload], next func() error) error {
+	if err := h.validateFilePath(hookCtx.Payload.Path); err != nil {
+		h.log.Warn("Security check failed for file path",
+			zap.String("file_path", hookCtx.Payload.Path),
+			zap.Error(err))
+		return err
+	}
 	return next()
 }
 
@@ -233,11 +261,4 @@ func (h *SecurityHook) validateLLMInput(input string) error {
 	}
 
 	return nil
-}
-
-// createHookFunc creates a hook function for a specific hook point.
-func (h *SecurityHook) createHookFunc(_ hooks.HookPoint, _ string) hooks.HookFunc {
-	return func(ctx context.Context, hookCtx *hooks.HookContext, next func() error) error {
-		return h.validateOperation(ctx, hookCtx, next)
-	}
 }
