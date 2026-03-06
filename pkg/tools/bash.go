@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/diff"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -22,11 +24,12 @@ import (
 type (
 	// BashTool executes bash commands
 	BashTool struct {
-		logService  logger.LoggerService
-		agentID     uuid.UUID
-		bashCfg     *config.BashConfig
-		fileState   state.FileStateManager
-		hookManager hooks.HookManager
+		logService   logger.LoggerService
+		agentID      uuid.UUID
+		bashCfg      *config.BashConfig
+		fileState    state.FileStateManager
+		hookManager  hooks.HookManager
+		diffProvider diff.Provider
 	}
 
 	// BashToolProvider creates BashTool instances via DI
@@ -35,10 +38,11 @@ type (
 	}
 
 	bashToolProvider struct {
-		logService  logger.LoggerService
-		bashCfg     *config.BashConfig
-		fileState   state.FileStateManager
-		hookManager hooks.HookManager
+		logService   logger.LoggerService
+		bashCfg      *config.BashConfig
+		fileState    state.FileStateManager
+		hookManager  hooks.HookManager
+		diffProvider diff.Provider
 	}
 )
 
@@ -48,23 +52,26 @@ func NewBashToolProvider(injector do.Injector) (BashToolProvider, error) {
 	cfgService := do.MustInvoke[config.ConfigService](injector)
 	fileState := do.MustInvoke[state.FileStateManager](injector)
 	hookManager := do.MustInvoke[hooks.HookManager](injector)
+	diffProvider := do.MustInvoke[diff.Provider](injector)
 	bashCfg := cfgService.GetBashConfig()
 	return &bashToolProvider{
-		logService:  logService,
-		bashCfg:     bashCfg,
-		fileState:   fileState,
-		hookManager: hookManager,
+		logService:   logService,
+		bashCfg:      bashCfg,
+		fileState:    fileState,
+		hookManager:  hookManager,
+		diffProvider: diffProvider,
 	}, nil
 }
 
 // CreateBashTool creates a new BashTool with agent ID
 func (p *bashToolProvider) CreateTool(agentID uuid.UUID) *BashTool {
 	return &BashTool{
-		logService:  p.logService,
-		agentID:     agentID,
-		bashCfg:     p.bashCfg,
-		fileState:   p.fileState,
-		hookManager: p.hookManager,
+		logService:   p.logService,
+		agentID:      agentID,
+		bashCfg:      p.bashCfg,
+		fileState:    p.fileState,
+		hookManager:  p.hookManager,
+		diffProvider: p.diffProvider,
 	}
 }
 
@@ -183,8 +190,54 @@ func (t *BashTool) runBashCommand(ctx context.Context, args map[string]any) (map
 				zap.Int("count", len(changes)),
 				zap.String("command", command))
 
+			// Generate diffs for modified files
+			fileDiffs := make(map[string]interface{})
+			for _, change := range changes {
+				if change.Operation == state.Modified || change.Operation == state.Created {
+					// Get the current content of the file
+					currentContent, err := os.ReadFile(change.Path)
+					if err != nil {
+						t.logService.Warnf("Failed to get current content for diff: %s - %v", change.Path, err)
+						continue
+					}
+
+					// Generate diff based on change type
+					var diffStr string
+					if change.Operation == state.Created {
+						// For new files, generate diff against empty content
+						diffStr, err = t.diffProvider.GenerateDiffForNewFile(change.Path, string(currentContent))
+					} else {
+						// For modified files, we don't have the old content readily available
+						// For now, we'll generate a diff against an empty string to show the new content
+						// In a future enhancement, we could store the old content before command execution
+						diffStr, err = t.diffProvider.GenerateDiff(change.Path, change.Path, "", string(currentContent))
+					}
+
+					if err != nil {
+						t.logService.Warnf("Failed to generate diff for %s: %v", change.Path, err)
+						continue
+					}
+
+					// Format the diff for display
+					formattedDiff := t.diffProvider.FormatForDisplay(diffStr)
+					compactDiff := t.diffProvider.FormatCompact(diffStr)
+
+					// Add diff information to the result
+					fileDiffs[change.Path] = map[string]interface{}{
+						string(shared.KeyDiff):        formattedDiff,
+						string(shared.KeyDiffCompact): compactDiff,
+						string(shared.KeyIsNewFile):   change.Operation == state.Created,
+					}
+				}
+			}
+
 			// Add changes to result (FileChange now has json tags for proper serialization)
 			result["file_changes"] = changes
+
+			// Add diffs if any were generated
+			if len(fileDiffs) > 0 {
+				result["file_diffs"] = fileDiffs
+			}
 
 			// Add warning if files were modified
 			result["warning"] = fmt.Sprintf("This bash command modified %d file(s). Consider using %s or %s for better file state tracking.",

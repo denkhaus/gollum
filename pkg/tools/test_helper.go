@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"testing"
 	"github.com/denkhaus/gollum/pkg/events"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
@@ -64,11 +65,9 @@ func setupTestInjector() do.Injector {
 	// Register agent execution helper
 	do.Provide(injector, NewAgentExecutionHelper)
 
-	// Register tool providers for testing (only those without complex dependencies)
-	do.Provide(injector, NewBashToolProvider)
-	do.Provide(injector, NewCurrentTimeToolProvider)
-	do.Provide(injector, NewGlobToolProvider)
-	do.Provide(injector, NewGrepToolProvider)
+	// Note: Tool providers (BashToolProvider, EditToolProvider, etc.) are NOT registered here
+	// because tests create tool instances directly with their own mock dependencies.
+	// This allows tests to have full control over tool behavior.
 
 	return injector
 }
@@ -132,6 +131,37 @@ func setupMockHookManagerPassThrough(mockHookManager *mocks.MockHookManager) {
 		DoAndReturn(func() hooks.HookResult {
 			return hooks.HookResult{Stopped: false, Error: nil, Data: make(map[string]any)}
 		}).AnyTimes()
+}
+
+// createWriteFileToolForTesting creates a WriteFileTool with mocked dependencies for testing.
+// Returns the tool, the FSM, and logService for tests that need direct access.
+// This follows the DI pattern guideline: tests create tools directly with their own mock dependencies.
+func createWriteFileToolForTesting(t *testing.T, ctrl *gomock.Controller) (*WriteFileTool, state.FileStateManager, logger.LoggerService) {
+	t.Helper()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+	fsm, err := state.NewFileStateManager(injector)
+	if err != nil {
+		t.Fatalf("Failed to create FileStateManager: %v", err)
+	}
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockDiffProvider := mocks.NewMockProvider(ctrl)
+
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	// Set up default mock expectations for diff provider (tests can override if needed)
+	mockDiffProvider.EXPECT().GenerateDiffForNewFile(gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
+	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
+
+	tool := &WriteFileTool{
+		logService:   logService,
+		fsm:          fsm,
+		hookManager:  mockHookManager,
+		diffProvider: mockDiffProvider,
+	}
+
+	return tool, fsm, logService
 }
 
 // setupMockExecutionHelperWithDefaults configures a mock AgentExecutionHelper with default behavior

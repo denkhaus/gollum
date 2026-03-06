@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/diff"
 	"github.com/denkhaus/gollum/pkg/errs"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
@@ -22,10 +23,11 @@ import (
 type (
 	// WriteFileTool writes content to files with automatic locking and checksum verification
 	WriteFileTool struct {
-		logService  logger.LoggerService
-		fsm         state.FileStateManager
-		hookManager hooks.HookManager
-		agentID     uuid.UUID
+		logService   logger.LoggerService
+		fsm          state.FileStateManager
+		hookManager  hooks.HookManager
+		diffProvider diff.Provider
+		agentID      uuid.UUID
 	}
 
 	// WriteFileToolProvider creates WriteFileTool instances via DI
@@ -34,9 +36,10 @@ type (
 	}
 
 	writeFileToolProvider struct {
-		logService  logger.LoggerService
-		fsm         state.FileStateManager
-		hookManager hooks.HookManager
+		logService   logger.LoggerService
+		fsm          state.FileStateManager
+		hookManager  hooks.HookManager
+		diffProvider diff.Provider
 	}
 )
 
@@ -45,17 +48,19 @@ func NewWriteFileToolProvider(injector do.Injector) (WriteFileToolProvider, erro
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	fsm := do.MustInvoke[state.FileStateManager](injector)
 	hookManager := do.MustInvoke[hooks.HookManager](injector)
+	diffProvider := do.MustInvoke[diff.Provider](injector)
 
-	return &writeFileToolProvider{logService: logService, fsm: fsm, hookManager: hookManager}, nil
+	return &writeFileToolProvider{logService: logService, fsm: fsm, hookManager: hookManager, diffProvider: diffProvider}, nil
 }
 
 // CreateWriteFileTool creates a new WriteFileTool with injected dependencies and agent ID
 func (p *writeFileToolProvider) CreateTool(agentID uuid.UUID) *WriteFileTool {
 	return &WriteFileTool{
-		logService:  p.logService,
-		fsm:         p.fsm,
-		hookManager: p.hookManager,
-		agentID:     agentID,
+		logService:   p.logService,
+		fsm:          p.fsm,
+		hookManager:  p.hookManager,
+		diffProvider: p.diffProvider,
+		agentID:      agentID,
 	}
 }
 
@@ -166,6 +171,8 @@ func (t *WriteFileTool) runFileWrite(ctx context.Context, args map[string]any) (
 	}
 
 	// Check if file exists and if agent has read it (for race condition detection)
+	var oldContent string
+	isNewFile := false
 	if _, err := os.Stat(path); err == nil {
 		// File exists - verify it's not stale for this agent
 		isStale, err := t.fsm.IsFileStaleForAgent(t.agentID, path)
@@ -191,6 +198,14 @@ func (t *WriteFileTool) runFileWrite(ctx context.Context, args map[string]any) (
 				"path":    path,
 			}, nil
 		}
+
+		// Read existing content for diff generation
+		if contentBytes, err := os.ReadFile(path); err == nil {
+			oldContent = string(contentBytes)
+		}
+	} else {
+		// File doesn't exist - this is a new file
+		isNewFile = true
 	}
 	// If file doesn't exist, agent can write without reading first (new file)
 
@@ -256,15 +271,40 @@ func (t *WriteFileTool) runFileWrite(ctx context.Context, args map[string]any) (
 					WithContext("file_path", path)
 			}
 
-			return map[string]any{
-				"success":   true,
-				"path":      path,
-				"bytes":     len(content),
-				"size":      stats.Size,
-				"checksum":  stats.Checksum,
-				"modified":  stats.ModifiedTime,
-				"locked_by": token.AgentID,
-			}, nil
+			// Generate diff based on whether this is a new file or existing file
+			var diffStr string
+			var diffErr error
+			if isNewFile {
+				diffStr, diffErr = t.diffProvider.GenerateDiffForNewFile(path, content)
+			} else {
+				diffStr, diffErr = t.diffProvider.GenerateDiff(path, path, oldContent, content)
+			}
+
+			if diffErr != nil {
+				t.logService.Warn("Failed to generate diff",
+					zap.String("agent_id", t.agentID.String()),
+					zap.String("file_path", path),
+					zap.Error(diffErr))
+			}
+
+			result := map[string]any{
+				string(shared.KeySuccess):  true,
+				string(shared.KeyFilePath): path,
+				"bytes":                    len(content),
+				string(shared.KeySize):     stats.Size,
+				string(shared.KeyChecksum): stats.Checksum,
+				string(shared.KeyModified): stats.ModifiedTime,
+				string(shared.KeyLockedBy): token.AgentID,
+			}
+
+			// Add diff information if generation was successful
+			if diffStr != "" {
+				result[string(shared.KeyDiff)] = t.diffProvider.FormatForDisplay(diffStr)
+				result[string(shared.KeyDiffCompact)] = t.diffProvider.FormatCompact(diffStr)
+				result[string(shared.KeyIsNewFile)] = isNewFile
+			}
+
+			return result, nil
 		})
 	if err != nil {
 		t.logService.Error("File write operation failed",

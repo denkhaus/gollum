@@ -6,14 +6,43 @@ import (
 	"testing"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
+	"go.uber.org/mock/gomock"
 )
 
-func TestBashTool_Spec(t *testing.T) {
+// createBashToolForTesting creates a BashTool with mocked dependencies for testing.
+// This follows the DI pattern guideline: tests create tools directly with their own mock dependencies.
+func createBashToolForTesting(t *testing.T, ctrl *gomock.Controller) *BashTool {
+	t.Helper()
+
 	injector := setupTestInjector()
-	provider := do.MustInvoke[BashToolProvider](injector)
-	tool := provider.CreateTool(uuid.New())
+	logService := do.MustInvoke[logger.LoggerService](injector)
+	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+
+	return &BashTool{
+		logService:   logService,
+		fileState:    mockFSM,
+		agentID:      uuid.New(),
+		hookManager:  mockHookManager,
+		diffProvider: mockDiffProvider,
+		bashCfg: &config.BashConfig{
+			TrackChanges: false, // Disable file tracking for basic tests
+		},
+	}
+}
+
+func TestBashTool_Spec(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tool := createBashToolForTesting(t, ctrl)
 
 	spec := tool.Spec()
 
@@ -35,9 +64,10 @@ func TestBashTool_Spec(t *testing.T) {
 }
 
 func TestBashTool_Run_Success(t *testing.T) {
-	injector := setupTestInjector()
-	provider := do.MustInvoke[BashToolProvider](injector)
-	tool := provider.CreateTool(uuid.New())
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tool := createBashToolForTesting(t, ctrl)
 
 	args := map[string]any{
 		"command": "echo 'hello world'",
@@ -66,9 +96,10 @@ func TestBashTool_Run_Success(t *testing.T) {
 }
 
 func TestBashTool_Run_InvalidCommand(t *testing.T) {
-	injector := setupTestInjector()
-	provider := do.MustInvoke[BashToolProvider](injector)
-	tool := provider.CreateTool(uuid.New())
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tool := createBashToolForTesting(t, ctrl)
 
 	tests := []struct {
 		name          string
@@ -116,9 +147,10 @@ func TestBashTool_Run_InvalidCommand(t *testing.T) {
 }
 
 func TestBashTool_Run_CommandFails(t *testing.T) {
-	injector := setupTestInjector()
-	provider := do.MustInvoke[BashToolProvider](injector)
-	tool := provider.CreateTool(uuid.New())
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tool := createBashToolForTesting(t, ctrl)
 
 	args := map[string]any{
 		"command": "ls /nonexistent/directory/that/does/not/exist",
@@ -148,9 +180,10 @@ func TestBashTool_Run_CommandFails(t *testing.T) {
 }
 
 func TestBashTool_Run_WithCustomTimeout(t *testing.T) {
-	injector := setupTestInjector()
-	provider := do.MustInvoke[BashToolProvider](injector)
-	tool := provider.CreateTool(uuid.New())
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tool := createBashToolForTesting(t, ctrl)
 
 	// Test with custom timeout
 	args := map[string]any{
@@ -169,14 +202,15 @@ func TestBashTool_Run_WithCustomTimeout(t *testing.T) {
 }
 
 func TestBashTool_Run_TimeoutExceedsMax(t *testing.T) {
-	injector := setupTestInjector()
-	provider := do.MustInvoke[BashToolProvider](injector)
-	tool := provider.CreateTool(uuid.New())
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	// Test with timeout exceeding max (should be capped at 120)
+	tool := createBashToolForTesting(t, ctrl)
+
+	// Test with timeout exceeding max (should be capped at 300 per code)
 	args := map[string]any{
 		"command": "echo 'test'",
-		"timeout": float64(200), // Exceeds max of 120
+		"timeout": float64(400), // Exceeds max of 300
 	}
 
 	result, err := tool.Run(context.Background(), args)
@@ -190,9 +224,10 @@ func TestBashTool_Run_TimeoutExceedsMax(t *testing.T) {
 }
 
 func TestBashTool_Run_Timeout(t *testing.T) {
-	injector := setupTestInjector()
-	provider := do.MustInvoke[BashToolProvider](injector)
-	tool := provider.CreateTool(uuid.New())
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tool := createBashToolForTesting(t, ctrl)
 
 	// Command that sleeps longer than the timeout
 	args := map[string]any{
@@ -232,9 +267,10 @@ func TestBashTool_Run_Timeout(t *testing.T) {
 }
 
 func TestBashTool_Run_MultiLineCommand(t *testing.T) {
-	injector := setupTestInjector()
-	provider := do.MustInvoke[BashToolProvider](injector)
-	tool := provider.CreateTool(uuid.New())
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tool := createBashToolForTesting(t, ctrl)
 
 	args := map[string]any{
 		"command": "echo 'line1' && echo 'line2'",
@@ -255,9 +291,10 @@ func TestBashTool_Run_MultiLineCommand(t *testing.T) {
 }
 
 func TestBashTool_Run_CommandWithStderr(t *testing.T) {
-	injector := setupTestInjector()
-	provider := do.MustInvoke[BashToolProvider](injector)
-	tool := provider.CreateTool(uuid.New())
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tool := createBashToolForTesting(t, ctrl)
 
 	args := map[string]any{
 		"command": "echo 'error message' >&2",
@@ -278,26 +315,11 @@ func TestBashTool_Run_CommandWithStderr(t *testing.T) {
 	}
 }
 
-func TestBashToolProvider_CreateBashTool(t *testing.T) {
-	injector := setupTestInjector()
-	provider := do.MustInvoke[BashToolProvider](injector)
-	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
-	tool := provider.CreateTool(testUUID)
-
-	if tool == nil {
-		t.Fatal("Expected non-nil tool")
-	}
-
-	// Just verify it's a BashTool pointer
-	if tool == nil {
-		t.Error("Expected tool to be non-nil")
-	}
-}
-
 func TestBashTool_Run_EnvironmentVariables(t *testing.T) {
-	injector := setupTestInjector()
-	provider := do.MustInvoke[BashToolProvider](injector)
-	tool := provider.CreateTool(uuid.New())
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tool := createBashToolForTesting(t, ctrl)
 
 	args := map[string]any{
 		"command": "echo $HOME",
@@ -318,9 +340,10 @@ func TestBashTool_Run_EnvironmentVariables(t *testing.T) {
 }
 
 func TestBashTool_Run_PipeCommand(t *testing.T) {
-	injector := setupTestInjector()
-	provider := do.MustInvoke[BashToolProvider](injector)
-	tool := provider.CreateTool(uuid.New())
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tool := createBashToolForTesting(t, ctrl)
 
 	args := map[string]any{
 		"command": "echo 'hello world' | grep hello",

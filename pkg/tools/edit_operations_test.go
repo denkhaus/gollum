@@ -40,11 +40,14 @@ func TestEditToolBasicOperation(t *testing.T) {
 	err := os.WriteFile(testFile, []byte(initialContent), 0644)
 	require.NoError(t, err)
 
+	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &EditTool{
 		logService:  logService,
 		fsm:         mockFSM,
 		agentID:     agentID,
 		hookManager: mockHookManager,
+		diffProvider: mockDiffProvider,
 	}
 
 	ctx := context.Background()
@@ -130,11 +133,14 @@ func TestEditToolStringNotFound(t *testing.T) {
 	err := os.WriteFile(testFile, []byte(initialContent), 0644)
 	require.NoError(t, err)
 
+	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &EditTool{
 		logService:  logService,
 		fsm:         mockFSM,
 		agentID:     agentID,
 		hookManager: mockHookManager,
+		diffProvider: mockDiffProvider,
 	}
 
 	ctx := context.Background()
@@ -198,11 +204,14 @@ func TestEditToolMultipleOccurrences(t *testing.T) {
 	err := os.WriteFile(testFile, []byte(initialContent), 0644)
 	require.NoError(t, err)
 
+	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &EditTool{
 		logService:  logService,
 		fsm:         mockFSM,
 		agentID:     agentID,
 		hookManager: mockHookManager,
+		diffProvider: mockDiffProvider,
 	}
 
 	ctx := context.Background()
@@ -268,11 +277,14 @@ func TestEditToolReplaceAll(t *testing.T) {
 	err := os.WriteFile(testFile, []byte(initialContent), 0644)
 	require.NoError(t, err)
 
+	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &EditTool{
 		logService:  logService,
 		fsm:         mockFSM,
 		agentID:     agentID,
 		hookManager: mockHookManager,
+		diffProvider: mockDiffProvider,
 	}
 
 	ctx := context.Background()

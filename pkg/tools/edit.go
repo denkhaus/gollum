@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/denkhaus/gollum/pkg/diff"
 	"github.com/denkhaus/gollum/pkg/errs"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
@@ -21,10 +22,11 @@ import (
 type (
 	// EditTool performs exact string replacements in files
 	EditTool struct {
-		logService  logger.LoggerService
-		fsm         state.FileStateManager
-		hookManager hooks.HookManager
-		agentID     uuid.UUID
+		logService   logger.LoggerService
+		fsm          state.FileStateManager
+		hookManager  hooks.HookManager
+		diffProvider diff.Provider
+		agentID      uuid.UUID
 	}
 
 	// EditToolProvider creates EditTool instances via DI
@@ -33,9 +35,10 @@ type (
 	}
 
 	editToolProvider struct {
-		logService  logger.LoggerService
-		fsm         state.FileStateManager
-		hookManager hooks.HookManager
+		logService   logger.LoggerService
+		fsm          state.FileStateManager
+		hookManager  hooks.HookManager
+		diffProvider diff.Provider
 	}
 )
 
@@ -44,21 +47,24 @@ func NewEditToolProvider(injector do.Injector) (EditToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	fsm := do.MustInvoke[state.FileStateManager](injector)
 	hookManager := do.MustInvoke[hooks.HookManager](injector)
+	diffProvider := do.MustInvoke[diff.Provider](injector)
 
 	return &editToolProvider{
-		logService:  logService,
-		fsm:         fsm,
-		hookManager: hookManager,
+		logService:   logService,
+		fsm:          fsm,
+		hookManager:  hookManager,
+		diffProvider: diffProvider,
 	}, nil
 }
 
 // CreateTool creates a new EditTool with agent ID
 func (p *editToolProvider) CreateTool(agentID uuid.UUID) *EditTool {
 	return &EditTool{
-		logService:  p.logService,
-		fsm:         p.fsm,
-		hookManager: p.hookManager,
-		agentID:     agentID,
+		logService:   p.logService,
+		fsm:          p.fsm,
+		hookManager:  p.hookManager,
+		diffProvider: p.diffProvider,
+		agentID:      agentID,
 	}
 }
 
@@ -306,17 +312,35 @@ func (t *EditTool) runEdit(ctx context.Context, args map[string]any) (map[string
 				zap.String("new_checksum", stats.Checksum),
 				zap.Int64("new_size", stats.Size))
 
-			return map[string]any{
-				"success":      true,
-				"file_path":    filePath,
-				"replacements": count,
-				"old_len":      len(oldString),
-				"new_len":      len(newString),
-				"checksum":     stats.Checksum,
-				"size":         stats.Size,
-				"modified":     stats.ModifiedTime,
-				"locked_by":    token.AgentID,
-			}, nil
+			// Generate diff between original and modified content
+			diffStr, diffErr := t.diffProvider.GenerateDiff(filePath, filePath, contentStr, newContent)
+			if diffErr != nil {
+				t.logService.Warn("Failed to generate diff",
+					zap.String("agent_id", t.agentID.String()),
+					zap.String("file_path", filePath),
+					zap.Error(diffErr))
+			}
+
+			result := map[string]any{
+				string(shared.KeySuccess):      true,
+				string(shared.KeyFilePath):     filePath,
+				string(shared.KeyReplacements): count,
+				string(shared.KeyOldLen):       len(oldString),
+				string(shared.KeyNewLen):       len(newString),
+				string(shared.KeyChecksum):     stats.Checksum,
+				string(shared.KeySize):         stats.Size,
+				string(shared.KeyModified):     stats.ModifiedTime,
+				string(shared.KeyLockedBy):     token.AgentID,
+			}
+
+			// Add diff information if generation was successful
+			if diffStr != "" {
+				result[string(shared.KeyDiff)] = t.diffProvider.FormatForDisplay(diffStr)
+				result[string(shared.KeyDiffCompact)] = t.diffProvider.FormatCompact(diffStr)
+				result[string(shared.KeyIsNewFile)] = false
+			}
+
+			return result, nil
 		})
 	if err != nil {
 		t.logService.Error("Edit operation failed with error",
