@@ -106,8 +106,8 @@ func (t *BashTool) runBashCommand(ctx context.Context, args map[string]any) (map
 	command, ok := args["command"].(string)
 	if !ok || command == "" {
 		return map[string]any{
-			"success": false,
-			"error":   "command is required and must be a non-empty string",
+			string(shared.KeySuccess): false,
+			string(shared.KeyError):   "command is required and must be a non-empty string",
 		}, nil
 	}
 
@@ -147,29 +147,29 @@ func (t *BashTool) runBashCommand(ctx context.Context, args map[string]any) (map
 	stderrStr := strings.TrimSpace(stderr.String())
 
 	result := map[string]any{
-		"stdout":   stdoutStr,
-		"stderr":   stderrStr,
-		"duration": fmt.Sprintf("%.2fs", duration.Seconds()),
+		string(shared.KeyStdout):   stdoutStr,
+		string(shared.KeyStderr):   stderrStr,
+		string(shared.KeyDuration): fmt.Sprintf("%.2fs", duration.Seconds()),
 	}
 
 	if err != nil {
 		if cmdCtx.Err() == context.DeadlineExceeded {
 			t.logService.Warnf("Command timed out after %.2fs: %s", timeout.Seconds(), command)
-			result["success"] = false
-			result["error"] = fmt.Sprintf("command timed out after %.2fs", timeout.Seconds())
-			result["exit_code"] = -1
+			result[string(shared.KeySuccess)] = false
+			result[string(shared.KeyError)] = fmt.Sprintf("command timed out after %.2fs", timeout.Seconds())
+			result[string(shared.KeyExitCode)] = -1
 		} else {
 			t.logService.Errorf("Command failed: %s - %v", command, err)
-			result["success"] = false
-			result["error"] = err.Error()
-			result["exit_code"] = cmd.ProcessState.ExitCode()
+			result[string(shared.KeySuccess)] = false
+			result[string(shared.KeyError)] = err.Error()
+			result[string(shared.KeyExitCode)] = cmd.ProcessState.ExitCode()
 		}
 		return result, nil
 	}
 
 	t.logService.Infof("Command succeeded in %.2fs: %s", duration.Seconds(), command)
-	result["success"] = true
-	result["exit_code"] = 0
+	result[string(shared.KeySuccess)] = true
+	result[string(shared.KeyExitCode)] = 0
 
 	// Detect file changes AFTER command execution (if tracking enabled)
 	if t.bashCfg.TrackChanges {
@@ -183,7 +183,7 @@ func (t *BashTool) runBashCommand(ctx context.Context, args map[string]any) (map
 		changes, detectErr := t.fileState.DetectChanges(beforeStats)
 		if detectErr != nil {
 			t.logService.Warn("Failed to detect file changes", zap.Error(detectErr))
-			result["warning"] = fmt.Sprintf("Failed to detect file changes: %v", detectErr)
+			result[string(shared.KeyWarning)] = fmt.Sprintf("Failed to detect file changes: %v", detectErr)
 		} else if len(changes) > 0 {
 			// Log detected changes
 			t.logService.Info("Bash command modified files",
@@ -232,15 +232,15 @@ func (t *BashTool) runBashCommand(ctx context.Context, args map[string]any) (map
 			}
 
 			// Add changes to result (FileChange now has json tags for proper serialization)
-			result["file_changes"] = changes
+			result[string(shared.KeyFileChanges)] = changes
 
 			// Add diffs if any were generated
 			if len(fileDiffs) > 0 {
-				result["file_diffs"] = fileDiffs
+				result[string(shared.KeyFileDiffs)] = fileDiffs
 			}
 
 			// Add warning if files were modified
-			result["warning"] = fmt.Sprintf("This bash command modified %d file(s). Consider using %s or %s for better file state tracking.",
+			result[string(shared.KeyWarning)] = fmt.Sprintf("This bash command modified %d file(s). Consider using %s or %s for better file state tracking.",
 				len(changes), shared.ToolNameWriteFile, shared.ToolNameEdit)
 		}
 	}

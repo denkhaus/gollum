@@ -68,6 +68,20 @@ const (
 	KeyDiffCompact ToolResultKeys = "diff_compact"
 	// KeyIsNewFile indicates whether the file was newly created (bool).
 	KeyIsNewFile ToolResultKeys = "is_new_file"
+	// KeyStdout contains the standard output from command execution (string).
+	KeyStdout ToolResultKeys = "stdout"
+	// KeyStderr contains the standard error output from command execution (string).
+	KeyStderr ToolResultKeys = "stderr"
+	// KeyExitCode is the process exit code (int).
+	KeyExitCode ToolResultKeys = "exit_code"
+	// KeyDuration is the execution duration (string).
+	KeyDuration ToolResultKeys = "duration"
+	// KeyWarning contains warning messages (string).
+	KeyWarning ToolResultKeys = "warning"
+	// KeyFileChanges contains detected file changes ([]FileChange).
+	KeyFileChanges ToolResultKeys = "file_changes"
+	// KeyFileDiffs contains file diff information (map[string]interface{}).
+	KeyFileDiffs ToolResultKeys = "file_diffs"
 )
 
 // ToolResult is a type alias for tool execution result maps.
