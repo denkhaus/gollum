@@ -1,10 +1,12 @@
 package builtin
 
 import (
+	"context"
 	"sync"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -171,7 +173,7 @@ func TestLangfuseHook_Shutdown(t *testing.T) {
 }
 
 func TestNewLangfuseHookProvider(t *testing.T) {
-	t.Run("returns valid HookFunc", func(t *testing.T) {
+	t.Run("returns valid TypedHookFunc", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		mockLog := mocks.NewMockLoggerService(ctrl)
@@ -188,9 +190,9 @@ func TestNewLangfuseHookProvider(t *testing.T) {
 		}
 
 		// Create provider function manually
-		provider := func(h *LangfuseHook) (interface{}, error) {
-			// Return a HookFunc that passes through
-			return func(ctx interface{}, hookCtx interface{}, next func() error) error {
+		provider := func(h *LangfuseHook) (hooks.TypedHookFunc[hooks.SessionPayload], error) {
+			// Return a TypedHookFunc that passes through
+			return func(ctx context.Context, hookCtx *hooks.TypedHookContext[hooks.SessionPayload], next func() error) error {
 				return next()
 			}, nil
 		}
@@ -199,12 +201,9 @@ func TestNewLangfuseHookProvider(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, hookFunc)
 
-		// Verify it's a function
-		fn, ok := hookFunc.(func(interface{}, interface{}, func() error) error)
-		assert.True(t, ok, "Provider should return HookFunc")
-
 		// Call function (should be no-op for now)
-		err = fn(nil, nil, func() error { return nil })
+		hookCtx := &hooks.TypedHookContext[hooks.SessionPayload]{}
+		err = hookFunc(nil, hookCtx, func() error { return nil })
 		assert.NoError(t, err)
 	})
 }

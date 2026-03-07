@@ -33,14 +33,14 @@ func NewLoggingHook(injector do.Injector) (*LoggingHook, error) {
 
 // NewLoggingHookProvider creates a LoggingHook provider for DI registration.
 // This provider function registers the LoggingHook as a singleton in the DI container.
-func NewLoggingHookProvider(injector do.Injector) (hooks.HookFunc, error) {
+func NewLoggingHookProvider(injector do.Injector) (hooks.TypedHookFunc[hooks.SessionPayload], error) {
 	_, err := NewLoggingHook(injector)
 	if err != nil {
 		return nil, err
 	}
 
-	// Return a no-op HookFunc - actual hooks registered via RegisterLoggingHooks
-	return func(ctx context.Context, hookCtx *hooks.HookContext, next func() error) error {
+	// Return a no-op TypedHookFunc - actual hooks registered via RegisterLoggingHooks
+	return func(ctx context.Context, hookCtx *hooks.TypedHookContext[hooks.SessionPayload], next func() error) error {
 		return next()
 	}, nil
 }

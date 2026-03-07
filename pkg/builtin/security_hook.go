@@ -34,14 +34,14 @@ func NewSecurityHook(injector do.Injector) (*SecurityHook, error) {
 }
 
 // NewSecurityHookProvider creates a SecurityHook provider for DI registration.
-func NewSecurityHookProvider(injector do.Injector) (hooks.HookFunc, error) {
+func NewSecurityHookProvider(injector do.Injector) (hooks.TypedHookFunc[hooks.SessionPayload], error) {
 	_, err := NewSecurityHook(injector)
 	if err != nil {
 		return nil, err
 	}
 
-	// Return a no-op HookFunc - actual hooks registered via RegisterSecurityHooks
-	return func(ctx context.Context, hookCtx *hooks.HookContext, next func() error) error {
+	// Return a no-op TypedHookFunc - actual hooks registered via RegisterSecurityHooks
+	return func(ctx context.Context, hookCtx *hooks.TypedHookContext[hooks.SessionPayload], next func() error) error {
 		return next()
 	}, nil
 }

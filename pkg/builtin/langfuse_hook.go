@@ -63,15 +63,15 @@ func NewLangfuseHook(injector do.Injector) (*LangfuseHook, error) {
 
 // NewLangfuseHookProvider creates a LangfuseHook provider for DI registration.
 // This provider function registers LangfuseHook as a singleton in the DI container.
-func NewLangfuseHookProvider(injector do.Injector) (hooks.HookFunc, error) {
+func NewLangfuseHookProvider(injector do.Injector) (hooks.TypedHookFunc[hooks.SessionPayload], error) {
 	_, err := NewLangfuseHook(injector)
 	if err != nil {
 		return nil, err
 	}
 
-	// Return a HookFunc that wraps span creation/ending logic
+	// Return a TypedHookFunc that wraps span creation/ending logic
 	// For now, this is a no-op wrapper - actual span handling added in later phases
-	return func(ctx context.Context, hookCtx *hooks.HookContext, next func() error) error {
+	return func(ctx context.Context, hookCtx *hooks.TypedHookContext[hooks.SessionPayload], next func() error) error {
 		return next() // Just pass through - spans created in later phases
 	}, nil
 }

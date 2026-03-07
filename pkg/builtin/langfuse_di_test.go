@@ -75,33 +75,35 @@ func TestNewLangfuseHook_DI(t *testing.T) {
 	})
 }
 
-// TestNewLangfuseHookProvider_ReturnsHookFunc tests the DI provider for HookFunc
+// TestNewLangfuseHookProvider_ReturnsHookFunc tests the DI provider for TypedHookFunc
 func TestNewLangfuseHookProvider_ReturnsHookFunc(t *testing.T) {
-	t.Run("returns valid HookFunc signature", func(t *testing.T) {
-		// Test HookFunc creation directly as returned by NewLangfuseHookProvider
-		hookFunc := hooks.HookFunc(func(ctx context.Context, hookCtx *hooks.HookContext, next func() error) error {
+	t.Run("returns valid TypedHookFunc signature", func(t *testing.T) {
+		// Test TypedHookFunc creation directly as returned by NewLangfuseHookProvider
+		hookFunc := hooks.TypedHookFunc[hooks.SessionPayload](func(ctx context.Context, hookCtx *hooks.TypedHookContext[hooks.SessionPayload], next func() error) error {
 			return next()
 		})
 
-		assert.NotNil(t, hookFunc, "HookFunc should not be nil")
+		assert.NotNil(t, hookFunc, "TypedHookFunc should not be nil")
 
-		// Verify it's a valid HookFunc signature
-		assert.IsType(t, hooks.HookFunc(nil), hookFunc, "Should return HookFunc type")
+		// Verify it's a valid TypedHookFunc signature
+		assert.IsType(t, hooks.TypedHookFunc[hooks.SessionPayload](nil), hookFunc, "Should return TypedHookFunc type")
 
-		// Test calling the HookFunc
+		// Test calling the TypedHookFunc
 		ctx := context.Background()
-		hookCtx := &hooks.HookContext{
-			SessionID: uuid.New(),
-			Data:      make(map[string]interface{}),
+		hookCtx := &hooks.TypedHookContext[hooks.SessionPayload]{
+			BaseContext: hooks.BaseContext{
+				SessionID: uuid.New(),
+			},
+			Payload: hooks.SessionPayload{},
 		}
 
 		err := hookFunc(ctx, hookCtx, func() error { return nil })
-		assert.NoError(t, err, "HookFunc should execute without error")
+		assert.NoError(t, err, "TypedHookFunc should execute without error")
 	})
 
-	t.Run("HookFunc is pass-through when Langfuse disabled", func(t *testing.T) {
-		// Test HookFunc pass-through behavior
-		hookFunc := hooks.HookFunc(func(ctx context.Context, hookCtx *hooks.HookContext, next func() error) error {
+	t.Run("TypedHookFunc is pass-through when Langfuse disabled", func(t *testing.T) {
+		// Test TypedHookFunc pass-through behavior
+		hookFunc := hooks.TypedHookFunc[hooks.SessionPayload](func(ctx context.Context, hookCtx *hooks.TypedHookContext[hooks.SessionPayload], next func() error) error {
 			return next()
 		})
 
@@ -112,9 +114,11 @@ func TestNewLangfuseHookProvider_ReturnsHookFunc(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		hookCtx := &hooks.HookContext{
-			SessionID: uuid.New(),
-			Data:      make(map[string]interface{}),
+		hookCtx := &hooks.TypedHookContext[hooks.SessionPayload]{
+			BaseContext: hooks.BaseContext{
+				SessionID: uuid.New(),
+			},
+			Payload: hooks.SessionPayload{},
 		}
 
 		err := hookFunc(ctx, hookCtx, next)
