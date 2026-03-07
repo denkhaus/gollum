@@ -10,7 +10,6 @@ package hooks
 import (
 	"context"
 	"errors"
-	"sync"
 
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -110,111 +109,6 @@ func (h HookPoint) String() string {
 	return string(h)
 }
 
-// HookContext carries contextual information for hook execution.
-//
-// Deprecated: Use TypedHookContext[T] with typed payloads for better type safety.
-// This type is maintained for backward compatibility during migration.
-// See generics.go for the new typed implementation.
-type HookContext struct {
-	SessionID  uuid.UUID      // Optional: session identifier
-	AgentID    uuid.UUID      // Optional: agent identifier
-	ToolName   string         // Optional: tool name for tool hooks
-	ToolArgs   map[string]any // Optional: tool arguments for BeforeToolExecution
-	ToolResult map[string]any // Optional: tool result for AfterToolExecution
-	ToolError  error          // Optional: tool error for OnToolError
-
-	// File-related fields for file state hooks
-	FilePath    string // Optional: file path for file hooks
-	FileContent string // Optional: file content (hooks can modify before write)
-	OldContent  string // Optional: old file content for modify operations
-	NewContent  string // Optional: new file content for modify operations
-
-	// LLM-related fields for LLM hooks
-	LLMInput    string         // Optional: LLM input prompt for BeforeLLMRequest
-	LLMResponse string         // Optional: LLM response text for AfterLLMResponse
-	LLMModel    string         // Optional: LLM model identifier (e.g., "claude-3-5-sonnet")
-	LLMError    error          // Optional: LLM error for OnLLMError
-	LLMOptions  map[string]any // Optional: Additional LLM options/parameters
-
-	Data map[string]any
-}
-
-// Clone creates a deep copy of the HookContext.
-func (hc *HookContext) Clone() *HookContext {
-	if hc == nil {
-		return &HookContext{Data: make(map[string]any)}
-	}
-	cpy := &HookContext{
-		SessionID:   hc.SessionID,
-		AgentID:     hc.AgentID,
-		ToolName:    hc.ToolName,
-		ToolError:   hc.ToolError,
-		FilePath:    hc.FilePath,
-		FileContent: hc.FileContent,
-		OldContent:  hc.OldContent,
-		NewContent:  hc.NewContent,
-		LLMInput:    hc.LLMInput,
-		LLMResponse: hc.LLMResponse,
-		LLMModel:    hc.LLMModel,
-		LLMError:    hc.LLMError,
-		Data:        make(map[string]any, len(hc.Data)),
-	}
-
-	// Deep copy ToolArgs
-	if hc.ToolArgs != nil {
-		cpy.ToolArgs = make(map[string]any, len(hc.ToolArgs))
-		for k, v := range hc.ToolArgs {
-			cpy.ToolArgs[k] = v
-		}
-	}
-
-	// Deep copy ToolResult
-	if hc.ToolResult != nil {
-		cpy.ToolResult = make(map[string]any, len(hc.ToolResult))
-		for k, v := range hc.ToolResult {
-			cpy.ToolResult[k] = v
-		}
-	}
-
-	// Deep copy LLMOptions
-	if hc.LLMOptions != nil {
-		cpy.LLMOptions = make(map[string]any, len(hc.LLMOptions))
-		for k, v := range hc.LLMOptions {
-			cpy.LLMOptions[k] = v
-		}
-	}
-
-	// Deep copy Data
-	for k, v := range hc.Data {
-		cpy.Data[k] = v
-	}
-	return cpy
-}
-
-// HookResult represents the result of a hook execution.
-type HookResult struct {
-	Stopped bool           // True if the hook chain was stopped
-	Error   error          // Error from hook execution (if any)
-	Data    map[string]any // Data returned by hooks
-}
-
-// HookFunc is the signature for hook functions.
-//
-// Deprecated: Use TypedHookFunc[T] with typed payloads for better type safety.
-// This type is maintained for backward compatibility during migration.
-// See generics.go for the new typed implementation.
-//
-// The function receives:
-// - ctx: context for cancellation/control
-// - hookCtx: contextual information about the event
-// - next: function to call the next hook in the chain
-//
-// The function should:
-// - Call next() to continue the chain (unless stopping intentionally)
-// - Return an error to stop execution (if FatalError=true)
-// - Modify hookCtx.Data to pass data to subsequent hooks
-type HookFunc func(ctx context.Context, hookCtx *HookContext, next func() error) error
-
 // NoOpHookManager is a no-op implementation of HookManager for testing.
 type NoOpHookManager struct{}
 
@@ -226,16 +120,8 @@ func NewNoOpHookManager() *NoOpHookManager {
 	return &NoOpHookManager{}
 }
 
-// RegisterHook is a no-op implementation of HookManager.RegisterHook.
-func (n *NoOpHookManager) RegisterHook(_ HookFunc, _ HookMetadata) error { return nil }
-
 // UnregisterHook is a no-op implementation of HookManager.UnregisterHook.
 func (n *NoOpHookManager) UnregisterHook(_ string) bool { return false }
-
-// TriggerHooks is a no-op implementation of HookManager.TriggerHooks.
-func (n *NoOpHookManager) TriggerHooks(_ context.Context, _ HookPoint, _ *HookContext) HookResult {
-	return HookResult{}
-}
 
 // RegisterToolHook is a no-op implementation of HookManager.RegisterToolHook.
 func (n *NoOpHookManager) RegisterToolHook(_ TypedHookFunc[ToolPayload], _ TypedHookMetadata) error {
@@ -330,106 +216,4 @@ func (n *NoOpHookManager) WithFileHooks(_ context.Context, _, _ uuid.UUID, _ Hoo
 // WithLLMHooks is a no-op implementation of HookManager.WithLLMHooks.
 func (n *NoOpHookManager) WithLLMHooks(_ context.Context, _, _ uuid.UUID, _, _ string, work func(string) (string, error)) (string, error) {
 	return work("")
-}
-
-// HookMetadata contains configuration for a hook.
-type HookMetadata struct {
-	// Name uniquely identifies this hook registration
-	Name string
-
-	// Point determines when this hook is triggered
-	Point HookPoint
-
-	// Priority determines execution order (0=first, higher=later)
-	Priority int
-
-	// FatalError controls error handling:
-	// - true: stop execution and return error
-	// - false: log error and continue to next hook
-	FatalError bool
-}
-
-// registration represents a registered hook with its metadata.
-type registration struct {
-	fn       HookFunc
-	metadata HookMetadata
-}
-
-// hookRegistry manages hooks for a specific HookPoint.
-type hookRegistry struct {
-	mu     sync.RWMutex
-	hooks  []*registration     // Sorted by priority
-	names  map[string]struct{} // O(1) name lookup for duplicate detection
-	nextID int
-}
-
-// add registers a hook with the given metadata.
-// Returns an error if a hook with the same name already exists.
-func (r *hookRegistry) add(fn HookFunc, meta HookMetadata) (int, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	// Initialize names map if needed
-	if r.names == nil {
-		r.names = make(map[string]struct{})
-	}
-
-	// Check for duplicate name (O(1) lookup)
-	if _, exists := r.names[meta.Name]; exists {
-		return 0, ErrDuplicateHook
-	}
-
-	reg := &registration{
-		fn:       fn,
-		metadata: meta,
-	}
-
-	// Insert in priority order (lower priority first)
-	inserted := false
-	for i, h := range r.hooks {
-		if meta.Priority < h.metadata.Priority {
-			// Efficient insertion: grow slice by one, shift elements, insert new element
-			r.hooks = append(r.hooks, nil)   // Grow slice by one
-			copy(r.hooks[i+1:], r.hooks[i:]) // Shift elements to the right
-			r.hooks[i] = reg                 // Insert new element at position i
-			inserted = true
-			break
-		}
-	}
-	if !inserted {
-		r.hooks = append(r.hooks, reg)
-	}
-
-	// Add name to map
-	r.names[meta.Name] = struct{}{}
-
-	r.nextID++
-	return r.nextID - 1, nil
-}
-
-// remove removes a hook by name.
-func (r *hookRegistry) remove(name string) bool {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	for i, h := range r.hooks {
-		if h.metadata.Name == name {
-			r.hooks = append(r.hooks[:i], r.hooks[i+1:]...)
-			// Remove from names map
-			delete(r.names, name)
-			return true
-		}
-	}
-	return false
-}
-
-// get returns all hooks in priority order.
-func (r *hookRegistry) get() []*registration {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	// Return a copy to avoid race conditions during iteration
-	result := make([]*registration, len(r.hooks))
-	copy(result, r.hooks)
-	return result
 }

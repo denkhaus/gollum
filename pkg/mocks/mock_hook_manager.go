@@ -71,20 +71,6 @@ func (mr *MockHookManagerMockRecorder) RegisterFileHook(fn, meta any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterFileHook", reflect.TypeOf((*MockHookManager)(nil).RegisterFileHook), fn, meta)
 }
 
-// RegisterHook mocks base method.
-func (m *MockHookManager) RegisterHook(fn hooks.HookFunc, meta hooks.HookMetadata) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterHook", fn, meta)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RegisterHook indicates an expected call of RegisterHook.
-func (mr *MockHookManagerMockRecorder) RegisterHook(fn, meta any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterHook", reflect.TypeOf((*MockHookManager)(nil).RegisterHook), fn, meta)
-}
-
 // RegisterLLMHook mocks base method.
 func (m *MockHookManager) RegisterLLMHook(fn hooks.TypedHookFunc[hooks.LLMPayload], meta hooks.TypedHookMetadata) error {
 	m.ctrl.T.Helper()
@@ -167,20 +153,6 @@ func (m *MockHookManager) TriggerFileHooks(ctx context.Context, point hooks.Hook
 func (mr *MockHookManagerMockRecorder) TriggerFileHooks(ctx, point, hookCtx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TriggerFileHooks", reflect.TypeOf((*MockHookManager)(nil).TriggerFileHooks), ctx, point, hookCtx)
-}
-
-// TriggerHooks mocks base method.
-func (m *MockHookManager) TriggerHooks(ctx context.Context, point hooks.HookPoint, hookCtx *hooks.HookContext) hooks.HookResult {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TriggerHooks", ctx, point, hookCtx)
-	ret0, _ := ret[0].(hooks.HookResult)
-	return ret0
-}
-
-// TriggerHooks indicates an expected call of TriggerHooks.
-func (mr *MockHookManagerMockRecorder) TriggerHooks(ctx, point, hookCtx any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TriggerHooks", reflect.TypeOf((*MockHookManager)(nil).TriggerHooks), ctx, point, hookCtx)
 }
 
 // TriggerLLMHooks mocks base method.

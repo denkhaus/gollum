@@ -63,35 +63,8 @@ var _ logger.LoggerService = (*mockLogger)(nil)
 func newTestHookManager() *hookManagerImpl {
 	log := &mockLogger{}
 	hm := &hookManagerImpl{
-		log:        log,
-		registries: make(map[HookPoint]*hookRegistry),
-		names:      make(map[string]struct{}),
-	}
-
-	// Initialize registries for all known hook points
-	for _, point := range []HookPoint{
-		BeforeSessionStart,
-		AfterSessionEnd,
-		BeforeAgentSpawn,
-		AfterAgentSpawn,
-		BeforeAgentRemove,
-		AfterAgentRemove,
-		BeforeToolExecution,
-		AfterToolExecution,
-		OnToolError,
-		BeforeFileRead,
-		AfterFileRead,
-		BeforeFileWrite,
-		AfterFileWrite,
-		BeforeFileDelete,
-		AfterFileDelete,
-		BeforeFileModify,
-		AfterFileModify,
-		BeforeLLMRequest,
-		AfterLLMResponse,
-		OnLLMError,
-	} {
-		hm.registries[point] = &hookRegistry{}
+		log:   log,
+		names: make(map[string]struct{}),
 	}
 
 	// Initialize typed registries
@@ -232,17 +205,17 @@ func TestHookManager_UnregisterHook(t *testing.T) {
 	t.Run("successfully unregisters a hook", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		fn := func(_ context.Context, _ *HookContext, next func() error) error {
+		fn := func(_ context.Context, _ *TypedHookContext[SessionPayload], next func() error) error {
 			return next()
 		}
-		meta := HookMetadata{
+		meta := TypedHookMetadata{
 			Name:       "test-hook",
 			Point:      BeforeSessionStart,
 			Priority:   0,
 			FatalError: false,
 		}
 
-		err := hm.RegisterHook(fn, meta)
+		err := hm.RegisterSessionHook(fn, meta)
 		require.NoError(t, err)
 
 		unregistered := hm.UnregisterHook("test-hook")
@@ -467,43 +440,5 @@ func TestHookManager_WithAgentHooks(t *testing.T) {
 
 		require.Error(t, err)
 		assert.True(t, errs.IsType(err, errs.TypeValidation))
-	})
-}
-
-// TestHookContext_Clone tests HookContext cloning
-func TestHookContext_Clone(t *testing.T) {
-	t.Run("creates a deep copy of HookContext maps", func(t *testing.T) {
-		original := &HookContext{
-			SessionID: uuid.New(),
-			AgentID:   uuid.New(),
-			ToolName:  "test-tool",
-			Data:      map[string]any{"key1": "value1", "key2": 42},
-		}
-
-		cloned := original.Clone()
-
-		assert.Equal(t, original.SessionID, cloned.SessionID)
-		assert.Equal(t, original.AgentID, cloned.AgentID)
-		assert.Equal(t, original.ToolName, cloned.ToolName)
-		assert.Equal(t, original.Data, cloned.Data)
-
-		// Modify cloned data and verify it doesn't affect original
-		cloned.Data["key1"] = testModifiedContent
-		assert.Equal(t, "value1", original.Data["key1"], "Modifying a value in the cloned map should not affect the original map")
-		assert.Equal(t, testModifiedContent, cloned.Data["key1"])
-
-		// Verify shallow copy of reference types inside the map
-		original.Data["ref"] = []int{10}
-		clonedWithRef := original.Clone()
-		// Modify the content of the slice in the clone
-		clonedWithRef.Data["ref"].([]int)[0] = 20
-		// Since it's a shallow copy, modifying the slice content affects the original
-		assert.Equal(t, 20, original.Data["ref"].([]int)[0], "Modifying content of a reference type in clone's map should affect original (shallow copy)")
-	})
-
-	t.Run("handles nil HookContext", func(t *testing.T) {
-		cloned := (*HookContext)(nil).Clone()
-		assert.NotNil(t, cloned)
-		assert.NotNil(t, cloned.Data)
 	})
 }

@@ -120,17 +120,8 @@ func setupMockHookManagerPassThrough(mockHookManager *mocks.MockHookManager) {
 			return work(input)
 		}).AnyTimes()
 
-	// RegisterHook - return success (hooks not stored in mock)
-	mockHookManager.EXPECT().RegisterHook(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-
 	// UnregisterHook - return false (hook not found in mock)
 	mockHookManager.EXPECT().UnregisterHook(gomock.Any()).Return(false).AnyTimes()
-
-	// TriggerHooks - return empty result (no hooks to trigger)
-	mockHookManager.EXPECT().TriggerHooks(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func() hooks.HookResult {
-			return hooks.HookResult{Stopped: false, Error: nil, Data: make(map[string]any)}
-		}).AnyTimes()
 }
 
 // createWriteFileToolForTesting creates a WriteFileTool with mocked dependencies for testing.
