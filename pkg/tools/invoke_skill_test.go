@@ -245,7 +245,7 @@ func TestInvokeSkillTool_SkillWithNoContent(t *testing.T) {
 	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
 
 	// BeforeSkillInvoked hook is triggered before content check
-	mockHookManager.EXPECT().TriggerHooks(gomock.Any(), gomock.Eq(hooks.BeforeSkillInvoked), gomock.Any()).Return(hooks.HookResult{})
+	mockHookManager.EXPECT().TriggerSkillHooks(gomock.Any(), gomock.Eq(hooks.BeforeSkillInvoked), gomock.Any()).Return(hooks.TypedHookResult[hooks.SkillPayload]{})
 
 	mockLogger.EXPECT().Infof(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
@@ -357,10 +357,10 @@ func TestInvokeSkillTool_TriggersSkillHooks(t *testing.T) {
 		})
 
 	// BeforeSkillInvoked hook
-	mockHookManager.EXPECT().TriggerHooks(gomock.Any(), gomock.Eq(hooks.BeforeSkillInvoked), gomock.Any()).Return(hooks.HookResult{})
+	mockHookManager.EXPECT().TriggerSkillHooks(gomock.Any(), gomock.Eq(hooks.BeforeSkillInvoked), gomock.Any()).Return(hooks.TypedHookResult[hooks.SkillPayload]{})
 
 	// AfterSkillInvoked hook
-	mockHookManager.EXPECT().TriggerHooks(gomock.Any(), gomock.Eq(hooks.AfterSkillInvoked), gomock.Any()).Return(hooks.HookResult{})
+	mockHookManager.EXPECT().TriggerSkillHooks(gomock.Any(), gomock.Eq(hooks.AfterSkillInvoked), gomock.Any()).Return(hooks.TypedHookResult[hooks.SkillPayload]{})
 
 	// Logger calls - use AnyTimes() for flexible argument matching
 	mockLogger.EXPECT().Infof(gomock.Any(), gomock.Any()).AnyTimes()

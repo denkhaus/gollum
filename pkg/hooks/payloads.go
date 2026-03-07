@@ -167,6 +167,9 @@ const (
 	ContextModeNone SkillContextMode = "none"
 	// ContextModeInherited indicates context is inherited from parent agent.
 	ContextModeInherited SkillContextMode = "inherited"
+	// ContextModeIsolated indicates the skill starts with a fresh isolated context.
+	// Alias for ContextModeNone for compatibility with tools package.
+	ContextModeIsolated SkillContextMode = "isolated"
 )
 
 // SkillPayload contains data for skill invocation hooks.

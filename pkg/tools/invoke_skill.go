@@ -173,22 +173,23 @@ func (t *InvokeSkillTool) runInvokeSkill(ctx context.Context, args map[string]an
 		}
 	}
 
-	// Build skill hook context with metadata
-	skillHookCtx := &hooks.HookContext{
-		AgentID: t.senderID,
-		Data: map[string]any{
-			"skill_name":    skill.Name,
-			"skill_type":    string(skill.Type),
-			"context_mode":  string(contextMode),
-			"llm_provider":  string(llmProvider),
-			"invoker_id":    t.senderID.String(),
-			"skill_path":    skill.FilePath,
-			"skill_version": skill.Version,
+	// Build skill hook context with typed payload
+	skillHookCtx := &hooks.TypedHookContext[hooks.SkillPayload]{
+		BaseContext: hooks.BaseContext{
+			AgentID: t.senderID,
+		},
+		Payload: hooks.SkillPayload{
+			Name:        skill.Name,
+			Type:        hooks.SkillType(skill.Type),
+			ContextMode: hooks.SkillContextMode(contextMode),
+			Model:       string(llmProvider),
+			FilePath:    skill.FilePath,
+			Version:     skill.Version,
 		},
 	}
 
 	// Trigger BeforeSkillInvoked hooks
-	beforeResult := t.hookManager.TriggerHooks(ctx, hooks.BeforeSkillInvoked, skillHookCtx)
+	beforeResult := t.hookManager.TriggerSkillHooks(ctx, hooks.BeforeSkillInvoked, skillHookCtx)
 	if beforeResult.Stopped {
 		t.logService.Warnf("Skill invocation blocked by hook: %v", beforeResult.Error)
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("skill invocation blocked: %v", beforeResult.Error)), nil
@@ -243,8 +244,8 @@ func (t *InvokeSkillTool) runInvokeSkill(ctx context.Context, args map[string]an
 	if err != nil {
 		t.logService.Errorf("Failed to create skill subagent: %v", err)
 		// Trigger OnSkillError hooks
-		skillHookCtx.ToolError = err
-		t.hookManager.TriggerHooks(ctx, hooks.OnSkillError, skillHookCtx)
+		skillHookCtx.Payload.Error = err
+		t.hookManager.TriggerSkillHooks(ctx, hooks.OnSkillError, skillHookCtx)
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to create skill subagent: %v", err)), nil
 	}
 
@@ -254,8 +255,8 @@ func (t *InvokeSkillTool) runInvokeSkill(ctx context.Context, args map[string]an
 	if err := t.registry.Register(subagent, subagentConfig); err != nil {
 		t.logService.Errorf("Failed to register skill subagent: %v", err)
 		// Trigger OnSkillError hooks
-		skillHookCtx.ToolError = err
-		t.hookManager.TriggerHooks(ctx, hooks.OnSkillError, skillHookCtx)
+		skillHookCtx.Payload.Error = err
+		t.hookManager.TriggerSkillHooks(ctx, hooks.OnSkillError, skillHookCtx)
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to register skill subagent: %v", err)), nil
 	}
 
@@ -264,8 +265,8 @@ func (t *InvokeSkillTool) runInvokeSkill(ctx context.Context, args map[string]an
 	if err != nil {
 		t.logService.Errorf("Skill execution failed: %v", err)
 		// Trigger OnSkillError hooks
-		skillHookCtx.ToolError = err
-		t.hookManager.TriggerHooks(ctx, hooks.OnSkillError, skillHookCtx)
+		skillHookCtx.Payload.Error = err
+		t.hookManager.TriggerSkillHooks(ctx, hooks.OnSkillError, skillHookCtx)
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("skill execution failed: %v", err)), nil
 	}
 
@@ -280,8 +281,8 @@ func (t *InvokeSkillTool) runInvokeSkill(ctx context.Context, args map[string]an
 	response["context_mode"] = string(contextMode)
 
 	// Update hook context with result and trigger AfterSkillInvoked hooks
-	skillHookCtx.ToolResult = response
-	t.hookManager.TriggerHooks(ctx, hooks.AfterSkillInvoked, skillHookCtx)
+	skillHookCtx.Payload.Result = response
+	t.hookManager.TriggerSkillHooks(ctx, hooks.AfterSkillInvoked, skillHookCtx)
 
 	return response, nil
 }
