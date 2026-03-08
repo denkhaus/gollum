@@ -10,6 +10,8 @@ import (
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/diff"
 	"github.com/denkhaus/gollum/pkg/events"
+	"github.com/denkhaus/gollum/pkg/extensions"
+	"github.com/denkhaus/gollum/pkg/flows/executor"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
@@ -98,6 +100,16 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 
 	// Tool validation
 	do.Provide(p.injector, tools.NewToolNameValidatorProvider)
+
+	// Flows
+	do.Provide(p.injector, executor.NewFlowExecutor)
+
+	// Extensions
+	do.Provide(p.injector, extensions.NewGatewayService)
+	do.Provide(p.injector, extensions.NewHookRegistry)
+	do.Provide(p.injector, extensions.NewScriggoRunner)
+	do.Provide(p.injector, extensions.NewYaegiLoader)
+	do.Provide(p.injector, extensions.NewExtensionServiceWithWorkspace)
 
 	// Tools
 	do.Provide(p.injector, tools.NewSpawnAgentToolProvider)

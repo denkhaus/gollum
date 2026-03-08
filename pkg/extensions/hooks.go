@@ -6,6 +6,8 @@ package extensions
 import (
 	"fmt"
 	"time"
+
+	"github.com/samber/do/v2"
 )
 
 // HookType defines the lifecycle hook point
@@ -53,7 +55,7 @@ type hookRegistryImpl struct {
 var _ HookRegistry = (*hookRegistryImpl)(nil)
 
 // NewHookRegistry creates a new hook registry
-func NewHookRegistry() (HookRegistry, error) {
+func NewHookRegistry(injector do.Injector) (HookRegistry, error) {
 	return &hookRegistryImpl{
 		hooks: make(map[HookType]map[string]HookFunction),
 	}, nil
