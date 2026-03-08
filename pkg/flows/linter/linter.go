@@ -6,17 +6,28 @@ import (
 
 // Lint runs all linter phases on a flow
 func Lint(flow *flows.Flow) *flows.LinterResult {
+	return LintPath("", flow)
+}
+
+// LintPath runs all linter phases on a flow with a known file path
+func LintPath(flowPath string, flow *flows.Flow) *flows.LinterResult {
 	result := &flows.LinterResult{}
 
-	// Run all phases
+	// Phase 1: Schema validation
 	phase1 := &SchemaChecker{}
 	phase1.Check(flow, result)
 
+	// Phase 2: Expression validation
 	phase2 := &ExpressionChecker{}
 	phase2.Check(flow, result)
 
+	// Phase 3: Graph validation
 	phase3 := &GraphChecker{}
 	phase3.Check(flow, result)
+
+	// Phase 4: Call reference validation
+	phase4 := NewCallChecker()
+	phase4.Check(flowPath, flow, result)
 
 	// Determine validity
 	result.Valid = len(result.Errors) == 0

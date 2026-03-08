@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 Conditional Flow Calls Example
-Demonstrates: Conditional execution with when on <call>
+Demonstrates: Conditional execution, module calls (main.xml entry point), sub-flow calls
 -->
 <flow name="conditional-flow-calls" version="1.0">
     <description>
-        Shows conditional flow execution based on context values.
+        Shows conditional flow execution and module calls.
+        Demonstrates calling module entry points (main.xml) and sub-flows.
     </description>
 
     <input>
@@ -57,18 +58,19 @@ Demonstrates: Conditional execution with when on <call>
                 </step>
 
                 <!-- Conditional flow call: Only execute for deep scans -->
-                <call ref="security-scan" timeout="300s" when="is_deep_scan">
+                <call ref="code-analysis/security-scan" timeout="300s" when="is_deep_scan">
                     <input>
-                        <field name="target" value="${target_dir}" />
+                        <field name="target_dir" value="${target_dir}" />
+                        <field name="scan_type" value="${scan_type}" />
                     </input>
                     <output>
-                        <field name="security_status" value="${results.status}" />
+                        <field name="issues" value="${results.status}" />
                     </output>
                     <on-error state="error" />
                 </call>
 
-                <!-- Conditional flow call: Scan only if flag is set -->
-                <call ref="code-analysis" timeout="180s" when="run_security_scan">
+                <!-- Conditional flow call: Full analysis using module entry point -->
+                <call ref="code-analysis" timeout="300s" when="run_security_scan">
                     <input>
                         <field name="target_dir" value="${target_dir}" />
                         <field name="scan_type" value="${scan_type}" />
@@ -79,13 +81,13 @@ Demonstrates: Conditional execution with when on <call>
                     <on-error state="error" />
                 </call>
 
-                <!-- Otherwise fallback for quick scans without security -->
-                <call ref="basic-check" timeout="60s" when="AND(is_quick_scan, NOT(run_security_scan))">
+                <!-- Otherwise fallback: complexity check only -->
+                <call ref="code-analysis/complexity-check" timeout="120s" when="is_quick_scan">
                     <input>
-                        <field name="target" value="${target_dir}" />
+                        <field name="target_dir" value="${target_dir}" />
                     </input>
                     <output>
-                        <field name="basic_status" value="${results.status}" />
+                        <field name="score" value="${complexity_score}" />
                     </output>
                     <on-error state="error" />
                 </call>

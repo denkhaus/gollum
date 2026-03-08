@@ -23,8 +23,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Lint
-	result := linter.Lint(flow)
+	// Lint (with path for module resolution)
+	result := linter.LintPath(path, flow)
 
 	// Output results
 	if result.Valid {

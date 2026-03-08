@@ -37,8 +37,8 @@
     <states>
         <state name="analyze" initial="true">
             <steps>
-                <!-- Call module: complexity-check -->
-                <call ref="complexity-check" timeout="120s">
+                <!-- Call module: complexity-check (sub-flow) -->
+                <call ref="code-analysis/complexity-check" timeout="120s">
                     <input>
                         <field name="target_dir" value="${working_dir}" />
                     </input>
@@ -48,16 +48,16 @@
                     <on-error state="error" />
                 </call>
 
-                <!-- Call module: security-scan -->
-                <call ref="security-scan" timeout="300s" when="EQ(scan_type, 'deep')">
+                <!-- Call module: security-scan (sub-flow) -->
+                <call ref="code-analysis/security-scan" timeout="300s" when="EQ(scan_type, 'deep')">
                     <input>
-                        <field name="target_dir" value="${target_dir}" />
+                        <field name="target_dir" value="${working_dir}" />
                         <field name="scan_type" value="${scan_type}" />
                     </input>
                     <output>
-                        <field name="security_issues" value="${security_status}" />
-                        <field name="summary" value="${analysis_summary}" />
+                        <field name="issues" value="${security_status}" />
                     </output>
+                    <on-error state="error" />
                 </call>
             </steps>
 

@@ -66,8 +66,8 @@ func TestParseAndLintAllFlows(t *testing.T) {
 					assert.NotNil(t, flow, "flow should not be nil")
 					assert.NotEmpty(t, flow.Name, "flow should have a name")
 
-					// Lint
-					result := linter.Lint(flow)
+					// Lint (with path for module resolution)
+					result := linter.LintPath(path, flow)
 
 					// Log results
 					t.Logf("Flow: %s, Valid: %v, Errors: %d, Warnings: %d",
