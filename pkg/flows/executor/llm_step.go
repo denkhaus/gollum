@@ -8,12 +8,12 @@ import (
 )
 
 // executeLLMStep executes an LLM step
-func (e *Executor) executeLLMStep(step *flows.Step, stateName string) error {
+func (p *flowExecutorImpl) executeLLMStep(step *flows.Step, stateName string) error {
 	// Find agent
 	var agent *flows.Agent
-	for i := range e.flow.Agents {
-		if e.flow.Agents[i].Name == step.Agent {
-			agent = &e.flow.Agents[i]
+	for i := range p.flow.Agents {
+		if p.flow.Agents[i].Name == step.Agent {
+			agent = &p.flow.Agents[i]
 			break
 		}
 	}
@@ -23,10 +23,10 @@ func (e *Executor) executeLLMStep(step *flows.Step, stateName string) error {
 	}
 
 	// Substitute variables in prompt
-	prompt := SubstituteTemplate(e.ctx, step.Prompt)
+	prompt := SubstituteTemplate(p.ctx, step.Prompt)
 
 	// Parse tools
-	tools := e.parseTools(step.Tools)
+	tools := p.parseTools(step.Tools)
 
 	// TODO: Integrate with actual LLM execution
 	// For now, this is a placeholder
@@ -38,7 +38,7 @@ func (e *Executor) executeLLMStep(step *flows.Step, stateName string) error {
 }
 
 // parseTools parses tools attribute into tool names
-func (e *Executor) parseTools(toolsStr string) []string {
+func (p *flowExecutorImpl) parseTools(toolsStr string) []string {
 	if toolsStr == "" {
 		return nil
 	}

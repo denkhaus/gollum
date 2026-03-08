@@ -13,7 +13,7 @@ type Tool interface {
 
 // ToolSetOutputField implements set_output_field
 type ToolSetOutputField struct {
-	executor *Executor
+	executor *flowExecutorImpl
 	flow     *flows.Flow
 }
 
@@ -76,7 +76,7 @@ func validateType(typ string, value any) error {
 
 // ToolSetContextField implements set_context_field
 type ToolSetContextField struct {
-	executor *Executor
+	executor *flowExecutorImpl
 	flow     *flows.Flow
 }
 
@@ -105,7 +105,7 @@ func (t *ToolSetContextField) Execute(input map[string]any) (map[string]any, err
 
 // ToolGetContext implements get_context
 type ToolGetContext struct {
-	executor *Executor
+	executor *flowExecutorImpl
 }
 
 // Execute retrieves context fields
@@ -133,7 +133,7 @@ func (t *ToolGetContext) Execute(input map[string]any) (map[string]any, error) {
 
 // ToolEmitLog implements emit_log
 type ToolEmitLog struct {
-	executor *Executor
+	executor *flowExecutorImpl
 }
 
 // Execute logs a message (uses Langfuse hooks)
@@ -153,7 +153,7 @@ func (t *ToolEmitLog) Execute(input map[string]any) (map[string]any, error) {
 
 // ToolTransitionTo implements transition_to
 type ToolTransitionTo struct {
-	executor *Executor
+	executor *flowExecutorImpl
 }
 
 // Execute transitions to a new state
