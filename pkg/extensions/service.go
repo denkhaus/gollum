@@ -8,6 +8,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/samber/do/v2"
+	"go.uber.org/zap"
 )
 
 // ExtensionService manages extension and function loading
@@ -76,19 +77,27 @@ func NewExtensionServiceWithWorkspace(injector do.Injector) (ExtensionService, e
 }
 
 func (p *extensionServiceImpl) LoadAll(ctx context.Context) error {
-	p.logService.Info("Extension service: loading extensions and functions...")
+	p.logService.Info("Extension service: starting load",
+		zap.String("workspace", p.workspaceDir),
+	)
 
 	if err := p.loadFuncSteps(); err != nil {
+		p.logService.Error("Extension service: failed to load func steps",
+			zap.Error(err),
+		)
 		return err
 	}
 
 	if err := p.loadExtensions(); err != nil {
+		p.logService.Error("Extension service: failed to load extensions",
+			zap.Error(err),
+		)
 		return err
 	}
 
-	p.logService.Infof("Extension service: loaded %d functions, %d extensions",
-		len(p.scriggoRunner.ListFuncs()),
-		len(p.yaegiLoader.ListExtensions()),
+	p.logService.Info("Extension service: load complete",
+		zap.Int("functions", len(p.scriggoRunner.ListFuncs())),
+		zap.Int("extensions", len(p.yaegiLoader.ListExtensions())),
 	)
 
 	return nil
@@ -174,7 +183,10 @@ func (p *extensionServiceImpl) loadFuncSteps() error {
 			}
 
 			filePath := filepath.Join(dir, entry.Name())
-			p.logService.Debugf("Loading func step from: %s", filePath)
+			p.logService.Debug("Loading func step",
+				zap.String("name", funcName),
+				zap.String("source", filePath),
+			)
 
 			// Read source
 			source, err := os.ReadFile(filePath)
@@ -221,7 +233,10 @@ func (p *extensionServiceImpl) loadExtensions() error {
 			}
 
 			extPath := filepath.Join(dir, entry.Name())
-			p.logService.Debugf("Loading extension from: %s", extPath)
+			p.logService.Info("Loading extension",
+				zap.String("name", entry.Name()),
+				zap.String("path", extPath),
+			)
 
 			// Load extension
 			ext, err := p.yaegiLoader.LoadExtension(extPath)
