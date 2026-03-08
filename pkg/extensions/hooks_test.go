@@ -1,0 +1,86 @@
+package extensions
+
+import (
+	"errors"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestHookRegistry_RegisterAndExecute(t *testing.T) {
+	registry := &hookRegistryImpl{
+		hooks: make(map[HookType]map[string]HookFunction),
+	}
+
+	executed := false
+	hookFn := func(ctx *HookContext) error {
+		executed = true
+		return nil
+	}
+
+	err := registry.Register(HookAgentPreExecute, "test_hook", hookFn)
+	require.NoError(t, err)
+
+	hookCtx := &HookContext{
+		Type:      HookAgentPreExecute,
+		AgentID:   "test-agent",
+		Timestamp: mockTime(),
+		Metadata:  make(map[string]any),
+	}
+
+	err = registry.Execute(HookAgentPreExecute, hookCtx)
+	require.NoError(t, err)
+	assert.True(t, executed, "hook should have been executed")
+}
+
+func TestHookRegistry_Unregister(t *testing.T) {
+	registry := &hookRegistryImpl{
+		hooks: make(map[HookType]map[string]HookFunction),
+	}
+
+	hookFn := func(ctx *HookContext) error {
+		return nil
+	}
+
+	// Register
+	err := registry.Register(HookToolPreExecute, "hook1", hookFn)
+	require.NoError(t, err)
+
+	// Unregister
+	err = registry.Unregister(HookToolPreExecute, "hook1")
+	require.NoError(t, err)
+
+	// Verify hook is no longer executed
+	hookCtx := &HookContext{
+		Type: HookToolPreExecute,
+	}
+	err = registry.Execute(HookToolPreExecute, hookCtx)
+	require.NoError(t, err, "no hooks should remain")
+}
+
+func TestHookRegistry_HookErrorPropagation(t *testing.T) {
+	registry := &hookRegistryImpl{
+		hooks: make(map[HookType]map[string]HookFunction),
+	}
+
+	expectedErr := errors.New("hook failed")
+	hookFn := func(ctx *HookContext) error {
+		return expectedErr
+	}
+
+	err := registry.Register(HookAgentPostExecute, "failing_hook", hookFn)
+	require.NoError(t, err)
+
+	hookCtx := &HookContext{
+		Type: HookAgentPostExecute,
+	}
+	err = registry.Execute(HookAgentPostExecute, hookCtx)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failing_hook failed")
+}
+
+func mockTime() time.Time {
+	return time.Date(2025, 3, 8, 12, 0, 0, 0, time.UTC)
+}
