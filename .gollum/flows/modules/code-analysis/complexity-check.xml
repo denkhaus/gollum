@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Complexity Check Flow (Internal to code-analysis module) -->
+<flow name="complexity-check" version="1.0">
+    <description>Internal flow: Calculate code complexity score.</description>
+
+    <context>
+        <string name="target_dir" required="true" />
+        <int name="score" />
+        <string name="cyclomatic_output" />
+    </context>
+
+    <states>
+        <state name="calculate" initial="true">
+            <steps>
+                <step type="shell" name="run-gocyclo">
+                    <cmd><![CDATA[gocyclo -avg ${target_dir}]]></cmd>
+                    <output>
+                        <string name="stdout" assign="cyclomatic_output" />
+                        <int name="exit_code" assign="exit_code" />
+                    </output>
+                    <timeout>60s</timeout>
+                    <on-error state="error" />
+                </step>
+
+                <step type="func" function="strconv.Atoi">
+                    <params>
+                        <param name="s" value="${cyclomatic_output}" />
+                    </params>
+                    <output assign="score" />
+                </step>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="error">
+            <steps>
+                <step type="func" function="fmt.Sprintf">
+                    <params>
+                        <param name="format" value="Complexity check failed: %s" />
+                        <param name="a" value="${last_error}" />
+                    </params>
+                </step>
+            </steps>
+        </state>
+
+        <state name="done" />
+    </states>
+</flow>

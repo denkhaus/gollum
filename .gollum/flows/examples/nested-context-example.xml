@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Nested context & computed fields example
+Demonstr: Nested objects, computed fields, expression syntax
+-->
+<flow name="nested-context-example" version="1.0">
+    <description>
+        Shows nested context objects and calculated field syntax.
+    </description>
+
+    <input>
+        <string name="target" required="true" />
+    </input>
+
+    <output>
+        <int name="line_count" />
+        <bool name="is_large" />
+        <bool name="needs_refactor" />
+        <string name="assessment" />
+    </output>
+
+    <context>
+        <!-- Simple fields -->
+        <int name="line_count" />
+        <int name="function_count" />
+
+        <!-- Nested object for organization) -->
+        <object name="metrics">
+            <object name="testing">
+                <int name="errors" />
+                <int name="warnings" />
+            </object>
+            <object name="coverage">
+                <float name="percentage" />
+            </object>
+        </object>
+
+        <!-- Computed fields: auto-evaluated, dependencies detected, immutable -->
+        <computed name="is_large" type="bool"
+                  when="GT(line_count, 500)"
+                  description="Target is large" />
+
+        <computed name="has_errors" type="bool"
+                  when="GT(metrics.testing.errors, )"
+                  description="Has test errors" />
+
+        <computed name="needs_refactor" type="bool"
+                  when="AND(is_large, has_errors)"
+                  description="Needs refactoring" />
+
+        <computed name="is_covered" type="bool"
+                  when="GTE(metrics.coverage.percentage, 80.0)"
+                  description="Has good coverage" />
+
+        <!-- Internal field for parsing -->
+        <string name="line_count_output" />
+    </context>
+
+    <agents>
+        <agent name="analyzer" model="anthropic/claude-opus-4-6">
+            <prompt>Code analyzer</prompt>
+            <temperature>0.0</temperature>
+        </agent>
+    </agents>
+
+    <states>
+        <state name="analyze" initial="true">
+            <steps>
+                <!-- Calculate metrics -->
+                <step type="shell">
+                    <cmd><![CDATA[wc -l ${target} | awk -1 | tail -1]]></cmd>
+                    <output>
+                        <int path="exit_code" assign="exit_code" />
+                    </output>
+                    <timeout>60s</timeout>
+                    <on-error state="error" />
+                </step>
+
+                <!-- Parse line count -->
+                <step type="func" function="strconv.Atoi">
+                    <params>
+                        <param name="s" value="${line_count_output}" />
+                    </params>
+                    <output assign="line_count" />
+                </step>
+
+                <!-- Use computed values in LLM prompt -->
+                <step type="llm" agent="analyzer">
+                    <prompt><![CDATA[
+                        Target: ${target}
+                        Lines: ${line_count}
+                        Functions: ${function_count}
+                        Large: ${is_large}
+                        Has errors: ${has_errors}
+                        Needs_refactor: ${needs_refactor}
+                        Covered: ${is_covered}
+
+                        Provide assessment.
+                        Use set_context_field to report.
+                    ]]></prompt>
+                    <tools>set_context_field, get_context, emit_log</tools>
+                    <timeout>60s</timeout>
+                </step>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="done" />
+    </states>
+</flow>

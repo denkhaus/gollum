@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fetch PR Flow -->
+<flow name="fetch-pr" version="1.0">
+    <description>Fetch PR details from Forgejo.</description>
+
+    <input>
+        <int name="pr_number" required="true" />
+        <string name="repo_owner" default="denkhaus" />
+        <string name="repo_name" required="true" />
+    </input>
+
+    <output>
+        <string name="pr_title" />
+        <string name="pr_state" />
+        <int name="changed_files" />
+        <string name="head_branch" />
+        <string name="base_branch" />
+        <computed name="is_open" type="bool" when="EQ(output.pr_state, 'open')" />
+        <computed name="is_large" type="bool" when="GT(output.changed_files, 10)" />
+    </output>
+
+    <states>
+        <state name="fetch" initial="true">
+            <steps>
+                <step type="mcp" tool="forgejo/get_pull_request_by_index" name="get-pr">
+                    <params>
+                        <param name="owner" value="${input.repo_owner}" />
+                        <param name="repo" value="${input.repo_name}" />
+                        <param name="index" value="${input.pr_number}" />
+                    </params>
+                    <output>
+                        <string path="title" assign="${output.pr_title}" />
+                        <string path="state" assign="${output.pr_state}" />
+                        <int path="changed_files" assign="${output.changed_files}" />
+                        <string path="head.ref" assign="${output.head_branch}" />
+                        <string path="base.ref" assign="${output.base_branch}" />
+                    </output>
+                    <timeout>30s</timeout>
+                    <on-error state="error" />
+                </step>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+
+        <state name="error">
+            <steps>
+                <step type="llm" agent="reporter">
+                    <prompt><![CDATA[
+                        Failed to fetch PR:
+                        Step: ${error.step_name}
+                        Error: ${error.message}
+
+                        Use emit_log to report.
+                    ]]></prompt>
+                    <tools>emit_log</tools>
+                </step>
+            </steps>
+        </state>
+
+        <state name="done" />
+    </states>
+
+    <agents>
+        <agent name="reporter" model="anthropic/claude-opus-4-6">
+            <prompt>Error reporter</prompt>
+            <temperature>0.0</temperature>
+        </agent>
+    </agents>
+</flow>

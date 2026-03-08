@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Step Types Example
+Demonstrates: func, shell, llm, mcp with unified output syntax
+-->
+<flow name="step-types-example" version="1.0">
+    <description>
+        Shows all step types with clear naming:
+        - func: All Go function calls (built-in stdlib OR extension)
+        - shell: Bash/shell commands
+        - llm: LLM agent calls
+        - mcp: MCP tool calls
+    </description>
+
+    <input>
+        <string name="target_dir" required="true" />
+        <string name="input_text" />
+    </input>
+
+    <output>
+        <string name="upper_text" />
+        <int name="item_count" />
+        <string name="test_output" />
+        <string name="analysis_result" />
+        <bool name="has_error" />
+    </output>
+
+    <context>
+        <string name="upper_text" />
+        <int name="item_count" />
+        <string name="test_output" />
+        <string name="analysis_result" />
+        <bool name="has_error" />
+        <object name="pr_details" />
+    </context>
+
+    <extensions>
+        <function name="CustomAnalyze" package="github.com/denkhaus/gollum/flows/custom">
+            <description>Custom analysis function (package registered at startup)</description>
+        </function>
+    </extensions>
+
+    <agents>
+        <agent name="analyzer" model="anthropic/claude-opus-4-6">
+            <prompt>Text analyzer</prompt>
+            <temperature>0.0</temperature>
+        </agent>
+    </agents>
+
+    <states>
+        <state name="demonstrate" initial="true">
+            <steps>
+                <!-- === SHELL: Bash commands === -->
+                <step type="shell" name="run-tests">
+                    <cmd><![CDATA[go test ${target_dir} -v 2>&1]]></cmd>
+                    <output>
+                        <string path="stdout" assign="test_output" />
+                    </output>
+                    <timeout>300s</timeout>
+                    <on-error state="error" />
+                </step>
+
+                <!-- === FUNC: Built-in Go stdlib (MUST have output) === -->
+                <step type="func" function="strings.ToUpper">
+                    <description>Convert to uppercase - built-in Go function</description>
+                    <params>
+                        <param name="s" value="${input_text}" />
+                    </params>
+                    <output assign="upper_text" />
+                </step>
+
+                <step type="func" function="len">
+                    <description>Count items - built-in Go function</description>
+                    <params>
+                        <param name="v" value="${input_text}" />
+                    </params>
+                    <output assign="item_count" />
+                </step>
+
+                <step type="func" function="strings.Contains">
+                    <description>Check substring - built-in Go function</description>
+                    <params>
+                        <param name="s" value="${input_text}" />
+                        <param name="substr" value="error" />
+                    </params>
+                    <output assign="has_error" />
+                </step>
+
+                <!-- === FUNC: Extension function (registered at startup) === -->
+                <step type="func" function="CustomAnalyze">
+                    <description>Call custom extension - registered at application startup</description>
+                    <params>
+                        <param name="target" value="${target_dir}" />
+                    </params>
+                    <output assign="analysis_result" />
+                    <timeout>60s</timeout>
+                    <on-error state="error" />
+                </step>
+
+                <!-- === LLM: Agent calls === -->
+                <step type="llm" agent="analyzer">
+                    <prompt><![CDATA[
+                        Input: ${input_text}
+                        Length: ${item_count}
+                        Contains error: ${has_error}
+
+                        Provide analysis.
+                    ]]></prompt>
+                    <tools>set_context_field, emit_log</tools>
+                    <timeout>60s</timeout>
+                </step>
+
+                <!-- === MCP: Tool calls with unified path syntax === -->
+                <step type="mcp" tool="forgejo/get_pull_request_by_index">
+                    <params>
+                        <param name="owner" value="denkhaus" />
+                        <param name="repo" value="gollum" />
+                        <param name="index" value="123" />
+                    </params>
+                    <output>
+                        <string path="title" assign="pr_title" />
+                        <string path="state" assign="pr_state" />
+                        <string path="head.ref" assign="head_branch" />
+                    </output>
+                    <timeout>30s</timeout>
+                    <on-error state="error" />
+                </step>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="error">
+            <steps>
+                <step type="llm" agent="analyzer">
+                    <prompt><![CDATA[
+                        Step failed:
+                        Step: ${error.step_name}
+                        Error: ${error.message}
+
+                        Use emit_log to report.
+                    ]]></prompt>
+                    <tools>emit_log</tools>
+                </step>
+            </steps>
+        </state>
+
+        <state name="done" />
+    </states>
+</flow>

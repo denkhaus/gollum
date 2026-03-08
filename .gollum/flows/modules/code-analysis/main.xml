@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Code Analysis Module - Main Entry Point -->
+<flow name="code-analysis" version="1.0">
+    <description>
+        Code analysis module. Main entry point - can be called as a module.
+        Internal flows: complexity-check, security-scan
+    </description>
+
+    <input>
+        <string name="target_dir" required="true" />
+        <string name="scan_type" default="full" enum="quick,full,deep" />
+    </input>
+
+    <output>
+        <int name="complexity_score" />
+        <int name="security_issues" />
+        <string name="summary" />
+    </output>
+
+    <context>
+        <int name="complexity_score" />
+        <int name="security_issues" />
+    </context>
+
+    <states>
+        <state name="init" initial="true">
+            <steps>
+                <!-- Call internal flows -->
+                <call ref="complexity-check" timeout="120s">
+                    <input>
+                        <field name="target_dir" value="${target_dir}" />
+                    </input>
+                    <output>
+                        <field name="score" value="${complexity_score}" />
+                    </output>
+                    <on-error state="error" />
+                </call>
+
+                <call ref="security-scan" timeout="180s">
+                    <input>
+                        <field name="target_dir" value="${target_dir}" />
+                        <field name="scan_type" value="${scan_type}" />
+                    </input>
+                    <output>
+                        <field name="issues" value="${security_issues}" />
+                    </output>
+                    <on-error state="error" />
+                </call>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="error">
+            <steps>
+                <step type="llm" agent="coordinator">
+                    <prompt><![CDATA[
+                        Analysis failed:
+                        Step: ${error.step_name}
+                        Error: ${error.message}
+
+                        Use emit_log to report the failure.
+                    ]]></prompt>
+                    <tools>emit_log</tools>
+                </step>
+            </steps>
+        </state>
+
+        <state name="done">
+            <steps>
+                <!-- Generate summary -->
+                <step type="llm" agent="coordinator">
+                    <prompt><![CDATA[
+                        Analysis complete:
+                        - Complexity score: ${complexity_score}
+                        - Security issues: ${security_issues}
+
+                        Use set_context_field("summary", "your summary here")
+                    ]]></prompt>
+                    <tools>set_context_field</tools>
+                </step>
+            </steps>
+        </state>
+    </states>
+
+    <agents>
+        <agent name="coordinator" model="anthropic/claude-opus-4-6">
+            <prompt>Analysis coordinator</prompt>
+            <temperature>0.0</temperature>
+        </agent>
+    </agents>
+</flow>

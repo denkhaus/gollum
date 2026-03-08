@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Forgejo PR Workflow - Main -->
+<flow name="forgejo-workflow" version="1.0">
+    <description>Complete Forgejo PR workflow using structured composition.</description>
+
+    <input>
+        <string name="repo_owner" default="denkhaus" />
+        <string name="repo_name" required="true" />
+        <int name="pr_number" required="true" />
+    </input>
+
+    <output>
+        <string name="review_status" />
+        <int name="issue_count" />
+        <string name="review_summary" />
+    </output>
+
+    <context>
+        <!-- Phase flow outputs -->
+        <string name="current_phase" />
+
+        <!-- PR data from fetch-pr -->
+        <object name="pr">
+            <string name="title" />
+            <string name="state" />
+            <int name="changed_files" />
+            <bool name="is_open" />
+            <bool name="is_large" />
+        </object>
+    </context>
+
+    <agents>
+        <agent name="coordinator" model="anthropic/claude-opus-4-6">
+            <prompt>Workflow coordinator</prompt>
+            <temperature>0.0</temperature>
+        </agent>
+    </agents>
+
+    <states>
+        <state name="init" initial="true">
+            <steps>
+                <!-- Step 1: Fetch PR details -->
+                <call ref="fetch-pr" timeout="60s">
+                    <input>
+                        <field name="pr_number" value="${input.pr_number}" />
+                        <field name="repo_owner" value="${input.repo_owner}" />
+                        <field name="repo_name" value="${input.repo_name}" />
+                    </input>
+                    <output>
+                        <field name="pr_title" value="${context.pr.title}" />
+                        <field name="pr_state" value="${context.pr.state}" />
+                        <field name="changed_files" value="${context.pr.changed_files}" />
+                        <field name="is_open" value="${context.pr.is_open}" />
+                        <field name="is_large" value="${context.pr.is_large}" />
+                    </output>
+                    <on-error state="error" />
+                </call>
+
+                <!-- Step 2: Determine phase -->
+                <call ref="determine-phase" timeout="60s">
+                    <input>
+                        <field name="pr_number" value="${input.pr_number}" />
+                        <field name="pr_title" value="${context.pr.title}" />
+                        <field name="pr_state" value="${context.pr.state}" />
+                        <field name="changed_files" value="${context.pr.changed_files}" />
+                        <field name="is_open" value="${context.pr.is_open}" />
+                        <field name="is_large" value="${context.pr.is_large}" />
+                    </input>
+                    <output>
+                        <field name="current_phase" value="${context.current_phase}" />
+                    </output>
+                    <on-error state="error" />
+                </call>
+            </steps>
+
+            <transitions>
+                <transition to="execute-phase" />
+            </transitions>
+        </state>
+
+        <state name="execute-phase">
+            <steps>
+                <!-- Log routing decision -->
+                <step type="llm" agent="coordinator">
+                    <prompt><![CDATA[
+                        Current phase: ${context.current_phase}
+
+                        Route to appropriate phase workflow:
+                        - "review" → call review-phase flow
+                        - "fix" → call fix-phase flow
+                        - "merge" → call merge-phase flow
+
+                        Use emit_log to confirm routing.
+                    ]]></prompt>
+                    <tools>emit_log, get_context</tools>
+                </step>
+
+                <!-- Call review phase (conditional) -->
+                <call ref="review-phase" timeout="300s" when="EQ(context.current_phase, 'review')">
+                    <input>
+                        <field name="pr_number" value="${input.pr_number}" />
+                        <field name="repo_owner" value="${input.repo_owner}" />
+                        <field name="repo_name" value="${input.repo_name}" />
+                    </input>
+                    <output>
+                        <field name="review_status" value="${output.review_status}" />
+                        <field name="issue_count" value="${output.issue_count}" />
+                        <field name="review_summary" value="${output.review_summary}" />
+                    </output>
+                    <on-error state="error" />
+                </call>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="error">
+            <steps>
+                <step type="llm" agent="coordinator">
+                    <prompt><![CDATA[
+                        Workflow failed:
+                        Step: ${error.step_name}
+                        Error: ${error.message}
+
+                        Decide recovery action using transition_to tool.
+                    ]]></prompt>
+                    <tools>transition_to, emit_log</tools>
+                </step>
+            </steps>
+        </state>
+
+        <state name="done" />
+    </states>
+</flow>

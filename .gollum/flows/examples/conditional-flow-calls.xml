@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Conditional Flow Calls Example
+Demonstrates: Conditional execution with when on <call>
+-->
+<flow name="conditional-flow-calls" version="1.0">
+    <description>
+        Shows conditional flow execution based on context values.
+    </description>
+
+    <input>
+        <string name="scan_type" required="true" enum="quick,full,deep" />
+        <string name="target_dir" required="true" />
+        <bool name="run_security_scan" default="false" />
+    </input>
+
+    <output>
+        <string name="status" />
+        <string name="summary" />
+        <int name="complexity_score" />
+    </output>
+
+    <context>
+        <object name="results">
+            <string name="status" />
+            <string name="summary" />
+        </object>
+
+        <int name="complexity_score" />
+
+        <!-- Computed conditions -->
+        <computed name="is_deep_scan" type="bool" when="EQ(scan_type, 'deep')" />
+        <computed name="is_quick_scan" type="bool" when="EQ(scan_type, 'quick')" />
+    </context>
+
+    <agents>
+        <agent name="coordinator" model="anthropic/claude-opus-4-6">
+            <prompt>Workflow coordinator</prompt>
+            <temperature>0.0</temperature>
+        </agent>
+    </agents>
+
+    <states>
+        <state name="init" initial="true">
+            <steps>
+                <step type="llm" agent="coordinator">
+                    <prompt><![CDATA[
+                        Scan type: ${scan_type}
+                        Target: ${target_dir}
+                        Run security: ${run_security_scan}
+
+                        Plan the execution based on scan type.
+                        Use emit_log to report your plan.
+                    ]]></prompt>
+                    <tools>emit_log, get_context</tools>
+                    <timeout>30s</timeout>
+                </step>
+
+                <!-- Conditional flow call: Only execute for deep scans -->
+                <call ref="security-scan" timeout="300s" when="is_deep_scan">
+                    <input>
+                        <field name="target" value="${target_dir}" />
+                    </input>
+                    <output>
+                        <field name="security_status" value="${results.status}" />
+                    </output>
+                    <on-error state="error" />
+                </call>
+
+                <!-- Conditional flow call: Scan only if flag is set -->
+                <call ref="code-analysis" timeout="180s" when="run_security_scan">
+                    <input>
+                        <field name="target_dir" value="${target_dir}" />
+                        <field name="scan_type" value="${scan_type}" />
+                    </input>
+                    <output>
+                        <field name="complexity_score" value="${complexity_score}" />
+                    </output>
+                    <on-error state="error" />
+                </call>
+
+                <!-- Otherwise fallback for quick scans without security -->
+                <call ref="basic-check" timeout="60s" when="AND(is_quick_scan, NOT(run_security_scan))">
+                    <input>
+                        <field name="target" value="${target_dir}" />
+                    </input>
+                    <output>
+                        <field name="basic_status" value="${results.status}" />
+                    </output>
+                    <on-error state="error" />
+                </call>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="error">
+            <steps>
+                <step type="llm" agent="coordinator">
+                    <prompt><![CDATA[
+                        Conditional flow failed:
+                        Step: ${error.step_name}
+                        Error: ${error.message}
+
+                        Use emit_log to report.
+                    ]]></prompt>
+                    <tools>emit_log</tools>
+                </step>
+            </steps>
+        </state>
+
+        <state name="done" />
+    </states>
+</flow>

@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Review Phase Flow -->
+<flow name="review-phase" version="1.0">
+    <description>Execute code review workflow.</description>
+
+    <input>
+        <int name="pr_number" required="true" />
+        <string name="repo_owner" default="denkhaus" />
+        <string name="repo_name" required="true" />
+    </input>
+
+    <output>
+        <string name="review_status" />
+        <int name="issue_count" />
+        <string name="review_summary" />
+    </output>
+
+    <context>
+        <string name="pr_diff" />
+        <string name="pr_comments" />
+        <string name="review_status" />
+        <int name="issue_count" />
+        <string name="review_summary" />
+    </context>
+
+    <extensions>
+        <function name="GetPRDiff" package="github.com/denkhaus/gollum/flows/forgejo">
+            <description>Get unified diff for PR</description>
+        </function>
+    </extensions>
+
+    <agents>
+        <agent name="reviewer" model="anthropic/claude-opus-4-6">
+            <prompt><![CDATA[
+                You are a code reviewer focusing on:
+                - Correctness and logic errors
+                - Go best practices and idioms
+                - Test coverage
+                - Security considerations
+
+                Be specific and actionable.
+            ]]></prompt>
+            <temperature>0.0</temperature>
+        </agent>
+    </agents>
+
+    <states>
+        <state name="collect-info" initial="true">
+            <steps>
+                <group name="parallel-fetch" parallel="true">
+                    <!-- Fetch PR diff -->
+                    <step type="func" function="GetPRDiff">
+                        <params>
+                            <param name="owner" value="${input.repo_owner}" />
+                            <param name="repo" value="${input.repo_name}" />
+                            <param name="index" value="${input.pr_number}" />
+                        </params>
+                        <output assign="${context.pr_diff}" />
+                        <timeout>60s</timeout>
+                        <on-error state="error" />
+                    </step>
+
+                    <!-- Fetch comments -->
+                    <step type="mcp" tool="forgejo/list_issue_comments">
+                        <params>
+                            <param name="owner" value="${input.repo_owner}" />
+                            <param name="repo" value="${input.repo_name}" />
+                            <param name="index" value="${input.pr_number}" />
+                        </params>
+                        <output assign="${context.pr_comments}" />
+                        <timeout>30s</timeout>
+                        <on-error state="error" />
+                    </step>
+                </group>
+            </steps>
+
+            <transitions>
+                <transition to="perform-review" />
+            </transitions>
+        </state>
+
+        <state name="perform-review">
+            <steps>
+                <step type="llm" agent="reviewer">
+                    <prompt><![CDATA[
+                        Review PR #${input.pr_number}
+
+                        Diff (first 2000 chars):
+                        ${context.pr_diff}
+
+                        Comments: ${context.pr_comments}
+
+                        This flow has these fields defined:
+                        - Context fields (for intermediate use): review_status, issue_count, review_summary
+                        - Output fields (for flow result): review_status, issue_count, review_summary
+
+                        Provide review:
+                        1. review_status: approved/needs-changes/blocked
+                        2. issue_count: number of issues
+                        3. review_summary: brief summary
+
+                        IMPORTANT: You MUST call BOTH tools for each field:
+                        - set_context_field("review_status", "approved")  <- for subsequent steps
+                        - set_output_field("review_status", "approved")  <- for flow result
+
+                        Do this for all three fields: review_status, issue_count, review_summary
+                    ]]></prompt>
+                    <tools>set_context_field, set_output_field, get_context, emit_log</tools>
+                    <timeout>120s</timeout>
+                </step>
+            </steps>
+
+            <transitions>
+                <transition to="update-labels" />
+            </transitions>
+        </state>
+
+        <state name="update-labels">
+            <steps>
+                <step type="mcp" tool="forgejo/replace_issue_labels">
+                    <params>
+                        <param name="owner" value="${input.repo_owner}" />
+                        <param name="repo" value="${input.repo_name}" />
+                        <param name="index" value="${input.pr_number}" />
+                        <param name="labels" value="${output.review_status}" />
+                    </params>
+                    <output assign="label_result" />
+                    <timeout>30s</timeout>
+                    <on-error state="error" />
+                </step>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="error">
+            <steps>
+                <step type="llm" agent="reviewer">
+                    <prompt><![CDATA[
+                        Review failed:
+                        Step: ${error.step_name}
+                        Error: ${error.message}
+
+                        Use emit_log to report.
+                    ]]></prompt>
+                    <tools>emit_log</tools>
+                </step>
+            </steps>
+        </state>
+
+        <state name="done" />
+    </states>
+</flow>

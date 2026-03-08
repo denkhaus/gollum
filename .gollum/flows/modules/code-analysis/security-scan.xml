@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Security Scan Flow (Internal to code-analysis module) -->
+<flow name="security-scan" version="1.0">
+    <description>Internal flow: Security vulnerability scanning.</description>
+
+    <context>
+        <string name="target_dir" required="true" />
+        <string name="scan_type" default="full" />
+        <int name="issues" />
+        <string name="scan_output" />
+    </context>
+
+    <extensions>
+        <function name="JSONCount" package="github.com/denkhaus/gollum/flows/jsonutil">
+            <description>Count items at JSON path</description>
+        </function>
+    </extensions>
+
+    <states>
+        <state name="scan" initial="true">
+            <steps>
+                <step type="shell" name="run-gosec">
+                    <cmd><![CDATA[gosec -fmt=json ${target_dir}]]></cmd>
+                    <output>
+                        <string name="stdout" assign="scan_output" />
+                        <int name="exit_code" assign="exit_code" />
+                    </output>
+                    <timeout>120s</timeout>
+                    <on-error state="error" />
+                </step>
+
+                <step type="func" function="JSONCount">
+                    <params>
+                        <param name="json" value="${scan_output}" />
+                        <param name="path" value="results" />
+                    </params>
+                    <output assign="issues" />
+                </step>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="error">
+            <steps>
+                <step type="func" function="fmt.Sprintf">
+                    <params>
+                        <param name="format" value="Security scan failed: %s" />
+                        <param name="a" value="${last_error}" />
+                    </params>
+                </step>
+            </steps>
+        </state>
+
+        <state name="done" />
+    </states>
+</flow>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Call Module Example -->
+<flow name="pr-analyzer" version="1.0">
+    <description>
+        Demonstr calling a module (code-analysis).
+        The module encapsulates internal complexity ( complexity-check, security-scan)
+        Parameterized execution: different scan types (quick, full, deep)
+    </description>
+
+    <input>
+        <string name="working_dir" required="true" />
+        <string name="scan_type" default="full" enum="quick,full,deep" />
+    </input>
+
+    <output>
+        <int name="complexity_score" />
+        <string name="security_status" />
+        <string name="summary" />
+    </output>
+
+    <context>
+        <int name="line_count" />
+        <object name="analysis">
+            <int name="complexity" />
+            <int name="security_issues" />
+            <string name="summary" />
+        </object>
+    </context>
+
+    <agents>
+        <agent name="coordinator" model="anthropic/claude-opus-4-6">
+            <prompt>Workflow coordinator</prompt>
+            <temperature>0.0</temperature>
+        </agent>
+    </agents>
+
+    <states>
+        <state name="analyze" initial="true">
+            <steps>
+                <!-- Call module: complexity-check -->
+                <call ref="complexity-check" timeout="120s">
+                    <input>
+                        <field name="target_dir" value="${working_dir}" />
+                    </input>
+                    <output>
+                        <field name="score" value="${complexity_score}" />
+                    </output>
+                </call>
+
+                <!-- Call module: security-scan -->
+                <call ref="security-scan" timeout="300s" when="EQ(scan_type, 'deep')">
+                    <input>
+                        <field name="target_dir" value="${target_dir}" />
+                        <field name="scan_type" value="${scan_type}" />
+                    </input>
+                    <output>
+                        <field name="security_issues" value="${security_status}" />
+                        <field name="summary" value="${analysis_summary}" />
+                    </output>
+                </call>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="error">
+            <steps>
+                <step type="llm" agent="coordinator">
+                    <prompt><![CDATA[
+                        Module analysis failed
+                        Step: ${error.step_name}
+                        Error: ${error.message}
+
+                        Use emit_log to report.
+                    ]]></prompt>
+                    <tools>emit_log</tools>
+                </step>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="done" />
+    </states>
+</flow>

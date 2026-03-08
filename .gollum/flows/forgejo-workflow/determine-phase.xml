@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Determine Phase Flow -->
+<flow name="determine-phase" version="1.0">
+    <description>Determines the current workflow phase based on PR context.</description>
+
+    <input>
+        <int name="pr_number" required="true" />
+        <string name="pr_title" required="true" />
+        <string name="pr_state" required="true" />
+        <int name="changed_files" required="true" />
+        <bool name="is_open" required="true" />
+        <bool name="is_large" required="true" />
+    </input>
+
+    <output>
+        <string name="current_phase" />
+    </output>
+
+    <agents>
+        <agent name="coach" model="anthropic/claude-opus-4-6">
+            <prompt><![CDATA[
+                You are a workflow phase classifier.
+                Determine the correct phase for PR processing.
+
+                Available phases:
+                - idea: Initial discussion/planning
+                - implement: Implementation in progress
+                - review: Ready for code review
+                - fix: Issues found, fixing required
+                - merge: Ready to merge
+
+                Be decisive and pick exactly one phase.
+            ]]></prompt>
+            <temperature>0.0</temperature>
+        </agent>
+    </agents>
+
+    <states>
+        <state name="analyze" initial="true">
+            <steps>
+                <step type="llm" agent="coach">
+                    <prompt><![CDATA[
+                        Analyze PR #${input.pr_number}: ${input.pr_title}
+
+                        Context:
+                        - State: ${input.pr_state}
+                        - Open: ${input.is_open}
+                        - Files: ${input.changed_files}
+                        - Large: ${input.is_large}
+
+                        Determine the workflow phase.
+                        Use set_output_field("current_phase", "<phase>")
+                    ]]></prompt>
+                    <tools>set_output_field</tools>
+                    <timeout>60s</timeout>
+                </step>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="done" />
+    </states>
+</flow>
