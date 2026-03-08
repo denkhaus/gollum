@@ -47,6 +47,11 @@ func NewScriggoRunner(injector do.Injector) (ScriggoRunner, error) {
 }
 
 func (p *scriggoRunnerImpl) LoadFunc(name, source string) error {
+	// Validate function name
+	if err := ValidateFuncName(name); err != nil {
+		return fmt.Errorf("invalid function name: %w", err)
+	}
+
 	// Create a file system with the function source
 	fsys := scriggo.Files{
 		"main.go": []byte(source),

@@ -96,6 +96,12 @@ func NewYaegiLoader(injector do.Injector) (YaegiLoader, error) {
 }
 
 func (p *yaegiLoaderImpl) LoadExtension(path string) (*Extension, error) {
+	// Extract and validate name
+	name := filepath.Base(path)
+	if err := ValidateExtensionName(name); err != nil {
+		return nil, fmt.Errorf("invalid extension name: %w", err)
+	}
+
 	i := interp.New(interp.Options{})
 	i.Use(stdlib.Symbols)
 
@@ -124,7 +130,6 @@ func (p *yaegiLoaderImpl) LoadExtension(path string) (*Extension, error) {
 		return nil, fmt.Errorf("Init function has wrong signature")
 	}
 
-	name := filepath.Base(path)
 	ext := &Extension{
 		Name:        name,
 		Path:        path,
