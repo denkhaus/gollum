@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/flows"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,20 +42,22 @@ func TestExecutor_SimpleFlow_ExecutesSuccessfully(t *testing.T) {
 		},
 	}
 
-	exec := NewExecutor(flow)
+	injector := setupTestDI(t)
+	svc := do.MustInvoke[FlowExecutorService](injector)
+	exec := svc.New(flow)
 	exec.SetInput(map[string]any{"message": "hello"})
 
 	// LLM step will fail but we can test state transitions
 	err := exec.Validate()
 	assert.NoError(t, err)
-	assert.Equal(t, "init", exec.currentState)
+	assert.Equal(t, "init", exec.(*flowExecutorImpl).currentState)
 
 	// Test computed field evaluation
-	exec.ctx.SetContextField("greeting", "hello")
-	err = exec.ctx.EvaluateComputedFields(flow.Context)
+	exec.(*flowExecutorImpl).ctx.SetContextField("greeting", "hello")
+	err = exec.(*flowExecutorImpl).ctx.EvaluateComputedFields(flow.Context)
 	assert.NoError(t, err)
 
-	val, ok := exec.ctx.GetContextField("is_ready")
+	val, ok := exec.(*flowExecutorImpl).ctx.GetContextField("is_ready")
 	assert.True(t, ok)
 	assert.Equal(t, true, val)
 }
@@ -73,7 +76,9 @@ func TestExecutor_ErrorHandling_TransitionsToErrorState(t *testing.T) {
 		},
 	}
 
-	exec := NewExecutor(flow)
+	injector := setupTestDI(t)
+	svc := do.MustInvoke[FlowExecutorService](injector)
+	exec := svc.New(flow)
 	err := exec.Run()
 
 	// The error state transition succeeds, so Run returns nil
@@ -81,10 +86,10 @@ func TestExecutor_ErrorHandling_TransitionsToErrorState(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify error context was set
-	val, ok := exec.ctx.GetContextField("error.step_name")
+	val, ok := exec.(*flowExecutorImpl).ctx.GetContextField("error.step_name")
 	assert.True(t, ok)
 	assert.Equal(t, "analyze", val)
 
 	// Verify we ended up in error state (or init, since it transitioned)
-	assert.True(t, exec.currentState == "error" || exec.currentState == "init")
+	assert.True(t, exec.(*flowExecutorImpl).currentState == "error" || exec.(*flowExecutorImpl).currentState == "init")
 }
