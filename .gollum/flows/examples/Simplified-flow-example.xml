@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Simplified Flow Example
+<!-- Simplified Flow Example -->
 <flow name="simplified-flow-example" version="1.0">
     <description>
         Minimal flow demonstrating core concepts.

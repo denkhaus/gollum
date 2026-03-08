@@ -41,7 +41,7 @@ Demonstr: Nested objects, computed fields, expression syntax
                   description="Target is large" />
 
         <computed name="has_errors" type="bool"
-                  when="GT(metrics.testing.errors, )"
+                  when="GT(context.metrics.testing.errors, 0)"
                   description="Has test errors" />
 
         <computed name="needs_refactor" type="bool"
@@ -49,7 +49,7 @@ Demonstr: Nested objects, computed fields, expression syntax
                   description="Needs refactoring" />
 
         <computed name="is_covered" type="bool"
-                  when="GTE(metrics.coverage.percentage, 80.0)"
+                  when="GTE(context.metrics.coverage.percentage, 80.0)"
                   description="Has good coverage" />
 
         <!-- Internal field for parsing -->
@@ -103,6 +103,23 @@ Demonstr: Nested objects, computed fields, expression syntax
                 </step>
             </steps>
 
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="error">
+            <steps>
+                <step type="llm" agent="analyzer">
+                    <prompt><![CDATA[
+                        Analysis failed for target: ${target}
+                        Error: ${last_error}
+
+                        Provide error assessment.
+                    ]]></prompt>
+                    <tools>emit_log</tools>
+                </step>
+            </steps>
             <transitions>
                 <transition to="done" />
             </transitions>

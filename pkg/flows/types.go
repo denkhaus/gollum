@@ -207,9 +207,14 @@ type Step struct {
 	Cmd       string  `xml:"cmd"`
 	Tools     string  `xml:"tools"`
 	Timeout   string  `xml:"timeout"`
-	OnError   string  `xml:"on-error,attr"`
+	OnError   *OnErrorTransition `xml:"on-error"`
 	Retry     *Retry  `xml:"retry"`
 	Output    *StepOutput `xml:"output"`
+}
+
+// OnErrorTransition defines an error handler transition
+type OnErrorTransition struct {
+	State string `xml:"state,attr"`
 }
 
 // Retry defines retry logic
@@ -233,12 +238,12 @@ type OutputPath struct {
 
 // Call invokes a sub-flow
 type Call struct {
-	Ref      string       `xml:"ref,attr"`
-	When     string       `xml:"when,attr"`
-	Timeout  string       `xml:"timeout,attr"`
-	OnError  string       `xml:"on-error,attr"`
-	Input    []CallField  `xml:"input>field"`
-	Output   []CallField  `xml:"output>field"`
+	Ref      string             `xml:"ref,attr"`
+	When     string             `xml:"when,attr"`
+	Timeout  string             `xml:"timeout,attr"`
+	OnError  *OnErrorTransition `xml:"on-error"`
+	Input    []CallField        `xml:"input>field"`
+	Output   []CallField        `xml:"output>field"`
 }
 
 // CallField maps fields for call input/output

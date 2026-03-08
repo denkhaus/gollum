@@ -97,7 +97,10 @@ func (e *ExpressionChecker) buildFieldMap(flow *flows.Flow) map[string][]string 
 		for _, f := range flow.Context.Floats {
 			fields["context"] = append(fields["context"], f.Name)
 		}
-		// Note: nested objects not fully implemented yet
+		// Add nested object fields
+		for _, obj := range flow.Context.Objects {
+			fields["context"] = append(fields["context"], obj.Name)
+		}
 	}
 
 	return fields

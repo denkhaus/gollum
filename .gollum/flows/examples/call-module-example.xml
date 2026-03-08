@@ -45,6 +45,7 @@
                     <output>
                         <field name="score" value="${complexity_score}" />
                     </output>
+                    <on-error state="error" />
                 </call>
 
                 <!-- Call module: security-scan -->

@@ -45,6 +45,7 @@ func (g *GraphChecker) Check(flow *flows.Flow, result *flows.LinterResult) {
 		// Find state and check its transitions
 		for _, state := range flow.States {
 			if state.Name == current {
+				// Check explicit transitions
 				for _, trans := range state.Transitions {
 					// Validate target exists
 					if !stateNames[trans.To] {
@@ -57,6 +58,39 @@ func (g *GraphChecker) Check(flow *flows.Flow, result *flows.LinterResult) {
 						queue = append(queue, trans.To)
 					}
 				}
+
+				// Check on-error transitions from steps
+				for _, step := range state.Steps {
+					if step.OnError != nil && step.OnError.State != "" {
+						// Validate target exists
+						if !stateNames[step.OnError.State] {
+							result.Errors = append(result.Errors, flows.LinterError{
+								Code:    flows.ErrInvalidTransition,
+								Message: "on-error transition to non-existent state: " + step.OnError.State,
+							})
+						} else if !reachable[step.OnError.State] {
+							reachable[step.OnError.State] = true
+							queue = append(queue, step.OnError.State)
+						}
+					}
+				}
+
+				// Check on-error transitions from calls
+				for _, call := range state.Calls {
+					if call.OnError != nil && call.OnError.State != "" {
+						// Validate target exists
+						if !stateNames[call.OnError.State] {
+							result.Errors = append(result.Errors, flows.LinterError{
+								Code:    flows.ErrInvalidTransition,
+								Message: "on-error transition to non-existent state: " + call.OnError.State,
+							})
+						} else if !reachable[call.OnError.State] {
+							reachable[call.OnError.State] = true
+							queue = append(queue, call.OnError.State)
+						}
+					}
+				}
+
 				break
 			}
 		}
