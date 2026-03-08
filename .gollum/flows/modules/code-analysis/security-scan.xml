@@ -3,6 +3,15 @@
 <flow name="security-scan" version="1.0">
     <description>Internal flow: Security vulnerability scanning.</description>
 
+    <input>
+        <string name="target_dir" required="true" />
+        <string name="scan_type" default="full" />
+    </input>
+
+    <output>
+        <int name="issues" />
+    </output>
+
     <context>
         <string name="target_dir" required="true" />
         <string name="scan_type" default="full" />

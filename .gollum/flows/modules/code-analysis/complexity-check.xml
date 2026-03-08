@@ -3,6 +3,14 @@
 <flow name="complexity-check" version="1.0">
     <description>Internal flow: Calculate code complexity score.</description>
 
+    <input>
+        <string name="target_dir" required="true" />
+    </input>
+
+    <output>
+        <int name="score" />
+    </output>
+
     <context>
         <string name="target_dir" required="true" />
         <int name="score" />
