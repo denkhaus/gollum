@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/flows"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,11 +24,13 @@ func TestExecuteLLMStep_SubstitutesPrompt(t *testing.T) {
 		},
 	}
 
-	exec := NewExecutor(flow)
+	injector := setupTestDI(t)
+	svc := do.MustInvoke[FlowExecutorService](injector)
+	exec := svc.New(flow)
 	exec.SetInput(map[string]any{"pr_number": 123})
 
 	step := &flows.Step{Type: "llm", Agent: "worker", Prompt: "Analyze PR #${input.pr_number}"}
-	err := exec.executeStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeStep(step, "init")
 
 	// Should get error about LLM execution not being fully implemented, but prompt substitution should work
 	assert.Error(t, err)
@@ -44,9 +47,11 @@ func TestExecuteLLMStep_ValidatesAgentExists(t *testing.T) {
 		},
 	}
 
-	exec := NewExecutor(flow)
+	injector := setupTestDI(t)
+	svc := do.MustInvoke[FlowExecutorService](injector)
+	exec := svc.New(flow)
 	step := &flows.Step{Type: "llm", Agent: "nonexistent"}
-	err := exec.executeStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeStep(step, "init")
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "agent not found")
