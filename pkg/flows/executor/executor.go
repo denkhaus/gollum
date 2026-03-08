@@ -166,10 +166,32 @@ func (e *Executor) transitionTo(stateName string) error {
 	return e.executeState(targetState)
 }
 
-// executeStep executes a single step (placeholder)
+// executeStep executes a single step
 func (e *Executor) executeStep(step *flows.Step, stateName string) error {
-	// TODO: Implement step execution in next tasks
-	return fmt.Errorf("step execution not implemented")
+	switch step.Type {
+	case "llm":
+		return e.executeLLMStep(step, stateName)
+	case "shell":
+		return e.executeShellStep(step, stateName)
+	case "func":
+		return e.executeFuncStep(step, stateName)
+	case "mcp":
+		return e.executeMCPStep(step, stateName)
+	default:
+		return fmt.Errorf("unknown step type: %s", step.Type)
+	}
+}
+
+func (e *Executor) executeShellStep(step *flows.Step, stateName string) error {
+	return fmt.Errorf("shell step execution not yet implemented")
+}
+
+func (e *Executor) executeFuncStep(step *flows.Step, stateName string) error {
+	return fmt.Errorf("func step execution not yet implemented")
+}
+
+func (e *Executor) executeMCPStep(step *flows.Step, stateName string) error {
+	return fmt.Errorf("mcp step execution not yet implemented")
 }
 
 // executeCall executes a call step (placeholder)
