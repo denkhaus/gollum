@@ -14,6 +14,20 @@ import (
 //
 // This is deferred pending MCP client infrastructure.
 // The tests below show the expected interface.
+//
+// When implementing, update tests to use DI pattern:
+// injector := setupTestDI(t)
+// svc := do.MustInvoke[FlowExecutorService](injector)
+// exec := svc.New(flow)
+
+// NOTE: MCP Step implementation requires:
+// 1. MCP client registry (similar to FlowRegistry)
+// 2. Tool discovery (list available tools from MCP servers)
+// 3. Tool execution with parameter marshaling
+// 4. Error handling for MCP-specific errors
+//
+// This is deferred pending MCP client infrastructure.
+// The tests below show the expected interface.
 
 func TestExecuteMCPStep_ToolCall(t *testing.T) {
 	t.Skip("MCP step requires MCP client registry - deferred")
