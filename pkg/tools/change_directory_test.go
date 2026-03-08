@@ -287,12 +287,22 @@ func TestChangeDirectoryToolProvider_CreateTool(t *testing.T) {
 		t.Fatal("Expected non-nil tool")
 	}
 
-	if tool.logService == nil {
-		t.Error("Expected tool to have logService")
+	// Test through interface - check Spec()
+	spec := tool.Spec()
+	if spec.Name != shared.ToolNameChangeDirectory.String() {
+		t.Errorf("Expected tool name '%s', got '%s'", shared.ToolNameChangeDirectory, spec.Name)
 	}
 
-	if tool.agentID != testUUID {
-		t.Errorf("Expected agentID %v, got %v", testUUID, tool.agentID)
+	// Type assert to concrete type for internal field testing
+	if toolImpl, ok := tool.(*changeDirectoryToolImpl); ok {
+		if toolImpl.logService == nil {
+			t.Error("Expected tool to have logService")
+		}
+		if toolImpl.agentID != testUUID {
+			t.Errorf("Expected agentID %v, got %v", testUUID, toolImpl.agentID)
+		}
+	} else {
+		t.Error("Expected tool to be *changeDirectoryToolImpl")
 	}
 }
 
