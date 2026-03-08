@@ -1,7 +1,9 @@
 package extensions
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/native"
@@ -76,16 +78,62 @@ func (p *scriggoRunnerImpl) LoadFunc(name, source string) error {
 }
 
 func (p *scriggoRunnerImpl) ExecuteFunc(name string, args map[string]any) (any, error) {
-	program, ok := p.funcs[name]
+	return p.ExecuteFuncWithContext(context.Background(), name, args)
+}
+
+// ExecuteFuncWithContext executes a function with timeout support
+func (p *scriggoRunnerImpl) ExecuteFuncWithContext(ctx context.Context, name string, args map[string]any) (any, error) {
+	fn, ok := p.funcs[name]
 	if !ok {
 		return nil, fmt.Errorf("%w: %s", ErrFuncNotFound, name)
 	}
 
-	// Execute the program (args not supported in current Scriggo API)
+	// Check for timeout in context
+	deadline, ok := ctx.Deadline()
+	if ok {
+		// Create timeout channel
+		timeout := time.Until(deadline)
+		if timeout <= 0 {
+			return nil, fmt.Errorf("timeout exceeded before execution")
+		}
+
+		// Execute with timeout
+		resultChan := make(chan any, 1)
+		errChan := make(chan error, 1)
+
+		go func() {
+			// Note: Scriggo v0.61.0 doesn't support context cancellation
+			// This is a best-effort implementation
+			result, err := p.runProgram(fn, args)
+			if err != nil {
+				errChan <- err
+			} else {
+				resultChan <- result
+			}
+		}()
+
+		select {
+		case result := <-resultChan:
+			return result, nil
+		case err := <-errChan:
+			return nil, fmt.Errorf("%w: %v", ErrExecFailed, err)
+		case <-ctx.Done():
+			return nil, fmt.Errorf("execution timeout")
+		}
+	}
+
+	// No timeout, execute directly
+	return p.runProgram(fn, args)
+}
+
+// runProgram is a helper that runs the compiled program
+func (p *scriggoRunnerImpl) runProgram(fn *scriggo.Program, args map[string]any) (any, error) {
+	// Execute the program
+	// Note: args are not supported in current Scriggo API
 	// Programs run main() function directly
-	err := program.Run(nil)
+	err := fn.Run(nil)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrExecFailed, err)
+		return nil, err
 	}
 
 	// Scriggo programs don't return values directly
