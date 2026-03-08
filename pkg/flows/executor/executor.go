@@ -349,40 +349,6 @@ func extractFieldName(assign string) string {
 }
 
 func (p *flowExecutorImpl) executeFuncStep(step *flows.Step, stateName string) error {
-	// Check if extension service is available
-	if p.extService == nil {
-		// Fall back to built-in registry for backwards compatibility
-		reg := flowregistry.GetBuiltinRegistry()
-
-		// Build args map from step params with template substitution
-		args := make(map[string]any)
-		for _, param := range step.Params {
-			// Substitute template variables in parameter value
-			value := p.substituteTemplate(param.Value)
-			args[param.Name] = value
-		}
-
-		// Execute the function
-		result, err := reg.Execute(step.Function, args)
-		if err != nil {
-			return &FuncError{
-				Function: step.Function,
-				Step:     stateName,
-				Err:      err,
-			}
-		}
-
-		// Map result to output field
-		if step.Output != nil {
-			if step.Output.Assign != "" {
-				fieldName := extractFieldName(step.Output.Assign)
-				p.ctx.SetOutputField(fieldName, result)
-			}
-		}
-
-		return nil
-	}
-
 	// Use Scriggo runner from extension service
 	funcRunner := p.extService.GetFuncRunner()
 
