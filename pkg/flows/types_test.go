@@ -28,6 +28,11 @@ func TestInputBlock_HasRequiredAndType(t *testing.T) {
 
 	fields := input.GetAllFields()
 	assert.Len(t, fields, 2)
-	assert.True(t, fields[0].Required)
-	assert.Equal(t, "denkhaus", fields[1].Default)
+
+	// Strings come first, then Ints (per implementation order)
+	assert.Equal(t, "repo_owner", fields[0].Name)
+	assert.Equal(t, "denkhaus", fields[0].Default)
+
+	assert.Equal(t, "pr_number", fields[1].Name)
+	assert.True(t, fields[1].Required)
 }

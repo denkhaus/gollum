@@ -30,28 +30,58 @@ type InputBlock struct {
 func (i *InputBlock) GetAllFields() []FieldDef {
 	var fields []FieldDef
 	for _, f := range i.Strings {
-		f.Type = "string"
-		fields = append(fields, f)
+		fields = append(fields, FieldDef{
+			XMLName:  f.XMLName,
+			Name:     f.Name,
+			Type:     "string",
+			Required: f.Required,
+			Default:  f.Default,
+		})
 	}
 	for _, f := range i.Ints {
-		f.Type = "int"
-		fields = append(fields, f)
+		fields = append(fields, FieldDef{
+			XMLName:  f.XMLName,
+			Name:     f.Name,
+			Type:     "int",
+			Required: f.Required,
+			Default:  f.Default,
+		})
 	}
 	for _, f := range i.Bools {
-		f.Type = "bool"
-		fields = append(fields, f)
+		fields = append(fields, FieldDef{
+			XMLName:  f.XMLName,
+			Name:     f.Name,
+			Type:     "bool",
+			Required: f.Required,
+			Default:  f.Default,
+		})
 	}
 	for _, f := range i.Floats {
-		f.Type = "float"
-		fields = append(fields, f)
+		fields = append(fields, FieldDef{
+			XMLName:  f.XMLName,
+			Name:     f.Name,
+			Type:     "float",
+			Required: f.Required,
+			Default:  f.Default,
+		})
 	}
 	for _, f := range i.Arrays {
-		f.Type = "array"
-		fields = append(fields, f)
+		fields = append(fields, FieldDef{
+			XMLName:  f.XMLName,
+			Name:     f.Name,
+			Type:     "array",
+			Required: f.Required,
+			Default:  f.Default,
+		})
 	}
 	for _, f := range i.Maps {
-		f.Type = "map"
-		fields = append(fields, f)
+		fields = append(fields, FieldDef{
+			XMLName:  f.XMLName,
+			Name:     f.Name,
+			Type:     "map",
+			Required: f.Required,
+			Default:  f.Default,
+		})
 	}
 	for _, obj := range i.Objects {
 		fields = append(fields, FieldDef{
@@ -59,6 +89,7 @@ func (i *InputBlock) GetAllFields() []FieldDef {
 			Name:     obj.Name,
 			Type:     "object",
 			Required: false,
+			Default:  obj.Default,
 		})
 	}
 	return fields
