@@ -382,13 +382,8 @@ func (p *flowExecutorImpl) executeMCPStep(step *flows.Step, stateName string) er
 	return fmt.Errorf("mcp step execution not yet implemented")
 }
 
-// executeCall executes a call step (placeholder)
+// executeCall executes a call step (sub-flow invocation)
 func (p *flowExecutorImpl) executeCall(call *flows.Call, stateName string) error {
-	// Check if registry is available
-	if p.flowRegistry == nil {
-		return fmt.Errorf("flow registry not configured - cannot execute call step")
-	}
-
 	// Look up the sub-flow
 	subFlow, err := p.flowRegistry.GetFlow(call.Ref)
 	if err != nil {
