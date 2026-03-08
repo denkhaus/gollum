@@ -185,9 +185,45 @@ func (p *extensionServiceImpl) loadFuncSteps() error {
 func (p *extensionServiceImpl) loadExtensions() error {
 	dirs := p.getExtensionsDirs()
 	for _, dir := range dirs {
-		// Load extension subdirectories
-		// Implementation will be added in next tasks
 		p.logService.Debugf("Scanning for extensions in: %s", dir)
+
+		// Check if directory exists
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			p.logService.Debugf("Directory does not exist: %s", dir)
+			continue
+		}
+
+		// Read directory entries
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			p.logService.Warnf("Failed to read directory %s: %v", dir, err)
+			continue
+		}
+
+		// Load each subdirectory as an extension
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+
+			extPath := filepath.Join(dir, entry.Name())
+			p.logService.Debugf("Loading extension from: %s", extPath)
+
+			// Load extension
+			ext, err := p.yaegiLoader.LoadExtension(extPath)
+			if err != nil {
+				p.logService.Warnf("Failed to load extension %s: %v", entry.Name(), err)
+				continue
+			}
+
+			// Initialize extension
+			if err := p.yaegiLoader.InitExtension(ext); err != nil {
+				p.logService.Warnf("Failed to initialize extension %s: %v", ext.Name, err)
+				continue
+			}
+
+			p.logService.Infof("Loaded extension: %s", ext.Name)
+		}
 	}
 	return nil
 }

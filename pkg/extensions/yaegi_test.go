@@ -2,6 +2,8 @@ package extensions
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/samber/do/v2"
@@ -30,6 +32,9 @@ func TestYaegiLoader_LoadExtension_NameExtraction(t *testing.T) {
 
 	yaegiLoader := loader.(*yaegiLoaderImpl)
 
+	// Create temporary directories for testing
+	tempDir := t.TempDir()
+
 	tests := []struct {
 		name        string
 		path        string
@@ -37,29 +42,55 @@ func TestYaegiLoader_LoadExtension_NameExtraction(t *testing.T) {
 	}{
 		{
 			name:        "simple directory",
-			path:        "/path/to/myextension",
+			path:        filepath.Join(tempDir, "myextension"),
 			expectedExt: "myextension",
 		},
 		{
 			name:        "nested path",
-			path:        "/home/user/extensions/testext",
+			path:        filepath.Join(tempDir, "testext"),
 			expectedExt: "testext",
 		},
 		{
 			name:        "relative path",
-			path:        "./extensions/sample",
+			path:        filepath.Join(tempDir, "sample"),
 			expectedExt: "sample",
 		},
 	}
 
+	// Create extension main.go files with a valid Init function
+	// Note: Must be package main for Yaegi to load properly
+	mainGoContent := `
+package main
+
+import "fmt"
+
+func Init() error {
+	fmt.Println("Extension initialized")
+	return nil
+}
+`
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Create directory
+			err := os.Mkdir(tt.path, 0755)
+			require.NoError(t, err)
+
+			// Create main.go
+			mainPath := filepath.Join(tt.path, "main.go")
+			err = os.WriteFile(mainPath, []byte(mainGoContent), 0644)
+			require.NoError(t, err)
+
+			// Clean up directory after test
+			defer os.RemoveAll(tt.path)
+
 			ext, err := yaegiLoader.LoadExtension(tt.path)
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedExt, ext.Name)
 			assert.Equal(t, tt.path, ext.Path)
 			assert.Equal(t, StateLoaded, ext.State)
 			assert.NotNil(t, ext.Interpreter)
+			assert.NotNil(t, ext.InitFunc)
 		})
 	}
 }

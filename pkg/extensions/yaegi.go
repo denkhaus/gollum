@@ -106,16 +106,30 @@ func (p *yaegiLoaderImpl) LoadExtension(path string) (*Extension, error) {
 		},
 	})
 
-	// Extract extension name from path
-	name := filepath.Base(path)
+	// Load main.go
+	mainPath := filepath.Join(path, "main.go")
+	_, err := i.EvalPath(mainPath)
+	if err != nil {
+		return nil, fmt.Errorf("extension load: %w", err)
+	}
 
-	// Create extension with placeholder InitFunc
-	// Actual main.go loading will be implemented in Task 3.2
+	// Extract Init function
+	initFnVal, err := i.Eval("Init")
+	if err != nil {
+		return nil, fmt.Errorf("missing Init function: %w", err)
+	}
+
+	initFn, ok := initFnVal.Interface().(func() error)
+	if !ok {
+		return nil, fmt.Errorf("Init function has wrong signature")
+	}
+
+	name := filepath.Base(path)
 	ext := &Extension{
 		Name:        name,
 		Path:        path,
 		Interpreter: i,
-		InitFunc:    func() error { return nil }, // Placeholder
+		InitFunc:    initFn,
 		Hooks:       make(map[string]interface{}),
 		State:       StateLoaded,
 		LoadedAt:    time.Now(),
