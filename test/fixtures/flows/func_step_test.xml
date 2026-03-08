@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow name="func-step-test" version="1.0">
+    <input>
+        <string name="value" required="true"/>
+    </input>
+
+    <output>
+        <string name="result"/>
+    </output>
+
+    <states>
+        <state name="process" initial="true">
+            <steps>
+                <step type="func" function="Double">
+                    <params>
+                        <param name="x" value="${input.value}"/>
+                    </params>
+                    <output assign="${output.result}"/>
+                </step>
+            </steps>
+        </state>
+    </states>
+</flow>
