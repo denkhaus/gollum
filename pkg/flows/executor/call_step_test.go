@@ -3,7 +3,11 @@ package executor
 import (
 	"testing"
 
+	"github.com/denkhaus/gollum/pkg/extensions"
 	"github.com/denkhaus/gollum/pkg/flows"
+	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
+	"github.com/denkhaus/gollum/pkg/tools"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -72,16 +76,23 @@ func TestExecuteCall_SimpleFlowCall(t *testing.T) {
 	registry := NewSimpleFlowRegistry()
 	registry.Register("subflow", subFlow)
 
-	// Create executor with registry
-	exec := NewExecutorWithRegistry(mainFlow, registry)
+	// Create executor with registry using DI
+	injector := do.New()
+	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
+	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
+	do.ProvideValue(injector, flowregistry.FlowRegistry(registry))
+	do.Provide(injector, NewFlowExecutor)
+
+	svc := do.MustInvoke[FlowExecutorService](injector)
+	exec := svc.New(mainFlow)
 	exec.SetInput(map[string]any{"message": "hello"})
 
 	// Execute the call
 	call := &mainFlow.States[0].Calls[0]
-	err := exec.executeCall(call, "init")
+	err := exec.(*flowExecutorImpl).executeCall(call, "init")
 
 	require.NoError(t, err)
-	result, ok := exec.ctx.GetOutputField("output")
+	result, ok := exec.(*flowExecutorImpl).ctx.GetOutputField("output")
 	require.True(t, ok)
 	assert.Equal(t, "HELLO", result)
 }
@@ -158,14 +169,22 @@ func TestExecuteCall_MultipleInputFields(t *testing.T) {
 	registry := NewSimpleFlowRegistry()
 	registry.Register("concat", subFlow)
 
-	exec := NewExecutorWithRegistry(mainFlow, registry)
+	// Create executor with registry using DI
+	injector := do.New()
+	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
+	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
+	do.ProvideValue(injector, flowregistry.FlowRegistry(registry))
+	do.Provide(injector, NewFlowExecutor)
+
+	svc := do.MustInvoke[FlowExecutorService](injector)
+	exec := svc.New(mainFlow)
 	exec.SetInput(map[string]any{"greeting": "Hello", "name": "World"})
 
 	call := &mainFlow.States[0].Calls[0]
-	err := exec.executeCall(call, "init")
+	err := exec.(*flowExecutorImpl).executeCall(call, "init")
 
 	require.NoError(t, err)
-	result, ok := exec.ctx.GetOutputField("message")
+	result, ok := exec.(*flowExecutorImpl).ctx.GetOutputField("message")
 	require.True(t, ok)
 	// Note: fmt.Sprintf with the args parameter doesn't work as expected with current registry implementation
 	// This test might need adjustment based on how fmt.Sprintf is implemented
