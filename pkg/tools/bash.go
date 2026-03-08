@@ -22,8 +22,8 @@ import (
 )
 
 type (
-	// BashTool executes bash commands
-	BashTool struct {
+	// bashToolImpl executes bash commands
+	bashToolImpl struct {
 		logService   logger.LoggerService
 		agentID      uuid.UUID
 		bashCfg      *config.BashConfig
@@ -34,7 +34,7 @@ type (
 
 	// BashToolProvider creates BashTool instances via DI
 	BashToolProvider interface {
-		CreateTool(agentID uuid.UUID) *BashTool
+		CreateTool(agentID uuid.UUID) gollem.Tool
 	}
 
 	bashToolProvider struct {
@@ -64,8 +64,8 @@ func NewBashToolProvider(injector do.Injector) (BashToolProvider, error) {
 }
 
 // CreateBashTool creates a new BashTool with agent ID
-func (p *bashToolProvider) CreateTool(agentID uuid.UUID) *BashTool {
-	return &BashTool{
+func (p *bashToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+	return &bashToolImpl{
 		logService:   p.logService,
 		agentID:      agentID,
 		bashCfg:      p.bashCfg,
@@ -76,7 +76,7 @@ func (p *bashToolProvider) CreateTool(agentID uuid.UUID) *BashTool {
 }
 
 // Spec returns the tool specification for the Bash tool
-func (t *BashTool) Spec() gollem.ToolSpec {
+func (t *bashToolImpl) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
 		Name:        shared.ToolNameBash.String(),
 		Description: "Executes bash commands and returns the output. Useful for running shell commands, scripts, and system operations.",
@@ -94,7 +94,7 @@ func (t *BashTool) Spec() gollem.ToolSpec {
 }
 
 // Run executes the Bash tool to run shell commands
-func (t *BashTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *bashToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameBash, args,
 		func() (map[string]any, error) {
 			return t.runBashCommand(ctx, args)
@@ -102,7 +102,7 @@ func (t *BashTool) Run(ctx context.Context, args map[string]any) (map[string]any
 }
 
 // runBashCommand implements the core bash command logic
-func (t *BashTool) runBashCommand(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *bashToolImpl) runBashCommand(ctx context.Context, args map[string]any) (map[string]any, error) {
 	command, ok := args["command"].(string)
 	if !ok || command == "" {
 		return map[string]any{

@@ -73,7 +73,8 @@
       "Bash(/usr/bin/tmux capture-pane:*)",
       "Bash(/usr/bin/tmux list-windows:*)",
       "Bash(wt list:*)",
-      "Bash(/usr/bin/tmux kill-pane:*)"
+      "Bash(/usr/bin/tmux kill-pane:*)",
+      "Bash(go mod:*)"
     ],
     "deny": [],
     "ask": []

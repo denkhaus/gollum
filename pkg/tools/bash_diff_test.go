@@ -42,7 +42,7 @@ func TestBashTool_Run_WithDiffIntegration_FileModification(t *testing.T) {
 	err := os.WriteFile(testFile, []byte(initialContent), 0644)
 	require.NoError(t, err)
 
-	tool := &BashTool{
+	tool := &bashToolImpl{
 		logService:   logService,
 		fileState:    mockFSM,
 		agentID:      agentID,
@@ -78,8 +78,8 @@ func TestBashTool_Run_WithDiffIntegration_FileModification(t *testing.T) {
 	// Mock diff provider methods
 	expectedDiff := "--- " + absPath + "\n+++ " + absPath + "\n@@ -1,1 +1,1 @@\n-old content\n+new content"
 	mockDiffProvider.EXPECT().GenerateDiff(absPath, absPath, "", "new content\n").Return(expectedDiff, nil)
-	mockDiffProvider.EXPECT().FormatForDisplay(expectedDiff).Return("formatted: "+expectedDiff)
-	mockDiffProvider.EXPECT().FormatCompact(expectedDiff).Return("compact: "+expectedDiff)
+	mockDiffProvider.EXPECT().FormatForDisplay(expectedDiff).Return("formatted: " + expectedDiff)
+	mockDiffProvider.EXPECT().FormatCompact(expectedDiff).Return("compact: " + expectedDiff)
 
 	// Execute the tool - this will actually run the bash command
 	// which modifies the file, then DetectChanges is called, then diff is generated
@@ -120,7 +120,7 @@ func TestBashTool_Run_WithDiffIntegration_FileCreation(t *testing.T) {
 	newFile := filepath.Join(tmpDir, "new.txt")
 	absPath := newFile
 
-	tool := &BashTool{
+	tool := &bashToolImpl{
 		logService:   logService,
 		fileState:    mockFSM,
 		agentID:      agentID,
@@ -152,8 +152,8 @@ func TestBashTool_Run_WithDiffIntegration_FileCreation(t *testing.T) {
 	newContent := "new file content\n"
 	expectedDiff := "--- /dev/null\n+++ " + absPath + "\n@@ -0,0 +1,1 @@\n+" + newContent
 	mockDiffProvider.EXPECT().GenerateDiffForNewFile(absPath, newContent).Return(expectedDiff, nil)
-	mockDiffProvider.EXPECT().FormatForDisplay(expectedDiff).Return("formatted: "+expectedDiff)
-	mockDiffProvider.EXPECT().FormatCompact(expectedDiff).Return("compact: "+expectedDiff)
+	mockDiffProvider.EXPECT().FormatForDisplay(expectedDiff).Return("formatted: " + expectedDiff)
+	mockDiffProvider.EXPECT().FormatCompact(expectedDiff).Return("compact: " + expectedDiff)
 
 	// Execute the tool - this will create the file
 	result, err := tool.Run(ctx, map[string]any{
@@ -188,7 +188,7 @@ func TestBashTool_Run_WithDiffIntegration_NoFileChanges(t *testing.T) {
 
 	agentID := uuid.New()
 
-	tool := &BashTool{
+	tool := &bashToolImpl{
 		logService:   logService,
 		fileState:    mockFSM,
 		agentID:      agentID,
@@ -247,7 +247,7 @@ func TestBashTool_Run_WithDiffIntegration_MultipleFileChanges(t *testing.T) {
 	err = os.WriteFile(testFile2, []byte("old content"), 0644)
 	require.NoError(t, err)
 
-	tool := &BashTool{
+	tool := &bashToolImpl{
 		logService:   logService,
 		fileState:    mockFSM,
 		agentID:      agentID,

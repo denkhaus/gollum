@@ -16,9 +16,9 @@ import (
 )
 
 type (
-	// ChangeDirectoryTool changes the current working directory and publishes an event
+	// changeDirectoryToolImpl changes the current working directory and publishes an event
 	// Services subscribe to the event to update their state (workspace, skills, etc.)
-	ChangeDirectoryTool struct {
+	changeDirectoryToolImpl struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		eventBus    events.Bus
@@ -27,7 +27,7 @@ type (
 
 	// ChangeDirectoryToolProvider creates ChangeDirectoryTool instances via DI
 	ChangeDirectoryToolProvider interface {
-		CreateTool(agentID uuid.UUID) *ChangeDirectoryTool
+		CreateTool(agentID uuid.UUID) gollem.Tool
 	}
 
 	changeDirectoryToolProvider struct {
@@ -51,8 +51,8 @@ func NewChangeDirectoryToolProvider(injector do.Injector) (ChangeDirectoryToolPr
 }
 
 // CreateTool creates a new ChangeDirectoryTool with agent ID
-func (p *changeDirectoryToolProvider) CreateTool(agentID uuid.UUID) *ChangeDirectoryTool {
-	return &ChangeDirectoryTool{
+func (p *changeDirectoryToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+	return &changeDirectoryToolImpl{
 		logService:  p.logService,
 		hookManager: p.hookManager,
 		eventBus:    p.eventBus,
@@ -61,7 +61,7 @@ func (p *changeDirectoryToolProvider) CreateTool(agentID uuid.UUID) *ChangeDirec
 }
 
 // Run executes the ChangeDirectory tool
-func (t *ChangeDirectoryTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *changeDirectoryToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameChangeDirectory, args,
 		func() (map[string]any, error) {
 			return t.runChangeDirectory(ctx, args)
@@ -71,7 +71,7 @@ func (t *ChangeDirectoryTool) Run(ctx context.Context, args map[string]any) (map
 // runChangeDirectory implements the core ChangeDirectory logic
 // It only validates, changes the actual directory, and publishes an event.
 // Services (WorkspaceService, SkillService) subscribe to the event to update their state.
-func (t *ChangeDirectoryTool) runChangeDirectory(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *changeDirectoryToolImpl) runChangeDirectory(ctx context.Context, args map[string]any) (map[string]any, error) {
 	// Get path from args
 	path, ok := args["path"].(string)
 	if !ok || path == "" {
@@ -159,7 +159,7 @@ func resolvePath(path string) (string, error) {
 }
 
 // Spec returns the tool specification for the ChangeDirectory tool
-func (t *ChangeDirectoryTool) Spec() gollem.ToolSpec {
+func (t *changeDirectoryToolImpl) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
 		Name:        shared.ToolNameChangeDirectory.String(),
 		Description: "Changes the current working directory, updates workspace configuration, and triggers automatic skill discovery in the new directory. Use this tool to switch between different project workspaces.",

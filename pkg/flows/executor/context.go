@@ -196,13 +196,24 @@ func (c *Context) buildScope() map[string]any {
 		scope["input"] = inputScope
 	}
 
-	// Build context scope
+	// Build context scope (non-output fields)
 	contextScope := make(map[string]any)
+	// Build output scope
+	outputScope := make(map[string]any)
 	for k, v := range c.values {
-		contextScope[k] = v
+		// Output fields are stored with "output." prefix
+		if len(k) > 7 && k[:7] == "output." {
+			fieldName := k[7:] // Remove "output." prefix
+			outputScope[fieldName] = v
+		} else {
+			contextScope[k] = v
+		}
 	}
 	if len(contextScope) > 0 {
 		scope["context"] = contextScope
+	}
+	if len(outputScope) > 0 {
+		scope["output"] = outputScope
 	}
 
 	return scope

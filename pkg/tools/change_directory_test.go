@@ -47,7 +47,7 @@ func TestChangeDirectoryTool_Run_ValidDirectory(t *testing.T) {
 	// Set up expectations - only event publishing
 	mockEventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil)
 
-	tool := &ChangeDirectoryTool{
+	tool := &changeDirectoryToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		eventBus:    mockEventBus,
@@ -86,7 +86,7 @@ func TestChangeDirectoryTool_Run_MissingPath(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &ChangeDirectoryTool{
+	tool := &changeDirectoryToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		agentID:     uuid.New(),
@@ -109,7 +109,7 @@ func TestChangeDirectoryTool_Run_EmptyPath(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &ChangeDirectoryTool{
+	tool := &changeDirectoryToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		agentID:     uuid.New(),
@@ -134,7 +134,7 @@ func TestChangeDirectoryTool_Run_NonexistentDirectory(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &ChangeDirectoryTool{
+	tool := &changeDirectoryToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		agentID:     uuid.New(),
@@ -159,7 +159,7 @@ func TestChangeDirectoryTool_Run_FileNotDirectory(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &ChangeDirectoryTool{
+	tool := &changeDirectoryToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		agentID:     uuid.New(),
@@ -217,7 +217,7 @@ func TestChangeDirectoryTool_Run_RelativePath(t *testing.T) {
 	// Set up expectations - only event publishing
 	mockEventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil)
 
-	tool := &ChangeDirectoryTool{
+	tool := &changeDirectoryToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		eventBus:    mockEventBus,
@@ -243,7 +243,7 @@ func TestChangeDirectoryTool_Run_RelativePath(t *testing.T) {
 // not by the tool directly. The tool only publishes events.
 
 func TestChangeDirectoryTool_Spec(t *testing.T) {
-	tool := &ChangeDirectoryTool{}
+	tool := &changeDirectoryToolImpl{}
 
 	spec := tool.Spec()
 

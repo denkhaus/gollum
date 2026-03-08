@@ -207,6 +207,7 @@ type Step struct {
 	Cmd       string  `xml:"cmd"`
 	Tools     string  `xml:"tools"`
 	Timeout   string  `xml:"timeout"`
+	Params    []StepParam `xml:"params>param"`
 	OnError   *OnErrorTransition `xml:"on-error"`
 	Retry     *Retry  `xml:"retry"`
 	Output    *StepOutput `xml:"output"`
@@ -234,6 +235,13 @@ type OutputPath struct {
 	XMLName xml.Name
 	Path    string `xml:"path,attr"`
 	Assign  string `xml:"assign,attr"`
+}
+
+// StepParam defines a parameter for func steps
+type StepParam struct {
+	XMLName xml.Name
+	Name    string `xml:"name,attr"`
+	Value   string `xml:"value,attr"`
 }
 
 // Call invokes a sub-flow

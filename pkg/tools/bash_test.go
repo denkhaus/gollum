@@ -16,7 +16,7 @@ import (
 
 // createBashToolForTesting creates a BashTool with mocked dependencies for testing.
 // This follows the DI pattern guideline: tests create tools directly with their own mock dependencies.
-func createBashToolForTesting(t *testing.T, ctrl *gomock.Controller) *BashTool {
+func createBashToolForTesting(t *testing.T, ctrl *gomock.Controller) *bashToolImpl {
 	t.Helper()
 
 	injector := setupTestInjector()
@@ -26,7 +26,7 @@ func createBashToolForTesting(t *testing.T, ctrl *gomock.Controller) *BashTool {
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	return &BashTool{
+	return &bashToolImpl{
 		logService:   logService,
 		fileState:    mockFSM,
 		agentID:      uuid.New(),
