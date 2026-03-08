@@ -59,3 +59,20 @@ func TestParseAllExamples(t *testing.T) {
 		})
 	}
 }
+
+func TestParseSimpleFlow_InputFieldTypes(t *testing.T) {
+	root := filepath.Join("..", "..", "..")
+	path := filepath.Join(root, ".gollum", "flows", "examples", "simple-flow.xml")
+
+	flow, err := Parse(path)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, flow.Input)
+
+	// simple-flow.xml has: <string name="target" required="true" />
+	fields := flow.Input.GetAllFields()
+	assert.Len(t, fields, 1, "should have 1 input field")
+	assert.Equal(t, "target", fields[0].Name)
+	assert.Equal(t, "string", fields[0].Type)
+	assert.True(t, fields[0].Required)
+}

@@ -17,18 +17,109 @@ type Flow struct {
 
 // InputBlock defines the flow's input interface
 type InputBlock struct {
-	Fields []FieldDef `xml:",any"`
+	Strings  []FieldDef `xml:"string"`
+	Ints     []FieldDef `xml:"int"`
+	Bools    []FieldDef `xml:"bool"`
+	Floats   []FieldDef `xml:"float"`
+	Arrays   []FieldDef `xml:"array"`
+	Maps     []FieldDef `xml:"map"`
+	Objects  []ObjectDef `xml:"object"`
+}
+
+// GetAllFields returns all input fields as a slice
+func (i *InputBlock) GetAllFields() []FieldDef {
+	var fields []FieldDef
+	for _, f := range i.Strings {
+		f.Type = "string"
+		fields = append(fields, f)
+	}
+	for _, f := range i.Ints {
+		f.Type = "int"
+		fields = append(fields, f)
+	}
+	for _, f := range i.Bools {
+		f.Type = "bool"
+		fields = append(fields, f)
+	}
+	for _, f := range i.Floats {
+		f.Type = "float"
+		fields = append(fields, f)
+	}
+	for _, f := range i.Arrays {
+		f.Type = "array"
+		fields = append(fields, f)
+	}
+	for _, f := range i.Maps {
+		f.Type = "map"
+		fields = append(fields, f)
+	}
+	for _, obj := range i.Objects {
+		fields = append(fields, FieldDef{
+			XMLName:  obj.XMLName,
+			Name:     obj.Name,
+			Type:     "object",
+			Required: false,
+		})
+	}
+	return fields
 }
 
 // OutputBlock defines the flow's output interface
 type OutputBlock struct {
-	Fields []FieldDef `xml:",any"`
+	Strings  []FieldDef `xml:"string"`
+	Ints     []FieldDef `xml:"int"`
+	Bools    []FieldDef `xml:"bool"`
+	Floats   []FieldDef `xml:"float"`
+	Objects  []ObjectDef `xml:"object"`
+}
+
+// GetAllFields returns all output fields as a slice
+func (o *OutputBlock) GetAllFields() []FieldDef {
+	var fields []FieldDef
+	for _, f := range o.Strings {
+		f.Type = "string"
+		fields = append(fields, f)
+	}
+	for _, f := range o.Ints {
+		f.Type = "int"
+		fields = append(fields, f)
+	}
+	for _, f := range o.Bools {
+		f.Type = "bool"
+		fields = append(fields, f)
+	}
+	for _, f := range o.Floats {
+		f.Type = "float"
+		fields = append(fields, f)
+	}
+	for _, obj := range o.Objects {
+		fields = append(fields, FieldDef{
+			XMLName:  obj.XMLName,
+			Name:     obj.Name,
+			Type:     "object",
+			Required: false,
+		})
+	}
+	return fields
 }
 
 // ContextBlock defines internal context fields
 type ContextBlock struct {
-	Fields       []ContextField `xml:",any"`
-	Computeds    []ComputedField `xml:"computed"`
+	Strings   []ContextField `xml:"string"`
+	Ints      []ContextField `xml:"int"`
+	Bools     []ContextField `xml:"bool"`
+	Floats    []ContextField `xml:"float"`
+	Objects   []ObjectDef    `xml:"object"`
+	Computeds []ComputedField `xml:"computed"`
+}
+
+// ObjectDef represents nested object fields
+type ObjectDef struct {
+	XMLName xml.Name
+	Name    string     `xml:"name,attr"`
+	Type    string     `xml:"type,attr"`
+	Default string     `xml:"default,attr"`
+	Fields  []FieldDef `xml:",any"`
 }
 
 // FieldDef is a base type for field definitions
