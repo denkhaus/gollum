@@ -12,6 +12,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/events"
 	"github.com/denkhaus/gollum/pkg/extensions"
 	"github.com/denkhaus/gollum/pkg/flows/executor"
+	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
@@ -102,6 +103,7 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	do.Provide(p.injector, tools.NewToolNameValidatorProvider)
 
 	// Flows
+	do.Provide(p.injector, flowregistry.NewFlowRegistryService)
 	do.Provide(p.injector, executor.NewFlowExecutor)
 
 	// Extensions
