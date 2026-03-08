@@ -10,9 +10,8 @@ import (
 )
 
 func TestHookRegistry_RegisterAndExecute(t *testing.T) {
-	registry := &hookRegistryImpl{
-		hooks: make(map[HookType]map[string]HookFunction),
-	}
+	registry, err := NewHookRegistry()
+	require.NoError(t, err)
 
 	executed := false
 	hookFn := func(ctx *HookContext) error {
@@ -20,7 +19,7 @@ func TestHookRegistry_RegisterAndExecute(t *testing.T) {
 		return nil
 	}
 
-	err := registry.Register(HookAgentPreExecute, "test_hook", hookFn)
+	err = registry.Register(HookAgentPreExecute, "test_hook", hookFn)
 	require.NoError(t, err)
 
 	hookCtx := &HookContext{
@@ -36,16 +35,15 @@ func TestHookRegistry_RegisterAndExecute(t *testing.T) {
 }
 
 func TestHookRegistry_Unregister(t *testing.T) {
-	registry := &hookRegistryImpl{
-		hooks: make(map[HookType]map[string]HookFunction),
-	}
+	registry, err := NewHookRegistry()
+	require.NoError(t, err)
 
 	hookFn := func(ctx *HookContext) error {
 		return nil
 	}
 
 	// Register
-	err := registry.Register(HookToolPreExecute, "hook1", hookFn)
+	err = registry.Register(HookToolPreExecute, "hook1", hookFn)
 	require.NoError(t, err)
 
 	// Unregister
@@ -61,16 +59,15 @@ func TestHookRegistry_Unregister(t *testing.T) {
 }
 
 func TestHookRegistry_HookErrorPropagation(t *testing.T) {
-	registry := &hookRegistryImpl{
-		hooks: make(map[HookType]map[string]HookFunction),
-	}
+	registry, err := NewHookRegistry()
+	require.NoError(t, err)
 
 	expectedErr := errors.New("hook failed")
 	hookFn := func(ctx *HookContext) error {
 		return expectedErr
 	}
 
-	err := registry.Register(HookAgentPostExecute, "failing_hook", hookFn)
+	err = registry.Register(HookAgentPostExecute, "failing_hook", hookFn)
 	require.NoError(t, err)
 
 	hookCtx := &HookContext{
@@ -79,6 +76,15 @@ func TestHookRegistry_HookErrorPropagation(t *testing.T) {
 	err = registry.Execute(HookAgentPostExecute, hookCtx)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failing_hook failed")
+}
+
+func TestHookRegistry_RegisterNilFunction(t *testing.T) {
+	registry, err := NewHookRegistry()
+	require.NoError(t, err)
+
+	err = registry.Register(HookAgentPreExecute, "nil_hook", nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot be nil")
 }
 
 func mockTime() time.Time {
