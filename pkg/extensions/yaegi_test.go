@@ -1,6 +1,7 @@
 package extensions
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/samber/do/v2"
@@ -18,6 +19,51 @@ func TestYaegiLoader_NewYaegiLoader(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, loader)
 }
+
+func TestYaegiLoader_LoadExtension_NameExtraction(t *testing.T) {
+	injector := do.New()
+	gateway, _ := NewGatewayService(injector)
+	do.ProvideValue(injector, gateway)
+
+	loader, err := NewYaegiLoader(injector)
+	require.NoError(t, err)
+
+	yaegiLoader := loader.(*yaegiLoaderImpl)
+
+	tests := []struct {
+		name        string
+		path        string
+		expectedExt string
+	}{
+		{
+			name:        "simple directory",
+			path:        "/path/to/myextension",
+			expectedExt: "myextension",
+		},
+		{
+			name:        "nested path",
+			path:        "/home/user/extensions/testext",
+			expectedExt: "testext",
+		},
+		{
+			name:        "relative path",
+			path:        "./extensions/sample",
+			expectedExt: "sample",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ext, err := yaegiLoader.LoadExtension(tt.path)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedExt, ext.Name)
+			assert.Equal(t, tt.path, ext.Path)
+			assert.Equal(t, StateLoaded, ext.State)
+			assert.NotNil(t, ext.Interpreter)
+		})
+	}
+}
+
 
 func TestYaegiLoader_ListExtensions(t *testing.T) {
 	loader := &yaegiLoaderImpl{
@@ -49,3 +95,73 @@ func TestExtensionState_String(t *testing.T) {
 		})
 	}
 }
+
+func TestYaegiLoader_InitExtension(t *testing.T) {
+	loader := &yaegiLoaderImpl{
+		exts: make(map[string]*Extension),
+	}
+
+	ext := &Extension{
+		Name:     "test",
+		State:    StateLoaded,
+		InitFunc: func() error { return nil },
+	}
+
+	err := loader.InitExtension(ext)
+	require.NoError(t, err)
+	assert.Equal(t, StateReady, ext.State)
+}
+
+func TestYaegiLoader_InitExtension_Error(t *testing.T) {
+	loader := &yaegiLoaderImpl{
+		exts: make(map[string]*Extension),
+	}
+
+	expectedErr := errors.New("init failed")
+	ext := &Extension{
+		Name:     "test",
+		State:    StateLoaded,
+		InitFunc: func() error { return expectedErr },
+	}
+
+	err := loader.InitExtension(ext)
+	assert.Error(t, err)
+	assert.Equal(t, StateFailed, ext.State)
+	assert.Equal(t, expectedErr, ext.Error)
+}
+
+func TestYaegiLoader_UnloadExtension(t *testing.T) {
+	loader := &yaegiLoaderImpl{
+		exts: make(map[string]*Extension),
+	}
+
+	ext := &Extension{
+		Name:  "test",
+		State: StateReady,
+	}
+	loader.exts["test"] = ext
+
+	err := loader.UnloadExtension(ext)
+	require.NoError(t, err)
+	assert.Equal(t, StateUnloaded, ext.State)
+	assert.NotContains(t, loader.exts, "test")
+}
+
+func TestYaegiLoader_GetExtension(t *testing.T) {
+	loader := &yaegiLoaderImpl{
+		exts: make(map[string]*Extension),
+	}
+
+	ext := &Extension{Name: "test"}
+	loader.exts["test"] = ext
+
+	// Success case
+	found, err := loader.GetExtension("test")
+	require.NoError(t, err)
+	assert.Same(t, ext, found)
+
+	// Not found case
+	_, err = loader.GetExtension("nonexistent")
+	assert.Error(t, err)
+}
+

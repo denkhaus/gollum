@@ -2,6 +2,8 @@ package extensions
 
 import (
 	"fmt"
+	"path/filepath"
+	"reflect"
 	"time"
 
 	"github.com/samber/do/v2"
@@ -98,23 +100,28 @@ func (p *yaegiLoaderImpl) LoadExtension(path string) (*Extension, error) {
 	i.Use(stdlib.Symbols)
 
 	// Export the injector to the extension
-	// Note: Using reflect.Value wrapper for compatibility with yaegi/interp.Exports
-	// This is a placeholder - actual export will use proper reflection
-	_ = p.gateway.Injector() // TODO: Export injector properly using reflect.Value
+	i.Use(interp.Exports{
+		"github.com/denkhaus/gollum/pkg/extensions": {
+			"injector": reflect.ValueOf(p.gateway.Injector()),
+		},
+	})
 
-	// Load main.go - this will be implemented with actual file loading
-	// For now, return a placeholder extension
+	// Extract extension name from path
+	name := filepath.Base(path)
+
+	// Create extension with placeholder InitFunc
+	// Actual main.go loading will be implemented in Task 3.2
 	ext := &Extension{
-		Name:        "test",
+		Name:        name,
 		Path:        path,
 		Interpreter: i,
-		InitFunc:    func() error { return nil },
+		InitFunc:    func() error { return nil }, // Placeholder
 		Hooks:       make(map[string]interface{}),
 		State:       StateLoaded,
 		LoadedAt:    time.Now(),
 	}
 
-	p.exts["test"] = ext
+	p.exts[name] = ext
 	return ext, nil
 }
 
