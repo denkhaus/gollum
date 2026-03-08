@@ -73,7 +73,7 @@ func TestExecuteCall_SimpleFlowCall(t *testing.T) {
 	}
 
 	// Create registry and register sub-flow
-	registry := NewSimpleFlowRegistry()
+	registry, _ := flowregistry.NewFlowRegistryService(nil)
 	registry.Register("subflow", subFlow)
 
 	// Create executor with registry using DI
@@ -166,7 +166,7 @@ func TestExecuteCall_MultipleInputFields(t *testing.T) {
 		},
 	}
 
-	registry := NewSimpleFlowRegistry()
+	registry, _ := flowregistry.NewFlowRegistryService(nil)
 	registry.Register("concat", subFlow)
 
 	// Create executor with registry using DI

@@ -126,6 +126,10 @@ func (m *testFuncRunner) ListFuncs() []string {
 
 type testFlowRegistry struct{}
 
+func (m *testFlowRegistry) Register(name string, flow *flows.Flow) {
+	// No-op for test registry
+}
+
 func (m *testFlowRegistry) GetFlow(name string) (*flows.Flow, error) {
 	return nil, flowregistry.ErrFlowNotFound
 }

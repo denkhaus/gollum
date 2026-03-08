@@ -10,8 +10,11 @@ import (
 	"github.com/samber/do/v2"
 )
 
-// FlowRegistry defines the interface for looking up flows by reference
+// FlowRegistry defines the interface for looking up and registering flows
 type FlowRegistry interface {
+	// Register adds a flow to the registry
+	Register(name string, flow *flows.Flow)
+	// GetFlow retrieves a flow by reference name
 	GetFlow(ref string) (*flows.Flow, error)
 }
 
