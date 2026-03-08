@@ -46,12 +46,18 @@ func extractDeps(expr ast.Expr, deps *[]string) {
 			extractDeps(arg, deps)
 		}
 	case *ast.FieldRef:
-		// Add the full reference as a dependency
-		if e.Prefix != "" {
-			*deps = append(*deps, e.Prefix)
-		}
-		for _, part := range e.Path {
-			*deps = append(*deps, part)
+		// For field references, we only care about the first path component
+		// since that's the top-level context field being accessed
+		if len(e.Path) > 0 {
+			// If there's a prefix (like "context.status"), add the first path element
+			// If there's no prefix (bare identifier like "status"), add it directly
+			if e.Prefix != "" {
+				// For "context.status", we depend on "status" being in the context scope
+				*deps = append(*deps, e.Path[0])
+			} else {
+				// For bare identifiers, use the first path element
+				*deps = append(*deps, e.Path[0])
+			}
 		}
 	}
 }
@@ -94,11 +100,6 @@ func (c *Context) GetInput(name string) any {
 	return c.inputVals[name]
 }
 
-// SetContextField sets a context field value
-func (c *Context) SetContextField(name string, value any) {
-	c.values[name] = value
-}
-
 // GetContextField retrieves a context field value
 func (c *Context) GetContextField(name string) (any, bool) {
 	val, ok := c.values[name]
@@ -114,6 +115,106 @@ func (c *Context) SetOutputField(name string, value any) {
 func (c *Context) GetOutputField(name string) (any, bool) {
 	val, ok := c.values["output."+name]
 	return val, ok
+}
+
+// EvaluateComputedFields evaluates all computed fields in dependency order
+func (c *Context) EvaluateComputedFields(ctxBlock *flows.ContextBlock) error {
+	if ctxBlock == nil {
+		return nil
+	}
+
+	// Store computed expressions for immutability check
+	for _, cf := range ctxBlock.Computeds {
+		c.computed[cf.Name] = cf.When
+	}
+
+	// Build dependency graph and evaluate in topological order
+	evaluated := make(map[string]bool)
+	for len(evaluated) < len(ctxBlock.Computeds) {
+		progress := false
+		for _, cf := range ctxBlock.Computeds {
+			if evaluated[cf.Name] {
+				continue
+			}
+
+			// Check if all dependencies are evaluated
+			deps := c.eval.ExtractDependencies(cf.When)
+			ready := true
+			for _, dep := range deps {
+				if !c.isDependencyResolved(dep, evaluated) {
+					ready = false
+					break
+				}
+			}
+
+			if ready {
+				val, err := c.eval.EvaluateExpr(cf.When, c.buildScope())
+				if err != nil {
+					return err
+				}
+				// Set directly in values map, bypassing SetContextField
+				// to avoid the immutability check during initial evaluation
+				c.values[cf.Name] = val
+				evaluated[cf.Name] = true
+				progress = true
+			}
+		}
+
+		if !progress {
+			// Circular dependency detected
+			return nil
+		}
+	}
+
+	return nil
+}
+
+// isDependencyResolved checks if a dependency is available
+func (c *Context) isDependencyResolved(dep string, evaluated map[string]bool) bool {
+	// Check if it's an input field
+	if _, ok := c.inputVals[dep]; ok {
+		return true
+	}
+	// Check if it's a context field
+	if _, ok := c.values[dep]; ok {
+		return true
+	}
+	// Check if it's a computed field that's been evaluated
+	return evaluated[dep]
+}
+
+// buildScope builds the evaluation scope with nested structures
+func (c *Context) buildScope() map[string]any {
+	scope := make(map[string]any)
+
+	// Build input scope
+	inputScope := make(map[string]any)
+	for k, v := range c.inputVals {
+		inputScope[k] = v
+	}
+	if len(inputScope) > 0 {
+		scope["input"] = inputScope
+	}
+
+	// Build context scope
+	contextScope := make(map[string]any)
+	for k, v := range c.values {
+		contextScope[k] = v
+	}
+	if len(contextScope) > 0 {
+		scope["context"] = contextScope
+	}
+
+	return scope
+}
+
+// SetContextField with immutability check
+func (c *Context) SetContextField(name string, value any) {
+	if _, isComputed := c.computed[name]; isComputed {
+		// Silently ignore attempts to modify computed fields
+		return
+	}
+	c.values[name] = value
 }
 
 // coerceType converts string to appropriate type

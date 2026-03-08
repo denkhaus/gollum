@@ -29,3 +29,48 @@ func TestNewContext_AppliesInputDefaults(t *testing.T) {
 
 	assert.Equal(t, "denkhaus", ctx.GetInput("owner"))
 }
+
+func TestContext_EvaluateComputedFields(t *testing.T) {
+	flow := &flows.Flow{
+		Context: &flows.ContextBlock{
+			Strings: []flows.ContextField{{Name: "status"}},
+			Computeds: []flows.ComputedField{
+				{Name: "is_open", Type: "bool", When: "EQ(context.status, 'open')"},
+			},
+		},
+	}
+
+	ctx := NewContext(&flows.InputBlock{}, nil)
+	ctx.SetContextField("status", "open")
+
+	err := ctx.EvaluateComputedFields(flow.Context)
+
+	assert.NoError(t, err)
+	val, ok := ctx.GetContextField("is_open")
+	assert.True(t, ok)
+	assert.Equal(t, true, val)
+}
+
+func TestContext_ComputedFieldsAreImmutable(t *testing.T) {
+	flow := &flows.Flow{
+		Context: &flows.ContextBlock{
+			Strings: []flows.ContextField{{Name: "count"}},
+			Computeds: []flows.ComputedField{
+				{Name: "is_large", Type: "bool", When: "GT(context.count, 10)"},
+			},
+		},
+	}
+
+	ctx := NewContext(&flows.InputBlock{}, nil)
+	ctx.SetContextField("count", 5)
+
+	err := ctx.EvaluateComputedFields(flow.Context)
+	assert.NoError(t, err)
+
+	// Try to modify computed field
+	ctx.SetContextField("is_large", true)
+
+	// Computed field should NOT be modified
+	val, _ := ctx.GetContextField("is_large")
+	assert.Equal(t, false, val)
+}
