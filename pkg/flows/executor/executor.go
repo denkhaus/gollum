@@ -166,12 +166,6 @@ func (e *Executor) transitionTo(stateName string) error {
 	return e.executeState(targetState)
 }
 
-// handleError handles step execution errors
-func (e *Executor) handleError(err error, step *flows.Step, state *flows.State) error {
-	// TODO: Implement on-error transition handling
-	return fmt.Errorf("step execution failed in state %s: %w", state.Name, err)
-}
-
 // executeStep executes a single step (placeholder)
 func (e *Executor) executeStep(step *flows.Step, stateName string) error {
 	// TODO: Implement step execution in next tasks
