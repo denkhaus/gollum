@@ -26,3 +26,11 @@ func TestDIGateway_Injector(t *testing.T) {
 
 	assert.Same(t, injector, returnedInjector, "should return the same injector instance")
 }
+
+func TestDIGateway_NewGatewayService_InvalidInjector(t *testing.T) {
+	gateway, err := NewGatewayService(nil)
+
+	require.Error(t, err)
+	assert.Nil(t, gateway)
+	assert.ErrorIs(t, err, ErrInvalidInjector)
+}

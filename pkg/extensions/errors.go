@@ -1,11 +1,11 @@
 package extensions
 
-import "fmt"
+import "errors"
 
 // Common extension system errors
 var (
-	ErrInvalidInjector = fmt.Errorf("invalid injector")
-	ErrFuncNotFound    = fmt.Errorf("function not found")
-	ErrFuncLoadFailed  = fmt.Errorf("function load failed")
-	ErrExecFailed      = fmt.Errorf("execution failed")
+	ErrInvalidInjector = errors.New("invalid injector")
+	ErrFuncNotFound    = errors.New("function not found")
+	ErrFuncLoadFailed  = errors.New("function load failed")
+	ErrExecFailed      = errors.New("execution failed")
 )
