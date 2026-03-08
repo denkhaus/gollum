@@ -32,6 +32,7 @@ type extensionServiceImpl struct {
 	yaegiLoader   YaegiLoader
 	scriggoRunner ScriggoRunner
 	workspaceDir  string
+	loadedFuncs   map[string]string // funcName -> sourcePath
 }
 
 // Ensure extensionServiceImpl implements ExtensionService
@@ -70,6 +71,7 @@ func NewExtensionServiceWithWorkspace(injector do.Injector) (ExtensionService, e
 		yaegiLoader:   yaegiLoader,
 		scriggoRunner: scriggoRunner,
 		workspaceDir:  workspaceService.GetCurrentWorkspace(),
+		loadedFuncs:   make(map[string]string),
 	}, nil
 }
 
@@ -133,6 +135,10 @@ func (p *extensionServiceImpl) getExtensionsDirs() []string {
 }
 
 func (p *extensionServiceImpl) loadFuncSteps() error {
+	if p.loadedFuncs == nil {
+		p.loadedFuncs = make(map[string]string)
+	}
+
 	dirs := p.getFunctionsDirs()
 	for _, dir := range dirs {
 		p.logService.Debugf("Scanning for func steps in: %s", dir)
@@ -157,6 +163,16 @@ func (p *extensionServiceImpl) loadFuncSteps() error {
 				continue
 			}
 
+			// Extract function name from filename
+			funcName := entry.Name()[:len(entry.Name())-3] // remove .go
+
+			// Skip if already loaded from higher priority dir
+			if _, exists := p.loadedFuncs[funcName]; exists {
+				p.logService.Debugf("Function %s already loaded from %s, skipping %s",
+					funcName, p.loadedFuncs[funcName], filepath.Join(dir, entry.Name()))
+				continue
+			}
+
 			filePath := filepath.Join(dir, entry.Name())
 			p.logService.Debugf("Loading func step from: %s", filePath)
 
@@ -167,16 +183,14 @@ func (p *extensionServiceImpl) loadFuncSteps() error {
 				continue
 			}
 
-			// Extract function name from filename
-			funcName := entry.Name()[:len(entry.Name())-3] // remove .go
-
 			// Load via ScriggoRunner
 			if err := p.scriggoRunner.LoadFunc(funcName, string(source)); err != nil {
 				p.logService.Warnf("Failed to compile %s: %v", filePath, err)
 				continue
 			}
 
-			p.logService.Infof("Loaded func step: %s", funcName)
+			p.loadedFuncs[funcName] = filePath
+			p.logService.Infof("Loaded func step: %s from %s", funcName, filePath)
 		}
 	}
 	return nil
