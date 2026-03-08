@@ -5,12 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestHookRegistry_RegisterAndExecute(t *testing.T) {
-	registry, err := NewHookRegistry()
+	injector := do.New()
+	registry, err := NewHookRegistry(injector)
 	require.NoError(t, err)
 
 	executed := false
@@ -35,7 +37,8 @@ func TestHookRegistry_RegisterAndExecute(t *testing.T) {
 }
 
 func TestHookRegistry_Unregister(t *testing.T) {
-	registry, err := NewHookRegistry()
+	injector := do.New()
+	registry, err := NewHookRegistry(injector)
 	require.NoError(t, err)
 
 	hookFn := func(_ *HookContext) error {
@@ -59,7 +62,8 @@ func TestHookRegistry_Unregister(t *testing.T) {
 }
 
 func TestHookRegistry_HookErrorPropagation(t *testing.T) {
-	registry, err := NewHookRegistry()
+	injector := do.New()
+	registry, err := NewHookRegistry(injector)
 	require.NoError(t, err)
 
 	expectedErr := errors.New("hook failed")
@@ -79,7 +83,8 @@ func TestHookRegistry_HookErrorPropagation(t *testing.T) {
 }
 
 func TestHookRegistry_RegisterNilFunction(t *testing.T) {
-	registry, err := NewHookRegistry()
+	injector := do.New()
+	registry, err := NewHookRegistry(injector)
 	require.NoError(t, err)
 
 	err = registry.Register(HookAgentPreExecute, "nil_hook", nil)
