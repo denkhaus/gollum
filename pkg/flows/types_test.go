@@ -18,13 +18,16 @@ func TestFlowStruct_BasicFields(t *testing.T) {
 
 func TestInputBlock_HasRequiredAndType(t *testing.T) {
 	input := &InputBlock{
-		Fields: []FieldDef{
-			{Name: "pr_number", Type: "int", Required: true},
-			{Name: "repo_owner", Type: "string", Default: "denkhaus"},
+		Ints: []FieldDef{
+			{Name: "pr_number", Required: true},
+		},
+		Strings: []FieldDef{
+			{Name: "repo_owner", Default: "denkhaus"},
 		},
 	}
 
-	assert.Len(t, input.Fields, 2)
-	assert.True(t, input.Fields[0].Required)
-	assert.Equal(t, "denkhaus", input.Fields[1].Default)
+	fields := input.GetAllFields()
+	assert.Len(t, fields, 2)
+	assert.True(t, fields[0].Required)
+	assert.Equal(t, "denkhaus", fields[1].Default)
 }

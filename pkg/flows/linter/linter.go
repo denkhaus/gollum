@@ -12,6 +12,12 @@ func Lint(flow *flows.Flow) *flows.LinterResult {
 	phase1 := &SchemaChecker{}
 	phase1.Check(flow, result)
 
+	phase2 := &ExpressionChecker{}
+	phase2.Check(flow, result)
+
+	phase3 := &GraphChecker{}
+	phase3.Check(flow, result)
+
 	// Determine validity
 	result.Valid = len(result.Errors) == 0
 
