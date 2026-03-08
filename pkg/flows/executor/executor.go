@@ -1,28 +1,96 @@
 package executor
 
 import (
+	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/extensions"
 	"github.com/denkhaus/gollum/pkg/flows"
+	"github.com/denkhaus/gollum/pkg/flows/registry"
+	"github.com/google/uuid"
 )
+
+// BashToolRunner is the interface for running bash commands
+// This interface is defined here to avoid import cycles when mocking
+type BashToolRunner interface {
+	Run(ctx context.Context, args map[string]any) (map[string]any, error)
+}
+
+// BashToolProvider interface for creating bash tools
+type BashToolProvider interface {
+	CreateTool(agentID uuid.UUID) BashToolRunner
+}
 
 // Executor executes flow state machines
 type Executor struct {
-	flow        *flows.Flow
-	ctx         *Context
-	currentState string
-	history     *ExecutionHistory
-	startTime   time.Time
+	flow             *flows.Flow
+	ctx              *Context
+	currentState     string
+	history          *ExecutionHistory
+	startTime        time.Time
+	bashToolProvider BashToolProvider
+	flowRegistry     FlowRegistry
+	extService       extensions.ExtensionService
 }
 
-// NewExecutor creates a new executor
+// NewExecutor creates a new executor (without bash tool provider for tests)
 func NewExecutor(flow *flows.Flow) *Executor {
+	return NewExecutorWithProvider(flow, nil)
+}
+
+// NewExecutorWithProvider creates a new executor with bash tool provider
+func NewExecutorWithProvider(flow *flows.Flow, provider BashToolProvider) *Executor {
 	exec := &Executor{
-		flow:      flow,
-		ctx:       NewContext(flow.Input, nil),
-		history:   NewExecutionHistory(),
-		startTime: time.Now(),
+		flow:            flow,
+		ctx:             NewContext(flow.Input, nil),
+		history:         NewExecutionHistory(),
+		startTime:       time.Now(),
+		bashToolProvider: provider,
+	}
+
+	// Find and set initial state
+	for _, state := range flow.States {
+		if state.Initial {
+			exec.currentState = state.Name
+			break
+		}
+	}
+
+	return exec
+}
+
+// NewExecutorWithRegistry creates a new executor with flow registry (for call steps)
+func NewExecutorWithRegistry(flow *flows.Flow, registry FlowRegistry) *Executor {
+	exec := &Executor{
+		flow:         flow,
+		ctx:          NewContext(flow.Input, nil),
+		history:      NewExecutionHistory(),
+		startTime:    time.Now(),
+		flowRegistry: registry,
+	}
+
+	// Find and set initial state
+	for _, state := range flow.States {
+		if state.Initial {
+			exec.currentState = state.Name
+			break
+		}
+	}
+
+	return exec
+}
+
+// NewExecutorWithExtensions creates a new executor with extension service (for func steps)
+func NewExecutorWithExtensions(flow *flows.Flow, extService extensions.ExtensionService) *Executor {
+	exec := &Executor{
+		flow:       flow,
+		ctx:        NewContext(flow.Input, nil),
+		history:    NewExecutionHistory(),
+		startTime:  time.Now(),
+		extService: extService,
 	}
 
 	// Find and set initial state
@@ -183,11 +251,180 @@ func (e *Executor) executeStep(step *flows.Step, stateName string) error {
 }
 
 func (e *Executor) executeShellStep(step *flows.Step, stateName string) error {
-	return fmt.Errorf("shell step execution not yet implemented")
+	// Substitute template variables in command
+	cmd := e.substituteTemplate(step.Cmd)
+
+	// Create bash tool
+	agentID := uuid.New() // Use a dummy agent ID for shell steps
+	bashTool := e.bashToolProvider.CreateTool(agentID)
+
+	// Execute command
+	ctx := context.Background()
+	args := map[string]any{
+		"command": cmd,
+	}
+
+	// Parse timeout if specified
+	if step.Timeout != "" {
+		if timeout, err := time.ParseDuration(step.Timeout); err == nil {
+			args["timeout"] = timeout.Seconds()
+		}
+	}
+
+	result, err := bashTool.Run(ctx, args)
+	if err != nil {
+		return fmt.Errorf("bash tool execution: %w", err)
+	}
+
+	// Map outputs
+	if step.Output != nil {
+		// Handle simple assign
+		if step.Output.Assign != "" {
+			fieldName := extractFieldName(step.Output.Assign)
+			if val, ok := result["stdout"]; ok {
+				e.ctx.SetOutputField(fieldName, val)
+			}
+		}
+		// Handle path-based outputs
+		for _, path := range step.Output.Paths {
+			fieldName := extractFieldName(path.Assign)
+			switch path.Path {
+			case "stdout":
+				if val, ok := result["stdout"]; ok {
+					e.ctx.SetOutputField(fieldName, val)
+				}
+			case "stderr":
+				if val, ok := result["stderr"]; ok {
+					e.ctx.SetOutputField(fieldName, val)
+				}
+			case "exit_code":
+				// Bash tool returns exit_code as a number
+				if val, ok := result["exit_code"]; ok {
+					// Convert to int based on type
+					switch v := val.(type) {
+					case int:
+						e.ctx.SetOutputField(fieldName, v)
+					case float64:
+						e.ctx.SetOutputField(fieldName, int(v))
+					case string:
+						if code, err := strconv.Atoi(v); err == nil {
+							e.ctx.SetOutputField(fieldName, code)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Don't error on non-zero exit codes - the flow can check exit_code
+	return nil
+}
+
+// substituteTemplate replaces ${input.field}, ${output.field}, ${context.field} placeholders
+func (e *Executor) substituteTemplate(cmd string) string {
+	result := cmd
+
+	// Build scope for template substitution
+	scope := e.ctx.buildScope()
+
+	// Replace input references
+	if inputScope, ok := scope["input"].(map[string]any); ok {
+		for k, v := range inputScope {
+			placeholder := fmt.Sprintf("${input.%s}", k)
+			result = strings.ReplaceAll(result, placeholder, fmt.Sprintf("%v", v))
+		}
+	}
+
+	// Replace context references
+	if ctxScope, ok := scope["context"].(map[string]any); ok {
+		for k, v := range ctxScope {
+			placeholder := fmt.Sprintf("${context.%s}", k)
+			result = strings.ReplaceAll(result, placeholder, fmt.Sprintf("%v", v))
+		}
+	}
+
+	// Replace output references
+	if outScope, ok := scope["output"].(map[string]any); ok {
+		for k, v := range outScope {
+			placeholder := fmt.Sprintf("${output.%s}", k)
+			result = strings.ReplaceAll(result, placeholder, fmt.Sprintf("%v", v))
+		}
+	}
+
+	return result
+}
+
+// extractFieldName extracts the field name from ${output.field_name} or ${context.field_name}
+func extractFieldName(assign string) string {
+	// Remove ${output. or ${context. prefix
+	assign = strings.TrimPrefix(assign, "${output.")
+	assign = strings.TrimPrefix(assign, "${context.")
+	// Remove trailing }
+	return strings.TrimSuffix(assign, "}")
 }
 
 func (e *Executor) executeFuncStep(step *flows.Step, stateName string) error {
-	return fmt.Errorf("func step execution not yet implemented")
+	// Check if extension service is available
+	if e.extService == nil {
+		// Fall back to built-in registry for backwards compatibility
+		reg := registry.GetBuiltinRegistry()
+
+		// Build args map from step params with template substitution
+		args := make(map[string]any)
+		for _, param := range step.Params {
+			// Substitute template variables in parameter value
+			value := e.substituteTemplate(param.Value)
+			args[param.Name] = value
+		}
+
+		// Execute the function
+		result, err := reg.Execute(step.Function, args)
+		if err != nil {
+			return &FuncError{
+				Function: step.Function,
+				Step:     stateName,
+				Err:      err,
+			}
+		}
+
+		// Map result to output field
+		if step.Output != nil {
+			if step.Output.Assign != "" {
+				fieldName := extractFieldName(step.Output.Assign)
+				e.ctx.SetOutputField(fieldName, result)
+			}
+		}
+
+		return nil
+	}
+
+	// Use Scriggo runner from extension service
+	funcRunner := e.extService.GetFuncRunner()
+
+	// Build args with template substitution
+	args := make(map[string]any)
+	for _, param := range step.Params {
+		value := e.substituteTemplate(param.Value)
+		args[param.Name] = value
+	}
+
+	// Execute via Scriggo runner
+	result, err := funcRunner.ExecuteFunc(step.Function, args)
+	if err != nil {
+		return &FuncError{
+			Function: step.Function,
+			Step:     stateName,
+			Err:      err,
+		}
+	}
+
+	// Map result to output
+	if step.Output != nil && step.Output.Assign != "" {
+		fieldName := extractFieldName(step.Output.Assign)
+		e.ctx.SetOutputField(fieldName, result)
+	}
+
+	return nil
 }
 
 func (e *Executor) executeMCPStep(step *flows.Step, stateName string) error {
@@ -196,6 +433,47 @@ func (e *Executor) executeMCPStep(step *flows.Step, stateName string) error {
 
 // executeCall executes a call step (placeholder)
 func (e *Executor) executeCall(call *flows.Call, stateName string) error {
-	// TODO: Implement call execution in next tasks
-	return fmt.Errorf("call execution not implemented")
+	// Check if registry is available
+	if e.flowRegistry == nil {
+		return fmt.Errorf("flow registry not configured - cannot execute call step")
+	}
+
+	// Look up the sub-flow
+	subFlow, err := e.flowRegistry.GetFlow(call.Ref)
+	if err != nil {
+		return fmt.Errorf("flow lookup failed for %s: %w", call.Ref, err)
+	}
+
+	// Build input map from call.Input fields with template substitution
+	subInput := make(map[string]any)
+	for _, field := range call.Input {
+		// Substitute template variables in field value
+		value := e.substituteTemplate(field.Value)
+		subInput[field.Name] = value
+	}
+
+	// Create executor for sub-flow
+	subExec := NewExecutor(subFlow)
+	subExec.SetInput(subInput)
+
+	// Execute the sub-flow
+	if err := subExec.Run(); err != nil {
+		return fmt.Errorf("sub-flow execution failed: %w", err)
+	}
+
+	// Map output fields back using call.Output
+	for _, field := range call.Output {
+		// Get the value from sub-flow output
+		fieldName := extractFieldName(field.Value)
+		value, ok := subExec.ctx.GetOutputField(fieldName)
+		if !ok {
+			continue // Skip if field doesn't exist in sub-flow output
+		}
+
+		// Set the value in parent flow output
+		targetField := extractFieldName(field.Name)
+		e.ctx.SetOutputField(targetField, value)
+	}
+
+	return nil
 }

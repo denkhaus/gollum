@@ -7,6 +7,21 @@ import (
 	"github.com/denkhaus/gollum/pkg/flows"
 )
 
+// FuncError represents an error during func step execution
+type FuncError struct {
+	Function string
+	Step     string
+	Err      error
+}
+
+func (e *FuncError) Error() string {
+	return fmt.Sprintf("func step '%s' in step '%s': %v", e.Function, e.Step, e.Err)
+}
+
+func (e *FuncError) Unwrap() error {
+	return e.Err
+}
+
 // ErrorContext holds error lifecycle information
 type ErrorContext struct {
 	StepName  string
