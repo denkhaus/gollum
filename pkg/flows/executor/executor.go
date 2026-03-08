@@ -62,6 +62,8 @@ func (e *Executor) Validate() error {
 
 // Run executes the flow from the initial state
 func (e *Executor) Run() error {
+	defer e.history.Complete(time.Now())
+
 	if err := e.Validate(); err != nil {
 		return err
 	}
