@@ -81,6 +81,14 @@ func (p *extensionServiceImpl) LoadAll(ctx context.Context) error {
 		zap.String("workspace", p.workspaceDir),
 	)
 
+	// Check if context is already cancelled
+	select {
+	case <-ctx.Done():
+		p.logService.Error("Extension service: context cancelled before load")
+		return ctx.Err()
+	default:
+	}
+
 	if err := p.loadFuncSteps(); err != nil {
 		p.logService.Error("Extension service: failed to load func steps",
 			zap.Error(err),
@@ -150,18 +158,25 @@ func (p *extensionServiceImpl) loadFuncSteps() error {
 
 	dirs := p.getFunctionsDirs()
 	for _, dir := range dirs {
-		p.logService.Debugf("Scanning for func steps in: %s", dir)
+		p.logService.Debug("Scanning for func steps",
+			zap.String("directory", dir),
+		)
 
 		// Check if directory exists
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			p.logService.Debugf("Directory does not exist: %s", dir)
+			p.logService.Debug("Directory does not exist",
+				zap.String("directory", dir),
+			)
 			continue
 		}
 
 		// Read directory entries
 		entries, err := os.ReadDir(dir)
 		if err != nil {
-			p.logService.Warnf("Failed to read directory %s: %v", dir, err)
+			p.logService.Warn("Failed to read directory",
+				zap.String("directory", dir),
+				zap.Error(err),
+			)
 			continue
 		}
 
@@ -177,8 +192,11 @@ func (p *extensionServiceImpl) loadFuncSteps() error {
 
 			// Skip if already loaded from higher priority dir
 			if _, exists := p.loadedFuncs[funcName]; exists {
-				p.logService.Debugf("Function %s already loaded from %s, skipping %s",
-					funcName, p.loadedFuncs[funcName], filepath.Join(dir, entry.Name()))
+				p.logService.Debug("Function already loaded, skipping",
+					zap.String("function", funcName),
+					zap.String("loaded_from", p.loadedFuncs[funcName]),
+					zap.String("skipping", filepath.Join(dir, entry.Name())),
+				)
 				continue
 			}
 
@@ -191,18 +209,27 @@ func (p *extensionServiceImpl) loadFuncSteps() error {
 			// Read source
 			source, err := os.ReadFile(filePath)
 			if err != nil {
-				p.logService.Warnf("Failed to read %s: %v", filePath, err)
+				p.logService.Warn("Failed to read file",
+					zap.String("file", filePath),
+					zap.Error(err),
+				)
 				continue
 			}
 
 			// Load via ScriggoRunner
 			if err := p.scriggoRunner.LoadFunc(funcName, string(source)); err != nil {
-				p.logService.Warnf("Failed to compile %s: %v", filePath, err)
+				p.logService.Warn("Failed to compile function",
+					zap.String("file", filePath),
+					zap.Error(err),
+				)
 				continue
 			}
 
 			p.loadedFuncs[funcName] = filePath
-			p.logService.Infof("Loaded func step: %s from %s", funcName, filePath)
+			p.logService.Info("Loaded func step",
+				zap.String("name", funcName),
+				zap.String("source", filePath),
+			)
 		}
 	}
 	return nil
@@ -211,18 +238,25 @@ func (p *extensionServiceImpl) loadFuncSteps() error {
 func (p *extensionServiceImpl) loadExtensions() error {
 	dirs := p.getExtensionsDirs()
 	for _, dir := range dirs {
-		p.logService.Debugf("Scanning for extensions in: %s", dir)
+		p.logService.Debug("Scanning for extensions",
+			zap.String("directory", dir),
+		)
 
 		// Check if directory exists
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			p.logService.Debugf("Directory does not exist: %s", dir)
+			p.logService.Debug("Directory does not exist",
+				zap.String("directory", dir),
+			)
 			continue
 		}
 
 		// Read directory entries
 		entries, err := os.ReadDir(dir)
 		if err != nil {
-			p.logService.Warnf("Failed to read directory %s: %v", dir, err)
+			p.logService.Warn("Failed to read directory",
+				zap.String("directory", dir),
+				zap.Error(err),
+			)
 			continue
 		}
 
@@ -241,17 +275,25 @@ func (p *extensionServiceImpl) loadExtensions() error {
 			// Load extension
 			ext, err := p.yaegiLoader.LoadExtension(extPath)
 			if err != nil {
-				p.logService.Warnf("Failed to load extension %s: %v", entry.Name(), err)
+				p.logService.Warn("Failed to load extension",
+					zap.String("name", entry.Name()),
+					zap.Error(err),
+				)
 				continue
 			}
 
 			// Initialize extension
 			if err := p.yaegiLoader.InitExtension(ext); err != nil {
-				p.logService.Warnf("Failed to initialize extension %s: %v", ext.Name, err)
+				p.logService.Warn("Failed to initialize extension",
+					zap.String("name", ext.Name),
+					zap.Error(err),
+				)
 				continue
 			}
 
-			p.logService.Infof("Loaded extension: %s", ext.Name)
+			p.logService.Info("Loaded extension",
+				zap.String("name", ext.Name),
+			)
 		}
 	}
 	return nil
