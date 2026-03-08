@@ -1,3 +1,6 @@
+// Package extensions provides core services for the Gollum extension system,
+// including lifecycle hook management, dependency injection integration, and
+// extension loading capabilities.
 package extensions
 
 import (
@@ -9,12 +12,18 @@ import (
 type HookType string
 
 const (
-	HookAgentPreExecute  HookType = "agent_pre_execute"
+	// HookAgentPreExecute fires before an agent executes a step
+	HookAgentPreExecute HookType = "agent_pre_execute"
+	// HookAgentPostExecute fires after an agent executes a step
 	HookAgentPostExecute HookType = "agent_post_execute"
-	HookFlowPreExecute   HookType = "flow_pre_execute"
-	HookFlowPostExecute  HookType = "flow_post_execute"
-	HookToolPreExecute   HookType = "tool_pre_execute"
-	HookToolPostExecute  HookType = "tool_post_execute"
+	// HookFlowPreExecute fires before a flow executes
+	HookFlowPreExecute HookType = "flow_pre_execute"
+	// HookFlowPostExecute fires after a flow executes
+	HookFlowPostExecute HookType = "flow_post_execute"
+	// HookToolPreExecute fires before a tool executes
+	HookToolPreExecute HookType = "tool_pre_execute"
+	// HookToolPostExecute fires after a tool executes
+	HookToolPostExecute HookType = "tool_post_execute"
 )
 
 // HookContext provides context to hook functions
@@ -52,7 +61,7 @@ func NewHookRegistry() (HookRegistry, error) {
 
 func (p *hookRegistryImpl) Register(hookType HookType, name string, fn HookFunction) error {
 	if fn == nil {
-		return fmt.Errorf("hook function cannot be nil")
+		return ErrNilHookFunction
 	}
 	if p.hooks[hookType] == nil {
 		p.hooks[hookType] = make(map[string]HookFunction)
@@ -69,6 +78,9 @@ func (p *hookRegistryImpl) Unregister(hookType HookType, name string) error {
 }
 
 func (p *hookRegistryImpl) Execute(hookType HookType, ctx *HookContext) error {
+	if ctx == nil {
+		return fmt.Errorf("hook context cannot be nil")
+	}
 	for name, fn := range p.hooks[hookType] {
 		if err := fn(ctx); err != nil {
 			return fmt.Errorf("hook %s failed: %w", name, err)

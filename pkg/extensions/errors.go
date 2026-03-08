@@ -8,4 +8,5 @@ var (
 	ErrFuncNotFound    = errors.New("function not found")
 	ErrFuncLoadFailed  = errors.New("function load failed")
 	ErrExecFailed      = errors.New("execution failed")
+	ErrNilHookFunction = errors.New("hook function cannot be nil")
 )

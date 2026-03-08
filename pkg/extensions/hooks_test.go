@@ -14,7 +14,7 @@ func TestHookRegistry_RegisterAndExecute(t *testing.T) {
 	require.NoError(t, err)
 
 	executed := false
-	hookFn := func(ctx *HookContext) error {
+	hookFn := func(_ *HookContext) error {
 		executed = true
 		return nil
 	}
@@ -38,7 +38,7 @@ func TestHookRegistry_Unregister(t *testing.T) {
 	registry, err := NewHookRegistry()
 	require.NoError(t, err)
 
-	hookFn := func(ctx *HookContext) error {
+	hookFn := func(_ *HookContext) error {
 		return nil
 	}
 
@@ -63,7 +63,7 @@ func TestHookRegistry_HookErrorPropagation(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedErr := errors.New("hook failed")
-	hookFn := func(ctx *HookContext) error {
+	hookFn := func(_ *HookContext) error {
 		return expectedErr
 	}
 
@@ -83,8 +83,7 @@ func TestHookRegistry_RegisterNilFunction(t *testing.T) {
 	require.NoError(t, err)
 
 	err = registry.Register(HookAgentPreExecute, "nil_hook", nil)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "cannot be nil")
+	assert.ErrorIs(t, err, ErrNilHookFunction)
 }
 
 func mockTime() time.Time {
