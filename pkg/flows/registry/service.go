@@ -1,3 +1,6 @@
+// Package registry provides flow lookup and registration services.
+// It maintains a registry of flows that can be referenced by name,
+// supporting executor call step operations.
 package registry
 
 import (
@@ -28,13 +31,13 @@ func NewFlowRegistryService(injector do.Injector) (FlowRegistry, error) {
 }
 
 // Register adds a flow to the registry
-func (p *flowRegistryServiceImpl) Register(name string, flow *flows.Flow) {
-	p.flows[name] = flow
+func (s *flowRegistryServiceImpl) Register(name string, flow *flows.Flow) {
+	s.flows[name] = flow
 }
 
 // GetFlow retrieves a flow by reference name
-func (p *flowRegistryServiceImpl) GetFlow(ref string) (*flows.Flow, error) {
-	flow, ok := p.flows[ref]
+func (s *flowRegistryServiceImpl) GetFlow(ref string) (*flows.Flow, error) {
+	flow, ok := s.flows[ref]
 	if !ok {
 		return nil, fmt.Errorf("flow not found: %s", ref)
 	}
@@ -42,8 +45,8 @@ func (p *flowRegistryServiceImpl) GetFlow(ref string) (*flows.Flow, error) {
 }
 
 // LoadFromMap loads flows from a map (for initialization)
-func (p *flowRegistryServiceImpl) LoadFromMap(flows map[string]*flows.Flow) {
+func (s *flowRegistryServiceImpl) LoadFromMap(flows map[string]*flows.Flow) {
 	for name, flow := range flows {
-		p.flows[name] = flow
+		s.flows[name] = flow
 	}
 }
