@@ -4,9 +4,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/denkhaus/gollum/pkg/extensions"
 	"github.com/denkhaus/gollum/pkg/flows"
+	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
+	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -92,12 +96,20 @@ func TestExecuteShellStep_SuccessfulExecution(t *testing.T) {
 	}
 
 	provider := &mockBashToolProvider{tool: mockTool}
-	exec := NewExecutorWithProvider(flow, provider)
+	// Create fresh injector with all dependencies
+	injector := do.New()
+	do.ProvideValue(injector, tools.BashToolProvider(provider))
+	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
+	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	do.Provide(injector, NewFlowExecutor)
+
+	svc := do.MustInvoke[FlowExecutorService](injector)
+	exec := svc.New(flow)
 	step := &flow.States[0].Steps[0]
-	err := exec.executeShellStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeShellStep(step, "init")
 
 	require.NoError(t, err)
-	result, ok := exec.ctx.GetOutputField("greeting")
+	result, ok := exec.(*flowExecutorImpl).ctx.GetOutputField("greeting")
 	require.True(t, ok)
 	assert.Equal(t, "Hello World\n", result)
 }
@@ -139,14 +151,22 @@ func TestExecuteShellStep_WithInputVariable(t *testing.T) {
 	}
 
 	provider := &mockBashToolProvider{tool: mockTool}
-	exec := NewExecutorWithProvider(flow, provider)
+	// Create fresh injector with all dependencies
+	injector := do.New()
+	do.ProvideValue(injector, tools.BashToolProvider(provider))
+	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
+	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	do.Provide(injector, NewFlowExecutor)
+
+	svc := do.MustInvoke[FlowExecutorService](injector)
+	exec := svc.New(flow)
 	exec.SetInput(map[string]any{"name": "Claude"})
 
 	step := &flow.States[0].Steps[0]
-	err := exec.executeShellStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeShellStep(step, "init")
 
 	require.NoError(t, err)
-	result, ok := exec.ctx.GetOutputField("greeting")
+	result, ok := exec.(*flowExecutorImpl).ctx.GetOutputField("greeting")
 	require.True(t, ok)
 	assert.Equal(t, "Hello Claude\n", result)
 }
@@ -187,9 +207,17 @@ func TestExecuteShellStep_WithTimeout(t *testing.T) {
 	}
 
 	provider := &mockBashToolProvider{tool: mockTool}
-	exec := NewExecutorWithProvider(flow, provider)
+	// Create fresh injector with all dependencies
+	injector := do.New()
+	do.ProvideValue(injector, tools.BashToolProvider(provider))
+	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
+	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	do.Provide(injector, NewFlowExecutor)
+
+	svc := do.MustInvoke[FlowExecutorService](injector)
+	exec := svc.New(flow)
 	step := &flow.States[0].Steps[0]
-	err := exec.executeShellStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeShellStep(step, "init")
 
 	require.NoError(t, err)
 }
@@ -201,10 +229,12 @@ func TestSubstituteTemplate_InputVariables(t *testing.T) {
 		States: []flows.State{{Name: "init"}},
 	}
 
-	exec := NewExecutor(flow)
+	injector := setupTestDI(t)
+	svc := do.MustInvoke[FlowExecutorService](injector)
+	exec := svc.New(flow)
 	exec.SetInput(map[string]any{"name": "Claude"})
 
-	result := exec.substituteTemplate("echo 'Hello ${input.name}'")
+	result := exec.(*flowExecutorImpl).substituteTemplate("echo 'Hello ${input.name}'")
 
 	assert.Equal(t, "echo 'Hello Claude'", result)
 }
@@ -218,16 +248,18 @@ func TestSubstituteTemplate_ContextVariables(t *testing.T) {
 		States: []flows.State{{Name: "init"}},
 	}
 
-	exec := NewExecutor(flow)
-	exec.ctx = NewContext(flow.Input, nil)
+	injector := setupTestDI(t)
+	svc := do.MustInvoke[FlowExecutorService](injector)
+	exec := svc.New(flow)
+	exec.(*flowExecutorImpl).ctx = NewContext(flow.Input, nil)
 	// Initialize context with default values manually for this test
 	if flow.Context != nil {
 		for _, field := range flow.Context.Strings {
-			exec.ctx.SetContextField(field.Name, field.Default)
+			exec.(*flowExecutorImpl).ctx.SetContextField(field.Name, field.Default)
 		}
 	}
 
-	result := exec.substituteTemplate("ls ${context.project_dir}")
+	result := exec.(*flowExecutorImpl).substituteTemplate("ls ${context.project_dir}")
 
 	assert.Equal(t, "ls /tmp/project", result)
 }
@@ -239,12 +271,14 @@ func TestSubstituteTemplate_OutputVariables(t *testing.T) {
 		States: []flows.State{{Name: "init"}},
 	}
 
-	exec := NewExecutor(flow)
+	injector := setupTestDI(t)
+	svc := do.MustInvoke[FlowExecutorService](injector)
+	exec := svc.New(flow)
 	// Set output value before substitution
-	exec.ctx = NewContext(flow.Input, nil)
-	exec.ctx.SetOutputField("result", "success")
+	exec.(*flowExecutorImpl).ctx = NewContext(flow.Input, nil)
+	exec.(*flowExecutorImpl).ctx.SetOutputField("result", "success")
 
-	result := exec.substituteTemplate("echo 'Status: ${output.result}'")
+	result := exec.(*flowExecutorImpl).substituteTemplate("echo 'Status: ${output.result}'")
 
 	assert.Equal(t, "echo 'Status: success'", result)
 }
@@ -258,18 +292,20 @@ func TestSubstituteTemplate_MultipleVariables(t *testing.T) {
 		States:  []flows.State{{Name: "init"}},
 	}
 
-	exec := NewExecutor(flow)
+	injector := setupTestDI(t)
+	svc := do.MustInvoke[FlowExecutorService](injector)
+	exec := svc.New(flow)
 	exec.SetInput(map[string]any{"name": "app", "action": "deploy"})
 	// Initialize context with default values manually for this test
 	if flow.Context != nil {
 		for _, field := range flow.Context.Strings {
-			exec.ctx.SetContextField(field.Name, field.Default)
+			exec.(*flowExecutorImpl).ctx.SetContextField(field.Name, field.Default)
 		}
 	}
-	exec.ctx.SetOutputField("result", "pending")
+	exec.(*flowExecutorImpl).ctx.SetOutputField("result", "pending")
 
 	cmd := "${input.action} ${input.name} in ${context.env}, status: ${output.result}"
-	result := exec.substituteTemplate(cmd)
+	result := exec.(*flowExecutorImpl).substituteTemplate(cmd)
 
 	assert.Equal(t, "deploy app in prod, status: pending", result)
 }
