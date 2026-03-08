@@ -135,9 +135,49 @@ func (p *extensionServiceImpl) getExtensionsDirs() []string {
 func (p *extensionServiceImpl) loadFuncSteps() error {
 	dirs := p.getFunctionsDirs()
 	for _, dir := range dirs {
-		// Load .go files from directory
-		// Implementation will be added in next tasks
 		p.logService.Debugf("Scanning for func steps in: %s", dir)
+
+		// Check if directory exists
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			p.logService.Debugf("Directory does not exist: %s", dir)
+			continue
+		}
+
+		// Read directory entries
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			p.logService.Warnf("Failed to read directory %s: %v", dir, err)
+			continue
+		}
+
+		// Load each .go file
+		for _, entry := range entries {
+			// Skip hidden files and non-.go files
+			if entry.Name()[0] == '.' || filepath.Ext(entry.Name()) != ".go" {
+				continue
+			}
+
+			filePath := filepath.Join(dir, entry.Name())
+			p.logService.Debugf("Loading func step from: %s", filePath)
+
+			// Read source
+			source, err := os.ReadFile(filePath)
+			if err != nil {
+				p.logService.Warnf("Failed to read %s: %v", filePath, err)
+				continue
+			}
+
+			// Extract function name from filename
+			funcName := entry.Name()[:len(entry.Name())-3] // remove .go
+
+			// Load via ScriggoRunner
+			if err := p.scriggoRunner.LoadFunc(funcName, string(source)); err != nil {
+				p.logService.Warnf("Failed to compile %s: %v", filePath, err)
+				continue
+			}
+
+			p.logService.Infof("Loaded func step: %s", funcName)
+		}
 	}
 	return nil
 }
