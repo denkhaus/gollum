@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"context"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/extensions"
@@ -67,4 +68,64 @@ func TestFlowExecutor_WithHookManagerIntegration(t *testing.T) {
 
 	// Note: Hooks won't be called yet - that's next task
 	// This test just verifies the executor can be created with HookManager
+}
+
+func TestFlowExecutor_ExecuteStepWithHooks(t *testing.T) {
+	injector := setupTestDI(t)
+	hm := do.MustInvoke[hooks.HookManager](injector)
+
+	var capturedBefore, capturedAfter *hooks.ExecutorPayload
+
+	// Register before hook
+	hm.RegisterExecutorHook(func(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.ExecutorPayload], next func() error) error {
+		capturedBefore = &hookCtx.Payload
+		return next()
+	}, hooks.TypedHookMetadata{Name: "before", Point: hooks.BeforeFlowStep})
+
+	// Register after hook
+	hm.RegisterExecutorHook(func(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.ExecutorPayload], next func() error) error {
+		capturedAfter = &hookCtx.Payload
+		return next()
+	}, hooks.TypedHookMetadata{Name: "after", Point: hooks.AfterFlowStep})
+
+	execService, _ := NewFlowExecutor(injector)
+
+	flow := &flows.Flow{
+		Name: "hook-test-flow",
+		Input: &flows.InputBlock{
+			Strings: []flows.FieldDef{{Name: "name", Required: true}},
+		},
+		States: []flows.State{
+			{
+				Name:    "initial",
+				Initial: true,
+				Steps: []flows.Step{
+					{Type: "func", Function: "noop"}, // Will be mocked
+				},
+				Transitions: []flows.Transition{
+					{To: "final", When: "true"},
+				},
+			},
+			{Name: "final"},
+		},
+	}
+
+	instance := execService.New(flow)
+	instance.SetInput(map[string]any{"name": "test"})
+
+	// Mock the func step to return successfully
+	// (For now, we'll test that the wrapper works even if step fails)
+
+	err := instance.Run()
+
+	// We expect this to fail (func not found), but hooks should still be called
+	assert.Error(t, err)
+
+	// Verify hooks were called
+	assert.NotNil(t, capturedBefore, "Before hook should be called")
+	assert.NotNil(t, capturedAfter, "After hook should be called")
+	assert.Equal(t, "hook-test-flow", capturedBefore.FlowName)
+	assert.Equal(t, "func", capturedBefore.StepType)
+	assert.Equal(t, "initial", capturedBefore.CurrentState)
+	assert.Greater(t, capturedAfter.Duration, int64(0))
 }

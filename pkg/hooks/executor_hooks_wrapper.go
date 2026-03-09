@@ -15,7 +15,7 @@ import (
 func (p *hookManagerImpl) WithFlowStepHooks(
 	ctx context.Context,
 	sessionID, flowID uuid.UUID,
-	stepType, stateName string,
+	flowName, stepType, stateName string,
 	work func() (map[string]any, error),
 ) (map[string]any, error) {
 	// Validate inputs immediately (fail fast)
@@ -28,6 +28,7 @@ func (p *hookManagerImpl) WithFlowStepHooks(
 	// Create initial payload for BeforeFlowStep
 	beforePayload := ExecutorPayload{
 		FlowID:       flowID,
+		FlowName:     flowName,
 		SessionID:    sessionID,
 		CurrentState: stateName,
 		StepType:     stepType,
@@ -56,6 +57,7 @@ func (p *hookManagerImpl) WithFlowStepHooks(
 	// Create payload for AfterFlowStep with execution results
 	afterPayload := ExecutorPayload{
 		FlowID:       flowID,
+		FlowName:     flowName,
 		SessionID:    sessionID,
 		CurrentState: stateName,
 		StepType:     stepType,
@@ -77,6 +79,7 @@ func (p *hookManagerImpl) WithFlowStepHooks(
 		p.log.Warn("AfterFlowStep hook error",
 			zap.Error(afterResult.Error),
 			zap.String("flow_id", flowID.String()),
+			zap.String("flow_name", flowName),
 			zap.String("state", stateName),
 		)
 	}

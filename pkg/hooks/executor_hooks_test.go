@@ -192,6 +192,7 @@ func TestHookManager_WithFlowStepHooks_BeforeAndAfter(t *testing.T) {
 		context.Background(),
 		sessionID,
 		flowID,
+		"test-flow",
 		"llm",
 		"test-state",
 		func() (map[string]any, error) {
@@ -231,6 +232,7 @@ func TestHookManager_WithFlowStepHooks_ExecutionBlocked(t *testing.T) {
 		context.Background(),
 		uuid.New(),
 		uuid.New(),
+		"test-flow",
 		"func",
 		"blocked-state",
 		func() (map[string]any, error) {
@@ -259,6 +261,7 @@ func TestHookManager_WithFlowStepHooks_WorkError(t *testing.T) {
 		context.Background(),
 		uuid.New(),
 		uuid.New(),
+		"test-flow",
 		"shell",
 		"error-state",
 		func() (map[string]any, error) {

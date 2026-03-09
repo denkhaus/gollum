@@ -187,7 +187,7 @@ type HookManager interface {
 	WithFlowStepHooks(
 		ctx context.Context,
 		sessionID, flowID uuid.UUID,
-		stepType, stateName string,
+		flowName, stepType, stateName string,
 		work func() (map[string]any, error),
 	) (map[string]any, error)
 }

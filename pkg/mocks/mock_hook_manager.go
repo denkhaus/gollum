@@ -57,6 +57,20 @@ func (mr *MockHookManagerMockRecorder) RegisterAgentHook(fn, meta any) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterAgentHook", reflect.TypeOf((*MockHookManager)(nil).RegisterAgentHook), fn, meta)
 }
 
+// RegisterExecutorHook mocks base method.
+func (m *MockHookManager) RegisterExecutorHook(fn hooks.TypedHookFunc[hooks.ExecutorPayload], meta hooks.TypedHookMetadata) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterExecutorHook", fn, meta)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterExecutorHook indicates an expected call of RegisterExecutorHook.
+func (mr *MockHookManagerMockRecorder) RegisterExecutorHook(fn, meta any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterExecutorHook", reflect.TypeOf((*MockHookManager)(nil).RegisterExecutorHook), fn, meta)
+}
+
 // RegisterFileHook mocks base method.
 func (m *MockHookManager) RegisterFileHook(fn hooks.TypedHookFunc[hooks.FilePayload], meta hooks.TypedHookMetadata) error {
 	m.ctrl.T.Helper()
@@ -139,6 +153,20 @@ func (m *MockHookManager) TriggerAgentHooks(ctx context.Context, point hooks.Hoo
 func (mr *MockHookManagerMockRecorder) TriggerAgentHooks(ctx, point, hookCtx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TriggerAgentHooks", reflect.TypeOf((*MockHookManager)(nil).TriggerAgentHooks), ctx, point, hookCtx)
+}
+
+// TriggerExecutorHooks mocks base method.
+func (m *MockHookManager) TriggerExecutorHooks(ctx context.Context, point hooks.HookPoint, hookCtx *hooks.TypedHookContext[hooks.ExecutorPayload]) hooks.TypedHookResult[hooks.ExecutorPayload] {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TriggerExecutorHooks", ctx, point, hookCtx)
+	ret0, _ := ret[0].(hooks.TypedHookResult[hooks.ExecutorPayload])
+	return ret0
+}
+
+// TriggerExecutorHooks indicates an expected call of TriggerExecutorHooks.
+func (mr *MockHookManagerMockRecorder) TriggerExecutorHooks(ctx, point, hookCtx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TriggerExecutorHooks", reflect.TypeOf((*MockHookManager)(nil).TriggerExecutorHooks), ctx, point, hookCtx)
 }
 
 // TriggerFileHooks mocks base method.
@@ -280,6 +308,21 @@ func (m *MockHookManager) WithFileWriteHooks(ctx context.Context, sessionID, age
 func (mr *MockHookManagerMockRecorder) WithFileWriteHooks(ctx, sessionID, agentID, filePath, content, work any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithFileWriteHooks", reflect.TypeOf((*MockHookManager)(nil).WithFileWriteHooks), ctx, sessionID, agentID, filePath, content, work)
+}
+
+// WithFlowStepHooks mocks base method.
+func (m *MockHookManager) WithFlowStepHooks(ctx context.Context, sessionID, flowID uuid.UUID, flowName, stepType, stateName string, work func() (map[string]any, error)) (map[string]any, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WithFlowStepHooks", ctx, sessionID, flowID, flowName, stepType, stateName, work)
+	ret0, _ := ret[0].(map[string]any)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WithFlowStepHooks indicates an expected call of WithFlowStepHooks.
+func (mr *MockHookManagerMockRecorder) WithFlowStepHooks(ctx, sessionID, flowID, flowName, stepType, stateName, work any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithFlowStepHooks", reflect.TypeOf((*MockHookManager)(nil).WithFlowStepHooks), ctx, sessionID, flowID, flowName, stepType, stateName, work)
 }
 
 // WithLLMHooks mocks base method.

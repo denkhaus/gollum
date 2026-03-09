@@ -227,18 +227,32 @@ func (p *flowExecutorImpl) transitionTo(stateName string) error {
 
 // executeStep executes a single step
 func (p *flowExecutorImpl) executeStep(step *flows.Step, stateName string) error {
-	switch step.Type {
-	case "llm":
-		return p.executeLLMStep(step, stateName)
-	case "shell":
-		return p.executeShellStep(step, stateName)
-	case "func":
-		return p.executeFuncStep(step, stateName)
-	case "mcp":
-		return p.executeMCPStep(step, stateName)
-	default:
-		return fmt.Errorf("unknown step type: %s", step.Type)
-	}
+	// Wrap step execution with hooks
+	_, err := p.hookManager.WithFlowStepHooks(
+		context.Background(),
+		uuid.Nil, // SessionID - will be available when executor is used in session context
+		uuid.Nil, // FlowID - flows don't have IDs yet, use Nil for now
+		p.flow.Name,
+		step.Type,
+		stateName,
+		func() (map[string]any, error) {
+			// Execute the actual step logic
+			switch step.Type {
+			case "llm":
+				return nil, p.executeLLMStep(step, stateName)
+			case "shell":
+				return nil, p.executeShellStep(step, stateName)
+			case "func":
+				return nil, p.executeFuncStep(step, stateName)
+			case "mcp":
+				return nil, p.executeMCPStep(step, stateName)
+			default:
+				return nil, fmt.Errorf("unknown step type: %s", step.Type)
+			}
+		},
+	)
+
+	return err
 }
 
 func (p *flowExecutorImpl) executeShellStep(step *flows.Step, stateName string) error {

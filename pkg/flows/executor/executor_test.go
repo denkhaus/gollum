@@ -25,6 +25,10 @@ func setupTestDI(t *testing.T) do.Injector {
 	defer ctrl.Finish()
 	mockLogger := mocks.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
+	// Allow any Debug calls with variadic arguments
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
@@ -51,6 +55,10 @@ func setupTestDIWithRegistry(t *testing.T, registry flowregistry.FlowRegistry) d
 	// Create mock logger
 	mockLogger := mocks.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
+	// Allow any Debug calls with variadic arguments
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
@@ -76,6 +84,10 @@ func setupTestDIWithBashProvider(t *testing.T, provider tools.BashToolProvider) 
 	// Create mock logger
 	mockLogger := mocks.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
+	// Allow any Debug calls with variadic arguments
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
