@@ -75,9 +75,9 @@ func (p *hookManagerImpl) WithFlowStepHooks(
 	if afterResult.Error != nil {
 		// Log hook error but don't override the original work error
 		p.log.Warn("AfterFlowStep hook error",
-		 zap.Error(afterResult.Error),
-		 zap.String("flow_id", flowID.String()),
-		 zap.String("state", stateName),
+			zap.Error(afterResult.Error),
+			zap.String("flow_id", flowID.String()),
+			zap.String("state", stateName),
 		)
 	}
 
