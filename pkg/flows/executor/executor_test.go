@@ -5,9 +5,9 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/extensions"
 	"github.com/denkhaus/gollum/pkg/flows"
+	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/samber/do/v2"
@@ -22,6 +22,7 @@ func setupTestDI(t *testing.T) do.Injector {
 
 	// Create mock logger
 	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 	mockLogger := mocks.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()

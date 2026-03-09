@@ -64,21 +64,21 @@ func extractDeps(expr ast.Expr, deps *[]string) {
 
 // Context manages execution context with input, output, and computed fields
 type Context struct {
-	input    *flows.InputBlock
+	input     *flows.InputBlock
 	inputVals map[string]any
-	values    map[string]any  // context and output fields
-	computed map[string]string // computed field expressions
-	eval     *Evaluator
+	values    map[string]any    // context and output fields
+	computed  map[string]string // computed field expressions
+	eval      *Evaluator
 }
 
 // NewContext creates a new execution context
 func NewContext(input *flows.InputBlock, inputVals map[string]any) *Context {
 	ctx := &Context{
-		input:    input,
+		input:     input,
 		inputVals: make(map[string]any),
-		values:   make(map[string]any),
-		computed: make(map[string]string),
-		eval:     NewEvaluator(),
+		values:    make(map[string]any),
+		computed:  make(map[string]string),
+		eval:      NewEvaluator(),
 	}
 
 	// Apply input values or defaults

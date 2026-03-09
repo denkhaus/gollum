@@ -413,6 +413,7 @@ func (p *flowExecutorImpl) executeCall(call *flows.Call, stateName string) error
 		bashToolProvider: p.bashToolProvider,
 		extService:       p.extService,
 		flowRegistry:     p.flowRegistry,
+		hookManager:      p.hookManager,
 	}
 
 	// Execute the sub-flow

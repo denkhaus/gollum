@@ -47,10 +47,10 @@ func TestExecuteMCPStep_ToolCall(t *testing.T) {
 				Initial: true,
 				Steps: []flows.Step{
 					{
-						Type:     "mcp",
-						Tool:     "tavily.search",
-						Params:   []flows.StepParam{{Name: "query", Value: "${input.query}"}},
-						Output:   &flows.StepOutput{Assign: "${output.result}"},
+						Type:   "mcp",
+						Tool:   "tavily.search",
+						Params: []flows.StepParam{{Name: "query", Value: "${input.query}"}},
+						Output: &flows.StepOutput{Assign: "${output.result}"},
 					},
 				},
 				Transitions: []flows.Transition{{To: "done"}},

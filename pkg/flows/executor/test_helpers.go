@@ -6,6 +6,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/extensions"
 	"github.com/denkhaus/gollum/pkg/flows"
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
@@ -30,6 +31,7 @@ func NewExecutor(flow *flows.Flow) *flowExecutorImpl {
 		bashToolProvider: &testBashToolProvider{},
 		extService:       &testExtensionService{},
 		flowRegistry:     &testFlowRegistry{},
+		hookManager:      &hooks.NoOpHookManager{},
 	}
 }
 
@@ -42,6 +44,7 @@ func NewExecutorWithRegistry(flow *flows.Flow, registry flowregistry.FlowRegistr
 		bashToolProvider: &testBashToolProvider{},
 		extService:       &testExtensionService{},
 		flowRegistry:     registry,
+		hookManager:      &hooks.NoOpHookManager{},
 	}
 }
 
@@ -54,6 +57,7 @@ func NewExecutorWithProvider(flow *flows.Flow, provider tools.BashToolProvider) 
 		bashToolProvider: provider,
 		extService:       &testExtensionService{},
 		flowRegistry:     &testFlowRegistry{},
+		hookManager:      &hooks.NoOpHookManager{},
 	}
 }
 
