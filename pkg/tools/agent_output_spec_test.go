@@ -21,7 +21,7 @@ func TestAgentOutputTool_Spec(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &AgentOutputTool{
+	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
 		senderID:    uuid.New(),
@@ -56,7 +56,7 @@ func TestAgentOutputTool_Run_MissingAgentID(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &AgentOutputTool{
+	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
 		senderID:    uuid.New(),
@@ -78,7 +78,7 @@ func TestAgentOutputTool_Run_EmptyAgentID(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &AgentOutputTool{
+	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
 		senderID:    uuid.New(),
@@ -101,7 +101,7 @@ func TestAgentOutputTool_Run_InvalidUUID(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &AgentOutputTool{
+	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
 		senderID:    uuid.New(),
@@ -136,7 +136,7 @@ func TestAgentOutputTool_Run_AgentNotFound(t *testing.T) {
 		GetAgentResult(agentID).
 		Return(nil, false)
 
-	tool := &AgentOutputTool{
+	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
 		senderID:    senderID,

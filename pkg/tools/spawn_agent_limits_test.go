@@ -43,7 +43,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_LimitExceeded(t *testing.T) {
 	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
 	// No StoreTaskResult expected when CreateAgent fails
 
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockAgentFactory,
 		registry:        mockRegistry,
@@ -96,7 +96,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_SubAgentLimitExceeded(t *testing.T
 	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
 	// No StoreTaskResult expected when CreateAgent fails
 
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockAgentFactory,
 		registry:        mockRegistry,
@@ -149,7 +149,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_GenericError(t *testing.T) {
 	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
 	// No StoreTaskResult expected when CreateAgent fails
 
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockAgentFactory,
 		registry:        mockRegistry,

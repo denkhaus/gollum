@@ -54,7 +54,7 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 	}).AnyTimes()
 
 	// Create spawn tool
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        agentRegistry,
@@ -84,7 +84,7 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 	})
 
 	// Create agent output tool for result retrieval
-	outputTool := &AgentOutputTool{
+	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
 		senderID:    senderID,
 		hookManager: mockHookManager,
@@ -157,7 +157,7 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 	}).AnyTimes()
 
 	// Create spawn tool
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        agentRegistry,
@@ -201,7 +201,7 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 	assert.Equal(t, "running", result["status"].(string))
 
 	// Create agent output tool
-	outputTool := &AgentOutputTool{
+	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
 		senderID:    senderID,
 		hookManager: mockHookManager,
@@ -264,7 +264,7 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 	}).AnyTimes()
 
 	// Create spawn tool
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        agentRegistry,
@@ -289,7 +289,7 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).Return(nil, testError)
 
 	// Create agent output tool
-	outputTool := &AgentOutputTool{
+	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
 		senderID:    senderID,
 		hookManager: mockHookManager,
@@ -359,7 +359,7 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 	}).AnyTimes()
 
 	// Create spawn tool
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        agentRegistry,
@@ -388,7 +388,7 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 	})
 
 	// Create agent output tool
-	outputTool := &AgentOutputTool{
+	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
 		senderID:    senderID,
 		hookManager: mockHookManager,

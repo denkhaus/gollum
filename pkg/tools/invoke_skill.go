@@ -35,8 +35,8 @@ func (m ContextMode) IsValid() bool {
 }
 
 type (
-	// InvokeSkillTool executes discovered skills at runtime
-	InvokeSkillTool struct {
+	// invokeSkillToolImpl executes discovered skills at runtime
+	invokeSkillToolImpl struct {
 		logService      logger.LoggerService
 		agentFactory    shared.AgentFactory
 		registry        registry.AgentRegistry
@@ -48,7 +48,7 @@ type (
 
 	// InvokeSkillToolProvider creates InvokeSkillTool instances via DI
 	InvokeSkillToolProvider interface {
-		CreateTool(senderID uuid.UUID, agentFactory shared.AgentFactory) *InvokeSkillTool
+		CreateTool(senderID uuid.UUID, agentFactory shared.AgentFactory) gollem.Tool
 	}
 
 	invokeSkillToolProvider struct {
@@ -78,8 +78,8 @@ func NewInvokeSkillToolProvider(injector do.Injector) (InvokeSkillToolProvider, 
 }
 
 // CreateTool creates a new InvokeSkillTool for a specific sender
-func (p *invokeSkillToolProvider) CreateTool(senderID uuid.UUID, agentFactory shared.AgentFactory) *InvokeSkillTool {
-	return &InvokeSkillTool{
+func (p *invokeSkillToolProvider) CreateTool(senderID uuid.UUID, agentFactory shared.AgentFactory) gollem.Tool {
+	return &invokeSkillToolImpl{
 		logService:      p.logService,
 		agentFactory:    agentFactory,
 		registry:        p.registry,
@@ -91,7 +91,7 @@ func (p *invokeSkillToolProvider) CreateTool(senderID uuid.UUID, agentFactory sh
 }
 
 // Spec returns the tool specification for InvokeSkillTool
-func (t *InvokeSkillTool) Spec() gollem.ToolSpec {
+func (t *invokeSkillToolImpl) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
 		Name:        shared.ToolNameInvokeSkill.String(),
 		Description: "Executes a discovered skill by name. Skills can run as subagents with inherited or isolated context, or as simple template transformations. Use this to invoke specialized capabilities defined in SKILL.md files.",
@@ -117,7 +117,7 @@ func (t *InvokeSkillTool) Spec() gollem.ToolSpec {
 }
 
 // Run executes the InvokeSkill tool
-func (t *InvokeSkillTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *invokeSkillToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.senderID, shared.ToolNameInvokeSkill, args,
 		func() (map[string]any, error) {
 			return t.runInvokeSkill(ctx, args)
@@ -125,7 +125,7 @@ func (t *InvokeSkillTool) Run(ctx context.Context, args map[string]any) (map[str
 }
 
 // runInvokeSkill implements the core skill invocation logic
-func (t *InvokeSkillTool) runInvokeSkill(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args map[string]any) (map[string]any, error) {
 	// Validate required parameters
 	skillName, ok := args["name"].(string)
 	if !ok || skillName == "" {

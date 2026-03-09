@@ -14,8 +14,8 @@ import (
 )
 
 type (
-	// RemoveAgentTool removes agents and all their subagents recursively
-	RemoveAgentTool struct {
+	// removeAgentToolImpl removes agents and all their subagents recursively
+	removeAgentToolImpl struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		registry    registry.AgentRegistry
@@ -24,7 +24,7 @@ type (
 
 	// RemoveAgentToolProvider creates RemoveAgentTool instances via DI
 	RemoveAgentToolProvider interface {
-		CreateTool(senderID uuid.UUID) *RemoveAgentTool
+		CreateTool(senderID uuid.UUID) gollem.Tool
 	}
 
 	removeAgentToolProvider struct {
@@ -48,8 +48,8 @@ func NewRemoveAgentToolProvider(injector do.Injector) (RemoveAgentToolProvider, 
 }
 
 // CreateRemoveAgentTool creates a new RemoveAgentTool for a specific sender
-func (p *removeAgentToolProvider) CreateTool(senderID uuid.UUID) *RemoveAgentTool {
-	return &RemoveAgentTool{
+func (p *removeAgentToolProvider) CreateTool(senderID uuid.UUID) gollem.Tool {
+	return &removeAgentToolImpl{
 		logService:  p.logService,
 		hookManager: p.hookManager,
 		registry:    p.registry,
@@ -58,7 +58,7 @@ func (p *removeAgentToolProvider) CreateTool(senderID uuid.UUID) *RemoveAgentToo
 }
 
 // Spec returns the tool specification for the RemoveAgent tool
-func (t *RemoveAgentTool) Spec() gollem.ToolSpec {
+func (t *removeAgentToolImpl) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
 		Name:        shared.ToolNameRemoveAgent.String(),
 		Description: "Removes an agent and all its subagents recursively. Only the agent creator or parent can remove an agent. Cannot remove yourself.",
@@ -76,7 +76,7 @@ func (t *RemoveAgentTool) Spec() gollem.ToolSpec {
 }
 
 // Run executes the RemoveAgent tool to remove agents
-func (t *RemoveAgentTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *removeAgentToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.senderID, shared.ToolNameRemoveAgent, args,
 		func() (map[string]any, error) {
 			return t.runRemoveAgent(ctx, args)
@@ -84,7 +84,7 @@ func (t *RemoveAgentTool) Run(ctx context.Context, args map[string]any) (map[str
 }
 
 // runRemoveAgent implements the core RemoveAgent logic
-func (t *RemoveAgentTool) runRemoveAgent(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *removeAgentToolImpl) runRemoveAgent(_ context.Context, args map[string]any) (map[string]any, error) {
 	agentIDStr, ok := args["agent_id"].(string)
 	if !ok {
 		t.logService.Debugf("RemoveAgent: invalid agent_id type from sender %s", t.senderID)

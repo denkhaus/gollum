@@ -19,7 +19,7 @@ func TestInvokeSkillTool_Spec(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	tool := &InvokeSkillTool{
+	tool := &invokeSkillToolImpl{
 		senderID: uuid.New(),
 	}
 
@@ -83,10 +83,10 @@ func TestInvokeSkillTool_MissingRequiredParameters(t *testing.T) {
 					return work()
 				})
 
-			tool := &InvokeSkillTool{
-				logService:  mockLogger,
-				senderID:    senderID,
-				hookManager: mockHookManager,
+			tool := &invokeSkillToolImpl{
+				logService:      mockLogger,
+				senderID:        senderID,
+				hookManager:     mockHookManager,
 				executionHelper: &testExecutionHelper{},
 			}
 
@@ -115,7 +115,7 @@ func TestInvokeSkillTool_SkillNotFound(t *testing.T) {
 	mockSkillService.EXPECT().Get("nonexistent-skill").Return(nil, skills.ErrSkillNotFound("nonexistent-skill"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
-	tool := &InvokeSkillTool{
+	tool := &invokeSkillToolImpl{
 		logService:      mockLogger,
 		skillService:    mockSkillService,
 		senderID:        senderID,
@@ -156,7 +156,7 @@ func TestInvokeSkillTool_InvalidContextMode(t *testing.T) {
 	mockSkillService.EXPECT().Get("test-skill").Return(skill, nil)
 	mockLogger.EXPECT().Infof(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
-	tool := &InvokeSkillTool{
+	tool := &invokeSkillToolImpl{
 		logService:      mockLogger,
 		skillService:    mockSkillService,
 		senderID:        senderID,
@@ -200,7 +200,7 @@ func TestInvokeSkillTool_InvalidModel(t *testing.T) {
 	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
 	mockLogger.EXPECT().Infof(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
-	tool := &InvokeSkillTool{
+	tool := &invokeSkillToolImpl{
 		logService:      mockLogger,
 		skillService:    mockSkillService,
 		senderID:        senderID,
@@ -249,7 +249,7 @@ func TestInvokeSkillTool_SkillWithNoContent(t *testing.T) {
 
 	mockLogger.EXPECT().Infof(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
-	tool := &InvokeSkillTool{
+	tool := &invokeSkillToolImpl{
 		logService:      mockLogger,
 		skillService:    mockSkillService,
 		senderID:        senderID,
@@ -293,7 +293,8 @@ func (m *testExecutionHelper) ExecuteSynchronously(ctx context.Context, agent sh
 	return map[string]any{"status": "success", "output": "test output"}, nil
 }
 
-func (m *testExecutionHelper) ExecuteInBackground(ctx context.Context, agent shared.Agent, prompt string) {}
+func (m *testExecutionHelper) ExecuteInBackground(ctx context.Context, agent shared.Agent, prompt string) {
+}
 
 func (m *testExecutionHelper) SuccessResponseSync(agentID uuid.UUID, response string) map[string]any {
 	return map[string]any{"success": true, "agent_id": agentID.String(), "response": response}
@@ -316,7 +317,7 @@ func TestInvokeSkillTool_ImplementsGollemTool(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	tool := &InvokeSkillTool{
+	tool := &invokeSkillToolImpl{
 		senderID: uuid.New(),
 	}
 
@@ -377,7 +378,7 @@ func TestInvokeSkillTool_TriggersSkillHooks(t *testing.T) {
 	mockExecutionHelper.EXPECT().ExecuteSynchronously(gomock.Any(), gomock.Any(), "test task").
 		Return(map[string]any{"status": "success"}, nil)
 
-	tool := &InvokeSkillTool{
+	tool := &invokeSkillToolImpl{
 		logService:      mockLogger,
 		agentFactory:    mockFactory,
 		registry:        mockRegistry,

@@ -19,8 +19,8 @@ import (
 )
 
 type (
-	// ReadFileTool reads file contents with shared locking and automatic stats tracking
-	ReadFileTool struct {
+	// readFileToolImpl reads file contents with shared locking and automatic stats tracking
+	readFileToolImpl struct {
 		logService  logger.LoggerService
 		fsm         state.FileStateManager
 		hookManager hooks.HookManager
@@ -29,7 +29,7 @@ type (
 
 	// ReadFileToolProvider creates ReadFileTool instances via DI
 	ReadFileToolProvider interface {
-		CreateTool(agentID uuid.UUID) *ReadFileTool
+		CreateTool(agentID uuid.UUID) gollem.Tool
 	}
 
 	readFileToolProvider struct {
@@ -49,8 +49,8 @@ func NewReadFileToolProvider(injector do.Injector) (ReadFileToolProvider, error)
 }
 
 // CreateReadFileTool creates a new ReadFileTool with agent ID
-func (p *readFileToolProvider) CreateTool(agentID uuid.UUID) *ReadFileTool {
-	return &ReadFileTool{
+func (p *readFileToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+	return &readFileToolImpl{
 		logService:  p.logService,
 		fsm:         p.fsm,
 		hookManager: p.hookManager,
@@ -59,7 +59,7 @@ func (p *readFileToolProvider) CreateTool(agentID uuid.UUID) *ReadFileTool {
 }
 
 // Spec returns the tool specification for the ReadFile tool
-func (t *ReadFileTool) Spec() gollem.ToolSpec {
+func (t *readFileToolImpl) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
 		Name:        shared.ToolNameReadFile.String(),
 		Description: "Reads a file from the local filesystem. Returns the file content with line numbers. Automatically updates file stats in FileStateManager with shared locking (allows concurrent readers).",
@@ -81,7 +81,7 @@ func (t *ReadFileTool) Spec() gollem.ToolSpec {
 }
 
 // Run executes the ReadFile tool to read file contents
-func (t *ReadFileTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *readFileToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameReadFile, args,
 		func() (map[string]any, error) {
 			return t.runFileRead(ctx, args)
@@ -89,7 +89,7 @@ func (t *ReadFileTool) Run(ctx context.Context, args map[string]any) (map[string
 }
 
 // runFileRead implements the core file read logic
-func (t *ReadFileTool) runFileRead(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *readFileToolImpl) runFileRead(ctx context.Context, args map[string]any) (map[string]any, error) {
 	path, ok := args["file_path"].(string)
 	if !ok || path == "" {
 		t.logService.Debug("Read file failed: invalid file_path parameter",
@@ -296,7 +296,7 @@ func (t *ReadFileTool) runFileRead(ctx context.Context, args map[string]any) (ma
 }
 
 // ReadFileLines reads a file and returns lines (helper for common use case)
-func (t *ReadFileTool) ReadFileLines(ctx context.Context, path string) ([]string, error) {
+func (t *readFileToolImpl) ReadFileLines(ctx context.Context, path string) ([]string, error) {
 	t.logService.Debug("ReadFileLines helper called",
 		zap.String("agent_id", t.agentID.String()),
 		zap.String("file_path", path),

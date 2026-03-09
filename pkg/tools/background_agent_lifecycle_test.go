@@ -49,7 +49,7 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 		SystemPrompt: "test",
 	}).AnyTimes()
 
-	spawnTool := &SpawnAgentTool{
+	spawnTool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        agentRegistry,
@@ -90,7 +90,7 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 	assert.Equal(t, spawnedAgentID, agent.GetID())
 
 	// Step 2: Resume the agent with a new task
-	resumeTool := &ResumeAgentTool{
+	resumeTool := &resumeAgentToolImpl{
 		logService:      logService,
 		hookManager:     mockHookManager,
 		registry:        agentRegistry,
@@ -113,7 +113,7 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 	assert.Equal(t, "Resumed task completed", resumeResult["response"].(string))
 
 	// Step 3: Get output from the agent
-	outputTool := &AgentOutputTool{
+	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
 		senderID:    senderID,
 		hookManager: mockHookManager,
@@ -130,7 +130,7 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 	assert.Equal(t, "Resumed task completed", outputResult["output"].(map[string]interface{})["response"])
 
 	// Step 4: Remove the agent
-	removeTool := &RemoveAgentTool{
+	removeTool := &removeAgentToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    agentRegistry,

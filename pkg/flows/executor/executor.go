@@ -36,23 +36,29 @@ type FlowExecutorInstance interface {
 
 // flowExecutorImpl is the private implementation of a flow executor instance
 type flowExecutorImpl struct {
-	flow             *flows.Flow
-	ctx              *Context
-	currentState     string
-	history          *ExecutionHistory
-	startTime        time.Time
-	bashToolProvider tools.BashToolProvider
-	extService       extensions.ExtensionService
-	flowRegistry     flowregistry.FlowRegistry
-	hookManager      hooks.HookManager
+	flow              *flows.Flow
+	ctx               *Context
+	currentState      string
+	history           *ExecutionHistory
+	startTime         time.Time
+	bashToolProvider  tools.BashToolProvider
+	extService        extensions.ExtensionService
+	flowRegistry      flowregistry.FlowRegistry
+	hookManager       hooks.HookManager
+	flowToolsProvider tools.FlowToolsProvider
+	pendingTransition string // Set by transition_to tool to force a state transition
 }
+
+// Ensure flowExecutorImpl implements tools.FlowContext
+var _ tools.FlowContext = (*flowExecutorImpl)(nil)
 
 // flowExecutorServiceImpl is the DI service that creates executor instances
 type flowExecutorServiceImpl struct {
-	bashToolProvider tools.BashToolProvider
-	extService       extensions.ExtensionService
-	flowRegistry     flowregistry.FlowRegistry
-	hookManager      hooks.HookManager
+	bashToolProvider  tools.BashToolProvider
+	extService        extensions.ExtensionService
+	flowRegistry      flowregistry.FlowRegistry
+	hookManager       hooks.HookManager
+	flowToolsProvider tools.FlowToolsProvider
 }
 
 // Ensure flowExecutorServiceImpl implements FlowExecutorService
@@ -67,26 +73,29 @@ func NewFlowExecutor(injector do.Injector) (FlowExecutorService, error) {
 	extService := do.MustInvoke[extensions.ExtensionService](injector)
 	flowRegistry := do.MustInvoke[flowregistry.FlowRegistry](injector)
 	hookManager := do.MustInvoke[hooks.HookManager](injector)
+	flowToolsProvider := do.MustInvoke[tools.FlowToolsProvider](injector)
 
 	return &flowExecutorServiceImpl{
-		bashToolProvider: bashToolProvider,
-		extService:       extService,
-		flowRegistry:     flowRegistry,
-		hookManager:      hookManager,
+		bashToolProvider:  bashToolProvider,
+		extService:        extService,
+		flowRegistry:      flowRegistry,
+		hookManager:       hookManager,
+		flowToolsProvider: flowToolsProvider,
 	}, nil
 }
 
 // New creates a new executor instance for a specific flow
 func (p *flowExecutorServiceImpl) New(flow *flows.Flow) FlowExecutorInstance {
 	return &flowExecutorImpl{
-		flow:             flow,
-		ctx:              NewContext(flow.Input, nil),
-		history:          NewExecutionHistory(),
-		startTime:        time.Now(),
-		bashToolProvider: p.bashToolProvider,
-		extService:       p.extService,
-		flowRegistry:     p.flowRegistry,
-		hookManager:      p.hookManager,
+		flow:              flow,
+		ctx:               NewContext(flow.Input, nil),
+		history:           NewExecutionHistory(),
+		startTime:         time.Now(),
+		bashToolProvider:  p.bashToolProvider,
+		extService:        p.extService,
+		flowRegistry:      p.flowRegistry,
+		hookManager:       p.hookManager,
+		flowToolsProvider: p.flowToolsProvider,
 	}
 }
 
@@ -159,6 +168,11 @@ func (p *flowExecutorImpl) executeState(state *flows.State) error {
 	for _, step := range state.Steps {
 		if err := p.executeStep(&step, state.Name); err != nil {
 			return p.handleError(err, &step, state)
+		}
+
+		// Check if a tool requested a transition
+		if p.pendingTransition != "" {
+			return p.transitionTo(p.pendingTransition)
 		}
 	}
 
@@ -255,7 +269,7 @@ func (p *flowExecutorImpl) executeStep(step *flows.Step, stateName string) error
 	return err
 }
 
-func (p *flowExecutorImpl) executeShellStep(step *flows.Step, stateName string) error {
+func (p *flowExecutorImpl) executeShellStep(step *flows.Step, _ string) error {
 	// Substitute template variables in command
 	cmd := p.substituteTemplate(step.Cmd)
 
@@ -398,12 +412,12 @@ func (p *flowExecutorImpl) executeFuncStep(step *flows.Step, stateName string) e
 	return nil
 }
 
-func (p *flowExecutorImpl) executeMCPStep(step *flows.Step, stateName string) error {
+func (p *flowExecutorImpl) executeMCPStep(step *flows.Step, _ string) error {
 	return fmt.Errorf("mcp step execution not yet implemented")
 }
 
 // executeCall executes a call step (sub-flow invocation)
-func (p *flowExecutorImpl) executeCall(call *flows.Call, stateName string) error {
+func (p *flowExecutorImpl) executeCall(call *flows.Call, _ string) error {
 	// Look up the sub-flow
 	subFlow, err := p.flowRegistry.GetFlow(call.Ref)
 	if err != nil {
@@ -468,4 +482,78 @@ func (p *flowExecutorImpl) handleError(err error, step *flows.Step, state *flows
 	}
 	p.history.RecordError(stepName, stepType, err.Error(), time.Now())
 	return err
+}
+
+// FlowContext interface implementation for tool access
+
+// SetOutputField sets an output field value
+func (p *flowExecutorImpl) SetOutputField(name string, value any) {
+	p.ctx.SetOutputField(name, value)
+}
+
+// GetOutputField retrieves an output field value
+func (p *flowExecutorImpl) GetOutputField(name string) (any, bool) {
+	return p.ctx.GetOutputField(name)
+}
+
+// SetContextField sets a context field value
+func (p *flowExecutorImpl) SetContextField(name string, value any) {
+	p.ctx.SetContextField(name, value)
+}
+
+// GetContextField retrieves a context field value
+func (p *flowExecutorImpl) GetContextField(name string) (any, bool) {
+	return p.ctx.GetContextField(name)
+}
+
+// GetFlow returns the flow definition
+func (p *flowExecutorImpl) GetFlow() *flows.Flow {
+	return p.flow
+}
+
+// GetCurrentState returns the current state name
+func (p *flowExecutorImpl) GetCurrentState() string {
+	return p.currentState
+}
+
+// GetAllContextFields returns all context fields
+func (p *flowExecutorImpl) GetAllContextFields() map[string]any {
+	return p.ctx.values
+}
+
+// ValidateTransition checks if a transition is valid
+func (p *flowExecutorImpl) ValidateTransition(from, to string) error {
+	// Find the current state and check if transition is allowed
+	for _, s := range p.flow.States {
+		if s.Name == from {
+			// Check if the transition exists
+			for _, trans := range s.Transitions {
+				if trans.To == to {
+					return nil // Transition is valid
+				}
+			}
+			return fmt.Errorf("transition from %s to %s is not defined", from, to)
+		}
+	}
+	return fmt.Errorf("current state '%s' not found", from)
+}
+
+// RequestTransition signals that the flow should transition to the target state
+func (p *flowExecutorImpl) RequestTransition(to string) error {
+	// Validate the target state exists
+	var targetState *flows.State
+	for i := range p.flow.States {
+		if p.flow.States[i].Name == to {
+			targetState = &p.flow.States[i]
+			break
+		}
+	}
+
+	if targetState == nil {
+		return fmt.Errorf("target state '%s' not found", to)
+	}
+
+	// Set the pending transition - executor will execute it after step completes
+	p.pendingTransition = to
+	return nil
 }

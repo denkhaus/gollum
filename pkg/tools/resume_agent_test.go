@@ -51,7 +51,7 @@ func TestResumeAgentToolValidation(t *testing.T) {
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
-	tool := &ResumeAgentTool{
+	tool := &resumeAgentToolImpl{
 		logService:      logService,
 		hookManager:     mockHookManager,
 		registry:        mockRegistry,
@@ -139,7 +139,7 @@ func TestResumeAgentToolAgentNotFound(t *testing.T) {
 	// Mock agent not found
 	mockRegistry.EXPECT().GetAgent(agentID).Return(nil, false)
 
-	tool := &ResumeAgentTool{
+	tool := &resumeAgentToolImpl{
 		logService:      logService,
 		hookManager:     mockHookManager,
 		registry:        mockRegistry,
@@ -202,7 +202,7 @@ func TestResumeAgentToolSynchronousExecution(t *testing.T) {
 	}
 	mockExecHelper.EXPECT().ExecuteSynchronously(gomock.Any(), mockAgent, "Do something").Return(expectedResponse, nil)
 
-	tool := &ResumeAgentTool{
+	tool := &resumeAgentToolImpl{
 		logService:      logService,
 		hookManager:     mockHookManager,
 		registry:        mockRegistry,
@@ -265,7 +265,7 @@ func TestResumeAgentToolAsynchronousExecution(t *testing.T) {
 	// Mock execution helper background call
 	mockExecHelper.EXPECT().ExecuteInBackground(gomock.Any(), mockAgent, "Do something async")
 
-	tool := &ResumeAgentTool{
+	tool := &resumeAgentToolImpl{
 		logService:      logService,
 		hookManager:     mockHookManager,
 		registry:        mockRegistry,
@@ -309,12 +309,13 @@ func TestResumeAgentToolProvider_CreateTool(t *testing.T) {
 
 	senderID := uuid.New()
 	tool := provider.CreateTool(senderID)
+	toolImpl := tool.(*resumeAgentToolImpl)
 
 	require.NotNil(t, tool)
-	assert.Equal(t, senderID, tool.senderID)
-	assert.Equal(t, mockRegistry, tool.registry)
-	assert.Equal(t, logService, tool.logService)
-	assert.Equal(t, mockHookManager, tool.hookManager)
+	assert.Equal(t, senderID, toolImpl.senderID)
+	assert.Equal(t, mockRegistry, toolImpl.registry)
+	assert.Equal(t, logService, toolImpl.logService)
+	assert.Equal(t, mockHookManager, toolImpl.hookManager)
 }
 
 // TestResumeAgentTool_PermissionDenied tests permission check when caller is not direct parent
@@ -338,7 +339,7 @@ func TestResumeAgentTool_PermissionDenied(t *testing.T) {
 	// Permission check: sender is NOT direct parent
 	mockRegistry.EXPECT().IsDirectParent(senderID, agentID).Return(false)
 
-	tool := &ResumeAgentTool{
+	tool := &resumeAgentToolImpl{
 		logService:      logService,
 		hookManager:     mockHookManager,
 		registry:        mockRegistry,

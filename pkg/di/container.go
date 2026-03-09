@@ -108,12 +108,12 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 
 	// Extensions
 	do.Provide(p.injector, extensions.NewGatewayService)
-	do.Provide(p.injector, extensions.NewHookRegistry)
 	do.Provide(p.injector, extensions.NewScriggoRunner)
 	do.Provide(p.injector, extensions.NewYaegiLoader)
 	do.Provide(p.injector, extensions.NewExtensionServiceWithWorkspace)
 
 	// Tools
+	do.Provide(p.injector, tools.NewFlowToolsProvider)
 	do.Provide(p.injector, tools.NewSpawnAgentToolProvider)
 	do.Provide(p.injector, tools.NewAgentOutputToolProvider)
 	do.Provide(p.injector, tools.NewRemoveAgentToolProvider)

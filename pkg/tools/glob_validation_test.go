@@ -19,7 +19,7 @@ func TestGlobTool_Run_MissingPattern(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"path": "/some/path",
@@ -48,7 +48,7 @@ func TestGlobTool_Run_EmptyPattern(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"pattern": "",
@@ -73,7 +73,7 @@ func TestGlobTool_Run_NonStringPattern(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"pattern": 12345,

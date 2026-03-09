@@ -21,7 +21,7 @@ func TestGlobTool_Run_SimplePattern(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -70,7 +70,7 @@ func TestGlobTool_Run_NoMatches(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -116,7 +116,7 @@ func TestGlobTool_Run_DefaultPath(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
 
 	// Change to temp directory for this test
 	originalDir, err := os.Getwd()
@@ -166,7 +166,7 @@ func TestGlobTool_Run_NestedPath(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -209,7 +209,7 @@ func TestGlobTool_Run_SubdirectoryPattern(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 
@@ -267,7 +267,7 @@ func TestGlobTool_Run_AllFilesPattern(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &GlobTool{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 

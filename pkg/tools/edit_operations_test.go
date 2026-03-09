@@ -42,11 +42,11 @@ func TestEditToolBasicOperation(t *testing.T) {
 
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
-	tool := &EditTool{
-		logService:  logService,
-		fsm:         mockFSM,
-		agentID:     agentID,
-		hookManager: mockHookManager,
+	tool := &editToolImpl{
+		logService:   logService,
+		fsm:          mockFSM,
+		agentID:      agentID,
+		hookManager:  mockHookManager,
 		diffProvider: mockDiffProvider,
 	}
 
@@ -135,11 +135,11 @@ func TestEditToolStringNotFound(t *testing.T) {
 
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
-	tool := &EditTool{
-		logService:  logService,
-		fsm:         mockFSM,
-		agentID:     agentID,
-		hookManager: mockHookManager,
+	tool := &editToolImpl{
+		logService:   logService,
+		fsm:          mockFSM,
+		agentID:      agentID,
+		hookManager:  mockHookManager,
 		diffProvider: mockDiffProvider,
 	}
 
@@ -206,11 +206,11 @@ func TestEditToolMultipleOccurrences(t *testing.T) {
 
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
-	tool := &EditTool{
-		logService:  logService,
-		fsm:         mockFSM,
-		agentID:     agentID,
-		hookManager: mockHookManager,
+	tool := &editToolImpl{
+		logService:   logService,
+		fsm:          mockFSM,
+		agentID:      agentID,
+		hookManager:  mockHookManager,
 		diffProvider: mockDiffProvider,
 	}
 
@@ -239,9 +239,9 @@ func TestEditToolMultipleOccurrences(t *testing.T) {
 		assert.Contains(t, resultMap["error"].(string), "appears 3 times")
 		assert.Equal(t, 3, resultMap["replacements"].(int))
 	}).Return(map[string]any{
-		"success": false,
-		"error":   "old_string appears 3 times in the file. For safety, it must be unique unless replace_all is set to true",
-		"replacements":   3,
+		"success":      false,
+		"error":        "old_string appears 3 times in the file. For safety, it must be unique unless replace_all is set to true",
+		"replacements": 3,
 	}, nil)
 
 	result, err := tool.Run(ctx, map[string]any{
@@ -279,11 +279,11 @@ func TestEditToolReplaceAll(t *testing.T) {
 
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
-	tool := &EditTool{
-		logService:  logService,
-		fsm:         mockFSM,
-		agentID:     agentID,
-		hookManager: mockHookManager,
+	tool := &editToolImpl{
+		logService:   logService,
+		fsm:          mockFSM,
+		agentID:      agentID,
+		hookManager:  mockHookManager,
 		diffProvider: mockDiffProvider,
 	}
 

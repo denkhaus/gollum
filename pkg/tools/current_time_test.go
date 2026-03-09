@@ -23,7 +23,7 @@ func TestCurrentTimeTool_Run_DefaultTimezone(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &CurrentTimeTool{logService: logService, hookManager: mockHookManager}
+	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
 
 	result, err := tool.Run(context.Background(), map[string]any{})
 	if err != nil {
@@ -65,7 +65,7 @@ func TestCurrentTimeTool_Run_UTC(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &CurrentTimeTool{logService: logService, hookManager: mockHookManager}
+	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"timezone": "UTC",
@@ -100,7 +100,7 @@ func TestCurrentTimeTool_Run_AmericaNewYork(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &CurrentTimeTool{logService: logService, hookManager: mockHookManager}
+	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"timezone": "America/New_York",
@@ -142,7 +142,7 @@ func TestCurrentTimeTool_Run_EuropeBerlin(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &CurrentTimeTool{logService: logService, hookManager: mockHookManager}
+	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"timezone": "Europe/Berlin",
@@ -177,7 +177,7 @@ func TestCurrentTimeTool_Run_InvalidTimezone(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &CurrentTimeTool{logService: logService, hookManager: mockHookManager}
+	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"timezone": "Invalid/Timezone",
@@ -213,7 +213,7 @@ func TestCurrentTimeTool_Run_EmptyTimezone(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &CurrentTimeTool{logService: logService, hookManager: mockHookManager}
+	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"timezone": "",
@@ -239,7 +239,7 @@ func TestCurrentTimeTool_Run_NonStringTimezone(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &CurrentTimeTool{logService: logService, hookManager: mockHookManager}
+	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"timezone": 12345,
@@ -266,7 +266,7 @@ func TestCurrentTimeTool_Run_AsiaTokyo(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &CurrentTimeTool{logService: logService, hookManager: mockHookManager}
+	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"timezone": "Asia/Tokyo",
@@ -298,7 +298,7 @@ func TestCurrentTimeTool_Run_AsiaTokyo(t *testing.T) {
 }
 
 func TestCurrentTimeTool_Spec(t *testing.T) {
-	tool := &CurrentTimeTool{}
+	tool := &currentTimeToolImpl{}
 
 	spec := tool.Spec()
 
@@ -332,17 +332,18 @@ func TestCurrentTimeToolProvider_CreateTool(t *testing.T) {
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
 	tool := provider.CreateTool(testUUID)
+	toolImpl := tool.(*currentTimeToolImpl)
 
 	if tool == nil {
 		t.Fatal("Expected non-nil tool")
 	}
 
-	if tool.logService == nil {
+	if toolImpl.logService == nil {
 		t.Error("Expected tool to have logService")
 	}
 
-	if tool.agentID != testUUID {
-		t.Errorf("Expected agentID %v, got %v", testUUID, tool.agentID)
+	if toolImpl.agentID != testUUID {
+		t.Errorf("Expected agentID %v, got %v", testUUID, toolImpl.agentID)
 	}
 }
 

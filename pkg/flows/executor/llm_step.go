@@ -8,7 +8,7 @@ import (
 )
 
 // executeLLMStep executes an LLM step
-func (p *flowExecutorImpl) executeLLMStep(step *flows.Step, stateName string) error {
+func (p *flowExecutorImpl) executeLLMStep(step *flows.Step, _ string) error {
 	// Find agent
 	var agent *flows.Agent
 	for i := range p.flow.Agents {

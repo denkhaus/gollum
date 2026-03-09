@@ -21,8 +21,8 @@ import (
 )
 
 type (
-	// WriteFileTool writes content to files with automatic locking and checksum verification
-	WriteFileTool struct {
+	// writeFileToolImpl writes content to files with automatic locking and checksum verification
+	writeFileToolImpl struct {
 		logService   logger.LoggerService
 		fsm          state.FileStateManager
 		hookManager  hooks.HookManager
@@ -32,7 +32,7 @@ type (
 
 	// WriteFileToolProvider creates WriteFileTool instances via DI
 	WriteFileToolProvider interface {
-		CreateTool(agentID uuid.UUID) *WriteFileTool
+		CreateTool(agentID uuid.UUID) gollem.Tool
 	}
 
 	writeFileToolProvider struct {
@@ -54,8 +54,8 @@ func NewWriteFileToolProvider(injector do.Injector) (WriteFileToolProvider, erro
 }
 
 // CreateWriteFileTool creates a new WriteFileTool with injected dependencies and agent ID
-func (p *writeFileToolProvider) CreateTool(agentID uuid.UUID) *WriteFileTool {
-	return &WriteFileTool{
+func (p *writeFileToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+	return &writeFileToolImpl{
 		logService:   p.logService,
 		fsm:          p.fsm,
 		hookManager:  p.hookManager,
@@ -65,7 +65,7 @@ func (p *writeFileToolProvider) CreateTool(agentID uuid.UUID) *WriteFileTool {
 }
 
 // Spec returns the tool specification for the WriteFile tool
-func (t *WriteFileTool) Spec() gollem.ToolSpec {
+func (t *writeFileToolImpl) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
 		Name:        shared.ToolNameWriteFile.String(),
 		Description: "Writes a file to the local filesystem. Automatically prevents overwriting if the file was modified by another agent since you last read it. Creates parent directories if create_dirs is true.",
@@ -87,7 +87,7 @@ func (t *WriteFileTool) Spec() gollem.ToolSpec {
 }
 
 // Run executes the WriteFile tool to write content to files
-func (t *WriteFileTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *writeFileToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameWriteFile, args,
 		func() (map[string]any, error) {
 			return t.runFileWrite(ctx, args)
@@ -95,7 +95,7 @@ func (t *WriteFileTool) Run(ctx context.Context, args map[string]any) (map[strin
 }
 
 // runFileWrite implements the core file write logic
-func (t *WriteFileTool) runFileWrite(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *writeFileToolImpl) runFileWrite(ctx context.Context, args map[string]any) (map[string]any, error) {
 	path, ok := args["file_path"].(string)
 	if !ok || path == "" {
 		t.logService.Debug("Write file failed: invalid file_path parameter",

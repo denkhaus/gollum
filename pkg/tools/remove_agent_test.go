@@ -25,7 +25,7 @@ func NewMockAgentConfig(id uuid.UUID, parentID *uuid.UUID) *shared.AgentConfig {
 }
 
 func TestRemoveAgentTool_Spec(t *testing.T) {
-	tool := &RemoveAgentTool{}
+	tool := &removeAgentToolImpl{}
 	spec := tool.Spec()
 
 	assert.Equal(t, "remove_agent", spec.Name)
@@ -64,7 +64,7 @@ func TestRemoveAgentTool_Run_Success(t *testing.T) {
 	targetAgent.EXPECT().GetID().Return(targetID).AnyTimes()
 	childAgent.EXPECT().GetID().Return(childID).AnyTimes()
 
-	tool := &RemoveAgentTool{
+	tool := &removeAgentToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
@@ -98,7 +98,7 @@ func TestRemoveAgentTool_Run_InvalidAgentID(t *testing.T) {
 	senderID := uuid.New()
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
 
-	tool := &RemoveAgentTool{
+	tool := &removeAgentToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
@@ -132,7 +132,7 @@ func TestRemoveAgentTool_Run_AgentNotFound(t *testing.T) {
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
 	mockRegistry.EXPECT().GetAgent(targetID).Return(nil, false)
 
-	tool := &RemoveAgentTool{
+	tool := &removeAgentToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
@@ -163,7 +163,7 @@ func TestRemoveAgentTool_Run_SelfRemoval(t *testing.T) {
 	senderID := uuid.New()
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
 
-	tool := &RemoveAgentTool{
+	tool := &removeAgentToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
@@ -207,7 +207,7 @@ func TestRemoveAgentTool_Run_PermissionDenied(t *testing.T) {
 	targetAgent.EXPECT().GetConfig().Return(targetAgentConfig)
 	targetAgent.EXPECT().GetID().Return(targetID).AnyTimes() // May be called multiple times
 
-	tool := &RemoveAgentTool{
+	tool := &removeAgentToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
@@ -253,7 +253,7 @@ func TestRemoveAgentTool_Run_HasChildrenNoForce(t *testing.T) {
 	targetAgent.EXPECT().GetID().Return(targetID).AnyTimes()
 	// childAgent.GetID() is not called since we only count children when force=false
 
-	tool := &RemoveAgentTool{
+	tool := &removeAgentToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
@@ -302,7 +302,7 @@ func TestRemoveAgentTool_Run_CleanupError(t *testing.T) {
 	targetAgent.EXPECT().GetConfig().Return(targetAgentConfig)
 	targetAgent.EXPECT().GetID().Return(targetID).AnyTimes() // May be called multiple times
 
-	tool := &RemoveAgentTool{
+	tool := &removeAgentToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
@@ -341,9 +341,11 @@ func TestRemoveAgentToolProvider(t *testing.T) {
 	// Test tool creation
 	senderID := uuid.New()
 	tool := provider.CreateTool(senderID)
+	toolImpl := tool.(*removeAgentToolImpl)
+
 	assert.NotNil(t, tool)
-	assert.Equal(t, senderID, tool.senderID)
-	assert.Equal(t, mockRegistry, tool.registry)
-	assert.Equal(t, logService, tool.logService)
-	assert.Equal(t, mockHookManager, tool.hookManager)
+	assert.Equal(t, senderID, toolImpl.senderID)
+	assert.Equal(t, mockRegistry, toolImpl.registry)
+	assert.Equal(t, logService, toolImpl.logService)
+	assert.Equal(t, mockHookManager, toolImpl.hookManager)
 }

@@ -51,7 +51,7 @@ func TestSpawnAgentTool_WithShareContext(t *testing.T) {
 	mockParentAgent.EXPECT().GetID().Return(senderID).Times(4) // GetID is called at lines 211, 215, 251, 258
 	mockParentAgent.EXPECT().GetMessageHistory(gomock.Any()).Return(expectedHistory, nil)
 
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        mockRegistry,

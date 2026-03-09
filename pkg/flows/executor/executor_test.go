@@ -39,6 +39,7 @@ func setupTestDI(t *testing.T) do.Injector {
 	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
 	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 	// Register the flow executor service
 	do.Provide(injector, NewFlowExecutor)
 
@@ -69,6 +70,7 @@ func setupTestDIWithRegistry(t *testing.T, registry flowregistry.FlowRegistry) d
 	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
 	do.ProvideValue(injector, registry)
+	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 	do.Provide(injector, NewFlowExecutor)
 
 	return injector
@@ -98,6 +100,7 @@ func setupTestDIWithBashProvider(t *testing.T, provider tools.BashToolProvider) 
 	do.ProvideValue(injector, provider)
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
 	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 	do.Provide(injector, NewFlowExecutor)
 
 	return injector

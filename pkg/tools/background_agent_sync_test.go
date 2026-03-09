@@ -52,7 +52,7 @@ func TestBackgroundAgent_SyncExecution(t *testing.T) {
 		SystemPrompt: "test",
 	}).AnyTimes()
 
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        agentRegistry,
@@ -98,7 +98,7 @@ func TestBackgroundAgent_SyncExecution(t *testing.T) {
 	assert.Equal(t, "Task completed successfully", storedResult.Output["response"])
 
 	// Create agent output tool for result retrieval
-	outputTool := &AgentOutputTool{
+	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
 		senderID:    senderID,
 		hookManager: mockHookManager,
@@ -152,7 +152,7 @@ func TestBackgroundAgent_SyncExecutionError(t *testing.T) {
 	}).AnyTimes()
 
 	// Create spawn tool
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        agentRegistry,

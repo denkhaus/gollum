@@ -23,7 +23,7 @@ func TestGrepTool_Run_MissingPattern(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"path": "/some/path",
@@ -53,7 +53,7 @@ func TestGrepTool_Run_EmptyPattern(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"pattern": "",
@@ -79,7 +79,7 @@ func TestGrepTool_Run_InvalidOutputMode(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"pattern":     "test",
@@ -110,7 +110,7 @@ func TestGrepTool_Run_InvalidRegex(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &GrepTool{logService: logService, hookManager: mockHookManager}
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
 
 	args := map[string]any{
 		"pattern": "[invalid",
@@ -138,7 +138,7 @@ func TestGrepTool_Spec(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &GrepTool{hookManager: mockHookManager}
+	tool := &grepToolImpl{hookManager: mockHookManager}
 
 	spec := tool.Spec()
 
@@ -196,17 +196,18 @@ func TestGrepToolProvider_CreateTool(t *testing.T) {
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
 	tool := provider.CreateTool(testUUID)
+	toolImpl := tool.(*grepToolImpl)
 
 	if tool == nil {
 		t.Fatal("Expected non-nil tool")
 	}
 
-	if tool.logService == nil {
+	if toolImpl.logService == nil {
 		t.Error("Expected tool to have logService")
 	}
 
-	if tool.agentID != testUUID {
-		t.Errorf("Expected agentID %v, got %v", testUUID, tool.agentID)
+	if toolImpl.agentID != testUUID {
+		t.Errorf("Expected agentID %v, got %v", testUUID, toolImpl.agentID)
 	}
 }
 

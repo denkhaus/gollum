@@ -269,3 +269,15 @@ func TestConfigLoader_Load_WithHeadersInterpolation(t *testing.T) {
 		t.Errorf("Headers[X-Custom] = %q, want 'custom-value'", server.Headers["X-Custom"])
 	}
 }
+
+func TestInterpolateValue_Timeout(t *testing.T) {
+	// Test that commands that timeout return the original string
+	// instead of blocking indefinitely or crashing
+	input := "$(sleep 10)"
+	result := interpolateValue(input)
+
+	// Should return the original string (unexpanded) due to timeout
+	if result != input {
+		t.Errorf("interpolateValue(%q) = %q, want %q (unchanged due to timeout)", input, result, input)
+	}
+}

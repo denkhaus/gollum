@@ -5,8 +5,12 @@ package registry
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/denkhaus/gollum/pkg/flows"
+	"github.com/denkhaus/gollum/pkg/flows/parser"
 	"github.com/samber/do/v2"
 )
 
@@ -27,10 +31,38 @@ type flowRegistryServiceImpl struct {
 var _ FlowRegistry = (*flowRegistryServiceImpl)(nil)
 
 // NewFlowRegistryService creates the flow registry service (DI constructor)
+// It automatically loads flows from:
+// 1. ~/.config/gollum/flows
+// 2. <current_workspace>/.gollum/flows
 func NewFlowRegistryService(injector do.Injector) (FlowRegistry, error) {
-	return &flowRegistryServiceImpl{
+	svc := &flowRegistryServiceImpl{
 		flows: make(map[string]*flows.Flow),
-	}, nil
+	}
+
+	// Load flows from ~/.config/gollum/flows
+	if homeDir, err := os.UserHomeDir(); err == nil {
+		configFlowDir := filepath.Join(homeDir, ".config", "gollum", "flows")
+		if err := svc.LoadFromDirectory(configFlowDir); err != nil {
+			// Directory doesn't exist or isn't accessible - that's ok
+			// Only log if it's an unexpected error
+			if !os.IsNotExist(err) {
+				fmt.Printf("Warning: failed to load flows from %s: %v\n", configFlowDir, err)
+			}
+		}
+	}
+
+	// Load flows from <workspace>/.gollum/flows
+	if cwd, err := os.Getwd(); err == nil {
+		workspaceFlowDir := filepath.Join(cwd, ".gollum", "flows")
+		if err := svc.LoadFromDirectory(workspaceFlowDir); err != nil {
+			// Directory doesn't exist or isn't accessible - that's ok
+			if !os.IsNotExist(err) {
+				fmt.Printf("Warning: failed to load flows from %s: %v\n", workspaceFlowDir, err)
+			}
+		}
+	}
+
+	return svc, nil
 }
 
 // Register adds a flow to the registry
@@ -52,4 +84,52 @@ func (s *flowRegistryServiceImpl) LoadFromMap(flows map[string]*flows.Flow) {
 	for name, flow := range flows {
 		s.flows[name] = flow
 	}
+}
+
+// LoadFromDirectory scans a directory for XML flow files and loads them
+func (s *flowRegistryServiceImpl) LoadFromDirectory(dir string) error {
+	// Check if directory exists
+	info, err := os.Stat(dir)
+	if err != nil {
+		return fmt.Errorf("flow directory not accessible: %s: %w", dir, err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("not a directory: %s", dir)
+	}
+
+	// Walk the directory and find all .xml files
+	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			// Skip files/directories we can't access
+			return nil
+		}
+
+		// Skip directories
+		if info.IsDir() {
+			return nil
+		}
+
+		// Only process .xml files
+		if !strings.HasSuffix(strings.ToLower(info.Name()), ".xml") {
+			return nil
+		}
+
+		// Parse the flow file
+		flow, err := parser.Parse(path)
+		if err != nil {
+			// Log the error but continue loading other flows
+			fmt.Printf("Warning: failed to parse flow file %s: %v\n", path, err)
+			return nil
+		}
+
+		// Register the flow
+		s.Register(flow.Name, flow)
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("error walking directory %s: %w", dir, err)
+	}
+
+	return nil
 }

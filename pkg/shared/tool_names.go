@@ -23,6 +23,12 @@ const (
 	ToolNameEdit            ToolName = "edit"
 	ToolNameGlob            ToolName = "glob"
 	ToolNameGrep            ToolName = "grep"
+	// Flow executor tools - for use within flow executions
+	ToolNameSetOutputField  ToolName = "set_output_field"
+	ToolNameSetContextField ToolName = "set_context_field"
+	ToolNameGetContext      ToolName = "get_context"
+	ToolNameEmitLog         ToolName = "emit_log"
+	ToolNameTransitionTo    ToolName = "transition_to"
 )
 
 // ToolRegistry provides validation for tool names used in skills.

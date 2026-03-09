@@ -15,8 +15,8 @@ import (
 )
 
 type (
-	// AgentOutputTool retrieves results from background agents
-	AgentOutputTool struct {
+	// agentOutputToolImpl retrieves results from background agents
+	agentOutputToolImpl struct {
 		hookManager hooks.HookManager
 		registry    registry.AgentRegistry
 		senderID    uuid.UUID
@@ -24,7 +24,7 @@ type (
 
 	// AgentOutputToolProvider creates AgentOutputTool instances via DI
 	AgentOutputToolProvider interface {
-		CreateTool(senderID uuid.UUID) *AgentOutputTool
+		CreateTool(senderID uuid.UUID) gollem.Tool
 	}
 
 	agentOutputToolProvider struct {
@@ -45,8 +45,8 @@ func NewAgentOutputToolProvider(injector do.Injector) (AgentOutputToolProvider, 
 }
 
 // CreateAgentOutputTool creates a new AgentOutputTool for a specific sender
-func (p *agentOutputToolProvider) CreateTool(senderID uuid.UUID) *AgentOutputTool {
-	return &AgentOutputTool{
+func (p *agentOutputToolProvider) CreateTool(senderID uuid.UUID) gollem.Tool {
+	return &agentOutputToolImpl{
 		hookManager: p.hookManager,
 		registry:    p.registry,
 		senderID:    senderID,
@@ -54,7 +54,7 @@ func (p *agentOutputToolProvider) CreateTool(senderID uuid.UUID) *AgentOutputToo
 }
 
 // Spec returns the tool specification for the AgentOutput tool
-func (t *AgentOutputTool) Spec() gollem.ToolSpec {
+func (t *agentOutputToolImpl) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
 		Name:        shared.ToolNameAgentOutput.String(),
 		Description: "Retrieves results from agents running in background (async execution mode).",
@@ -76,7 +76,7 @@ func (t *AgentOutputTool) Spec() gollem.ToolSpec {
 }
 
 // Run executes the AgentOutput tool to retrieve results from background agents
-func (t *AgentOutputTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *agentOutputToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.senderID, shared.ToolNameAgentOutput, args,
 		func() (map[string]any, error) {
 			return t.runAgentOutput(ctx, args)
@@ -84,7 +84,7 @@ func (t *AgentOutputTool) Run(ctx context.Context, args map[string]any) (map[str
 }
 
 // runAgentOutput implements the core AgentOutput logic
-func (t *AgentOutputTool) runAgentOutput(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *agentOutputToolImpl) runAgentOutput(ctx context.Context, args map[string]any) (map[string]any, error) {
 	// Validate agent_id
 	agentIDStr, ok := args["agent_id"].(string)
 	if !ok || agentIDStr == "" {

@@ -85,7 +85,7 @@ func TestSpawnAgentToolValidation(t *testing.T) {
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        mockRegistry,
@@ -173,7 +173,7 @@ func TestSpawnAgentToolSynchronousExecution(t *testing.T) {
 		SystemPrompt: "test",
 	}).AnyTimes()
 
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        mockRegistry,
@@ -251,7 +251,7 @@ func TestSpawnAgentToolAsynchronousExecution(t *testing.T) {
 		Role:        "Tester",
 	}).AnyTimes()
 
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        mockRegistry,
@@ -327,7 +327,7 @@ func TestSpawnAgentToolExecutionError(t *testing.T) {
 		LLMProvider: shared.LLMProviderAnthropic,
 	}).AnyTimes()
 
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        mockRegistry,
@@ -393,7 +393,7 @@ func TestSpawnAgentToolInheritsLLMProvider(t *testing.T) {
 		Role:        "Tester",
 	}).AnyTimes()
 
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        mockRegistry,
@@ -463,15 +463,16 @@ func TestSpawnAgentToolProvider_CreateTool(t *testing.T) {
 
 	senderID := uuid.New()
 	tool := provider.CreateTool(senderID, mockFactory)
+	toolImpl := tool.(*spawnAgentToolImpl)
 
 	require.NotNil(t, tool)
-	assert.Equal(t, senderID, tool.senderID)
-	assert.Equal(t, mockFactory, tool.agentFactory)
-	assert.Equal(t, mockRegistry, tool.registry)
-	assert.Equal(t, mockPromptMgr, tool.promptManager)
-	assert.Equal(t, mockExecHelper, tool.executionHelper)
-	assert.Equal(t, logService, tool.logService)
-	assert.Equal(t, mockHookManager, tool.hookManager)
+	assert.Equal(t, senderID, toolImpl.senderID)
+	assert.Equal(t, mockFactory, toolImpl.agentFactory)
+	assert.Equal(t, mockRegistry, toolImpl.registry)
+	assert.Equal(t, mockPromptMgr, toolImpl.promptManager)
+	assert.Equal(t, mockExecHelper, toolImpl.executionHelper)
+	assert.Equal(t, logService, toolImpl.logService)
+	assert.Equal(t, mockHookManager, toolImpl.hookManager)
 }
 
 // TestSpawnAgentTool_WithShareContext_NoParent tests that share_context works when there is no parent agent
@@ -493,7 +494,7 @@ func TestSpawnAgentTool_WithShareContext_NoParent(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        mockRegistry,

@@ -4,6 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
+
+	appconfig "github.com/denkhaus/gollum/pkg/config"
 )
 
 func TestConfigLoader_Load_ValidConfig(t *testing.T) {
@@ -40,6 +43,72 @@ func TestConfigLoader_Load_ValidConfig(t *testing.T) {
 	}
 }
 
+// mockConfigService is a test double for appconfig.ConfigService
+type mockConfigService struct{}
+
+func (m *mockConfigService) GetLogLevel() string {
+	return "info"
+}
+
+func (m *mockConfigService) IsDevMode() bool {
+	return false
+}
+
+func (m *mockConfigService) GetAnthropicConfig() *appconfig.AnthropicConfig {
+	return &appconfig.AnthropicConfig{}
+}
+
+func (m *mockConfigService) GetGeminiConfig() *appconfig.GeminiConfig {
+	return &appconfig.GeminiConfig{}
+}
+
+func (m *mockConfigService) GetOpenAIConfig() *appconfig.OpenAIConfig {
+	return &appconfig.OpenAIConfig{}
+}
+
+func (m *mockConfigService) GetAgentLimits() *appconfig.AgentLimitsConfig {
+	return &appconfig.AgentLimitsConfig{}
+}
+
+func (m *mockConfigService) GetFilesConfig() *appconfig.FilesConfig {
+	return &appconfig.FilesConfig{}
+}
+
+func (m *mockConfigService) GetLoggingConfig() *appconfig.LoggingConfig {
+	return &appconfig.LoggingConfig{}
+}
+
+func (m *mockConfigService) GetBashConfig() *appconfig.BashConfig {
+	return &appconfig.BashConfig{}
+}
+
+func (m *mockConfigService) GetHooksConfig() *appconfig.HooksConfig {
+	return &appconfig.HooksConfig{}
+}
+
+func (m *mockConfigService) GetPromptStoreConfig() *appconfig.PromptStoreConfig {
+	return &appconfig.PromptStoreConfig{}
+}
+
+func (m *mockConfigService) GetPromptOptimizerConfig() *appconfig.PromptOptimizerConfig {
+	return &appconfig.PromptOptimizerConfig{}
+}
+
+func (m *mockConfigService) GetLangfuseConfig() *appconfig.LangfuseConfig {
+	return &appconfig.LangfuseConfig{}
+}
+
+func (m *mockConfigService) GetEventsConfig() *appconfig.EventsConfig {
+	return &appconfig.EventsConfig{}
+}
+
+func (m *mockConfigService) GetMCPConfig() *appconfig.MCPConfig {
+	// Return default MCP config with 5-second timeout for tests
+	return &appconfig.MCPConfig{
+		CommandTimeoutSeconds: 5,
+	}
+}
+
 // NewConfigLoaderForTest creates a ConfigLoader for testing with custom paths
 // projectDir and globalDir are directories (will append mcp.json)
 func NewConfigLoaderForTest(projectDir, globalDir string) ConfigLoader {
@@ -56,6 +125,32 @@ func NewConfigLoaderForTest(projectDir, globalDir string) ConfigLoader {
 	return &configLoaderImpl{
 		projectPath: projectPath,
 		globalPath:  globalPath,
+		appConfig:   &mockConfigService{},
+	}
+}
+
+// TestGetCommandTimeout validates the MCP config timeout helper
+func TestGetCommandTimeout(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    int
+		expected time.Duration
+	}{
+		{"default", 5, 5 * time.Second},
+		{"minimum", 0, 1 * time.Second}, // Below min gets clamped
+		{"one second", 1, 1 * time.Second},
+		{"ten seconds", 10, 10 * time.Second},
+		{"maximum", 100, 60 * time.Second}, // Above max gets clamped
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &appconfig.MCPConfig{CommandTimeoutSeconds: tt.input}
+			result := cfg.GetCommandTimeout()
+			if result != tt.expected {
+				t.Errorf("GetCommandTimeout() = %v, want %v", result, tt.expected)
+			}
+		})
 	}
 }
 
@@ -66,6 +161,7 @@ func TestConfigLoader_Load_MissingFiles(t *testing.T) {
 	loader := &configLoaderImpl{
 		projectPath: filepath.Join(tmpDir, "nonexistent-project-mcp.json"),
 		globalPath:  filepath.Join(tmpDir, "nonexistent-global-mcp.json"),
+		appConfig:   &mockConfigService{},
 	}
 
 	result, err := loader.Load()

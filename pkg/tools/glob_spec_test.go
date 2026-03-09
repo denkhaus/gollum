@@ -13,7 +13,7 @@ import (
 )
 
 func TestGlobTool_Spec(t *testing.T) {
-	tool := &GlobTool{}
+	tool := &globToolImpl{}
 
 	spec := tool.Spec()
 
@@ -176,21 +176,21 @@ func TestGlobToolProvider_CreateTool(t *testing.T) {
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
 	tool := provider.CreateTool(testUUID)
-
+	toolImpl := tool.(*globToolImpl)
 	if tool == nil {
 		t.Fatal("Expected non-nil tool")
 	}
 
-	if tool.logService == nil {
+	if toolImpl.logService == nil {
 		t.Error("Expected tool to have logService")
 	}
 
-	if tool.hookManager == nil {
+	if toolImpl.hookManager == nil {
 		t.Error("Expected tool to have hookManager")
 	}
 
-	if tool.agentID != testUUID {
-		t.Errorf("Expected agentID %v, got %v", testUUID, tool.agentID)
+	if toolImpl.agentID != testUUID {
+		t.Errorf("Expected agentID %v, got %v", testUUID, toolImpl.agentID)
 	}
 }
 

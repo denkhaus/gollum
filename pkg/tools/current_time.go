@@ -17,15 +17,15 @@ const (
 )
 
 type (
-	// CurrentTimeTool returns the current time
-	CurrentTimeTool struct {
+	// currentTimeToolImpl returns the current time
+	currentTimeToolImpl struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		agentID     uuid.UUID
 	}
 	// CurrentTimeToolProvider creates CurrentTimeTool instances via DI
 	CurrentTimeToolProvider interface {
-		CreateTool(agentID uuid.UUID) *CurrentTimeTool
+		CreateTool(agentID uuid.UUID) gollem.Tool
 	}
 
 	currentTimeToolProvider struct {
@@ -45,8 +45,8 @@ func NewCurrentTimeToolProvider(injector do.Injector) (CurrentTimeToolProvider, 
 }
 
 // CreateCurrentTimeTool creates a new CurrentTimeTool with agent ID
-func (p *currentTimeToolProvider) CreateTool(agentID uuid.UUID) *CurrentTimeTool {
-	return &CurrentTimeTool{
+func (p *currentTimeToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+	return &currentTimeToolImpl{
 		logService:  p.logService,
 		hookManager: p.hookManager,
 		agentID:     agentID,
@@ -54,7 +54,7 @@ func (p *currentTimeToolProvider) CreateTool(agentID uuid.UUID) *CurrentTimeTool
 }
 
 // Run executes the CurrentTime tool to return the current time
-func (t *CurrentTimeTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *currentTimeToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameCurrentTime, args,
 		func() (map[string]any, error) {
 			return t.runCurrentTime(ctx, args)
@@ -62,7 +62,7 @@ func (t *CurrentTimeTool) Run(ctx context.Context, args map[string]any) (map[str
 }
 
 // runCurrentTime implements the core CurrentTime logic
-func (t *CurrentTimeTool) runCurrentTime(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *currentTimeToolImpl) runCurrentTime(_ context.Context, args map[string]any) (map[string]any, error) {
 	// Get timezone from args, default to UTC
 	timezone := defaultTimezone
 	if tz, exists := args["timezone"].(string); exists && tz != "" {
@@ -93,7 +93,7 @@ func (t *CurrentTimeTool) runCurrentTime(_ context.Context, args map[string]any)
 }
 
 // Spec returns the tool specification for the CurrentTime tool
-func (t *CurrentTimeTool) Spec() gollem.ToolSpec {
+func (t *currentTimeToolImpl) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
 		Name:        shared.ToolNameCurrentTime.String(),
 		Description: "Returns the current date and time, optionally in a specific timezone",

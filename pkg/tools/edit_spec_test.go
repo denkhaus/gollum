@@ -19,7 +19,7 @@ func TestEditToolSpec(t *testing.T) {
 
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
 	mockHookManager := mocks.NewMockHookManager(ctrl)
-	tool := &EditTool{
+	tool := &editToolImpl{
 		fsm:         mockFSM,
 		hookManager: mockHookManager,
 		agentID:     uuid.New(),
@@ -51,7 +51,7 @@ func TestEditToolSpecIsConstant(t *testing.T) {
 
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
 	mockHookManager := mocks.NewMockHookManager(ctrl)
-	tool := &EditTool{
+	tool := &editToolImpl{
 		fsm:         mockFSM,
 		hookManager: mockHookManager,
 		agentID:     uuid.New(),
@@ -80,9 +80,10 @@ func TestEditToolProvider(t *testing.T) {
 
 	agentID := uuid.New()
 	tool := provider.CreateTool(agentID)
+	toolImpl := tool.(*editToolImpl)
 
 	require.NotNil(t, tool)
-	assert.Equal(t, agentID, tool.agentID)
-	assert.Equal(t, logService, tool.logService)
-	assert.Equal(t, mockFSM, tool.fsm)
+	assert.Equal(t, agentID, toolImpl.agentID)
+	assert.Equal(t, logService, toolImpl.logService)
+	assert.Equal(t, mockFSM, toolImpl.fsm)
 }

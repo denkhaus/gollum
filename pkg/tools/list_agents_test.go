@@ -24,7 +24,7 @@ func TestListAgentsTool_Spec(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &ListAgentsTool{
+	tool := &listAgentsToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
@@ -62,7 +62,7 @@ func TestListAgentsTool_Run_SuccessNoRelatedAgents(t *testing.T) {
 	registry.EXPECT().GetChildren(senderID).Return([]shared.Agent{})
 	registry.EXPECT().GetParent(senderID).Return(nil, false)
 
-	tool := &ListAgentsTool{
+	tool := &listAgentsToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
@@ -113,7 +113,7 @@ func TestListAgentsTool_Run_SuccessWithSubagentsOnly(t *testing.T) {
 	registry.EXPECT().GetChildren(senderID).Return([]shared.Agent{child1, child2})
 	registry.EXPECT().GetParent(senderID).Return(nil, false) // No parent
 
-	tool := &ListAgentsTool{
+	tool := &listAgentsToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
@@ -167,7 +167,7 @@ func TestListAgentsTool_Run_SuccessWithParentOnly(t *testing.T) {
 	registry.EXPECT().GetChildren(senderID).Return([]shared.Agent{}) // No children
 	registry.EXPECT().GetParent(senderID).Return(parent, true)
 
-	tool := &ListAgentsTool{
+	tool := &listAgentsToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
@@ -232,7 +232,7 @@ func TestListAgentsTool_Run_SuccessWithParentAndSubagents(t *testing.T) {
 	registry.EXPECT().GetChildren(senderID).Return([]shared.Agent{child1, child2})
 	registry.EXPECT().GetParent(senderID).Return(parent, true)
 
-	tool := &ListAgentsTool{
+	tool := &listAgentsToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
@@ -280,11 +280,12 @@ func TestListAgentsToolProvider(t *testing.T) {
 	}
 
 	tool := provider.CreateTool(senderID)
+	toolImpl := tool.(*listAgentsToolImpl)
 
 	assert.NotNil(t, tool)
-	assert.Equal(t, logService, tool.logService)
-	assert.Equal(t, registry, tool.registry)
-	assert.Equal(t, senderID, tool.senderID)
+	assert.Equal(t, logService, toolImpl.logService)
+	assert.Equal(t, registry, toolImpl.registry)
+	assert.Equal(t, senderID, toolImpl.senderID)
 }
 
 func TestNewListAgentsToolProvider(t *testing.T) {
@@ -349,7 +350,7 @@ func TestListAgentsTool_Run_RecursiveFlag(t *testing.T) {
 	registry.EXPECT().GetChildren(childID1).Return([]shared.Agent{grandchild})
 	registry.EXPECT().GetChildren(grandchildID).Return([]shared.Agent{}) // No more descendants
 
-	tool := &ListAgentsTool{
+	tool := &listAgentsToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
@@ -413,7 +414,7 @@ func TestListAgentsTool_Run_TreeFlag(t *testing.T) {
 	registry.EXPECT().GetParent(senderID).Return(nil, false)
 	registry.EXPECT().GetChildren(senderID).Return([]shared.Agent{child1, child2})
 
-	tool := &ListAgentsTool{
+	tool := &listAgentsToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
@@ -473,7 +474,7 @@ func TestListAgentsTool_Run_TreeFlagWithRecursive(t *testing.T) {
 	registry.EXPECT().GetChildren(childID).Return([]shared.Agent{grandchild})
 	registry.EXPECT().GetChildren(grandchildID).Return([]shared.Agent{}) // No more descendants
 
-	tool := &ListAgentsTool{
+	tool := &listAgentsToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,

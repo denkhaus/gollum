@@ -188,6 +188,27 @@ type EventsConfig struct {
 	RetryBackoff int `envconfig:"RETRY_BACKOFF" default:"2"`
 }
 
+// MCPConfig holds configuration for MCP (Model Context Protocol) discovery service.
+type MCPConfig struct {
+	// CommandTimeoutSeconds is the timeout in seconds for shell command execution
+	// during interpolation of $(command) patterns in mcp.json config files.
+	// Default: 5 seconds. Min: 1, Max: 60.
+	CommandTimeoutSeconds int `envconfig:"COMMAND_TIMEOUT_SECONDS" default:"5"`
+}
+
+// GetCommandTimeout returns the command timeout as time.Duration with validation.
+// Ensures timeout is between 1 and 60 seconds.
+func (c *MCPConfig) GetCommandTimeout() time.Duration {
+	timeout := c.CommandTimeoutSeconds
+	if timeout < 1 {
+		timeout = 1
+	}
+	if timeout > 60 {
+		timeout = 60
+	}
+	return time.Duration(timeout) * time.Second
+}
+
 // ConfigService defines the configuration service interface
 //
 //revive:disable-next-line:exported
@@ -206,6 +227,7 @@ type ConfigService interface {
 	GetPromptOptimizerConfig() *PromptOptimizerConfig
 	GetLangfuseConfig() *LangfuseConfig
 	GetEventsConfig() *EventsConfig
+	GetMCPConfig() *MCPConfig
 }
 
 // serviceImpl implements the ConfigService interface
@@ -223,6 +245,7 @@ type serviceImpl struct {
 	PromptStore     PromptStoreConfig     `envconfig:"PROMPT_STORE"`
 	PromptOptimizer PromptOptimizerConfig `envconfig:"OPTIMIZER"`
 	Events          EventsConfig          `envconfig:"EVENTS"`
+	MCP             MCPConfig             `envconfig:"MCP"`
 }
 
 // NewService creates a new configuration service
@@ -305,4 +328,8 @@ func (s *serviceImpl) GetLangfuseConfig() *LangfuseConfig {
 
 func (s *serviceImpl) GetEventsConfig() *EventsConfig {
 	return &s.Events
+}
+
+func (s *serviceImpl) GetMCPConfig() *MCPConfig {
+	return &s.MCP
 }

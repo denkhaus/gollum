@@ -14,8 +14,8 @@ import (
 )
 
 type (
-	// ResumeAgentTool resumes and executes an existing registered agent
-	ResumeAgentTool struct {
+	// resumeAgentToolImpl resumes and executes an existing registered agent
+	resumeAgentToolImpl struct {
 		logService      logger.LoggerService
 		hookManager     hooks.HookManager
 		registry        registry.AgentRegistry
@@ -25,7 +25,7 @@ type (
 
 	// ResumeAgentToolProvider creates ResumeAgentTool instances via DI
 	ResumeAgentToolProvider interface {
-		CreateTool(senderID uuid.UUID) *ResumeAgentTool
+		CreateTool(senderID uuid.UUID) gollem.Tool
 	}
 
 	resumeAgentToolProvider struct {
@@ -52,8 +52,8 @@ func NewResumeAgentToolProvider(injector do.Injector) (ResumeAgentToolProvider, 
 }
 
 // CreateTool creates a new ResumeAgentTool for a specific sender
-func (p *resumeAgentToolProvider) CreateTool(senderID uuid.UUID) *ResumeAgentTool {
-	return &ResumeAgentTool{
+func (p *resumeAgentToolProvider) CreateTool(senderID uuid.UUID) gollem.Tool {
+	return &resumeAgentToolImpl{
 		logService:      p.logService,
 		hookManager:     p.hookManager,
 		registry:        p.registry,
@@ -63,7 +63,7 @@ func (p *resumeAgentToolProvider) CreateTool(senderID uuid.UUID) *ResumeAgentToo
 }
 
 // Spec returns the tool specification for ResumeAgentTool
-func (t *ResumeAgentTool) Spec() gollem.ToolSpec {
+func (t *resumeAgentToolImpl) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
 		Name: shared.ToolNameResumeAgent.String(),
 		Description: fmt.Sprintf(`Sends a new prompt to an existing agent created with the %s tool.
@@ -89,7 +89,7 @@ func (t *ResumeAgentTool) Spec() gollem.ToolSpec {
 }
 
 // Run executes the ResumeAgent tool to resume and run existing agents
-func (t *ResumeAgentTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *resumeAgentToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.senderID, shared.ToolNameResumeAgent, args,
 		func() (map[string]any, error) {
 			return t.runResumeAgent(ctx, args)
@@ -97,7 +97,7 @@ func (t *ResumeAgentTool) Run(ctx context.Context, args map[string]any) (map[str
 }
 
 // runResumeAgent implements the core ResumeAgent logic
-func (t *ResumeAgentTool) runResumeAgent(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *resumeAgentToolImpl) runResumeAgent(ctx context.Context, args map[string]any) (map[string]any, error) {
 	// Validate required parameters
 	agentIDStr, ok := args["agent_id"].(string)
 	if !ok || agentIDStr == "" {

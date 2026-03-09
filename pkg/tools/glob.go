@@ -19,8 +19,8 @@ import (
 )
 
 type (
-	// GlobTool finds file paths matching glob patterns
-	GlobTool struct {
+	// globToolImpl finds file paths matching glob patterns
+	globToolImpl struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		agentID     uuid.UUID
@@ -28,7 +28,7 @@ type (
 
 	// GlobToolProvider creates GlobTool instances via DI
 	GlobToolProvider interface {
-		CreateTool(agentID uuid.UUID) *GlobTool
+		CreateTool(agentID uuid.UUID) gollem.Tool
 	}
 
 	globToolProvider struct {
@@ -48,8 +48,8 @@ func NewGlobToolProvider(injector do.Injector) (GlobToolProvider, error) {
 }
 
 // CreateTool creates a new GlobTool with agent ID
-func (p *globToolProvider) CreateTool(agentID uuid.UUID) *GlobTool {
-	return &GlobTool{
+func (p *globToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+	return &globToolImpl{
 		logService:  p.logService,
 		hookManager: p.hookManager,
 		agentID:     agentID,
@@ -57,7 +57,7 @@ func (p *globToolProvider) CreateTool(agentID uuid.UUID) *GlobTool {
 }
 
 // Spec returns the tool specification for the Glob tool
-func (t *GlobTool) Spec() gollem.ToolSpec {
+func (t *globToolImpl) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
 		Name:        shared.ToolNameGlob.String(),
 		Description: "Fast file pattern matching tool that works with any codebase size. Supports glob patterns like '**/*.go' or 'pkg/**/*.ts'. Returns matching file paths sorted by modification time.",
@@ -75,7 +75,7 @@ func (t *GlobTool) Spec() gollem.ToolSpec {
 }
 
 // Run executes the Glob tool to find files matching a pattern
-func (t *GlobTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *globToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameGlob, args,
 		func() (map[string]any, error) {
 			return t.runGlob(ctx, args)
@@ -83,7 +83,7 @@ func (t *GlobTool) Run(ctx context.Context, args map[string]any) (map[string]any
 }
 
 // runGlob implements the core Glob logic
-func (t *GlobTool) runGlob(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *globToolImpl) runGlob(_ context.Context, args map[string]any) (map[string]any, error) {
 	pattern, ok := args["pattern"].(string)
 	if !ok || pattern == "" {
 		t.logService.Errorf("[Agent %s] Glob pattern validation failed: pattern is required and must be non-empty", t.agentID)

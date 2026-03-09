@@ -17,8 +17,8 @@ import (
 )
 
 type (
-	// SpawnAgentTool creates new subagents with immediate task execution
-	SpawnAgentTool struct {
+	// spawnAgentToolImpl creates new subagents with immediate task execution
+	spawnAgentToolImpl struct {
 		logService      logger.LoggerService
 		agentFactory    shared.AgentFactory
 		registry        registry.AgentRegistry
@@ -31,7 +31,7 @@ type (
 
 	// SpawnAgentToolProvider creates SpawnAgentTool instances via DI
 	SpawnAgentToolProvider interface {
-		CreateTool(senderID uuid.UUID, agentFactory shared.AgentFactory) *SpawnAgentTool
+		CreateTool(senderID uuid.UUID, agentFactory shared.AgentFactory) gollem.Tool
 	}
 
 	spawnAgentToolProvider struct {
@@ -64,8 +64,8 @@ func NewSpawnAgentToolProvider(injector do.Injector) (SpawnAgentToolProvider, er
 }
 
 // CreateSpawnAgentTool creates a new SpawnAgentTool for a specific sender
-func (p *spawnAgentToolProvider) CreateTool(senderID uuid.UUID, agentFactory shared.AgentFactory) *SpawnAgentTool {
-	return &SpawnAgentTool{
+func (p *spawnAgentToolProvider) CreateTool(senderID uuid.UUID, agentFactory shared.AgentFactory) gollem.Tool {
+	return &spawnAgentToolImpl{
 		logService:      p.logService,
 		agentFactory:    agentFactory,
 		registry:        p.registry,
@@ -78,7 +78,7 @@ func (p *spawnAgentToolProvider) CreateTool(senderID uuid.UUID, agentFactory sha
 }
 
 // Spec returns the tool specification for SpawnAgentTool
-func (t *SpawnAgentTool) Spec() gollem.ToolSpec {
+func (t *spawnAgentToolImpl) Spec() gollem.ToolSpec {
 	maxSubAgents := t.configService.GetAgentLimits().MaxSubAgentsPerParent
 
 	return gollem.ToolSpec{
@@ -117,7 +117,7 @@ func (t *SpawnAgentTool) Spec() gollem.ToolSpec {
 }
 
 // Run executes the SpawnAgent tool to create and run subagents
-func (t *SpawnAgentTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *spawnAgentToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.senderID, shared.ToolNameSpawnAgent, args,
 		func() (map[string]any, error) {
 			return t.runSpawnAgent(ctx, args)
@@ -125,7 +125,7 @@ func (t *SpawnAgentTool) Run(ctx context.Context, args map[string]any) (map[stri
 }
 
 // runSpawnAgent implements the core SpawnAgent logic
-func (t *SpawnAgentTool) runSpawnAgent(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args map[string]any) (map[string]any, error) {
 	// Validate required parameters
 	role, ok := args["role"].(string)
 	if !ok || role == "" {

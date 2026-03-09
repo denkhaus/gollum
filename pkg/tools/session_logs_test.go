@@ -36,7 +36,7 @@ func TestSessionLogsTool_Run_TailMode(t *testing.T) {
 
 	mockLoggerService.EXPECT().GetLogs(gomock.Any()).Return(entries)
 
-	tool := &SessionLogsTool{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
+	tool := &sessionLogsToolImpl{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
 
 	// Test tail mode (default)
 	result, err := tool.Run(context.Background(), map[string]any{})
@@ -82,7 +82,7 @@ func TestSessionLogsTool_Run_HeadMode(t *testing.T) {
 
 	mockLoggerService.EXPECT().GetLogs(gomock.Any()).Return(entries)
 
-	tool := &SessionLogsTool{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
+	tool := &sessionLogsToolImpl{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
 
 	result, err := tool.Run(context.Background(), map[string]any{
 		"mode":  "head",
@@ -117,7 +117,7 @@ func TestSessionLogsTool_Run_SinceMode(t *testing.T) {
 
 	mockLoggerService.EXPECT().GetLogs(gomock.Any()).Return(entries)
 
-	tool := &SessionLogsTool{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
+	tool := &sessionLogsToolImpl{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
 
 	sinceTime := now.Add(-1 * time.Hour).Format(time.RFC3339)
 
@@ -153,7 +153,7 @@ func TestSessionLogsTool_Run_AllMode(t *testing.T) {
 
 	mockLoggerService.EXPECT().GetLogs(gomock.Any()).Return(entries)
 
-	tool := &SessionLogsTool{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
+	tool := &sessionLogsToolImpl{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
 
 	result, err := tool.Run(context.Background(), map[string]any{
 		"mode": "all",
@@ -182,7 +182,7 @@ func TestSessionLogsTool_Run_FilterByLevel(t *testing.T) {
 
 	mockLoggerService.EXPECT().GetLogs(gomock.Any()).Return(entries)
 
-	tool := &SessionLogsTool{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
+	tool := &sessionLogsToolImpl{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
 
 	result, err := tool.Run(context.Background(), map[string]any{
 		"mode":  "tail",
@@ -217,7 +217,7 @@ func TestSessionLogsTool_Run_FilterByAgentID(t *testing.T) {
 
 	mockLoggerService.EXPECT().GetLogs(gomock.Any()).Return(entries)
 
-	tool := &SessionLogsTool{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
+	tool := &sessionLogsToolImpl{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
 
 	result, err := tool.Run(context.Background(), map[string]any{
 		"mode":     "tail",
@@ -243,7 +243,7 @@ func TestSessionLogsTool_Run_InvalidMode(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &SessionLogsTool{
+	tool := &sessionLogsToolImpl{
 		logService:  mockLoggerService,
 		hookManager: mockHookManager,
 		agentID:     uuid.New(),
@@ -265,7 +265,7 @@ func TestSessionLogsTool_Run_SinceModeWithoutSince(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &SessionLogsTool{
+	tool := &sessionLogsToolImpl{
 		logService:  mockLoggerService,
 		hookManager: mockHookManager,
 		agentID:     uuid.New(),
@@ -287,7 +287,7 @@ func TestSessionLogsTool_Run_InvalidDateTime(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &SessionLogsTool{
+	tool := &sessionLogsToolImpl{
 		logService:  mockLoggerService,
 		hookManager: mockHookManager,
 		agentID:     uuid.New(),
@@ -310,7 +310,7 @@ func TestSessionLogsTool_Run_InvalidAgentID(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &SessionLogsTool{
+	tool := &sessionLogsToolImpl{
 		logService:  mockLoggerService,
 		hookManager: mockHookManager,
 		agentID:     uuid.New(),
@@ -335,7 +335,7 @@ func TestSessionLogsTool_Run_EmptyLogBuffer(t *testing.T) {
 
 	mockLoggerService.EXPECT().GetLogs(gomock.Any()).Return([]logger.LogEntry{})
 
-	tool := &SessionLogsTool{
+	tool := &sessionLogsToolImpl{
 		logService:  mockLoggerService,
 		hookManager: mockHookManager,
 		agentID:     uuid.New(),
@@ -375,7 +375,7 @@ func TestSessionLogsTool_Run_CountLimit(t *testing.T) {
 
 	mockLoggerService.EXPECT().GetLogs(gomock.Any()).Return(entries)
 
-	tool := &SessionLogsTool{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
+	tool := &sessionLogsToolImpl{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
 
 	result, err := tool.Run(context.Background(), map[string]any{
 		"mode":  "tail",
@@ -397,7 +397,7 @@ func TestSessionLogsTool_Spec(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &SessionLogsTool{
+	tool := &sessionLogsToolImpl{
 		logService:  mockLoggerService,
 		hookManager: mockHookManager,
 		agentID:     uuid.New(),
@@ -457,7 +457,7 @@ func TestSessionLogsTool_CaseInsensitiveLevelFilter(t *testing.T) {
 
 	mockLoggerService.EXPECT().GetLogs(gomock.Any()).Return(entries)
 
-	tool := &SessionLogsTool{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
+	tool := &sessionLogsToolImpl{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
 
 	// Filter with lowercase
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -485,11 +485,12 @@ func TestSessionLogsTool_Provider(t *testing.T) {
 
 	agentID := uuid.New()
 	tool := provider.CreateTool(agentID)
+	toolImpl := tool.(*sessionLogsToolImpl)
 
 	assert.NotNil(t, tool)
-	assert.Equal(t, provider.logService, tool.logService)
-	assert.Equal(t, provider.hookManager, tool.hookManager)
-	assert.Equal(t, agentID, tool.agentID)
+	assert.Equal(t, provider.logService, toolImpl.logService)
+	assert.Equal(t, provider.hookManager, toolImpl.hookManager)
+	assert.Equal(t, agentID, toolImpl.agentID)
 }
 
 // TestNewSessionLogsToolProvider tests provider creation with DI.
@@ -508,7 +509,7 @@ func TestNewSessionLogsToolProvider(t *testing.T) {
 	tool := provider.CreateTool(uuid.New())
 
 	assert.NotNil(t, tool)
-	assert.IsType(t, &SessionLogsTool{}, tool)
+	assert.IsType(t, &sessionLogsToolImpl{}, tool)
 }
 
 // TestSessionLogsTool_WithFields tests entries with additional fields.
@@ -537,7 +538,7 @@ func TestSessionLogsTool_WithFields(t *testing.T) {
 
 	mockLoggerService.EXPECT().GetLogs(gomock.Any()).Return(entries)
 
-	tool := &SessionLogsTool{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
+	tool := &sessionLogsToolImpl{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
 
 	result, err := tool.Run(context.Background(), map[string]any{
 		"mode": "all",
@@ -562,7 +563,7 @@ func TestSessionLogsTool_InvalidCount(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &SessionLogsTool{
+	tool := &sessionLogsToolImpl{
 		logService:  mockLoggerService,
 		hookManager: mockHookManager,
 		agentID:     uuid.New(),
@@ -585,7 +586,7 @@ func TestSessionLogsTool_ZeroCount(t *testing.T) {
 	mockHookManager := mocks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &SessionLogsTool{
+	tool := &sessionLogsToolImpl{
 		logService:  mockLoggerService,
 		hookManager: mockHookManager,
 		agentID:     uuid.New(),
@@ -615,7 +616,7 @@ func TestSessionLogsTool_NilAgentID(t *testing.T) {
 
 	mockLoggerService.EXPECT().GetLogs(gomock.Any()).Return(entries)
 
-	tool := &SessionLogsTool{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
+	tool := &sessionLogsToolImpl{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
 
 	result, err := tool.Run(context.Background(), map[string]any{
 		"mode": "all",

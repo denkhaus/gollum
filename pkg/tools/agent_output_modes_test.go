@@ -41,7 +41,7 @@ func TestAgentOutputTool_Run_NonBlockingMode_Running(t *testing.T) {
 		GetAgentResult(agentID).
 		Return(taskResult, true)
 
-	tool := &AgentOutputTool{
+	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
 		senderID:    senderID,
@@ -97,7 +97,7 @@ func TestAgentOutputTool_Run_NonBlockingMode_Completed(t *testing.T) {
 		GetAgentResult(agentID).
 		Return(taskResult, true)
 
-	tool := &AgentOutputTool{
+	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
 		senderID:    senderID,
@@ -147,7 +147,7 @@ func TestAgentOutputTool_Run_NonBlockingMode_Failed(t *testing.T) {
 		GetAgentResult(agentID).
 		Return(taskResult, true)
 
-	tool := &AgentOutputTool{
+	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
 		senderID:    senderID,
@@ -205,7 +205,7 @@ func TestAgentOutputTool_Run_BlockingMode_Completed(t *testing.T) {
 		WaitForAgent(gomock.Any(), agentID, 30000*time.Millisecond).
 		Return(taskResult, nil)
 
-	tool := &AgentOutputTool{
+	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
 		senderID:    senderID,
@@ -256,7 +256,7 @@ func TestAgentOutputTool_Run_BlockingMode_Timeout(t *testing.T) {
 		WaitForAgent(gomock.Any(), agentID, 30000*time.Millisecond).
 		Return(taskResult, errors.New("timeout waiting for agent"))
 
-	tool := &AgentOutputTool{
+	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
 		senderID:    senderID,
@@ -309,7 +309,7 @@ func TestAgentOutputTool_Run_BlockingMode_Failed(t *testing.T) {
 		WaitForAgent(gomock.Any(), agentID, 30000*time.Millisecond).
 		Return(taskResult, nil)
 
-	tool := &AgentOutputTool{
+	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
 		senderID:    senderID,
@@ -360,7 +360,7 @@ func TestAgentOutputTool_Run_CustomTimeout(t *testing.T) {
 		WaitForAgent(gomock.Any(), agentID, 5000*time.Millisecond).
 		Return(taskResult, nil)
 
-	tool := &AgentOutputTool{
+	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
 		senderID:    senderID,

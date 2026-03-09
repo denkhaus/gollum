@@ -29,8 +29,8 @@ const (
 )
 
 type (
-	// GrepTool searches file contents with regex patterns
-	GrepTool struct {
+	// grepToolImpl searches file contents with regex patterns
+	grepToolImpl struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		agentID     uuid.UUID
@@ -38,7 +38,7 @@ type (
 
 	// GrepToolProvider creates GrepTool instances via DI
 	GrepToolProvider interface {
-		CreateTool(agentID uuid.UUID) *GrepTool
+		CreateTool(agentID uuid.UUID) gollem.Tool
 	}
 
 	grepToolProvider struct {
@@ -58,8 +58,8 @@ func NewGrepToolProvider(injector do.Injector) (GrepToolProvider, error) {
 }
 
 // CreateTool creates a new GrepTool with agent ID
-func (p *grepToolProvider) CreateTool(agentID uuid.UUID) *GrepTool {
-	return &GrepTool{
+func (p *grepToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+	return &grepToolImpl{
 		logService:  p.logService,
 		hookManager: p.hookManager,
 		agentID:     agentID,
@@ -67,7 +67,7 @@ func (p *grepToolProvider) CreateTool(agentID uuid.UUID) *GrepTool {
 }
 
 // Spec returns the tool specification for the Grep tool
-func (t *GrepTool) Spec() gollem.ToolSpec {
+func (t *grepToolImpl) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
 		Name:        shared.ToolNameGrep.String(),
 		Description: "A powerful search tool built on ripgrep. Use Grep for searching file content. ALWAYS use Grep for search tasks - NEVER invoke grep or rg as Bash command.",
@@ -121,7 +121,7 @@ func (t *GrepTool) Spec() gollem.ToolSpec {
 }
 
 // Run executes the Grep tool to search file contents
-func (t *GrepTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *grepToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameGrep, args,
 		func() (map[string]any, error) {
 			return t.runGrep(ctx, args)
@@ -129,7 +129,7 @@ func (t *GrepTool) Run(ctx context.Context, args map[string]any) (map[string]any
 }
 
 // runGrep implements the core Grep logic
-func (t *GrepTool) runGrep(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *grepToolImpl) runGrep(ctx context.Context, args map[string]any) (map[string]any, error) {
 	pattern, ok := args["pattern"].(string)
 	if !ok || pattern == "" {
 		t.logService.Error("Grep operation failed: pattern is required and must be a non-empty string",
@@ -301,7 +301,7 @@ func (t *GrepTool) runGrep(ctx context.Context, args map[string]any) (map[string
 }
 
 // grepContent returns matching lines with context
-func (t *GrepTool) grepContent(ctx context.Context, searchPath string, regex *regexp.Regexp, globPattern string, contextBefore, contextAfter, headLimit int, showLineNumbers bool) (map[string]any, error) {
+func (t *grepToolImpl) grepContent(ctx context.Context, searchPath string, regex *regexp.Regexp, globPattern string, contextBefore, contextAfter, headLimit int, showLineNumbers bool) (map[string]any, error) {
 	results := []map[string]any{}
 	totalMatches := 0
 	filesScanned := 0
@@ -389,7 +389,7 @@ func (t *GrepTool) grepContent(ctx context.Context, searchPath string, regex *re
 }
 
 // grepFiles returns list of files with matches
-func (t *GrepTool) grepFiles(_ context.Context, searchPath string, regex *regexp.Regexp, globPattern string, headLimit int) (map[string]any, error) {
+func (t *grepToolImpl) grepFiles(_ context.Context, searchPath string, regex *regexp.Regexp, globPattern string, headLimit int) (map[string]any, error) {
 	matchingFiles := []string{}
 	filesScanned := 0
 
@@ -465,7 +465,7 @@ func (t *GrepTool) grepFiles(_ context.Context, searchPath string, regex *regexp
 }
 
 // grepCount returns match counts per file
-func (t *GrepTool) grepCount(_ context.Context, searchPath string, regex *regexp.Regexp, globPattern string, headLimit int) (map[string]any, error) {
+func (t *grepToolImpl) grepCount(_ context.Context, searchPath string, regex *regexp.Regexp, globPattern string, headLimit int) (map[string]any, error) {
 	counts := map[string]int{}
 	filesScanned := 0
 
@@ -541,7 +541,7 @@ func (t *GrepTool) grepCount(_ context.Context, searchPath string, regex *regexp
 }
 
 // searchFile searches a single file and returns matches with context
-func (t *GrepTool) searchFile(ctx context.Context, path string, regex *regexp.Regexp, contextBefore, contextAfter int, showLineNumbers bool) ([]map[string]any, error) {
+func (t *grepToolImpl) searchFile(ctx context.Context, path string, regex *regexp.Regexp, contextBefore, contextAfter int, showLineNumbers bool) ([]map[string]any, error) {
 	// Wrap the file read operation with file read hooks
 	content, err := t.hookManager.WithFileReadHooks(ctx, uuid.Nil, t.agentID, path,
 		func() (string, error) {

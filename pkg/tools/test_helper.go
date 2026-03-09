@@ -3,8 +3,9 @@ package tools
 import (
 	"context"
 
-	"github.com/denkhaus/gollum/pkg/config"
 	"testing"
+
+	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/events"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
@@ -127,7 +128,7 @@ func setupMockHookManagerPassThrough(mockHookManager *mocks.MockHookManager) {
 // createWriteFileToolForTesting creates a WriteFileTool with mocked dependencies for testing.
 // Returns the tool, the FSM, and logService for tests that need direct access.
 // This follows the DI pattern guideline: tests create tools directly with their own mock dependencies.
-func createWriteFileToolForTesting(t *testing.T, ctrl *gomock.Controller) (*WriteFileTool, state.FileStateManager, logger.LoggerService) {
+func createWriteFileToolForTesting(t *testing.T, ctrl *gomock.Controller) (*writeFileToolImpl, state.FileStateManager, logger.LoggerService) {
 	t.Helper()
 
 	injector := setupTestInjector()
@@ -145,7 +146,7 @@ func createWriteFileToolForTesting(t *testing.T, ctrl *gomock.Controller) (*Writ
 	mockDiffProvider.EXPECT().GenerateDiffForNewFile(gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 
-	tool := &WriteFileTool{
+	tool := &writeFileToolImpl{
 		logService:   logService,
 		fsm:          fsm,
 		hookManager:  mockHookManager,

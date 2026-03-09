@@ -41,7 +41,7 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 	senderID := uuid.New()
 
 	// Create spawn tool
-	tool := &SpawnAgentTool{
+	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        agentRegistry,
@@ -109,7 +109,7 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 	}
 
 	// Create agent output tool
-	outputTool := &AgentOutputTool{
+	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
 		senderID:    senderID,
 		hookManager: mockHookManager,
@@ -202,7 +202,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create spawn tool for root
-	rootSpawnTool := &SpawnAgentTool{
+	rootSpawnTool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        agentRegistry,
@@ -239,7 +239,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	assert.False(t, agentRegistry.IsDirectParent(childID, rootID), "Child should not be parent of root")
 
 	// Step 2: Child spawns grandchild
-	childSpawnTool := &SpawnAgentTool{
+	childSpawnTool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
 		registry:        agentRegistry,
@@ -278,7 +278,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	assert.False(t, agentRegistry.IsDirectParent(rootID, grandchildID), "Root should NOT be direct parent of grandchild")
 
 	// Verify permission checks: root can access child but not grandchild directly
-	outputTool := &AgentOutputTool{
+	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
 		senderID:    rootID,
 		hookManager: mockHookManager,

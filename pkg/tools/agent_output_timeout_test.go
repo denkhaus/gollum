@@ -58,7 +58,7 @@ func TestAgentOutputTool_Run_TimeoutClamping_Int(t *testing.T) {
 				WaitForAgent(gomock.Any(), agentID, tt.expectedTimeout).
 				Return(taskResult, nil)
 
-			tool := &AgentOutputTool{
+			tool := &agentOutputToolImpl{
 				hookManager: mockHookManager,
 				registry:    mockRegistry,
 				senderID:    senderID,
@@ -119,7 +119,7 @@ func TestAgentOutputTool_Run_TimeoutClamping_Float(t *testing.T) {
 				WaitForAgent(gomock.Any(), agentID, tt.expectedTimeout).
 				Return(taskResult, nil)
 
-			tool := &AgentOutputTool{
+			tool := &agentOutputToolImpl{
 				hookManager: mockHookManager,
 				registry:    mockRegistry,
 				senderID:    senderID,
@@ -170,7 +170,7 @@ func TestAgentOutputTool_Run_DefaultBlockValue(t *testing.T) {
 		WaitForAgent(gomock.Any(), agentID, 30000*time.Millisecond).
 		Return(taskResult, nil)
 
-	tool := &AgentOutputTool{
+	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
 		senderID:    senderID,
@@ -199,11 +199,12 @@ func TestAgentOutputToolProvider(t *testing.T) {
 	}
 
 	tool := provider.CreateTool(senderID)
+	toolImpl := tool.(*agentOutputToolImpl)
 
 	assert.NotNil(t, tool)
-	assert.Equal(t, mockRegistry, tool.registry)
-	assert.Equal(t, mockHookManager, tool.hookManager)
-	assert.Equal(t, senderID, tool.senderID)
+	assert.Equal(t, mockRegistry, toolImpl.registry)
+	assert.Equal(t, mockHookManager, toolImpl.hookManager)
+	assert.Equal(t, senderID, toolImpl.senderID)
 }
 
 // TestAgentOutputTool_Run_PermissionDenied tests permission check when caller is not direct parent
@@ -223,7 +224,7 @@ func TestAgentOutputTool_Run_PermissionDenied(t *testing.T) {
 		IsDirectParent(senderID, agentID).
 		Return(false)
 
-	tool := &AgentOutputTool{
+	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
 		senderID:    senderID,

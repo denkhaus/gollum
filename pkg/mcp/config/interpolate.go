@@ -1,37 +1,40 @@
 package config
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
+	"time"
 )
 
-// interpolateConfig expands shell commands and environment variables in config values
-func interpolateConfig(cfg MCPServerConfig) MCPServerConfig {
+// interpolateConfigWithTimeout expands shell commands and environment variables
+// in config values using the specified timeout for shell command execution.
+func interpolateConfigWithTimeout(cfg MCPServerConfig, timeout time.Duration) MCPServerConfig {
 	result := cfg
 	if result.Env != nil {
-		result.Env = interpolateEnvMap(result.Env)
+		result.Env = interpolateEnvMapWithTimeout(result.Env, timeout)
 	}
 	if result.Headers != nil {
-		result.Headers = interpolateEnvMap(result.Headers)
+		result.Headers = interpolateEnvMapWithTimeout(result.Headers, timeout)
 	}
 	return result
 }
 
-// interpolateEnvMap expands all values in a map
-func interpolateEnvMap(m map[string]string) map[string]string {
+// interpolateEnvMapWithTimeout expands all values in a map with timeout.
+func interpolateEnvMapWithTimeout(m map[string]string, timeout time.Duration) map[string]string {
 	result := make(map[string]string, len(m))
 	for k, v := range m {
-		result[k] = interpolateValue(v)
+		result[k] = interpolateValueWithTimeout(v, timeout)
 	}
 	return result
 }
 
-// interpolateValue expands $(command) and $VAR patterns in a string
-func interpolateValue(value string) string {
+// interpolateValueWithTimeout expands $(command) and $VAR patterns in a string.
+func interpolateValueWithTimeout(value string, timeout time.Duration) string {
 	// First, handle shell command interpolation: $(command)
-	value = expandShellCommands(value)
+	value = expandShellCommands(value, timeout)
 
 	// Then, handle environment variable expansion: $VAR or ${VAR}
 	value = expandEnvVars(value)
@@ -40,7 +43,8 @@ func interpolateValue(value string) string {
 }
 
 // expandShellCommands executes $(command) patterns and replaces with output
-func expandShellCommands(value string) string {
+// Commands use the provided timeout to prevent blocking indefinitely.
+func expandShellCommands(value string, timeout time.Duration) string {
 	// Match $(command) patterns - but avoid $$() which should be literal
 	re := regexp.MustCompile(`\$\(([^)]+)\)`)
 	return re.ReplaceAllStringFunc(value, func(match string) string {
@@ -52,11 +56,16 @@ func expandShellCommands(value string) string {
 		// Extract the command inside $(...)
 		cmdStr := re.FindStringSubmatch(match)[1]
 
-		// Execute the command
-		cmd := exec.Command("sh", "-c", cmdStr)
+		// Create context with timeout for command execution
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		// Execute the command with timeout
+		cmd := exec.CommandContext(ctx, "sh", "-c", cmdStr)
 		output, err := cmd.Output()
 		if err != nil {
-			// On error, return the original string
+			// On error or timeout, return the original string
+			// This allows the config to load even if a command fails
 			return match
 		}
 
@@ -71,6 +80,26 @@ func expandEnvVars(value string) string {
 	// But we need to be careful not to expand $$ which is a literal $
 	expanded := os.ExpandEnv(value)
 	return expanded
+}
+
+// interpolateConfig expands shell commands and environment variables in config values
+// Uses a default 5-second timeout for shell command execution.
+// Deprecated: Use interpolateConfigWithTimeout for production code.
+func interpolateConfig(cfg MCPServerConfig) MCPServerConfig {
+	return interpolateConfigWithTimeout(cfg, 5*time.Second)
+}
+
+// interpolateEnvMap expands all values in a map with 5-second timeout.
+// Deprecated: Use interpolateEnvMapWithTimeout for production code.
+func interpolateEnvMap(m map[string]string) map[string]string {
+	return interpolateEnvMapWithTimeout(m, 5*time.Second)
+}
+
+// interpolateValue expands $(command) and $VAR patterns in a string.
+// Uses a default 5-second timeout for shell command execution.
+// Deprecated: Use interpolateValueWithTimeout for production code.
+func interpolateValue(value string) string {
+	return interpolateValueWithTimeout(value, 5*time.Second)
 }
 
 // Interpolate applies interpolation to the MCPServerConfig

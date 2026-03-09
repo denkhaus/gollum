@@ -14,8 +14,8 @@ import (
 )
 
 type (
-	// ListAgentsTool lists all subagents of the current agent with their IDs and roles
-	ListAgentsTool struct {
+	// listAgentsToolImpl lists all subagents of the current agent with their IDs and roles
+	listAgentsToolImpl struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		registry    registry.AgentRegistry
@@ -24,7 +24,7 @@ type (
 
 	// ListAgentsToolProvider creates ListAgentsTool instances via DI
 	ListAgentsToolProvider interface {
-		CreateTool(senderID uuid.UUID) *ListAgentsTool
+		CreateTool(senderID uuid.UUID) gollem.Tool
 	}
 
 	listAgentsToolProvider struct {
@@ -48,8 +48,8 @@ func NewListAgentsToolProvider(injector do.Injector) (ListAgentsToolProvider, er
 }
 
 // CreateListAgentsTool creates a new ListAgentsTool for a specific sender
-func (p *listAgentsToolProvider) CreateTool(senderID uuid.UUID) *ListAgentsTool {
-	return &ListAgentsTool{
+func (p *listAgentsToolProvider) CreateTool(senderID uuid.UUID) gollem.Tool {
+	return &listAgentsToolImpl{
 		logService:  p.logService,
 		hookManager: p.hookManager,
 		registry:    p.registry,
@@ -58,7 +58,7 @@ func (p *listAgentsToolProvider) CreateTool(senderID uuid.UUID) *ListAgentsTool 
 }
 
 // Spec returns the tool specification for the ListAgents tool
-func (t *ListAgentsTool) Spec() gollem.ToolSpec {
+func (t *listAgentsToolImpl) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
 		Name: shared.ToolNameListAgents.String(),
 		Description: `Shows your agent relationships with IDs, roles, descriptions, and types.
@@ -103,7 +103,7 @@ type descendantInfo struct {
 }
 
 // Run executes the ListAgents tool to list all related agents
-func (t *ListAgentsTool) Run(ctx context.Context, params map[string]any) (map[string]any, error) {
+func (t *listAgentsToolImpl) Run(ctx context.Context, params map[string]any) (map[string]any, error) {
 	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.senderID, shared.ToolNameListAgents, params,
 		func() (map[string]any, error) {
 			return t.runListAgents(ctx, params)
@@ -111,7 +111,7 @@ func (t *ListAgentsTool) Run(ctx context.Context, params map[string]any) (map[st
 }
 
 // runListAgents implements the core ListAgents logic
-func (t *ListAgentsTool) runListAgents(_ context.Context, params map[string]any) (map[string]any, error) {
+func (t *listAgentsToolImpl) runListAgents(_ context.Context, params map[string]any) (map[string]any, error) {
 	// Parse flags
 	recursive := false
 	tree := false
@@ -227,7 +227,7 @@ func (t *ListAgentsTool) runListAgents(_ context.Context, params map[string]any)
 }
 
 // getAllDescendants recursively fetches all descendants of an agent
-func (t *ListAgentsTool) getAllDescendants(agentID uuid.UUID, depth int) []descendantInfo {
+func (t *listAgentsToolImpl) getAllDescendants(agentID uuid.UUID, depth int) []descendantInfo {
 	children := t.registry.GetChildren(agentID)
 	result := make([]descendantInfo, 0, len(children))
 
@@ -250,7 +250,7 @@ func (t *ListAgentsTool) getAllDescendants(agentID uuid.UUID, depth int) []desce
 }
 
 // buildTreeOutput creates ASCII tree visualization
-func (t *ListAgentsTool) buildTreeOutput(recursive bool, hasParent bool, parentAgent shared.Agent, count *int) string {
+func (t *listAgentsToolImpl) buildTreeOutput(recursive bool, hasParent bool, parentAgent shared.Agent, count *int) string {
 	var builder string
 
 	// Start with current agent (you are here)
@@ -297,7 +297,7 @@ func (t *ListAgentsTool) buildTreeOutput(recursive bool, hasParent bool, parentA
 }
 
 // buildTreeLine creates a single line in the tree with proper indentation
-func (t *ListAgentsTool) buildTreeLine(desc descendantInfo, prefix string) string {
+func (t *listAgentsToolImpl) buildTreeLine(desc descendantInfo, prefix string) string {
 	var result string
 
 	// Calculate indentation based on depth

@@ -20,8 +20,8 @@ import (
 )
 
 type (
-	// EditTool performs exact string replacements in files
-	EditTool struct {
+	// editToolImpl performs exact string replacements in files
+	editToolImpl struct {
 		logService   logger.LoggerService
 		fsm          state.FileStateManager
 		hookManager  hooks.HookManager
@@ -31,7 +31,7 @@ type (
 
 	// EditToolProvider creates EditTool instances via DI
 	EditToolProvider interface {
-		CreateTool(agentID uuid.UUID) *EditTool
+		CreateTool(agentID uuid.UUID) gollem.Tool
 	}
 
 	editToolProvider struct {
@@ -58,8 +58,8 @@ func NewEditToolProvider(injector do.Injector) (EditToolProvider, error) {
 }
 
 // CreateTool creates a new EditTool with agent ID
-func (p *editToolProvider) CreateTool(agentID uuid.UUID) *EditTool {
-	return &EditTool{
+func (p *editToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+	return &editToolImpl{
 		logService:   p.logService,
 		fsm:          p.fsm,
 		hookManager:  p.hookManager,
@@ -69,7 +69,7 @@ func (p *editToolProvider) CreateTool(agentID uuid.UUID) *EditTool {
 }
 
 // Spec returns the tool specification for the Edit tool
-func (t *EditTool) Spec() gollem.ToolSpec {
+func (t *editToolImpl) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
 		Name:        shared.ToolNameEdit.String(),
 		Description: "Performs exact string replacements in files. Requires the file to be read first. The old_string must be unique in the file. This tool does NOT use regex - it does exact string matching.",
@@ -95,7 +95,7 @@ func (t *EditTool) Spec() gollem.ToolSpec {
 }
 
 // Run executes the Edit tool to perform string replacements in files
-func (t *EditTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *editToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameEdit, args,
 		func() (map[string]any, error) {
 			return t.runEdit(ctx, args)
@@ -103,7 +103,7 @@ func (t *EditTool) Run(ctx context.Context, args map[string]any) (map[string]any
 }
 
 // runEdit implements the core edit logic
-func (t *EditTool) runEdit(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *editToolImpl) runEdit(ctx context.Context, args map[string]any) (map[string]any, error) {
 	filePath, ok := args["file_path"].(string)
 	if !ok || filePath == "" {
 		t.logService.Error("Edit operation failed: file_path is required and must be a non-empty string",
@@ -251,8 +251,8 @@ func (t *EditTool) runEdit(ctx context.Context, args map[string]any) (map[string
 					zap.String("file_path", filePath),
 					zap.Int("occurrence_count", count))
 				return map[string]any{
-					string(shared.KeySuccess): false,
-					string(shared.KeyError):   fmt.Sprintf("old_string appears %d times in the file. For safety, it must be unique unless replace_all is set to true", count),
+					string(shared.KeySuccess):      false,
+					string(shared.KeyError):        fmt.Sprintf("old_string appears %d times in the file. For safety, it must be unique unless replace_all is set to true", count),
 					string(shared.KeyReplacements): count,
 				}, nil
 			}

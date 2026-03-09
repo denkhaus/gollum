@@ -26,7 +26,7 @@ func TestEditToolValidation(t *testing.T) {
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
 
 	agentID := uuid.New()
-	tool := &EditTool{
+	tool := &editToolImpl{
 		logService:  logService,
 		fsm:         mockFSM,
 		hookManager: mockHookManager,
@@ -147,7 +147,7 @@ func TestEditToolFileNotRead(t *testing.T) {
 	testFile := "/tmp/test_edit.txt"
 	absPath, _ := filepath.Abs(testFile)
 
-	tool := &EditTool{
+	tool := &editToolImpl{
 		logService:  logService,
 		fsm:         mockFSM,
 		agentID:     agentID,
@@ -186,7 +186,7 @@ func TestEditToolStaleFile(t *testing.T) {
 	testFile := "/tmp/test_edit.txt"
 	absPath, _ := filepath.Abs(testFile)
 
-	tool := &EditTool{
+	tool := &editToolImpl{
 		logService:  logService,
 		fsm:         mockFSM,
 		agentID:     agentID,

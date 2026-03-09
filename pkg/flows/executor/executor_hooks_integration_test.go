@@ -36,6 +36,7 @@ func TestFlowExecutor_WithHookManagerIntegration(t *testing.T) {
 	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
 	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 	do.Provide(injector, NewFlowExecutor)
 
 	// Create executor

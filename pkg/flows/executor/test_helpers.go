@@ -7,6 +7,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/flows"
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
@@ -24,40 +25,43 @@ func NewExecutor(flow *flows.Flow) *flowExecutorImpl {
 	}
 
 	return &flowExecutorImpl{
-		flow:             flow,
-		ctx:              NewContext(flow.Input, nil),
-		history:          NewExecutionHistory(),
-		currentState:     currentState,
-		bashToolProvider: &testBashToolProvider{},
-		extService:       &testExtensionService{},
-		flowRegistry:     &testFlowRegistry{},
-		hookManager:      &hooks.NoOpHookManager{},
+		flow:              flow,
+		ctx:               NewContext(flow.Input, nil),
+		history:           NewExecutionHistory(),
+		currentState:      currentState,
+		bashToolProvider:  &testBashToolProvider{},
+		extService:        &testExtensionService{},
+		flowRegistry:      &testFlowRegistry{},
+		hookManager:       &hooks.NoOpHookManager{},
+		flowToolsProvider: &testFlowToolsProvider{},
 	}
 }
 
 // NewExecutorWithRegistry creates a test executor with a specific flow registry
 func NewExecutorWithRegistry(flow *flows.Flow, registry flowregistry.FlowRegistry) *flowExecutorImpl {
 	return &flowExecutorImpl{
-		flow:             flow,
-		ctx:              NewContext(flow.Input, nil),
-		history:          NewExecutionHistory(),
-		bashToolProvider: &testBashToolProvider{},
-		extService:       &testExtensionService{},
-		flowRegistry:     registry,
-		hookManager:      &hooks.NoOpHookManager{},
+		flow:              flow,
+		ctx:               NewContext(flow.Input, nil),
+		history:           NewExecutionHistory(),
+		bashToolProvider:  &testBashToolProvider{},
+		extService:        &testExtensionService{},
+		flowRegistry:      registry,
+		hookManager:       &hooks.NoOpHookManager{},
+		flowToolsProvider: &testFlowToolsProvider{},
 	}
 }
 
 // NewExecutorWithProvider creates a test executor with a specific bash tool provider
 func NewExecutorWithProvider(flow *flows.Flow, provider tools.BashToolProvider) *flowExecutorImpl {
 	return &flowExecutorImpl{
-		flow:             flow,
-		ctx:              NewContext(flow.Input, nil),
-		history:          NewExecutionHistory(),
-		bashToolProvider: provider,
-		extService:       &testExtensionService{},
-		flowRegistry:     &testFlowRegistry{},
-		hookManager:      &hooks.NoOpHookManager{},
+		flow:              flow,
+		ctx:               NewContext(flow.Input, nil),
+		history:           NewExecutionHistory(),
+		bashToolProvider:  provider,
+		extService:        &testExtensionService{},
+		flowRegistry:      &testFlowRegistry{},
+		hookManager:       &hooks.NoOpHookManager{},
+		flowToolsProvider: &testFlowToolsProvider{},
 	}
 }
 
@@ -136,4 +140,32 @@ func (m *testFlowRegistry) Register(name string, flow *flows.Flow) {
 
 func (m *testFlowRegistry) GetFlow(name string) (*flows.Flow, error) {
 	return nil, flowregistry.ErrFlowNotFound
+}
+
+type testFlowToolsProvider struct{}
+
+func (m *testFlowToolsProvider) CreateTool(agentID uuid.UUID, flowCtx tools.FlowContext, toolName shared.ToolName) (gollem.Tool, error) {
+	// Return a mock tool that does nothing
+	return &testFlowTool{}, nil
+}
+
+type testFlowTool struct{}
+
+func (m *testFlowTool) Name() string {
+	return "test_flow_tool"
+}
+
+func (m *testFlowTool) Description() string {
+	return "Test flow tool"
+}
+
+func (m *testFlowTool) Spec() gollem.ToolSpec {
+	return gollem.ToolSpec{
+		Name:        "test_flow_tool",
+		Description: "Test flow tool for testing",
+	}
+}
+
+func (m *testFlowTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+	return map[string]any{"success": true}, nil
 }

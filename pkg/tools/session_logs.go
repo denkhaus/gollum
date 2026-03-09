@@ -22,8 +22,8 @@ const (
 )
 
 type (
-	// SessionLogsTool allows agents to query session logs with filtering.
-	SessionLogsTool struct {
+	// sessionLogsToolImpl allows agents to query session logs with filtering.
+	sessionLogsToolImpl struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		agentID     uuid.UUID
@@ -31,7 +31,7 @@ type (
 
 	// SessionLogsToolProvider creates SessionLogsTool instances via DI.
 	SessionLogsToolProvider interface {
-		CreateTool(agentID uuid.UUID) *SessionLogsTool
+		CreateTool(agentID uuid.UUID) gollem.Tool
 	}
 
 	sessionLogsToolProvider struct {
@@ -51,8 +51,8 @@ func NewSessionLogsToolProvider(injector do.Injector) (SessionLogsToolProvider, 
 }
 
 // CreateSessionLogsTool creates a new SessionLogsTool with agent ID.
-func (p *sessionLogsToolProvider) CreateTool(agentID uuid.UUID) *SessionLogsTool {
-	return &SessionLogsTool{
+func (p *sessionLogsToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+	return &sessionLogsToolImpl{
 		logService:  p.logService,
 		hookManager: p.hookManager,
 		agentID:     agentID,
@@ -60,7 +60,7 @@ func (p *sessionLogsToolProvider) CreateTool(agentID uuid.UUID) *SessionLogsTool
 }
 
 // Run executes the SessionLogs tool to retrieve filtered log entries.
-func (t *SessionLogsTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *sessionLogsToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameSessionLogs, args,
 		func() (map[string]any, error) {
 			return t.runSessionLogs(ctx, args)
@@ -68,7 +68,7 @@ func (t *SessionLogsTool) Run(ctx context.Context, args map[string]any) (map[str
 }
 
 // runSessionLogs implements the core SessionLogs logic
-func (t *SessionLogsTool) runSessionLogs(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *sessionLogsToolImpl) runSessionLogs(_ context.Context, args map[string]any) (map[string]any, error) {
 	// Get mode parameter (required)
 	mode, exists := args["mode"].(string)
 	if !exists || mode == "" {
@@ -190,7 +190,7 @@ func (t *SessionLogsTool) runSessionLogs(_ context.Context, args map[string]any)
 }
 
 // Spec returns the tool specification for the SessionLogs tool.
-func (t *SessionLogsTool) Spec() gollem.ToolSpec {
+func (t *sessionLogsToolImpl) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
 		Name: shared.ToolNameSessionLogs.String(),
 		Description: "Queries session logs with intelligent filtering. " +
