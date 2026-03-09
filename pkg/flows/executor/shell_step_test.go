@@ -4,10 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/denkhaus/gollum/pkg/extensions"
 	"github.com/denkhaus/gollum/pkg/flows"
-	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
-	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
@@ -97,11 +94,7 @@ func TestExecuteShellStep_SuccessfulExecution(t *testing.T) {
 
 	provider := &mockBashToolProvider{tool: mockTool}
 	// Create fresh injector with all dependencies
-	injector := do.New()
-	do.ProvideValue(injector, tools.BashToolProvider(provider))
-	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
-	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
-	do.Provide(injector, NewFlowExecutor)
+	injector := setupTestDIWithBashProvider(t, provider)
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
@@ -152,11 +145,7 @@ func TestExecuteShellStep_WithInputVariable(t *testing.T) {
 
 	provider := &mockBashToolProvider{tool: mockTool}
 	// Create fresh injector with all dependencies
-	injector := do.New()
-	do.ProvideValue(injector, tools.BashToolProvider(provider))
-	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
-	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
-	do.Provide(injector, NewFlowExecutor)
+	injector := setupTestDIWithBashProvider(t, provider)
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
@@ -208,11 +197,7 @@ func TestExecuteShellStep_WithTimeout(t *testing.T) {
 
 	provider := &mockBashToolProvider{tool: mockTool}
 	// Create fresh injector with all dependencies
-	injector := do.New()
-	do.ProvideValue(injector, tools.BashToolProvider(provider))
-	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
-	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
-	do.Provide(injector, NewFlowExecutor)
+	injector := setupTestDIWithBashProvider(t, provider)
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)

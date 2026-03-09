@@ -5,21 +5,86 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/extensions"
 	"github.com/denkhaus/gollum/pkg/flows"
+	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/logger"
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
+	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
+	"go.uber.org/zap"
 )
 
 // setupTestDI creates a DI injector with mock services for testing
 func setupTestDI(t *testing.T) do.Injector {
 	injector := do.New()
 
+	// Create mock logger
+	ctrl := gomock.NewController(t)
+	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+
+	// Register HookManager
+	do.Provide(injector, hooks.NewHookManager)
+
 	// Register mock dependencies
 	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
 	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
 	// Register the flow executor service
+	do.Provide(injector, NewFlowExecutor)
+
+	return injector
+}
+
+// setupTestDIWithRegistry creates a DI injector with mock services and a custom registry
+func setupTestDIWithRegistry(t *testing.T, registry flowregistry.FlowRegistry) do.Injector {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := do.New()
+
+	// Create mock logger
+	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+
+	// Register HookManager
+	do.Provide(injector, hooks.NewHookManager)
+
+	// Register dependencies
+	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
+	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
+	do.ProvideValue(injector, registry)
+	do.Provide(injector, NewFlowExecutor)
+
+	return injector
+}
+
+// setupTestDIWithBashProvider creates a DI injector with mock services and a custom BashToolProvider
+func setupTestDIWithBashProvider(t *testing.T, provider tools.BashToolProvider) do.Injector {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := do.New()
+
+	// Create mock logger
+	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+
+	// Register HookManager
+	do.Provide(injector, hooks.NewHookManager)
+
+	// Register dependencies
+	do.ProvideValue(injector, provider)
+	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
+	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
 	do.Provide(injector, NewFlowExecutor)
 
 	return injector

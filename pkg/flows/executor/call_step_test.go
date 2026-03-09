@@ -3,10 +3,8 @@ package executor
 import (
 	"testing"
 
-	"github.com/denkhaus/gollum/pkg/extensions"
 	"github.com/denkhaus/gollum/pkg/flows"
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
-	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -77,11 +75,7 @@ func TestExecuteCall_SimpleFlowCall(t *testing.T) {
 	registry.Register("subflow", subFlow)
 
 	// Create executor with registry using DI
-	injector := do.New()
-	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
-	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
-	do.ProvideValue(injector, flowregistry.FlowRegistry(registry))
-	do.Provide(injector, NewFlowExecutor)
+	injector := setupTestDIWithRegistry(t, registry)
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(mainFlow)
@@ -170,11 +164,7 @@ func TestExecuteCall_MultipleInputFields(t *testing.T) {
 	registry.Register("concat", subFlow)
 
 	// Create executor with registry using DI
-	injector := do.New()
-	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
-	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
-	do.ProvideValue(injector, flowregistry.FlowRegistry(registry))
-	do.Provide(injector, NewFlowExecutor)
+	injector := setupTestDIWithRegistry(t, registry)
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(mainFlow)

@@ -10,6 +10,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/extensions"
 	"github.com/denkhaus/gollum/pkg/flows"
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
@@ -43,6 +44,7 @@ type flowExecutorImpl struct {
 	bashToolProvider tools.BashToolProvider
 	extService       extensions.ExtensionService
 	flowRegistry     flowregistry.FlowRegistry
+	hookManager      hooks.HookManager
 }
 
 // flowExecutorServiceImpl is the DI service that creates executor instances
@@ -50,6 +52,7 @@ type flowExecutorServiceImpl struct {
 	bashToolProvider tools.BashToolProvider
 	extService       extensions.ExtensionService
 	flowRegistry     flowregistry.FlowRegistry
+	hookManager      hooks.HookManager
 }
 
 // Ensure flowExecutorServiceImpl implements FlowExecutorService
@@ -63,11 +66,13 @@ func NewFlowExecutor(injector do.Injector) (FlowExecutorService, error) {
 	bashToolProvider := do.MustInvoke[tools.BashToolProvider](injector)
 	extService := do.MustInvoke[extensions.ExtensionService](injector)
 	flowRegistry := do.MustInvoke[flowregistry.FlowRegistry](injector)
+	hookManager := do.MustInvoke[hooks.HookManager](injector)
 
 	return &flowExecutorServiceImpl{
 		bashToolProvider: bashToolProvider,
 		extService:       extService,
 		flowRegistry:     flowRegistry,
+		hookManager:      hookManager,
 	}, nil
 }
 
@@ -81,6 +86,7 @@ func (p *flowExecutorServiceImpl) New(flow *flows.Flow) FlowExecutorInstance {
 		bashToolProvider: p.bashToolProvider,
 		extService:       p.extService,
 		flowRegistry:     p.flowRegistry,
+		hookManager:      p.hookManager,
 	}
 }
 
