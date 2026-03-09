@@ -91,3 +91,78 @@ func TestHookManager_RegisterExecutorHook_DuplicateName(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "already registered")
 }
+
+func TestHookManager_TriggerExecutorHooks_BeforeFlowStep(t *testing.T) {
+	hm := newTestHookManager()
+
+	executed := false
+	var capturedPayload *ExecutorPayload
+
+	hookFn := func(_ context.Context, hookCtx *TypedHookContext[ExecutorPayload], next func() error) error {
+		executed = true
+		capturedPayload = &hookCtx.Payload
+		return next()
+	}
+
+	err := hm.RegisterExecutorHook(hookFn, TypedHookMetadata{
+		Name:  "test-trigger",
+		Point: BeforeFlowStep,
+	})
+	assert.NoError(t, err)
+
+	payload := ExecutorPayload{
+		FlowID:       uuid.New(),
+		FlowName:     "trigger-test",
+		SessionID:    uuid.New(),
+		CurrentState: "initial",
+		StepType:     "func",
+		StateName:    "initial",
+	}
+
+	hookCtx := &TypedHookContext[ExecutorPayload]{
+		BaseContext: BaseContext{
+			SessionID: payload.SessionID,
+		},
+		Payload: payload,
+	}
+
+	result := hm.TriggerExecutorHooks(context.Background(), BeforeFlowStep, hookCtx)
+
+	assert.True(t, executed)
+	assert.NotNil(t, capturedPayload)
+	assert.Equal(t, "trigger-test", capturedPayload.FlowName)
+	assert.Equal(t, "func", capturedPayload.StepType)
+	assert.False(t, result.Stopped)
+	assert.Nil(t, result.Error)
+}
+
+func TestHookManager_TriggerExecutorHooks_Blocking(t *testing.T) {
+	hm := newTestHookManager()
+
+	hookFn := func(_ context.Context, hookCtx *TypedHookContext[ExecutorPayload], _ func() error) error {
+		// Stop the chain by not calling next()
+		return nil
+	}
+
+	err := hm.RegisterExecutorHook(hookFn, TypedHookMetadata{
+		Name:     "blocking-hook",
+		Point:    BeforeFlowStep,
+		Priority: 100,
+	})
+	assert.NoError(t, err)
+
+	payload := ExecutorPayload{
+		FlowID:    uuid.New(),
+		StepType:  "shell",
+		StateName: "blocked",
+	}
+
+	hookCtx := &TypedHookContext[ExecutorPayload]{
+		Payload: payload,
+	}
+
+	result := hm.TriggerExecutorHooks(context.Background(), BeforeFlowStep, hookCtx)
+
+	// When a hook doesn't call next(), the chain is stopped
+	assert.True(t, result.Stopped, "Hook should stop execution")
+}

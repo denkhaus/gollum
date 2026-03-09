@@ -184,17 +184,17 @@ type HookManager interface {
 
 // hookManagerImpl is the private implementation of HookManager.
 type hookManagerImpl struct {
-	log logger.LoggerService
-	mu  sync.RWMutex // Protects the names map
+	log   logger.LoggerService
+	mu    sync.RWMutex        // Protects the names map
 	names map[string]struct{} // Global name registry for uniqueness across all hook points
 
 	// Typed registries for type-safe hook storage
-	toolRegistry    *TypedRegistry[ToolPayload]
-	llmRegistry     *TypedRegistry[LLMPayload]
-	fileRegistry    *TypedRegistry[FilePayload]
-	sessionRegistry *TypedRegistry[SessionPayload]
-	agentRegistry   *TypedRegistry[AgentPayload]
-	skillRegistry   *TypedRegistry[SkillPayload]
+	toolRegistry     *TypedRegistry[ToolPayload]
+	llmRegistry      *TypedRegistry[LLMPayload]
+	fileRegistry     *TypedRegistry[FilePayload]
+	sessionRegistry  *TypedRegistry[SessionPayload]
+	agentRegistry    *TypedRegistry[AgentPayload]
+	skillRegistry    *TypedRegistry[SkillPayload]
 	executorRegistry *TypedRegistry[ExecutorPayload]
 }
 
