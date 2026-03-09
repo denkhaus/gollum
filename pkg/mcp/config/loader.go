@@ -57,6 +57,11 @@ func (p *configLoaderImpl) Load() (map[string]MCPServerConfig, error) {
 		}
 	}
 
+	// Interpolate env vars and shell commands in all configs
+	for name, cfg := range servers {
+		servers[name] = interpolateConfig(cfg)
+	}
+
 	// Filter to enabled servers only
 	return filterEnabled(servers), nil
 }
