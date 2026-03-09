@@ -57,3 +57,13 @@ The extension system uses:
 - **samber/do** for DI integration
 
 See [design document](plans/2025-03-08-extension-system-design.md) for details.
+
+## Hooks and Lifecycle
+
+Flow execution can be extended using hooks from `pkg/hooks.HookManager`:
+
+- **BeforeFlowStep / AfterFlowStep** - Monitor all step execution
+- **BeforeToolExecution / AfterToolExecution** - Modify tool behavior
+- **BeforeLLMRequest / AfterLLMResponse** - Modify LLM prompts/responses
+
+See [Executor Hooks Guide](guides/executor-hooks.md) for details.
