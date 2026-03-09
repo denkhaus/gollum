@@ -180,6 +180,20 @@ func (mr *MockConfigServiceMockRecorder) GetLoggingConfig() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLoggingConfig", reflect.TypeOf((*MockConfigService)(nil).GetLoggingConfig))
 }
 
+// GetMCPConfig mocks base method.
+func (m *MockConfigService) GetMCPConfig() *config.MCPConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMCPConfig")
+	ret0, _ := ret[0].(*config.MCPConfig)
+	return ret0
+}
+
+// GetMCPConfig indicates an expected call of GetMCPConfig.
+func (mr *MockConfigServiceMockRecorder) GetMCPConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMCPConfig", reflect.TypeOf((*MockConfigService)(nil).GetMCPConfig))
+}
+
 // GetOpenAIConfig mocks base method.
 func (m *MockConfigService) GetOpenAIConfig() *config.OpenAIConfig {
 	m.ctrl.T.Helper()

@@ -148,7 +148,7 @@ func TestEnsureGollumDirectory_CreatesGitignore(t *testing.T) {
 	gitignorePath := filepath.Join(tempDir, gollumDirName, ".gitignore")
 	content, err := os.ReadFile(gitignorePath)
 	require.NoError(t, err)
-	assert.Equal(t, "/logs\n", string(content))
+	assert.Equal(t, "/logs\nmcp.json\n", string(content))
 }
 
 // TestEnsureGollumDirectory_DoesNotOverwriteGitignore tests that existing .gitignore is preserved
@@ -250,45 +250,82 @@ func TestPrimeFileStateManager_PrimeError(t *testing.T) {
 	assert.ErrorIs(t, err, expectedErr)
 }
 
-// TestCreateToolSet_MCPCreationError tests error handling when MCP client creation fails
-// Note: The success case requires network connectivity to MCP servers and is tested in integration tests
-func TestCreateToolSet_MCPCreationError(t *testing.T) {
+// TestCreateToolSet_Success tests that createToolSet returns tool sets from MCP registry
+func TestCreateToolSet_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	ctx := context.Background()
-	cancelCtx, cancel := context.WithCancel(ctx)
-	cancel() // Cancel to force errors
 
 	mockLogger := mocks.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().Info("create tool-set for main agent").Times(1)
 
-	p := &applicationServiceImpl{
-		logService: mockLogger,
+	// Create a mock MCP registry
+	mockMCPRegistry := &mockMCPRegistry{
+		toolSets: []gollem.ToolSet{},
 	}
 
-	_, err := p.createToolSet(cancelCtx)
-	assert.Error(t, err)
+	p := &applicationServiceImpl{
+		logService:  mockLogger,
+		mcpRegistry: mockMCPRegistry,
+	}
+
+	toolSets, err := p.createToolSet(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, toolSets)
+	assert.Empty(t, toolSets) // Empty since mock returns empty slice
 }
 
-// TestCreateSupervisorAgent_ToolSetError tests error handling when tool set creation fails
-func TestCreateSupervisorAgent_ToolSetError(t *testing.T) {
+// mockMCPRegistry is a simple mock for testing
+type mockMCPRegistry struct {
+	toolSets []gollem.ToolSet
+}
+
+func (m *mockMCPRegistry) GetToolSets() []gollem.ToolSet {
+	return m.toolSets
+}
+
+func (m *mockMCPRegistry) Close() error {
+	return nil
+}
+
+// TestCreateSupervisorAgent_ToolSetSuccess tests that tool set creation succeeds
+func TestCreateSupervisorAgent_ToolSetSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	ctx := context.Background()
-	cancelCtx, cancel := context.WithCancel(ctx)
-	cancel()
 
 	mockLogger := mocks.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().Info("create tool-set for main agent").Times(1)
+	mockLogger.EXPECT().Infof("Supervisor agent %s registered", gomock.Any()).Times(1)
 
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
+
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).Return(nil)
+
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockPromptMgr.EXPECT().GetPromptWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("system prompt", nil)
+
+	mockAgent := mocks.NewMockAgent(ctrl)
+	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	mockAgent.EXPECT().GetID().Return(testUUID).AnyTimes()
+
 	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory.EXPECT().CreateAgent(gomock.Any(), gomock.Any()).Return(mockAgent, nil)
+
 	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/workspace")
+
 	mockSkillsService := mocks.NewMockSkillService(ctrl)
+	mockSkillsService.EXPECT().GetSkillsXML().Return("<skills/>")
+	mockSkillsService.EXPECT().GetSkillInfos().Return([]shared.SkillInfo{})
+
+	// Create a mock MCP registry
+	mockMCPRegistry := &mockMCPRegistry{
+		toolSets: []gollem.ToolSet{},
+	}
 
 	p := &applicationServiceImpl{
 		logService:       mockLogger,
@@ -298,10 +335,13 @@ func TestCreateSupervisorAgent_ToolSetError(t *testing.T) {
 		agentFactory:     mockAgentFactory,
 		workspaceService: mockWorkspaceService,
 		skillsService:    mockSkillsService,
+		mcpRegistry:      mockMCPRegistry,
 	}
 
-	_, _, err := p.createSupervisorAgent(cancelCtx)
-	assert.Error(t, err)
+	agent, cfg, err := p.createSupervisorAgent(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, agent)
+	assert.NotNil(t, cfg)
 }
 
 // TestCreateSupervisorAgent_PromptError tests error handling when prompt retrieval fails
@@ -328,6 +368,10 @@ func TestCreateSupervisorAgent_PromptError(t *testing.T) {
 	mockSkillsService.EXPECT().GetSkillInfos().Return([]shared.SkillInfo{}).Times(1)
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/test/workspace").Times(1)
 
+	mockMCPRegistry := &mockMCPRegistry{
+		toolSets: []gollem.ToolSet{},
+	}
+
 	p := &applicationServiceImpl{
 		logService:       mockLogger,
 		fsm:              mockFSM,
@@ -336,6 +380,7 @@ func TestCreateSupervisorAgent_PromptError(t *testing.T) {
 		agentFactory:     mockAgentFactory,
 		workspaceService: mockWorkspaceService,
 		skillsService:    mockSkillsService,
+		mcpRegistry:      mockMCPRegistry,
 	}
 
 	_, _, err := p.createSupervisorAgent(ctx)
@@ -369,6 +414,10 @@ func TestCreateSupervisorAgent_AgentFactoryError(t *testing.T) {
 	mockSkillsService.EXPECT().GetSkillsXML().Return("<skills></skills>").Times(1)
 	mockSkillsService.EXPECT().GetSkillInfos().Return([]shared.SkillInfo{}).Times(1)
 
+	mockMCPRegistry := &mockMCPRegistry{
+		toolSets: []gollem.ToolSet{},
+	}
+
 	p := &applicationServiceImpl{
 		logService:       mockLogger,
 		fsm:              mockFSM,
@@ -377,6 +426,7 @@ func TestCreateSupervisorAgent_AgentFactoryError(t *testing.T) {
 		agentFactory:     mockAgentFactory,
 		workspaceService: mockWorkspaceService,
 		skillsService:    mockSkillsService,
+		mcpRegistry:      mockMCPRegistry,
 	}
 
 	_, _, err := p.createSupervisorAgent(ctx)
@@ -418,6 +468,10 @@ func TestCreateSupervisorAgent_RegistryError(t *testing.T) {
 	mockSkillsService.EXPECT().GetSkillsXML().Return("<skills></skills>").Times(1)
 	mockSkillsService.EXPECT().GetSkillInfos().Return([]shared.SkillInfo{}).Times(1)
 
+	mockMCPRegistry := &mockMCPRegistry{
+		toolSets: []gollem.ToolSet{},
+	}
+
 	p := &applicationServiceImpl{
 		logService:       mockLogger,
 		fsm:              mockFSM,
@@ -426,6 +480,7 @@ func TestCreateSupervisorAgent_RegistryError(t *testing.T) {
 		agentFactory:     mockAgentFactory,
 		workspaceService: mockWorkspaceService,
 		skillsService:    mockSkillsService,
+		mcpRegistry:      mockMCPRegistry,
 	}
 
 	_, _, err := p.createSupervisorAgent(ctx)

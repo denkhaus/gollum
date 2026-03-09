@@ -8,7 +8,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/markdown"
-	"github.com/denkhaus/gollum/pkg/mcp"
+	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
 	"github.com/denkhaus/gollum/pkg/middleware"
 	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
@@ -44,6 +44,7 @@ type applicationServiceImpl struct {
 	markdownRenderer markdown.Renderer
 	workspaceService workspace.Service
 	skillsService    skills.SkillService
+	mcpRegistry      mcpregistry.MCPRegistry
 }
 
 // Ensure implementation satisfies interface
@@ -60,6 +61,7 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 	markdownRenderer := do.MustInvoke[markdown.Renderer](injector)
 	workspaceService := do.MustInvoke[workspace.Service](injector)
 	skillsService := do.MustInvoke[skills.SkillService](injector)
+	mcpRegistry := do.MustInvoke[mcpregistry.MCPRegistry](injector)
 
 	return &applicationServiceImpl{
 		logService:       logService,
@@ -71,6 +73,7 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 		displayProv:      displayProv,
 		agentFactory:     agentFactory,
 		markdownRenderer: markdownRenderer,
+		mcpRegistry:      mcpRegistry,
 	}, nil
 }
 
@@ -117,35 +120,9 @@ func (p *applicationServiceImpl) createToolSet(ctx context.Context) ([]gollem.To
 
 	p.logService.Info("create tool-set for main agent")
 
-	toolSet := []gollem.ToolSet{}
-
-	// brainMCP, err := mcp.NewBrainMCPClient(ctx)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to create brain MCP client: %w", err)
-	// }
-
-	// toolSet = append(toolSet, brainMCP)
-
-	exaSearchMCP, err := mcp.NewExaSearchMCPClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create exa search MCP client: %w", err)
-	}
-
-	toolSet = append(toolSet, exaSearchMCP)
-
-	tavilySearchMCP, err := mcp.NewTavilySearchMCPClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create tavily search MCP client: %w", err)
-	}
-
-	toolSet = append(toolSet, tavilySearchMCP)
-
-	forgejoMCP, err := mcp.NewForgejoMCPClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create forgejo MCP client: %w", err)
-	}
-
-	toolSet = append(toolSet, forgejoMCP)
+	// Get all MCP tool sets from the registry
+	// MCP clients are loaded from mcp.json config files
+	toolSet := p.mcpRegistry.GetToolSets()
 
 	return toolSet, nil
 }

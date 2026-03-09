@@ -633,15 +633,16 @@ func TestWriteFileToolProvider_CreateWriteFileTool(t *testing.T) {
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	provider := &writeFileToolProvider{logService: logService, fsm: fsm}
 	tool := provider.CreateTool(testUUID)
+	toolImpl := tool.(*writeFileToolImpl)
 
 	if tool == nil {
 		t.Fatal("Expected non-nil tool")
 	}
 
-	if tool.fsm == nil {
+	if toolImpl.fsm == nil {
 		t.Error("Expected tool to have FileStateManager")
 	}
-	if tool.logService == nil {
+	if toolImpl.logService == nil {
 		t.Error("Expected tool to have logService")
 	}
 }

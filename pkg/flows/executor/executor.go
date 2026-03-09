@@ -11,6 +11,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/flows"
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/hooks"
+	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
@@ -46,6 +47,7 @@ type flowExecutorImpl struct {
 	flowRegistry      flowregistry.FlowRegistry
 	hookManager       hooks.HookManager
 	flowToolsProvider tools.FlowToolsProvider
+	mcpRegistry       mcpregistry.MCPRegistry
 	pendingTransition string // Set by transition_to tool to force a state transition
 }
 
@@ -59,6 +61,7 @@ type flowExecutorServiceImpl struct {
 	flowRegistry      flowregistry.FlowRegistry
 	hookManager       hooks.HookManager
 	flowToolsProvider tools.FlowToolsProvider
+	mcpRegistry       mcpregistry.MCPRegistry
 }
 
 // Ensure flowExecutorServiceImpl implements FlowExecutorService
@@ -74,6 +77,7 @@ func NewFlowExecutor(injector do.Injector) (FlowExecutorService, error) {
 	flowRegistry := do.MustInvoke[flowregistry.FlowRegistry](injector)
 	hookManager := do.MustInvoke[hooks.HookManager](injector)
 	flowToolsProvider := do.MustInvoke[tools.FlowToolsProvider](injector)
+	mcpRegistry := do.MustInvoke[mcpregistry.MCPRegistry](injector)
 
 	return &flowExecutorServiceImpl{
 		bashToolProvider:  bashToolProvider,
@@ -81,6 +85,7 @@ func NewFlowExecutor(injector do.Injector) (FlowExecutorService, error) {
 		flowRegistry:      flowRegistry,
 		hookManager:       hookManager,
 		flowToolsProvider: flowToolsProvider,
+		mcpRegistry:       mcpRegistry,
 	}, nil
 }
 
@@ -96,6 +101,7 @@ func (p *flowExecutorServiceImpl) New(flow *flows.Flow) FlowExecutorInstance {
 		flowRegistry:      p.flowRegistry,
 		hookManager:       p.hookManager,
 		flowToolsProvider: p.flowToolsProvider,
+		mcpRegistry:       p.mcpRegistry,
 	}
 }
 
@@ -412,8 +418,68 @@ func (p *flowExecutorImpl) executeFuncStep(step *flows.Step, stateName string) e
 	return nil
 }
 
-func (p *flowExecutorImpl) executeMCPStep(step *flows.Step, _ string) error {
-	return fmt.Errorf("mcp step execution not yet implemented")
+func (p *flowExecutorImpl) executeMCPStep(step *flows.Step, stateName string) error {
+	// step.Tool format: "server.tool" (e.g., "tavily.search")
+	// For now, we use the full tool name directly from step.Tool
+	toolName := step.Tool
+
+	// Build args from step params with template substitution
+	args := make(map[string]any)
+	for _, param := range step.Params {
+		// Substitute template variables in param value
+		value := p.substituteTemplate(param.Value)
+		args[param.Name] = value
+	}
+
+	// Get all available MCP tool sets
+	toolSets := p.mcpRegistry.GetToolSets()
+
+	// Find the tool by name in any of the available tool sets
+	for _, toolSet := range toolSets {
+		// Get tool specs from this tool set
+		ctx := context.Background()
+		specs, err := toolSet.Specs(ctx)
+		if err != nil {
+			continue
+		}
+
+		// Check if any spec matches our tool name
+		for _, spec := range specs {
+			if spec.Name == toolName {
+				// Found the tool, execute it
+				result, err := toolSet.Run(ctx, toolName, args)
+				if err != nil {
+					return &MCPError{
+						Server: toolName,
+						Tool:   toolName,
+						Step:   stateName,
+						Err:    err,
+					}
+				}
+
+				// Map result to output fields if specified
+				if step.Output != nil {
+					// Handle simple assign
+					if step.Output.Assign != "" {
+						fieldName := extractFieldName(step.Output.Assign)
+						// For MCP tools, we'll map the entire result to the field
+						p.ctx.SetOutputField(fieldName, result)
+					}
+					// TODO: Handle path-based outputs with JSONPath extraction
+					// This would allow mapping specific fields from the result
+				}
+
+				return nil
+			}
+		}
+	}
+
+	return &MCPError{
+		Server: toolName,
+		Tool:   toolName,
+		Step:   stateName,
+		Err:    fmt.Errorf("tool not found"),
+	}
 }
 
 // executeCall executes a call step (sub-flow invocation)

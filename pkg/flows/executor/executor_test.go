@@ -8,13 +8,26 @@ import (
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
+	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/tools"
+	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
 )
+
+// testMCPRegistry is a simple mock for testing
+type testMCPRegistry struct{}
+
+func (m *testMCPRegistry) GetToolSets() []gollem.ToolSet {
+	return []gollem.ToolSet{}
+}
+
+func (m *testMCPRegistry) Close() error {
+	return nil
+}
 
 // setupTestDI creates a DI injector with mock services for testing
 func setupTestDI(t *testing.T) do.Injector {
@@ -39,6 +52,7 @@ func setupTestDI(t *testing.T) do.Injector {
 	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
 	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 	// Register the flow executor service
 	do.Provide(injector, NewFlowExecutor)
@@ -70,6 +84,7 @@ func setupTestDIWithRegistry(t *testing.T, registry flowregistry.FlowRegistry) d
 	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
 	do.ProvideValue(injector, registry)
+	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 	do.Provide(injector, NewFlowExecutor)
 
@@ -100,6 +115,38 @@ func setupTestDIWithBashProvider(t *testing.T, provider tools.BashToolProvider) 
 	do.ProvideValue(injector, provider)
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
 	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
+	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
+	do.Provide(injector, NewFlowExecutor)
+
+	return injector
+}
+
+// setupTestDIWithBashProviderAndMCPRegistry creates a DI injector with mock services, custom BashToolProvider, and MCPRegistry
+func setupTestDIWithBashProviderAndMCPRegistry(t *testing.T, provider tools.BashToolProvider, mcpReg mcpregistry.MCPRegistry) do.Injector {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := do.New()
+
+	// Create mock logger
+	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
+	// Allow any Debug calls with variadic arguments
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+
+	// Register HookManager
+	do.Provide(injector, hooks.NewHookManager)
+
+	// Register dependencies
+	do.ProvideValue(injector, provider)
+	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
+	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	do.ProvideValue(injector, mcpregistry.MCPRegistry(mcpReg))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 	do.Provide(injector, NewFlowExecutor)
 

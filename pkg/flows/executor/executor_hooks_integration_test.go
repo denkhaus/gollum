@@ -9,6 +9,7 @@ import (
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
+	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/samber/do/v2"
@@ -36,6 +37,7 @@ func TestFlowExecutor_WithHookManagerIntegration(t *testing.T) {
 	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
 	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 	do.Provide(injector, NewFlowExecutor)
 

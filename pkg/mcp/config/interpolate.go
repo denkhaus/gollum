@@ -7,34 +7,74 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/denkhaus/gollum/pkg/logger"
+	"go.uber.org/zap"
 )
 
 // interpolateConfigWithTimeout expands shell commands and environment variables
 // in config values using the specified timeout for shell command execution.
-func interpolateConfigWithTimeout(cfg MCPServerConfig, timeout time.Duration) MCPServerConfig {
+func interpolateConfigWithTimeout(cfg MCPServerConfig, timeout time.Duration, log logger.LoggerService) MCPServerConfig {
 	result := cfg
 	if result.Env != nil {
-		result.Env = interpolateEnvMapWithTimeout(result.Env, timeout)
+		result.Env = interpolateEnvMapWithTimeout(result.Env, timeout, log)
 	}
 	if result.Headers != nil {
-		result.Headers = interpolateEnvMapWithTimeout(result.Headers, timeout)
+		// Headers may reference variables from the env map
+		result.Headers = interpolateHeadersWithTimeout(result.Headers, result.Env, timeout, log)
 	}
 	return result
 }
 
 // interpolateEnvMapWithTimeout expands all values in a map with timeout.
-func interpolateEnvMapWithTimeout(m map[string]string, timeout time.Duration) map[string]string {
-	result := make(map[string]string, len(m))
-	for k, v := range m {
-		result[k] = interpolateValueWithTimeout(v, timeout)
+
+// interpolateHeadersWithTimeout expands header values with access to env map.
+// Headers can reference variables from the env map (e.g., $API_TOKEN).
+// Also supports OS environment variables for backward compatibility.
+func interpolateHeadersWithTimeout(headers map[string]string, env map[string]string, timeout time.Duration, log logger.LoggerService) map[string]string {
+	result := make(map[string]string, len(headers))
+	for k, v := range headers {
+		// First interpolate shell commands
+		interpolated := expandShellCommands(v, timeout, log)
+		// Then interpolate from the config's env map first
+		interpolated = expandFromMap(interpolated, env)
+		// Finally, expand any remaining OS env variables (for backward compatibility)
+		interpolated = expandEnvVars(interpolated)
+		result[k] = interpolated
 	}
 	return result
 }
 
+// interpolateEnvMapWithTimeout expands all values in a map with timeout.
+// Supports cross-references between keys in the same map (e.g., $PORT in another value).
+func interpolateEnvMapWithTimeout(m map[string]string, timeout time.Duration, log logger.LoggerService) map[string]string {
+	// First pass: interpolate only shell commands (not OS env vars yet)
+	shellPass := make(map[string]string, len(m))
+	for k, v := range m {
+		shellPass[k] = expandShellCommands(v, timeout, log)
+	}
+
+	// Second pass: interpolate cross-references within the map
+	// This allows values to reference other keys in the same map
+	crossRefPass := make(map[string]string, len(m))
+	for k, v := range shellPass {
+		crossRefPass[k] = expandFromMap(v, shellPass)
+	}
+
+	// Third pass: interpolate OS environment variables
+	// This allows values to reference OS env vars as well
+	result := make(map[string]string, len(m))
+	for k, v := range crossRefPass {
+		result[k] = expandEnvVars(v)
+	}
+
+	return result
+}
+
 // interpolateValueWithTimeout expands $(command) and $VAR patterns in a string.
-func interpolateValueWithTimeout(value string, timeout time.Duration) string {
+func interpolateValueWithTimeout(value string, timeout time.Duration, log logger.LoggerService) string {
 	// First, handle shell command interpolation: $(command)
-	value = expandShellCommands(value, timeout)
+	value = expandShellCommands(value, timeout, log)
 
 	// Then, handle environment variable expansion: $VAR or ${VAR}
 	value = expandEnvVars(value)
@@ -44,7 +84,8 @@ func interpolateValueWithTimeout(value string, timeout time.Duration) string {
 
 // expandShellCommands executes $(command) patterns and replaces with output
 // Commands use the provided timeout to prevent blocking indefinitely.
-func expandShellCommands(value string, timeout time.Duration) string {
+// Logs errors using the provided logger.
+func expandShellCommands(value string, timeout time.Duration, log logger.LoggerService) string {
 	// Match $(command) patterns - but avoid $$() which should be literal
 	re := regexp.MustCompile(`\$\(([^)]+)\)`)
 	return re.ReplaceAllStringFunc(value, func(match string) string {
@@ -64,8 +105,12 @@ func expandShellCommands(value string, timeout time.Duration) string {
 		cmd := exec.CommandContext(ctx, "sh", "-c", cmdStr)
 		output, err := cmd.Output()
 		if err != nil {
-			// On error or timeout, return the original string
-			// This allows the config to load even if a command fails
+			// Log error but return original string to allow config to load
+			log.Warn("shell command interpolation failed",
+				zap.String("command", cmdStr),
+				zap.Error(err),
+				zap.String("original_value", match),
+			)
 			return match
 		}
 
@@ -82,43 +127,39 @@ func expandEnvVars(value string) string {
 	return expanded
 }
 
-// interpolateConfig expands shell commands and environment variables in config values
-// Uses a default 5-second timeout for shell command execution.
-// Deprecated: Use interpolateConfigWithTimeout for production code.
-func interpolateConfig(cfg MCPServerConfig) MCPServerConfig {
-	return interpolateConfigWithTimeout(cfg, 5*time.Second)
-}
+// expandFromMap expands $VAR and ${VAR} patterns from a provided map
+// This allows cross-referencing values within the same config map
+func expandFromMap(value string, vars map[string]string) string {
+	// Debug: print input
+	// fmt.Printf("[DEBUG] expandFromMap called: value=%q, vars=%v\n", value, vars)
 
-// interpolateEnvMap expands all values in a map with 5-second timeout.
-// Deprecated: Use interpolateEnvMapWithTimeout for production code.
-func interpolateEnvMap(m map[string]string) map[string]string {
-	return interpolateEnvMapWithTimeout(m, 5*time.Second)
-}
+	// Use a custom replacer that looks up values in the provided map
+	re := regexp.MustCompile(`\$([a-zA-Z_][a-zA-Z0-9_]*)|\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}`)
+	return re.ReplaceAllStringFunc(value, func(match string) string {
+		// Debug: print what we're trying to match
+		// fmt.Printf("[DEBUG] expandFromMap: match=%q, value=%q, vars=%v\n", match, value, vars)
 
-// interpolateValue expands $(command) and $VAR patterns in a string.
-// Uses a default 5-second timeout for shell command execution.
-// Deprecated: Use interpolateValueWithTimeout for production code.
-func interpolateValue(value string) string {
-	return interpolateValueWithTimeout(value, 5*time.Second)
-}
+		// Check if it's ${VAR} format
+		if strings.HasPrefix(match, "${") {
+			// Extract var name between ${ and }
+			varName := match[2 : len(match)-1]
+			// fmt.Printf("[DEBUG] Braced format: varName=%q, looking in vars...\n", varName)
+			if val, ok := vars[varName]; ok {
+				// fmt.Printf("[DEBUG] Found: %q\n", val)
+				return val
+			}
+			// fmt.Printf("[DEBUG] Not found in vars\n")
+			return match // Return original if not found
+		}
 
-// Interpolate applies interpolation to the MCPServerConfig
-func (c *MCPServerConfig) Interpolate() {
-	c.Env = interpolateEnvMap(c.Env)
-	if c.Headers != nil {
-		c.Headers = interpolateEnvMap(c.Headers)
-	}
-}
-
-// GetEnvWithExpansion returns the interpolated env map
-func (c *MCPServerConfig) GetEnvWithExpansion() map[string]string {
-	return interpolateEnvMap(c.Env)
-}
-
-// GetHeadersWithExpansion returns the interpolated headers map
-func (c *MCPServerConfig) GetHeadersWithExpansion() map[string]string {
-	if c.Headers == nil {
-		return nil
-	}
-	return interpolateEnvMap(c.Headers)
+		// Otherwise it's $VAR format - extract var name after $
+		varName := match[1:]
+		// fmt.Printf("[DEBUG] Unbraced format: varName=%q, looking in vars...\n", varName)
+		if val, ok := vars[varName]; ok {
+			// fmt.Printf("[DEBUG] Found: %q\n", val)
+			return val
+		}
+		// fmt.Printf("[DEBUG] Not found in vars\n")
+		return match // Return original if not found
+	})
 }

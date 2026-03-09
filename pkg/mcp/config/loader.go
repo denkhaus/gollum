@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	appconfig "github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/samber/do/v2"
 )
 
@@ -20,6 +21,7 @@ type configLoaderImpl struct {
 	projectPath string
 	globalPath  string
 	appConfig   appconfig.ConfigService
+	logger      logger.LoggerService
 }
 
 // mcpConfigFile represents the root structure of mcp.json
@@ -28,14 +30,16 @@ type mcpConfigFile struct {
 }
 
 // NewConfigLoader is the DI constructor
-func NewConfigLoader(injector do.Injector) ConfigLoader {
+func NewConfigLoader(injector do.Injector) (ConfigLoader, error) {
 	appConfig := do.MustInvoke[appconfig.ConfigService](injector)
+	log := do.MustInvoke[logger.LoggerService](injector)
 	homeDir, _ := os.UserHomeDir()
 	return &configLoaderImpl{
 		projectPath: ".gollum/mcp.json",
 		globalPath:  filepath.Join(homeDir, ".config/gollum/mcp.json"),
 		appConfig:   appConfig,
-	}
+		logger:      log,
+	}, nil
 }
 
 // Load loads and merges mcp.json from project and global locations
@@ -64,7 +68,7 @@ func (p *configLoaderImpl) Load() (map[string]MCPServerConfig, error) {
 	mcpConfig := p.appConfig.GetMCPConfig()
 	timeout := mcpConfig.GetCommandTimeout()
 	for name, cfg := range servers {
-		servers[name] = interpolateConfigWithTimeout(cfg, timeout)
+		servers[name] = interpolateConfigWithTimeout(cfg, timeout, p.logger)
 	}
 
 	// Filter to enabled servers only

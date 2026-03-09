@@ -7,6 +7,8 @@ import (
 	"time"
 
 	appconfig "github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/mocks"
+	"go.uber.org/mock/gomock"
 )
 
 func TestConfigLoader_Load_ValidConfig(t *testing.T) {
@@ -122,11 +124,16 @@ func NewConfigLoaderForTest(projectDir, globalDir string) ConfigLoader {
 		globalPath = filepath.Join(globalDir, "mcp.json")
 	}
 
-	return &configLoaderImpl{
+	ctrl := gomock.NewController(&testing.T{})
+	mockLog := mocks.NewMockLoggerService(ctrl)
+
+	loader := &configLoaderImpl{
 		projectPath: projectPath,
 		globalPath:  globalPath,
 		appConfig:   &mockConfigService{},
+		logger:      mockLog,
 	}
+	return loader
 }
 
 // TestGetCommandTimeout validates the MCP config timeout helper
@@ -158,10 +165,13 @@ func TestConfigLoader_Load_MissingFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Use paths that definitely don't exist
+	ctrl := gomock.NewController(t)
+	mockLog := mocks.NewMockLoggerService(ctrl)
 	loader := &configLoaderImpl{
 		projectPath: filepath.Join(tmpDir, "nonexistent-project-mcp.json"),
 		globalPath:  filepath.Join(tmpDir, "nonexistent-global-mcp.json"),
 		appConfig:   &mockConfigService{},
+		logger:      mockLog,
 	}
 
 	result, err := loader.Load()

@@ -22,6 +22,22 @@ func (e *FuncError) Unwrap() error {
 	return e.Err
 }
 
+// MCPError represents an error during MCP step execution
+type MCPError struct {
+	Server string
+	Tool   string
+	Step   string
+	Err    error
+}
+
+func (e *MCPError) Error() string {
+	return fmt.Sprintf("MCP step '%s' failed: server=%s tool=%s: %v", e.Step, e.Server, e.Tool, e.Err)
+}
+
+func (e *MCPError) Unwrap() error {
+	return e.Err
+}
+
 // ErrorContext holds error lifecycle information
 type ErrorContext struct {
 	StepName  string
