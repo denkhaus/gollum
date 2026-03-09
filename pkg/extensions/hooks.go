@@ -1,6 +1,13 @@
-// Package extensions provides core services for the Gollum extension system,
-// including lifecycle hook management, dependency injection integration, and
-// extension loading capabilities.
+// Package extensions provides core services for the Gollum extension system.
+//
+// DEPRECATED: The hook definitions in this file are replaced by the comprehensive
+// hook system in pkg/hooks. Use pkg/hooks.HookManager for flow execution hooks:
+//
+// - BeforeFlowStep / AfterFlowStep (instead of HookFlowPreExecute/PostExecute)
+// - BeforeToolExecution / AfterToolExecution (instead of HookToolPreExecute/PostExecute)
+// - BeforeAgentSpawn / AfterAgentSpawn (instead of HookAgentPreExecute/PostExecute)
+//
+// This file is kept for backward compatibility and will be removed in a future version.
 package extensions
 
 import (
@@ -15,16 +22,39 @@ type HookType string
 
 const (
 	// HookAgentPreExecute fires before an agent executes a step
+	//
+	// DEPRECATED: Use hooks.BeforeAgentSpawn or hooks.BeforeFlowStep instead.
+	// This constant will be removed in a future version.
 	HookAgentPreExecute HookType = "agent_pre_execute"
+
 	// HookAgentPostExecute fires after an agent executes a step
+	//
+	// DEPRECATED: Use hooks.AfterAgentSpawn or hooks.AfterFlowStep instead.
+	// This constant will be removed in a future version.
 	HookAgentPostExecute HookType = "agent_post_execute"
+
 	// HookFlowPreExecute fires before a flow executes
+	//
+	// DEPRECATED: Use hooks.BeforeFlowStep instead.
+	// This constant will be removed in a future version.
 	HookFlowPreExecute HookType = "flow_pre_execute"
+
 	// HookFlowPostExecute fires after a flow executes
+	//
+	// DEPRECATED: Use hooks.AfterFlowStep instead.
+	// This constant will be removed in a future version.
 	HookFlowPostExecute HookType = "flow_post_execute"
+
 	// HookToolPreExecute fires before a tool executes
+	//
+	// DEPRECATED: Use hooks.BeforeToolExecution instead.
+	// This constant will be removed in a future version.
 	HookToolPreExecute HookType = "tool_pre_execute"
+
 	// HookToolPostExecute fires after a tool executes
+	//
+	// DEPRECATED: Use hooks.AfterToolExecution instead.
+	// This constant will be removed in a future version.
 	HookToolPostExecute HookType = "tool_post_execute"
 )
 
