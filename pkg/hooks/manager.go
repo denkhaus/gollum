@@ -42,6 +42,10 @@ type HookManager interface {
 	// Valid hook points: BeforeSkillInvoked, AfterSkillInvoked, OnSkillError.
 	RegisterSkillHook(fn TypedHookFunc[SkillPayload], meta TypedHookMetadata) error
 
+	// RegisterExecutorHook registers a typed hook for flow step execution events.
+	// Valid hook points: BeforeFlowStep, AfterFlowStep.
+	RegisterExecutorHook(fn TypedHookFunc[ExecutorPayload], meta TypedHookMetadata) error
+
 	// UnregisterHook removes a hook by name from all registries.
 	// Returns true if at least one hook was removed.
 	UnregisterHook(name string) bool
@@ -73,6 +77,10 @@ type HookManager interface {
 	// TriggerSkillHooks executes all typed skill hooks for a given hook point.
 	// Valid hook points: BeforeSkillInvoked, AfterSkillInvoked, OnSkillError.
 	TriggerSkillHooks(ctx context.Context, point HookPoint, hookCtx *TypedHookContext[SkillPayload]) TypedHookResult[SkillPayload]
+
+	// TriggerExecutorHooks executes all typed executor hooks for a given hook point.
+	// Valid hook points: BeforeFlowStep, AfterFlowStep.
+	TriggerExecutorHooks(ctx context.Context, point HookPoint, hookCtx *TypedHookContext[ExecutorPayload]) TypedHookResult[ExecutorPayload]
 
 	// WithSessionHooks wraps a function with session lifecycle hooks.
 	WithSessionHooks(
@@ -187,6 +195,7 @@ type hookManagerImpl struct {
 	sessionRegistry *TypedRegistry[SessionPayload]
 	agentRegistry   *TypedRegistry[AgentPayload]
 	skillRegistry   *TypedRegistry[SkillPayload]
+	executorRegistry *TypedRegistry[ExecutorPayload]
 }
 
 // Ensure hookManagerImpl implements HookManager.
@@ -210,6 +219,7 @@ func NewHookManager(injector do.Injector) (HookManager, error) {
 	p.sessionRegistry = NewTypedRegistry[SessionPayload]()
 	p.agentRegistry = NewTypedRegistry[AgentPayload]()
 	p.skillRegistry = NewTypedRegistry[SkillPayload]()
+	p.executorRegistry = NewTypedRegistry[ExecutorPayload]()
 
 	return p, nil
 }
@@ -238,6 +248,9 @@ func (p *hookManagerImpl) UnregisterHook(name string) bool {
 		unregistered = true
 	case p.skillRegistry.Remove(name):
 		p.log.Debug("Hook unregistered from skill registry", zap.String("name", name))
+		unregistered = true
+	case p.executorRegistry.Remove(name):
+		p.log.Debug("Hook unregistered from executor registry", zap.String("name", name))
 		unregistered = true
 	}
 
@@ -483,6 +496,44 @@ func (p *hookManagerImpl) RegisterSkillHook(fn TypedHookFunc[SkillPayload], meta
 	return nil
 }
 
+// RegisterExecutorHook registers a typed hook for flow step execution events.
+func (p *hookManagerImpl) RegisterExecutorHook(fn TypedHookFunc[ExecutorPayload], meta TypedHookMetadata) error {
+	if fn == nil {
+		return errs.Validation("hook function cannot be nil")
+	}
+	if meta.Name == "" {
+		return errs.Validation("hook name cannot be empty")
+	}
+	if err := p.validateExecutorHookPoint(meta.Point); err != nil {
+		return err
+	}
+
+	// Check for global name uniqueness
+	p.mu.Lock()
+	if _, exists := p.names[meta.Name]; exists {
+		p.mu.Unlock()
+		return errs.Conflictf("hook with name '%s' is already registered globally", meta.Name)
+	}
+
+	if err := p.executorRegistry.Add(fn, meta); err != nil {
+		p.mu.Unlock()
+		if err == ErrDuplicateHook {
+			return errs.Conflictf("hook with name '%s' already registered", meta.Name)
+		}
+		return err
+	}
+
+	p.names[meta.Name] = struct{}{}
+	p.mu.Unlock()
+
+	p.log.Debug("Typed hook registered",
+		zap.String("name", meta.Name),
+		zap.String("point", meta.Point.String()),
+		zap.Int("priority", meta.Priority))
+
+	return nil
+}
+
 // ============================================================================
 // Typed Trigger Methods
 // ============================================================================
@@ -515,6 +566,11 @@ func (p *hookManagerImpl) TriggerAgentHooks(ctx context.Context, point HookPoint
 // TriggerSkillHooks executes all typed skill hooks for a given hook point.
 func (p *hookManagerImpl) TriggerSkillHooks(ctx context.Context, point HookPoint, hookCtx *TypedHookContext[SkillPayload]) TypedHookResult[SkillPayload] {
 	return p.skillRegistry.Trigger(ctx, point, hookCtx)
+}
+
+// TriggerExecutorHooks executes all typed executor hooks for a given hook point.
+func (p *hookManagerImpl) TriggerExecutorHooks(ctx context.Context, point HookPoint, hookCtx *TypedHookContext[ExecutorPayload]) TypedHookResult[ExecutorPayload] {
+	return p.executorRegistry.Trigger(ctx, point, hookCtx)
 }
 
 // ============================================================================
@@ -573,5 +629,14 @@ func (p *hookManagerImpl) validateSkillHookPoint(point HookPoint) error {
 		return nil
 	default:
 		return errs.Validationf("invalid skill hook point: %s (expected BeforeSkillInvoked, AfterSkillInvoked, or OnSkillError)", point)
+	}
+}
+
+func (p *hookManagerImpl) validateExecutorHookPoint(point HookPoint) error {
+	switch point {
+	case BeforeFlowStep, AfterFlowStep:
+		return nil
+	default:
+		return errs.Validationf("invalid executor hook point: %s (expected BeforeFlowStep or AfterFlowStep)", point)
 	}
 }

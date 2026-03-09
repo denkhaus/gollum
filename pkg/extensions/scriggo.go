@@ -3,7 +3,6 @@ package extensions
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/native"
@@ -93,50 +92,20 @@ func (p *scriggoRunnerImpl) ExecuteFuncWithContext(ctx context.Context, name str
 		return nil, fmt.Errorf("%w: %s", ErrFuncNotFound, name)
 	}
 
-	// Check for timeout in context
-	deadline, ok := ctx.Deadline()
-	if ok {
-		// Create timeout channel
-		timeout := time.Until(deadline)
-		if timeout <= 0 {
-			return nil, fmt.Errorf("timeout exceeded before execution")
-		}
-
-		// Execute with timeout
-		resultChan := make(chan any, 1)
-		errChan := make(chan error, 1)
-
-		go func() {
-			// Note: Scriggo v0.61.0 doesn't support context cancellation
-			// This is a best-effort implementation
-			result, err := p.runProgram(fn, args)
-			if err != nil {
-				errChan <- err
-			} else {
-				resultChan <- result
-			}
-		}()
-
-		select {
-		case result := <-resultChan:
-			return result, nil
-		case err := <-errChan:
-			return nil, fmt.Errorf("%w: %v", ErrExecFailed, err)
-		case <-ctx.Done():
-			return nil, fmt.Errorf("execution timeout")
-		}
-	}
-
-	// No timeout, execute directly
-	return p.runProgram(fn, args)
+	// Scriggo v0.61.0 supports context cancellation via RunOptions
+	// Just pass the context directly - Scriggo will handle cancellation
+	return p.runProgram(ctx, fn, args)
 }
 
-// runProgram is a helper that runs the compiled program
-func (p *scriggoRunnerImpl) runProgram(fn *scriggo.Program, args map[string]any) (any, error) {
-	// Execute the program
+// runProgram is a helper that runs the compiled program with context cancellation support
+func (p *scriggoRunnerImpl) runProgram(ctx context.Context, fn *scriggo.Program, args map[string]any) (any, error) {
+	// Execute the program with context cancellation support
 	// Note: args are not supported in current Scriggo API
 	// Programs run main() function directly
-	err := fn.Run(nil)
+	opts := &scriggo.RunOptions{
+		Context: ctx,
+	}
+	err := fn.Run(opts)
 	if err != nil {
 		return nil, err
 	}

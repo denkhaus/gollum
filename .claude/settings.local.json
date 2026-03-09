@@ -74,7 +74,10 @@
       "Bash(/usr/bin/tmux list-windows:*)",
       "Bash(wt list:*)",
       "Bash(/usr/bin/tmux kill-pane:*)",
-      "Bash(go mod:*)"
+      "Bash(go mod:*)",
+      "Bash(forgejo issue:*)",
+      "Bash(/home/denkhaus/go/bin/forgejo issue:*)",
+      "Bash(go list:*)"
     ],
     "deny": [],
     "ask": []

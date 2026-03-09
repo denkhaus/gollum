@@ -74,6 +74,7 @@ func newTestHookManager() *hookManagerImpl {
 	hm.sessionRegistry = NewTypedRegistry[SessionPayload]()
 	hm.agentRegistry = NewTypedRegistry[AgentPayload]()
 	hm.skillRegistry = NewTypedRegistry[SkillPayload]()
+	hm.executorRegistry = NewTypedRegistry[ExecutorPayload]()
 
 	return hm
 }

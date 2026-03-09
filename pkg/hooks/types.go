@@ -153,6 +153,11 @@ func (n *NoOpHookManager) RegisterSkillHook(_ TypedHookFunc[SkillPayload], _ Typ
 	return nil
 }
 
+// RegisterExecutorHook is a no-op implementation of HookManager.RegisterExecutorHook.
+func (n *NoOpHookManager) RegisterExecutorHook(_ TypedHookFunc[ExecutorPayload], _ TypedHookMetadata) error {
+	return nil
+}
+
 // TriggerToolHooks is a no-op implementation of HookManager.TriggerToolHooks.
 func (n *NoOpHookManager) TriggerToolHooks(_ context.Context, _ HookPoint, hookCtx *TypedHookContext[ToolPayload]) TypedHookResult[ToolPayload] {
 	return TypedHookResult[ToolPayload]{Payload: hookCtx.Payload}
@@ -181,6 +186,11 @@ func (n *NoOpHookManager) TriggerAgentHooks(_ context.Context, _ HookPoint, hook
 // TriggerSkillHooks is a no-op implementation of HookManager.TriggerSkillHooks.
 func (n *NoOpHookManager) TriggerSkillHooks(_ context.Context, _ HookPoint, hookCtx *TypedHookContext[SkillPayload]) TypedHookResult[SkillPayload] {
 	return TypedHookResult[SkillPayload]{Payload: hookCtx.Payload}
+}
+
+// TriggerExecutorHooks is a no-op implementation of HookManager.TriggerExecutorHooks.
+func (n *NoOpHookManager) TriggerExecutorHooks(_ context.Context, _ HookPoint, hookCtx *TypedHookContext[ExecutorPayload]) TypedHookResult[ExecutorPayload] {
+	return TypedHookResult[ExecutorPayload]{Payload: hookCtx.Payload}
 }
 
 // WithSessionHooks is a no-op implementation of HookManager.WithSessionHooks.
