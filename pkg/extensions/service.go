@@ -16,8 +16,8 @@ type ExtensionService interface {
 	// LoadAll discovers and loads all extensions and functions
 	LoadAll(ctx context.Context) error
 
-	// GetFuncRunner returns the Scriggo function runner
-	GetFuncRunner() ScriggoRunner
+	// GetFuncRunner returns the Yaegi function runner
+	GetFuncRunner() YaegiFuncRunner
 
 	// GetExtension returns a loaded extension by name
 	GetExtension(name string) (*Extension, error)
@@ -31,7 +31,7 @@ type extensionServiceImpl struct {
 	logService    logger.LoggerService
 	gateway       DIGateway
 	yaegiLoader   YaegiLoader
-	scriggoRunner ScriggoRunner
+	yaegiFuncRunner YaegiFuncRunner
 	workspaceDir  string
 	loadedFuncs   map[string]string // funcName -> sourcePath
 }
@@ -56,7 +56,7 @@ func NewExtensionServiceWithWorkspace(injector do.Injector) (ExtensionService, e
 		return nil, err
 	}
 
-	scriggoRunner, err := do.Invoke[ScriggoRunner](injector)
+	yaegiFuncRunner, err := do.Invoke[YaegiFuncRunner](injector)
 	if err != nil {
 		return nil, err
 	}
@@ -67,12 +67,12 @@ func NewExtensionServiceWithWorkspace(injector do.Injector) (ExtensionService, e
 	}
 
 	return &extensionServiceImpl{
-		logService:    logService,
-		gateway:       gateway,
-		yaegiLoader:   yaegiLoader,
-		scriggoRunner: scriggoRunner,
-		workspaceDir:  workspaceService.GetCurrentWorkspace(),
-		loadedFuncs:   make(map[string]string),
+		logService:      logService,
+		gateway:         gateway,
+		yaegiLoader:     yaegiLoader,
+		yaegiFuncRunner: yaegiFuncRunner,
+		workspaceDir:    workspaceService.GetCurrentWorkspace(),
+		loadedFuncs:     make(map[string]string),
 	}, nil
 }
 
@@ -104,15 +104,15 @@ func (p *extensionServiceImpl) LoadAll(ctx context.Context) error {
 	}
 
 	p.logService.Info("Extension service: load complete",
-		zap.Int("functions", len(p.scriggoRunner.ListFuncs())),
+		zap.Int("functions", len(p.yaegiFuncRunner.ListFuncs())),
 		zap.Int("extensions", len(p.yaegiLoader.ListExtensions())),
 	)
 
 	return nil
 }
 
-func (p *extensionServiceImpl) GetFuncRunner() ScriggoRunner {
-	return p.scriggoRunner
+func (p *extensionServiceImpl) GetFuncRunner() YaegiFuncRunner {
+	return p.yaegiFuncRunner
 }
 
 func (p *extensionServiceImpl) GetExtension(name string) (*Extension, error) {
@@ -216,8 +216,8 @@ func (p *extensionServiceImpl) loadFuncSteps() error {
 				continue
 			}
 
-			// Load via ScriggoRunner
-			if err := p.scriggoRunner.LoadFunc(funcName, string(source)); err != nil {
+			// Load via YaegiFuncRunner
+			if err := p.yaegiFuncRunner.LoadFunc(funcName, string(source)); err != nil {
 				p.logService.Warn("Failed to compile function",
 					zap.String("file", filePath),
 					zap.Error(err),

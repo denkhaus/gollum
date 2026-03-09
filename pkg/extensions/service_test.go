@@ -9,7 +9,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/google/uuid"
-	"github.com/open2b/scriggo"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,8 +28,8 @@ func TestExtensionService_NewExtensionServiceWithWorkspace(t *testing.T) {
 	do.Provide(injector, func(i do.Injector) (YaegiLoader, error) {
 		return NewYaegiLoader(i)
 	})
-	do.Provide(injector, func(i do.Injector) (ScriggoRunner, error) {
-		return NewScriggoRunner(i)
+	do.Provide(injector, func(i do.Injector) (YaegiFuncRunner, error) {
+		return NewYaegiFuncRunner(i)
 	})
 	do.Provide(injector, func(i do.Injector) (workspace.Service, error) {
 		return &mockWorkspace{}, nil
@@ -44,8 +43,8 @@ func TestExtensionService_NewExtensionServiceWithWorkspace(t *testing.T) {
 
 func TestExtensionService_GetFuncRunner(t *testing.T) {
 	service := &extensionServiceImpl{
-		scriggoRunner: &scriggoRunnerImpl{
-			funcs: make(map[string]*scriggo.Program),
+		yaegiFuncRunner: &yaegiFuncRunnerImpl{
+			funcs: make(map[string]*funcInfo),
 		},
 	}
 
@@ -123,8 +122,8 @@ func Init() error {
 	do.Provide(injector, func(i do.Injector) (YaegiLoader, error) {
 		return NewYaegiLoader(i)
 	})
-	do.Provide(injector, func(i do.Injector) (ScriggoRunner, error) {
-		return NewScriggoRunner(i)
+	do.Provide(injector, func(i do.Injector) (YaegiFuncRunner, error) {
+		return NewYaegiFuncRunner(i)
 	})
 	do.Provide(injector, func(i do.Injector) (ExtensionService, error) {
 		return NewExtensionServiceWithWorkspace(i)

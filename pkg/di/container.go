@@ -114,7 +114,7 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 
 	// Extensions
 	do.Provide(p.injector, extensions.NewGatewayService)
-	do.Provide(p.injector, extensions.NewScriggoRunner)
+	do.Provide(p.injector, extensions.NewYaegiFuncRunner)
 	do.Provide(p.injector, extensions.NewYaegiLoader)
 	do.Provide(p.injector, extensions.NewExtensionServiceWithWorkspace)
 

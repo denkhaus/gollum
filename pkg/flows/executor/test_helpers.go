@@ -105,7 +105,7 @@ func (m *testExtensionService) LoadAll(ctx context.Context) error {
 	return nil
 }
 
-func (m *testExtensionService) GetFuncRunner() extensions.ScriggoRunner {
+func (m *testExtensionService) GetFuncRunner() extensions.YaegiFuncRunner {
 	return &testFuncRunner{}
 }
 
