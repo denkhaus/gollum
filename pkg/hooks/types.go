@@ -227,3 +227,8 @@ func (n *NoOpHookManager) WithFileHooks(_ context.Context, _, _ uuid.UUID, _ Hoo
 func (n *NoOpHookManager) WithLLMHooks(_ context.Context, _, _ uuid.UUID, _, _ string, work func(string) (string, error)) (string, error) {
 	return work("")
 }
+
+// WithFlowStepHooks is a no-op implementation of HookManager.WithFlowStepHooks.
+func (n *NoOpHookManager) WithFlowStepHooks(_ context.Context, _, _ uuid.UUID, _, _ string, work func() (map[string]any, error)) (map[string]any, error) {
+	return work()
+}

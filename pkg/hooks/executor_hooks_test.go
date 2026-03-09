@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -165,4 +166,111 @@ func TestHookManager_TriggerExecutorHooks_Blocking(t *testing.T) {
 
 	// When a hook doesn't call next(), the chain is stopped
 	assert.True(t, result.Stopped, "Hook should stop execution")
+}
+
+func TestHookManager_WithFlowStepHooks_BeforeAndAfter(t *testing.T) {
+	hm := newTestHookManager()
+
+	var beforePayload, afterPayload *ExecutorPayload
+
+	// Before hook
+	hm.RegisterExecutorHook(func(_ context.Context, hookCtx *TypedHookContext[ExecutorPayload], next func() error) error {
+		beforePayload = &hookCtx.Payload
+		return next()
+	}, TypedHookMetadata{Name: "before", Point: BeforeFlowStep})
+
+	// After hook
+	hm.RegisterExecutorHook(func(_ context.Context, hookCtx *TypedHookContext[ExecutorPayload], next func() error) error {
+		afterPayload = &hookCtx.Payload
+		return next()
+	}, TypedHookMetadata{Name: "after", Point: AfterFlowStep})
+
+	flowID := uuid.New()
+	sessionID := uuid.New()
+
+	result, err := hm.WithFlowStepHooks(
+		context.Background(),
+		sessionID,
+		flowID,
+		"llm",
+		"test-state",
+		func() (map[string]any, error) {
+			return map[string]any{"response": "test"}, nil
+		},
+	)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "test", result["response"])
+
+	// Verify before hook was called
+	assert.NotNil(t, beforePayload)
+	assert.Equal(t, "llm", beforePayload.StepType)
+	assert.Equal(t, "test-state", beforePayload.StateName)
+	assert.Nil(t, beforePayload.StepResult) // Before hook has no result
+
+	// Verify after hook was called
+	assert.NotNil(t, afterPayload)
+	assert.Equal(t, "llm", afterPayload.StepType)
+	assert.NotNil(t, afterPayload.StepResult)
+	assert.Equal(t, "test", afterPayload.StepResult["response"])
+	assert.Greater(t, afterPayload.Duration, time.Duration(0))
+}
+
+func TestHookManager_WithFlowStepHooks_ExecutionBlocked(t *testing.T) {
+	hm := newTestHookManager()
+
+	// Blocking before hook
+	hm.RegisterExecutorHook(func(_ context.Context, _ *TypedHookContext[ExecutorPayload], _ func() error) error {
+		// Stop the chain by not calling next()
+		return nil
+	}, TypedHookMetadata{Name: "blocker", Point: BeforeFlowStep})
+
+	workCalled := false
+	_, err := hm.WithFlowStepHooks(
+		context.Background(),
+		uuid.New(),
+		uuid.New(),
+		"func",
+		"blocked-state",
+		func() (map[string]any, error) {
+			workCalled = true
+			return nil, nil
+		},
+	)
+
+	assert.Error(t, err)
+	assert.False(t, workCalled, "Work should not be called when blocked")
+	assert.Contains(t, err.Error(), "blocked")
+}
+
+func TestHookManager_WithFlowStepHooks_WorkError(t *testing.T) {
+	hm := newTestHookManager()
+
+	var afterPayload *ExecutorPayload
+	hm.RegisterExecutorHook(func(_ context.Context, hookCtx *TypedHookContext[ExecutorPayload], next func() error) error {
+		afterPayload = &hookCtx.Payload
+		return next()
+	}, TypedHookMetadata{Name: "after", Point: AfterFlowStep})
+
+	workErr := errors.New("work failed")
+
+	_, err := hm.WithFlowStepHooks(
+		context.Background(),
+		uuid.New(),
+		uuid.New(),
+		"shell",
+		"error-state",
+		func() (map[string]any, error) {
+			return nil, workErr
+		},
+	)
+
+	assert.Error(t, err)
+	assert.Equal(t, workErr, err)
+
+	// After hook should still be called even on error
+	assert.NotNil(t, afterPayload)
+	assert.Error(t, afterPayload.StepError)
+	assert.Equal(t, workErr, afterPayload.StepError)
 }

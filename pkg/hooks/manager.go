@@ -180,6 +180,16 @@ type HookManager interface {
 		model string,
 		work func(string) (string, error),
 	) (string, error)
+
+	// WithFlowStepHooks wraps a function with flow step execution hooks.
+	// BeforeFlowStep hooks can inspect/validate before execution.
+	// AfterFlowStep hooks can log/audit after execution.
+	WithFlowStepHooks(
+		ctx context.Context,
+		sessionID, flowID uuid.UUID,
+		stepType, stateName string,
+		work func() (map[string]any, error),
+	) (map[string]any, error)
 }
 
 // hookManagerImpl is the private implementation of HookManager.
