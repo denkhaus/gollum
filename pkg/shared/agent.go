@@ -58,3 +58,13 @@ func (c *LLMClientConfig) Provider() (LLMProvider, error) {
 		return "", ErrLLMProviderNotSupported
 	}
 }
+
+// ModelName returns just the model name portion (after the slash).
+// Returns ErrInvalidModelFormat if format is invalid (no slash, or slash at start/end).
+func (c *LLMClientConfig) ModelName() (string, error) {
+	idx := strings.Index(c.Model, "/")
+	if idx == -1 || idx == 0 || idx == len(c.Model)-1 {
+		return "", ErrInvalidModelFormat
+	}
+	return c.Model[idx+1:], nil
+}
