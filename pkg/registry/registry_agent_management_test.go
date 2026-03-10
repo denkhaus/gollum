@@ -38,7 +38,9 @@ func TestAgentRegistry_GetAgent(t *testing.T) {
 	mockChild.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:          childID,
 		Role:        "Child",
-		LLMProvider: shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 	}).AnyTimes()
 
 	// Register parent
@@ -54,7 +56,9 @@ func TestAgentRegistry_GetAgent(t *testing.T) {
 		ID:          childID,
 		ParentID:    &parentID,
 		Role:        "Child",
-		LLMProvider: shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 	}
 	err = registry.Register(mockChild, childConfig)
 	require.NoError(t, err)
@@ -108,7 +112,9 @@ func TestAgentRegistry_GetChildren(t *testing.T) {
 	mockChild1.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:          childID1,
 		Role:        "Child1",
-		LLMProvider: shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 	}).AnyTimes()
 
 	mockChild2 := mocks.NewMockAgent(ctrl)
@@ -116,7 +122,9 @@ func TestAgentRegistry_GetChildren(t *testing.T) {
 	mockChild2.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:          childID2,
 		Role:        "Child2",
-		LLMProvider: shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 	}).AnyTimes()
 
 	mockUnrelated := mocks.NewMockAgent(ctrl)
@@ -131,11 +139,15 @@ func TestAgentRegistry_GetChildren(t *testing.T) {
 	err = registry.Register(mockParent, parentConfig)
 	require.NoError(t, err)
 
-	child1Config := &shared.AgentConfig{ID: childID1, ParentID: &parentID, Role: "Child1", LLMProvider: shared.LLMProviderAnthropic}
+	child1Config := &shared.AgentConfig{ID: childID1, ParentID: &parentID, Role: "Child1", LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		}}
 	err = registry.Register(mockChild1, child1Config)
 	require.NoError(t, err)
 
-	child2Config := &shared.AgentConfig{ID: childID2, ParentID: &parentID, Role: "Child2", LLMProvider: shared.LLMProviderAnthropic}
+	child2Config := &shared.AgentConfig{ID: childID2, ParentID: &parentID, Role: "Child2", LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		}}
 	err = registry.Register(mockChild2, child2Config)
 	require.NoError(t, err)
 
@@ -194,7 +206,9 @@ func TestAgentRegistry_GetParent(t *testing.T) {
 	mockChild.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:          childID,
 		Role:        "Child",
-		LLMProvider: shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 	}).AnyTimes()
 
 	// Register agents
@@ -202,7 +216,9 @@ func TestAgentRegistry_GetParent(t *testing.T) {
 	err = registry.Register(mockParent, parentConfig)
 	require.NoError(t, err)
 
-	childConfig := &shared.AgentConfig{ID: childID, ParentID: &parentID, Role: "Child", LLMProvider: shared.LLMProviderAnthropic}
+	childConfig := &shared.AgentConfig{ID: childID, ParentID: &parentID, Role: "Child", LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		}}
 	err = registry.Register(mockChild, childConfig)
 	require.NoError(t, err)
 
@@ -253,7 +269,9 @@ func TestAgentRegistry_ListAll(t *testing.T) {
 	mockChild1.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:          childID1,
 		Role:        "Child1",
-		LLMProvider: shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 	}).AnyTimes()
 
 	mockChild2 := mocks.NewMockAgent(ctrl)
@@ -261,7 +279,9 @@ func TestAgentRegistry_ListAll(t *testing.T) {
 	mockChild2.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:          childID2,
 		Role:        "Child2",
-		LLMProvider: shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 	}).AnyTimes()
 
 	// Initially empty
@@ -277,11 +297,15 @@ func TestAgentRegistry_ListAll(t *testing.T) {
 	require.Len(t, allAgents, 1)
 
 	// Register children
-	child1Config := &shared.AgentConfig{ID: childID1, ParentID: &parentID, Role: "Child1", LLMProvider: shared.LLMProviderAnthropic}
+	child1Config := &shared.AgentConfig{ID: childID1, ParentID: &parentID, Role: "Child1", LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		}}
 	err = registry.Register(mockChild1, child1Config)
 	require.NoError(t, err)
 
-	child2Config := &shared.AgentConfig{ID: childID2, ParentID: &parentID, Role: "Child2", LLMProvider: shared.LLMProviderAnthropic}
+	child2Config := &shared.AgentConfig{ID: childID2, ParentID: &parentID, Role: "Child2", LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		}}
 	err = registry.Register(mockChild2, child2Config)
 	require.NoError(t, err)
 
@@ -323,7 +347,9 @@ func TestAgentRegistry_Unregister_LeafAgent(t *testing.T) {
 	mockChild.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:          childID,
 		Role:        "Child",
-		LLMProvider: shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 	}).AnyTimes()
 
 	// Register agents
@@ -331,7 +357,9 @@ func TestAgentRegistry_Unregister_LeafAgent(t *testing.T) {
 	err = registry.Register(mockParent, parentConfig)
 	require.NoError(t, err)
 
-	childConfig := &shared.AgentConfig{ID: childID, ParentID: &parentID, Role: "Child", LLMProvider: shared.LLMProviderAnthropic}
+	childConfig := &shared.AgentConfig{ID: childID, ParentID: &parentID, Role: "Child", LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		}}
 	err = registry.Register(mockChild, childConfig)
 	require.NoError(t, err)
 
@@ -378,7 +406,9 @@ func TestAgentRegistry_Unregister_WithChildren(t *testing.T) {
 	mockChild.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:          childID,
 		Role:        "Child",
-		LLMProvider: shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 	}).AnyTimes()
 
 	mockGrandchild := mocks.NewMockAgent(ctrl)
@@ -386,7 +416,9 @@ func TestAgentRegistry_Unregister_WithChildren(t *testing.T) {
 	mockGrandchild.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:          grandchildID,
 		Role:        "Grandchild",
-		LLMProvider: shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 	}).AnyTimes()
 
 	// Register agents
@@ -394,11 +426,15 @@ func TestAgentRegistry_Unregister_WithChildren(t *testing.T) {
 	err = registry.Register(mockParent, parentConfig)
 	require.NoError(t, err)
 
-	childConfig := &shared.AgentConfig{ID: childID, ParentID: &parentID, Role: "Child", LLMProvider: shared.LLMProviderAnthropic}
+	childConfig := &shared.AgentConfig{ID: childID, ParentID: &parentID, Role: "Child", LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		}}
 	err = registry.Register(mockChild, childConfig)
 	require.NoError(t, err)
 
-	grandchildConfig := &shared.AgentConfig{ID: grandchildID, ParentID: &childID, Role: "Grandchild", LLMProvider: shared.LLMProviderAnthropic}
+	grandchildConfig := &shared.AgentConfig{ID: grandchildID, ParentID: &childID, Role: "Grandchild", LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		}}
 	err = registry.Register(mockGrandchild, grandchildConfig)
 	require.NoError(t, err)
 
@@ -486,7 +522,9 @@ func TestAgentRegistry_Cleanup(t *testing.T) {
 	mockChild1.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:          childID1,
 		Role:        "Child1",
-		LLMProvider: shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 	}).AnyTimes()
 
 	mockChild2 := mocks.NewMockAgent(ctrl)
@@ -494,7 +532,9 @@ func TestAgentRegistry_Cleanup(t *testing.T) {
 	mockChild2.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:          childID2,
 		Role:        "Child2",
-		LLMProvider: shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 	}).AnyTimes()
 
 	mockGrandchild := mocks.NewMockAgent(ctrl)
@@ -502,7 +542,9 @@ func TestAgentRegistry_Cleanup(t *testing.T) {
 	mockGrandchild.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:          grandchildID,
 		Role:        "Grandchild",
-		LLMProvider: shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 	}).AnyTimes()
 
 	// Register agents
@@ -510,15 +552,21 @@ func TestAgentRegistry_Cleanup(t *testing.T) {
 	err = registry.Register(mockParent, parentConfig)
 	require.NoError(t, err)
 
-	child1Config := &shared.AgentConfig{ID: childID1, ParentID: &parentID, Role: "Child1", LLMProvider: shared.LLMProviderAnthropic}
+	child1Config := &shared.AgentConfig{ID: childID1, ParentID: &parentID, Role: "Child1", LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		}}
 	err = registry.Register(mockChild1, child1Config)
 	require.NoError(t, err)
 
-	child2Config := &shared.AgentConfig{ID: childID2, ParentID: &parentID, Role: "Child2", LLMProvider: shared.LLMProviderAnthropic}
+	child2Config := &shared.AgentConfig{ID: childID2, ParentID: &parentID, Role: "Child2", LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		}}
 	err = registry.Register(mockChild2, child2Config)
 	require.NoError(t, err)
 
-	grandchildConfig := &shared.AgentConfig{ID: grandchildID, ParentID: &childID1, Role: "Grandchild", LLMProvider: shared.LLMProviderAnthropic}
+	grandchildConfig := &shared.AgentConfig{ID: grandchildID, ParentID: &childID1, Role: "Grandchild", LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		}}
 	err = registry.Register(mockGrandchild, grandchildConfig)
 	require.NoError(t, err)
 

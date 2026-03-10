@@ -48,7 +48,9 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 		return spawnedAgentID
 	}).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		LLMProvider:  shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 		Role:         "Async Tester",
 		SystemPrompt: "test",
 	}).AnyTimes()
@@ -151,7 +153,9 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 		return spawnedAgentID
 	}).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		LLMProvider:  shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 		Role:         "Slow Agent",
 		SystemPrompt: "test",
 	}).AnyTimes()
@@ -258,7 +262,9 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 		return spawnedAgentID
 	}).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		LLMProvider:  shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 		Role:         "Failing Async Agent",
 		SystemPrompt: "test",
 	}).AnyTimes()
@@ -353,7 +359,9 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 		return spawnedAgentID
 	}).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		LLMProvider:  shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 		Role:         "Polled Agent",
 		SystemPrompt: "test",
 	}).AnyTimes()

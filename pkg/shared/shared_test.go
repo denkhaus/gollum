@@ -34,7 +34,9 @@ func TestAgentConfig_OutputModeDefault(t *testing.T) {
 		ID:           uuid.New(),
 		SystemPrompt: "test",
 		Role:         "TestAgent",
-		LLMProvider:  LLMProviderAnthropic,
+		LLMClientConfig: &LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 	}
 
 	if config.OutputMode != "" {

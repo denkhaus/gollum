@@ -181,8 +181,10 @@ func TestResumeAgentToolSynchronousExecution(t *testing.T) {
 	// Mock agent exists
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:          agentID,
-		LLMProvider: "test",
+		ID:   agentID,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "test",
+		},
 		Role:        "Tester",
 		Description: "Test Agent",
 	}).AnyTimes()
@@ -248,8 +250,10 @@ func TestResumeAgentToolAsynchronousExecution(t *testing.T) {
 	// Mock agent exists
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:          agentID,
-		LLMProvider: "test",
+		ID:   agentID,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "test",
+		},
 		Role:        "Tester",
 		Description: "Test Agent",
 	}).AnyTimes()

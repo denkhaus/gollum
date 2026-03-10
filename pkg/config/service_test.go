@@ -208,7 +208,7 @@ func TestGetLoggingConfig_Immutable(t *testing.T) {
 func TestNewService_DefaultPromptOptimizerConfig(t *testing.T) {
 	// Clear environment variables to test defaults
 	unsetEnv(t, "GOLLUM_OPTIMIZER_STRATEGY")
-	unsetEnv(t, "GOLLUM_OPTIMIZER_PROVIDER")
+	unsetEnv(t, "GOLLUM_OPTIMIZER_MODEL")
 	unsetEnv(t, "GOLLUM_OPTIMIZER_MAX_REFLECTION")
 	unsetEnv(t, "GOLLUM_OPTIMIZER_MIN_REFLECTION")
 
@@ -221,7 +221,7 @@ func TestNewService_DefaultPromptOptimizerConfig(t *testing.T) {
 
 	// Test default values
 	assert.Equal(t, shared.StrategyGradient, config.DefaultStrategy, "Default strategy should be gradient")
-	assert.Equal(t, shared.LLMProviderAnthropic, config.DefaultProvider, "Default provider should be anthropic")
+	assert.Equal(t, "anthropic/opus-4.6", config.Model, "Default model should be anthropic/opus-4.6")
 	assert.Equal(t, 5, config.MaxReflectionSteps, "Default max reflection steps should be 5")
 	assert.Equal(t, 2, config.MinReflectionSteps, "Default min reflection steps should be 2")
 }
@@ -235,7 +235,7 @@ func TestNewService_PromptOptimizerConfigFromEnv(t *testing.T) {
 		maxReflection       string
 		minReflection       string
 		expectStrategy      shared.OptimizerStrategy
-		expectProvider      shared.LLMProvider
+		expectModel         string
 		expectMaxReflection int
 		expectMinReflection int
 	}{
@@ -246,7 +246,7 @@ func TestNewService_PromptOptimizerConfigFromEnv(t *testing.T) {
 			maxReflection:       "10",
 			minReflection:       "3",
 			expectStrategy:      shared.StrategyMetaPrompt,
-			expectProvider:      shared.LLMProviderOpenAI,
+			expectModel:         "openai",
 			expectMaxReflection: 10,
 			expectMinReflection: 3,
 		},
@@ -257,9 +257,9 @@ func TestNewService_PromptOptimizerConfigFromEnv(t *testing.T) {
 			maxReflection:       "",
 			minReflection:       "",
 			expectStrategy:      shared.StrategyPromptMemory,
-			expectProvider:      shared.LLMProviderAnthropic, // default
-			expectMaxReflection: 5,                          // default
-			expectMinReflection: 2,                          // default
+			expectModel:         "anthropic/opus-4.6", // default
+			expectMaxReflection: 5,                     // default
+			expectMinReflection: 2,                     // default
 		},
 		{
 			name:                "Gemini provider with custom reflection",
@@ -268,7 +268,7 @@ func TestNewService_PromptOptimizerConfigFromEnv(t *testing.T) {
 			maxReflection:       "7",
 			minReflection:       "1",
 			expectStrategy:      shared.StrategyGradient, // default
-			expectProvider:      shared.LLMProviderGemini,
+			expectModel:         "gemini",
 			expectMaxReflection: 7,
 			expectMinReflection: 1,
 		},
@@ -278,7 +278,7 @@ func TestNewService_PromptOptimizerConfigFromEnv(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clear and set environment variables
 			unsetEnv(t, "GOLLUM_OPTIMIZER_STRATEGY")
-			unsetEnv(t, "GOLLUM_OPTIMIZER_PROVIDER")
+			unsetEnv(t, "GOLLUM_OPTIMIZER_MODEL")
 			unsetEnv(t, "GOLLUM_OPTIMIZER_MAX_REFLECTION")
 			unsetEnv(t, "GOLLUM_OPTIMIZER_MIN_REFLECTION")
 
@@ -286,7 +286,7 @@ func TestNewService_PromptOptimizerConfigFromEnv(t *testing.T) {
 				require.NoError(t, os.Setenv("GOLLUM_OPTIMIZER_STRATEGY", tt.strategy))
 			}
 			if tt.provider != "" {
-				require.NoError(t, os.Setenv("GOLLUM_OPTIMIZER_PROVIDER", tt.provider))
+				require.NoError(t, os.Setenv("GOLLUM_OPTIMIZER_MODEL", tt.provider))
 			}
 			if tt.maxReflection != "" {
 				require.NoError(t, os.Setenv("GOLLUM_OPTIMIZER_MAX_REFLECTION", tt.maxReflection))
@@ -301,7 +301,7 @@ func TestNewService_PromptOptimizerConfigFromEnv(t *testing.T) {
 
 			config := service.GetPromptOptimizerConfig()
 			assert.Equal(t, tt.expectStrategy, config.DefaultStrategy)
-			assert.Equal(t, tt.expectProvider, config.DefaultProvider)
+			assert.Equal(t, tt.expectModel, config.Model)
 			assert.Equal(t, tt.expectMaxReflection, config.MaxReflectionSteps)
 			assert.Equal(t, tt.expectMinReflection, config.MinReflectionSteps)
 		})
@@ -311,7 +311,7 @@ func TestNewService_PromptOptimizerConfigFromEnv(t *testing.T) {
 // TestGetPromptOptimizerConfig_ReturnsPointer tests that GetPromptOptimizerConfig returns a stable pointer
 func TestGetPromptOptimizerConfig_ReturnsPointer(t *testing.T) {
 	unsetEnv(t, "GOLLUM_OPTIMIZER_STRATEGY")
-	unsetEnv(t, "GOLLUM_OPTIMIZER_PROVIDER")
+	unsetEnv(t, "GOLLUM_OPTIMIZER_MODEL")
 	unsetEnv(t, "GOLLUM_OPTIMIZER_MAX_REFLECTION")
 	unsetEnv(t, "GOLLUM_OPTIMIZER_MIN_REFLECTION")
 
@@ -367,19 +367,19 @@ func TestNewService_PromptStoreConfigIntegration(t *testing.T) {
 // TestLangfuseConfig tests Langfuse configuration loading via environment variables
 func TestLangfuseConfig(t *testing.T) {
 	tests := []struct {
-		name     string
-		env      map[string]string
-		want     LangfuseConfig
-		wantErr  bool
+		name    string
+		env     map[string]string
+		want    LangfuseConfig
+		wantErr bool
 	}{
 		{
 			name: "default values",
 			env:  map[string]string{},
 			want: LangfuseConfig{
-				LangfuseEnabled:      false,
-				LangfuseHost:         "https://cloud.langfuse.com",
-				LangfusePublicKey:    "",
-				LangfuseSecretKey:    "",
+				LangfuseEnabled:       false,
+				LangfuseHost:          "https://cloud.langfuse.com",
+				LangfusePublicKey:     "",
+				LangfuseSecretKey:     "",
 				LangfuseFlushInterval: 1000,
 				LangfuseMaxQueueSize:  100,
 			},
@@ -392,13 +392,13 @@ func TestLangfuseConfig(t *testing.T) {
 				"GOLLUM_HOOKS_LANGFUSE_PUBLIC_KEY":     "pk-test-123",
 				"GOLLUM_HOOKS_LANGFUSE_SECRET_KEY":     "sk-test-456",
 				"GOLLUM_HOOKS_LANGFUSE_FLUSH_INTERVAL": "2000",
-				"GOLLUM_HOOKS_LANGFUSE_MAX_QUEUE_SIZE":  "200",
+				"GOLLUM_HOOKS_LANGFUSE_MAX_QUEUE_SIZE": "200",
 			},
 			want: LangfuseConfig{
-				LangfuseEnabled:      true,
-				LangfuseHost:         "https://custom.langfuse.com",
-				LangfusePublicKey:    "pk-test-123",
-				LangfuseSecretKey:    "sk-test-456",
+				LangfuseEnabled:       true,
+				LangfuseHost:          "https://custom.langfuse.com",
+				LangfusePublicKey:     "pk-test-123",
+				LangfuseSecretKey:     "sk-test-456",
 				LangfuseFlushInterval: 2000,
 				LangfuseMaxQueueSize:  200,
 			},
@@ -410,10 +410,10 @@ func TestLangfuseConfig(t *testing.T) {
 				"GOLLUM_HOOKS_LANGFUSE_PUBLIC_KEY": "pk-test-789",
 			},
 			want: LangfuseConfig{
-				LangfuseEnabled:      true,
-				LangfuseHost:         "https://cloud.langfuse.com", // default
-				LangfusePublicKey:    "pk-test-789",
-				LangfuseSecretKey:    "",
+				LangfuseEnabled:       true,
+				LangfuseHost:          "https://cloud.langfuse.com", // default
+				LangfusePublicKey:     "pk-test-789",
+				LangfuseSecretKey:     "",
 				LangfuseFlushInterval: 1000, // default
 				LangfuseMaxQueueSize:  100,  // default
 			},

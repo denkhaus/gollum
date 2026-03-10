@@ -46,7 +46,9 @@ func TestSpawnAgentTool_WithShareContext(t *testing.T) {
 	}
 
 	mockParentAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		LLMProvider: shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 	})
 	mockParentAgent.EXPECT().GetID().Return(senderID).Times(4) // GetID is called at lines 211, 215, 251, 258
 	mockParentAgent.EXPECT().GetMessageHistory(gomock.Any()).Return(expectedHistory, nil)

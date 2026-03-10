@@ -176,8 +176,8 @@ type PromptOptimizerConfig struct {
 	// DefaultStrategy is the optimization strategy to use (gradient, metaprompt, prompt_memory)
 	DefaultStrategy shared.OptimizerStrategy `envconfig:"STRATEGY" default:"gradient"`
 
-	// DefaultProvider is the LLM provider to use (anthropic, openai, gemini)
-	DefaultProvider shared.LLMProvider `envconfig:"PROVIDER" default:"anthropic"`
+	// Model is the Model to use (anthropic/sonnet-4.5, openai/gpt-4o-mini, gemini/gemini-2.5-flash)
+	Model string `envconfig:"MODEL" default:"anthropic/opus-4.6"`
 
 	// MaxReflectionSteps is the maximum number of reflection iterations
 	MaxReflectionSteps int `envconfig:"MAX_REFLECTION" default:"5"`

@@ -44,7 +44,9 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 		return spawnedAgentID
 	}).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		LLMProvider:  shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 		Role:         "Lifecycle Agent",
 		SystemPrompt: "test",
 	}).AnyTimes()

@@ -75,17 +75,23 @@ func TestAgentRegistry_IsDirectParent(t *testing.T) {
 	require.NoError(t, err)
 
 	// Register parent (child of grandparent)
-	parentConfig := &shared.AgentConfig{ID: parentID, ParentID: &grandparentID, Role: "Parent", LLMProvider: shared.LLMProviderAnthropic}
+	parentConfig := &shared.AgentConfig{ID: parentID, ParentID: &grandparentID, Role: "Parent", LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		}}
 	err = registry.Register(mockParent, parentConfig)
 	require.NoError(t, err)
 
 	// Register child (child of parent)
-	childConfig := &shared.AgentConfig{ID: childID, ParentID: &parentID, Role: "Child", LLMProvider: shared.LLMProviderAnthropic}
+	childConfig := &shared.AgentConfig{ID: childID, ParentID: &parentID, Role: "Child", LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		}}
 	err = registry.Register(mockChild, childConfig)
 	require.NoError(t, err)
 
 	// Register uncle (sibling of parent, also child of grandparent)
-	uncleConfig := &shared.AgentConfig{ID: uncleID, ParentID: &grandparentID, Role: "Uncle", LLMProvider: shared.LLMProviderAnthropic}
+	uncleConfig := &shared.AgentConfig{ID: uncleID, ParentID: &grandparentID, Role: "Uncle", LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		}}
 	err = registry.Register(mockUncle, uncleConfig)
 	require.NoError(t, err)
 

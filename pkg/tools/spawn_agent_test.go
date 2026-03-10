@@ -168,7 +168,9 @@ func TestSpawnAgentToolSynchronousExecution(t *testing.T) {
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:           taskID,
-		LLMProvider:  shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 		Role:         "Tester",
 		SystemPrompt: "test",
 	}).AnyTimes()
@@ -247,7 +249,9 @@ func TestSpawnAgentToolAsynchronousExecution(t *testing.T) {
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:          taskID,
-		LLMProvider: shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 		Role:        "Tester",
 	}).AnyTimes()
 
@@ -324,7 +328,9 @@ func TestSpawnAgentToolExecutionError(t *testing.T) {
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:          taskID,
-		LLMProvider: shared.LLMProviderAnthropic,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
 	}).AnyTimes()
 
 	tool := &spawnAgentToolImpl{
@@ -382,14 +388,18 @@ func TestSpawnAgentToolInheritsLLMProvider(t *testing.T) {
 
 	mockParentAgent := mocks.NewMockAgent(ctrl)
 	mockParentAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		LLMProvider: shared.LLMProviderOpenAI,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "openai/gpt-4o-mini",
+		},
 	}).AnyTimes()
 
 	mockAgent := mocks.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:          taskID,
-		LLMProvider: shared.LLMProviderOpenAI, // Should inherit from parent
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "openai/gpt-4o-mini",
+		}, // Should inherit from parent
 		Role:        "Tester",
 	}).AnyTimes()
 
@@ -412,7 +422,7 @@ func TestSpawnAgentToolInheritsLLMProvider(t *testing.T) {
 	mockRegistry.EXPECT().StoreAgentResult(gomock.Any()).Return(nil).Times(1) // Initial result
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Do(func(_ context.Context, cfg *shared.AgentConfig) {
 		// Verify LLM provider was inherited
-		assert.Equal(t, shared.LLMProviderOpenAI, cfg.LLMProvider)
+		assert.Equal(t, "openai/gpt-4o-mini", cfg.LLMClientConfig.Model)
 	}).Return(mockAgent, nil)
 
 	// Expect Register call (synchronous, no cancel function)
