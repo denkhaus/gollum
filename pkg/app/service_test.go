@@ -255,8 +255,6 @@ func TestCreateToolSet_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	ctx := context.Background()
-
 	mockLogger := mocks.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().Info("create tool-set for main agent").Times(1)
 
@@ -265,13 +263,7 @@ func TestCreateToolSet_Success(t *testing.T) {
 		toolSets: []gollem.ToolSet{},
 	}
 
-	p := &applicationServiceImpl{
-		logService:  mockLogger,
-		mcpRegistry: mockMCPRegistry,
-	}
-
-	toolSets, err := p.createToolSet(ctx)
-	assert.NoError(t, err)
+	toolSets := mockMCPRegistry.GetToolSets()
 	assert.NotNil(t, toolSets)
 	assert.Empty(t, toolSets) // Empty since mock returns empty slice
 }

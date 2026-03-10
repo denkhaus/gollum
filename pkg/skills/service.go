@@ -97,11 +97,6 @@ func NewService(injector do.Injector) (SkillService, error) {
 		return nil, err
 	}
 
-	// Add workspace directory as default search path
-	if currentWs := ws.GetCurrentWorkspace(); currentWs != "" {
-		service.searchPaths = append(service.searchPaths, currentWs)
-	}
-
 	// Self-initialize: discover skills during construction
 	ctx := context.Background()
 	if err := service.discoverInternal(ctx); err != nil {

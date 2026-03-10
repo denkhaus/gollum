@@ -116,24 +116,9 @@ func (p *applicationServiceImpl) primeFileStateManager(ctx context.Context) erro
 	return nil
 }
 
-func (p *applicationServiceImpl) createToolSet(ctx context.Context) ([]gollem.ToolSet, error) {
-
-	p.logService.Info("create tool-set for main agent")
-
-	// Get all MCP tool sets from the registry
-	// MCP clients are loaded from mcp.json config files
-	toolSet := p.mcpRegistry.GetToolSets()
-
-	return toolSet, nil
-}
-
 // createSupervisorAgent creates and registers the Supervisor agent
 func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (shared.Agent, *shared.AgentConfig, error) {
 
-	toolSet, err := p.createToolSet(ctx)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create toolset: %w", err)
-	}
 	// Get supervisor prompt from PromptManager
 	systemPrompt, err := p.promptMgr.GetPromptWithContext(ctx,
 		prompt.PromptIDSupervisorSystem,
@@ -149,15 +134,20 @@ func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (sha
 		return nil, nil, fmt.Errorf("failed to get supervisor prompt: %w", err)
 	}
 
+	toolSet := p.mcpRegistry.GetToolSets()
+	if len(toolSet) == 0 {
+		p.logService.Warn("no mcp servers configured for supervison agent")
+	}
+
 	// Create agent config
 	agentConfig := &shared.AgentConfig{
 		AllowCompaction: true,
 		SystemPrompt:    systemPrompt,
+		ToolSets:        toolSet,
 		Role:            "Supervisor Agent",
 		LLMClientConfig: &shared.LLMClientConfig{
-			Model: "anthropic/claude-3-5-sonnet-20241022",
+			Model: "anthropic/glm-4.7",
 		},
-		ToolSets: toolSet,
 	}
 
 	// Create agent

@@ -28,7 +28,7 @@
                 <!-- Call internal flows -->
                 <call ref="complexity-check" timeout="120s">
                     <input>
-                        <field name="target_dir" value="${target_dir}" />
+                        <field name="target_dir" value="${input.target_dir}" />
                     </input>
                     <output>
                         <field name="score" value="${complexity_score}" />
@@ -38,8 +38,8 @@
 
                 <call ref="security-scan" timeout="180s">
                     <input>
-                        <field name="target_dir" value="${target_dir}" />
-                        <field name="scan_type" value="${scan_type}" />
+                        <field name="target_dir" value="${input.target_dir}" />
+                        <field name="scan_type" value="${input.scan_type}" />
                     </input>
                     <output>
                         <field name="issues" value="${security_issues}" />

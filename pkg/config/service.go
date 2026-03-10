@@ -11,13 +11,17 @@ import (
 )
 
 // AnthropicConfig holds configuration for Anthropic's Claude API.
+// Please note: TopP and Temperature is set to -1.0 (indicates not set) since anthropic prohibits setting both
+// temperature and top_p (nucleus sampling) simultaneously. If you send both parameters in a API request,
+// you will receive a 400 validation error stating: temperature and top_p cannot both be specified for this model.
+// Please use only one of the values at the same time
 type AnthropicConfig struct {
 	APIKey      string  `envconfig:"API_KEY"`
 	BaseURL     string  `envconfig:"BASE_URL"`
 	Model       string  `envconfig:"MODEL"`
-	Temperature float64 `envconfig:"TEMPERATURE" default:"0.7"`
+	Temperature float64 `envconfig:"TEMPERATURE" default:"-1.0"`
 	MaxTokens   int     `envconfig:"MAX_TOKENS" default:"8192"`
-	TopP        float64 `envconfig:"TOP_P" default:"1.0"`
+	TopP        float64 `envconfig:"TOP_P" default:"-1.0"`
 }
 
 // OpenAIConfig holds configuration for OpenAI's GPT API.
