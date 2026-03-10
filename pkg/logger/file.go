@@ -49,7 +49,21 @@ func (s *service) EnableFileLogging(gollumDir string, sessionID uuid.UUID) error
 
 	// Create a separate file-only logger with increased sampling for better performance
 	// but with immediate sync behavior
-	encoder := newRawModeConsoleEncoder(s.config.EncoderConfig)
+	// Use JSON encoder for structured logging
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "timestamp",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		MessageKey:     "message",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.LowercaseLevelEncoder,
+		EncodeTime:     zapcore.RFC3339NanoTimeEncoder,
+		EncodeDuration: zapcore.SecondsDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}
+	encoder := zapcore.NewJSONEncoder(encoderConfig)
 	fileCore := zapcore.NewCore(encoder, fileWriteSyncer, s.atomicLevel)
 
 	// Create the file logger with options for better caller information
