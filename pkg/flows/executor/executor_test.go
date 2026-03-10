@@ -10,6 +10,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/logger"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
 	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
@@ -54,6 +55,11 @@ func setupTestDI(t *testing.T) do.Injector {
 	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
 	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
+
+	// Create mock AgentFactory for LLM step testing
+	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
+
 	// Register the flow executor service
 	do.Provide(injector, NewFlowExecutor)
 
@@ -86,6 +92,11 @@ func setupTestDIWithRegistry(t *testing.T, registry flowregistry.FlowRegistry) d
 	do.ProvideValue(injector, registry)
 	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
+
+	// Create mock AgentFactory for LLM step testing
+	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
+
 	do.Provide(injector, NewFlowExecutor)
 
 	return injector
@@ -117,6 +128,11 @@ func setupTestDIWithBashProvider(t *testing.T, provider tools.BashToolProvider) 
 	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
 	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
+
+	// Create mock AgentFactory for LLM step testing
+	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
+
 	do.Provide(injector, NewFlowExecutor)
 
 	return injector
@@ -148,6 +164,11 @@ func setupTestDIWithBashProviderAndMCPRegistry(t *testing.T, provider tools.Bash
 	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
 	do.ProvideValue(injector, mcpregistry.MCPRegistry(mcpReg))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
+
+	// Create mock AgentFactory for LLM step testing
+	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
+
 	do.Provide(injector, NewFlowExecutor)
 
 	return injector

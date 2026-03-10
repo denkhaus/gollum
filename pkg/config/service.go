@@ -28,6 +28,7 @@ type OpenAIConfig struct {
 type GeminiConfig struct {
 	ProjectID string `envconfig:"PROJECT_ID"`
 	Location  string `envconfig:"LOCATION"`
+	Model     string `envconfig:"MODEL"`
 }
 
 // AgentLimitsConfig defines limits for agent creation and management.

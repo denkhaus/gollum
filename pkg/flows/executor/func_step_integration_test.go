@@ -13,6 +13,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/logger"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
 	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/samber/do/v2"
@@ -84,6 +85,9 @@ func Double(x int) int {
 	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
 	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
+	// Create mock AgentFactory for tests that don't need LLM functionality
+	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
 	do.Provide(injector, NewFlowExecutor)
 
 	// Load extensions (this will load double.go)

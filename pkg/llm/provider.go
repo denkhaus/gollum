@@ -45,7 +45,7 @@ func (p *clientProvider) GetClient(ctx context.Context, provider shared.LLMProvi
 	case shared.LLMProviderGemini:
 
 		cfg := p.configService.GetGeminiConfig()
-		client, err := gemini.New(ctx, cfg.ProjectID, cfg.Location)
+		client, err := gemini.New(ctx, cfg.ProjectID, cfg.Location, gemini.WithModel(cfg.Model))
 		if err != nil {
 			return nil, fmt.Errorf("failed to create gemini client: %v", err)
 		}

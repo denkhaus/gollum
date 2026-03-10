@@ -12,6 +12,7 @@ import (
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
@@ -48,6 +49,7 @@ type flowExecutorImpl struct {
 	hookManager       hooks.HookManager
 	flowToolsProvider tools.FlowToolsProvider
 	mcpRegistry       mcpregistry.MCPRegistry
+	agentFactory      shared.AgentFactory
 	pendingTransition string // Set by transition_to tool to force a state transition
 }
 
@@ -62,6 +64,7 @@ type flowExecutorServiceImpl struct {
 	hookManager       hooks.HookManager
 	flowToolsProvider tools.FlowToolsProvider
 	mcpRegistry       mcpregistry.MCPRegistry
+	agentFactory      shared.AgentFactory
 }
 
 // Ensure flowExecutorServiceImpl implements FlowExecutorService
@@ -78,6 +81,7 @@ func NewFlowExecutor(injector do.Injector) (FlowExecutorService, error) {
 	hookManager := do.MustInvoke[hooks.HookManager](injector)
 	flowToolsProvider := do.MustInvoke[tools.FlowToolsProvider](injector)
 	mcpRegistry := do.MustInvoke[mcpregistry.MCPRegistry](injector)
+	agentFactory := do.MustInvoke[shared.AgentFactory](injector)
 
 	return &flowExecutorServiceImpl{
 		bashToolProvider:  bashToolProvider,
@@ -86,6 +90,7 @@ func NewFlowExecutor(injector do.Injector) (FlowExecutorService, error) {
 		hookManager:       hookManager,
 		flowToolsProvider: flowToolsProvider,
 		mcpRegistry:       mcpRegistry,
+		agentFactory:      agentFactory,
 	}, nil
 }
 
@@ -102,6 +107,7 @@ func (p *flowExecutorServiceImpl) New(flow *flows.Flow) FlowExecutorInstance {
 		hookManager:       p.hookManager,
 		flowToolsProvider: p.flowToolsProvider,
 		mcpRegistry:       p.mcpRegistry,
+		agentFactory:      p.agentFactory,
 	}
 }
 
@@ -508,6 +514,7 @@ func (p *flowExecutorImpl) executeCall(call *flows.Call, _ string) error {
 		extService:       p.extService,
 		flowRegistry:     p.flowRegistry,
 		hookManager:      p.hookManager,
+		agentFactory:     p.agentFactory,
 	}
 
 	// Execute the sub-flow
