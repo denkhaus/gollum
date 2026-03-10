@@ -20,13 +20,16 @@ pkg/
 │   ├── command_manager.go     # Command manager service
 │   ├── facade.go              # Display facade service
 │   ├── middleware.go          # Agent pipeline middleware
+│   ├── types_test.go          # Tests for types
 │   ├── command_manager_test.go
-│   └── facade_test.go
+│   ├── facade_test.go
+│   └── middleware_test.go     # Tests for middleware (TDD)
 ├── di/
 │   └── container.go           # MODIFY: Add display registrations
 ├── tui/
 │   ├── model.go               # MODIFY: Use display.Message
-│   └── display.go             # NEW: TUIDisplay implementation
+│   ├── display.go             # NEW: TUIDisplay implementation
+│   └── display_test.go        # Tests for TUIDisplay (TDD)
 └── middleware/
     └── display.go             # MODIFY: Use DisplayFacade
 ```
@@ -952,12 +955,87 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 
 ## Chunk 4: Display Middleware
 
-### Task 5: Implement Display Middleware
+### Task 5: Implement Display Middleware with TDD
 
 **Files:**
 - Create: `pkg/display/middleware.go`
+- Create: `pkg/display/middleware_test.go`
 
-- [ ] **Step 1: Create the middleware file**
+- [ ] **Step 1: Write failing test for Process with Text part**
+
+```go
+// pkg/display/middleware_test.go
+package display
+
+import (
+	"context"
+	"testing"
+
+	"github.com/google/uuid"
+
+	"github.com/denkhaus/gollum/pkg/shared"
+)
+
+// mockFacade implements DisplayFacade for testing
+type mockFacade struct {
+	messages []Message
+	logs     []LogEntry
+}
+
+func (m *mockFacade) DisplayMessage(msg Message)           { m.messages = append(m.messages, msg) }
+func (m *mockFacade) DisplayLog(entry LogEntry)            { m.logs = append(m.logs, entry) }
+func (m *mockFacade) SubmitInput(_ context.Context, _ string) (InputResult, error) {
+	return InputResult{}, nil
+}
+func (m *mockFacade) GetLogs(_ time.Time, _ int) []LogEntry { return nil }
+func (m *mockFacade) RegisterDisplay(_ Display) error      { return nil }
+func (m *mockFacade) UnregisterDisplay(_ string) error     { return nil }
+func (m *mockFacade) NotifyAgentLifecycle(_ uuid.UUID, _ string, _ bool) {}
+
+func TestDisplayMiddleware_Process_Text(t *testing.T) {
+	facade := &mockFacade{}
+	agentID := uuid.New()
+	agentRole := "assistant"
+
+	middleware := NewDisplayMiddleware(facade, agentID, agentRole)
+
+	text := "Hello, world!"
+	part := shared.ProcessPart{
+		Type: shared.PartTypeText,
+		Text: &text,
+	}
+
+	err := middleware.Process(context.Background(), part)
+	if err != nil {
+		t.Errorf("Process() error = %v", err)
+	}
+
+	if len(facade.messages) != 1 {
+		t.Fatalf("Expected 1 message, got %d", len(facade.messages))
+	}
+
+	msg := facade.messages[0]
+	if msg.Type != MessageTypeAgentChat {
+		t.Errorf("Expected MessageTypeAgentChat, got %v", msg.Type)
+	}
+	if msg.Content != "Hello, world!" {
+		t.Errorf("Expected content 'Hello, world!', got %v", msg.Content)
+	}
+	if msg.AgentID != agentID {
+		t.Errorf("Expected agentID %v, got %v", agentID, msg.AgentID)
+	}
+	if msg.AgentRole != agentRole {
+		t.Errorf("Expected agentRole %v, got %v", agentRole, msg.AgentRole)
+	}
+}
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `go test ./pkg/display/... -run TestDisplayMiddleware_Process_Text -v`
+Expected: FAIL (undefined: NewDisplayMiddleware)
+
+- [ ] **Step 3: Write minimal implementation**
 
 ```go
 // pkg/display/middleware.go
@@ -1064,19 +1142,86 @@ func (p *DisplayMiddleware) Process(_ context.Context, part shared.ProcessPart) 
 }
 ```
 
-- [ ] **Step 2: Verify compilation**
+- [ ] **Step 4: Run test to verify it passes**
 
-Run: `go build ./pkg/display/...`
-Expected: No errors
+Run: `go test ./pkg/display/... -run TestDisplayMiddleware_Process_Text -v`
+Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 5: Write test for ToolUse part**
+
+```go
+// Add to pkg/display/middleware_test.go
+
+func TestDisplayMiddleware_Process_ToolUse(t *testing.T) {
+	facade := &mockFacade{}
+	agentID := uuid.New()
+
+	middleware := NewDisplayMiddleware(facade, agentID, "assistant")
+
+	part := shared.ProcessPart{
+		Type:     shared.PartTypeToolUse,
+		ToolName: "bash",
+		ToolID:   "tool-123",
+	}
+
+	err := middleware.Process(context.Background(), part)
+	if err != nil {
+		t.Errorf("Process() error = %v", err)
+	}
+
+	if len(facade.messages) != 1 {
+		t.Fatalf("Expected 1 message, got %d", len(facade.messages))
+	}
+
+	msg := facade.messages[0]
+	if msg.Type != MessageTypeToolRequest {
+		t.Errorf("Expected MessageTypeToolRequest, got %v", msg.Type)
+	}
+	if msg.Metadata["tool_name"] != "bash" {
+		t.Errorf("Expected tool_name 'bash', got %v", msg.Metadata["tool_name"])
+	}
+}
+```
+
+- [ ] **Step 6: Run test**
+
+Run: `go test ./pkg/display/... -run TestDisplayMiddleware_Process_ToolUse -v`
+Expected: PASS
+
+- [ ] **Step 7: Write test for nil part**
+
+```go
+// Add to pkg/display/middleware_test.go
+
+func TestDisplayMiddleware_Process_Nil(t *testing.T) {
+	facade := &mockFacade{}
+	middleware := NewDisplayMiddleware(facade, uuid.New(), "assistant")
+
+	err := middleware.Process(context.Background(), nil)
+	if err != nil {
+		t.Errorf("Process() with nil should not error, got %v", err)
+	}
+
+	if len(facade.messages) != 0 {
+		t.Errorf("Expected 0 messages for nil part, got %d", len(facade.messages))
+	}
+}
+```
+
+- [ ] **Step 8: Run all middleware tests**
+
+Run: `go test ./pkg/display/... -run TestDisplayMiddleware -v`
+Expected: All PASS
+
+- [ ] **Step 9: Commit**
 
 ```bash
-git add pkg/display/middleware.go
-git commit -m "feat(display): add DisplayMiddleware for agent pipeline integration
+git add pkg/display/middleware.go pkg/display/middleware_test.go
+git commit -m "feat(display): add DisplayMiddleware with TDD
 
 - Converts ProcessPart types to Display messages
 - Handles Text, ToolUse, ToolResult, Thinking, Error types
+- Full test coverage for all part types
 
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 ```
@@ -1133,12 +1278,80 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 
 ## Chunk 6: TUI Integration
 
-### Task 7: Create TUIDisplay Implementation
+### Task 7: Create TUIDisplay Implementation with TDD
 
 **Files:**
 - Create: `pkg/tui/display.go`
+- Create: `pkg/tui/display_test.go`
 
-- [ ] **Step 1: Create TUIDisplay file**
+- [ ] **Step 1: Write failing test for ID and OnMessage**
+
+```go
+// pkg/tui/display_test.go
+package tui
+
+import (
+	"testing"
+
+	"github.com/denkhaus/gollum/pkg/display"
+)
+
+// mockCommandManager implements display.CommandManager for testing
+type mockCommandManager struct {
+	commands map[string]bool
+}
+
+func (m *mockCommandManager) Register(_ display.Command) error { return nil }
+func (m *mockCommandManager) Unregister(_ string) error        { return nil }
+func (m *mockCommandManager) Execute(_, _ string) (bool, string, error) {
+	return false, "", nil
+}
+func (m *mockCommandManager) List() []display.Command { return nil }
+func (m *mockCommandManager) IsCommand(input string) bool {
+	return m.commands[input]
+}
+
+func TestTUIDisplay_ID(t *testing.T) {
+	cm := &mockCommandManager{}
+	d := NewTUIDisplay(cm)
+
+	if d.ID() == "" {
+		t.Error("ID() should not return empty string")
+	}
+	if len(d.ID()) < 5 {
+		t.Errorf("ID() should be at least 5 chars, got %s", d.ID())
+	}
+}
+
+func TestTUIDisplay_OnMessage(t *testing.T) {
+	cm := &mockCommandManager{}
+	d := NewTUIDisplay(cm)
+
+	msg := display.Message{
+		Content: "test message",
+	}
+
+	// Should not block
+	d.OnMessage(msg)
+
+	// Verify message is in channel
+	select {
+	case received := <-d.GetMessageChannel():
+		if received.Content != "test message" {
+			t.Errorf("Expected 'test message', got %v", received.Content)
+		}
+	default:
+		t.Error("Expected message in channel")
+	}
+}
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `go test ./pkg/tui/... -run TestTUIDisplay -v`
+Expected: FAIL (undefined: NewTUIDisplay)
+
+- [ ] **Step 3: Write minimal implementation**
 
 ```go
 // pkg/tui/display.go
@@ -1322,21 +1535,107 @@ func (p *TUIDisplay) addToHistory(input string) {
 }
 ```
 
-- [ ] **Step 2: Verify compilation**
+- [ ] **Step 4: Run test to verify it passes**
 
-Run: `go build ./pkg/tui/...`
-Expected: No errors
+Run: `go test ./pkg/tui/... -run TestTUIDisplay_ID -v`
+Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 5: Write test for history navigation**
+
+```go
+// Add to pkg/tui/display_test.go
+
+func TestTUIDisplay_NavigateHistory(t *testing.T) {
+	cm := &mockCommandManager{}
+	d := NewTUIDisplay(cm)
+
+	// Add some history
+	d.addToHistory("first")
+	d.addToHistory("second")
+	d.addToHistory("third")
+
+	// Navigate up (back in time)
+	result := d.NavigateHistory(-1)
+	if result != "third" {
+		t.Errorf("NavigateHistory(-1) = %v, want 'third'", result)
+	}
+
+	result = d.NavigateHistory(-1)
+	if result != "second" {
+		t.Errorf("NavigateHistory(-1) = %v, want 'second'", result)
+	}
+
+	// Navigate down (forward in time)
+	result = d.NavigateHistory(1)
+	if result != "third" {
+		t.Errorf("NavigateHistory(1) = %v, want 'third'", result)
+	}
+}
+
+func TestTUIDisplay_HistoryNoDuplicates(t *testing.T) {
+	cm := &mockCommandManager{}
+	d := NewTUIDisplay(cm)
+
+	d.addToHistory("test")
+	d.addToHistory("test")
+	d.addToHistory("test")
+
+	history := d.GetHistory()
+	if len(history) != 1 {
+		t.Errorf("Expected 1 history entry, got %d", len(history))
+	}
+}
+```
+
+- [ ] **Step 6: Run tests**
+
+Run: `go test ./pkg/tui/... -run TestTUIDisplay -v`
+Expected: All PASS
+
+- [ ] **Step 7: Write test for multi-line mode**
+
+```go
+// Add to pkg/tui/display_test.go
+
+func TestTUIDisplay_MultiLineMode(t *testing.T) {
+	cm := &mockCommandManager{}
+	d := NewTUIDisplay(cm)
+
+	// Initially not in multi-line mode
+	if d.IsMultiLine() {
+		t.Error("Should not start in multi-line mode")
+	}
+
+	// Toggle on
+	d.ToggleMultiLine()
+	if !d.IsMultiLine() {
+		t.Error("Should be in multi-line mode after toggle")
+	}
+
+	// Toggle off
+	d.ToggleMultiLine()
+	if d.IsMultiLine() {
+		t.Error("Should not be in multi-line mode after second toggle")
+	}
+}
+```
+
+- [ ] **Step 8: Run all TUIDisplay tests**
+
+Run: `go test ./pkg/tui/... -run TestTUIDisplay -v`
+Expected: All PASS
+
+- [ ] **Step 9: Commit**
 
 ```bash
-git add pkg/tui/display.go
-git commit -m "feat(tui): add TUIDisplay implementing display.Display
+git add pkg/tui/display.go pkg/tui/display_test.go
+git commit -m "feat(tui): add TUIDisplay implementing display.Display with TDD
 
 - Implements OnMessage, OnLog, OnAgentLifecycle
 - Manages input history with navigation
 - Supports multi-line input mode
 - Uses buffered channel for message delivery
+- Full test coverage for history and multi-line
 
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 ```
@@ -1443,17 +1742,28 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 - `pkg/display/command_manager.go` - Command manager service
 - `pkg/display/facade.go` - Display facade service
 - `pkg/display/middleware.go` - Agent pipeline middleware
-- `pkg/display/types_test.go` - Type tests
-- `pkg/display/command_manager_test.go` - Command manager tests
-- `pkg/display/facade_test.go` - Facade tests
+- `pkg/display/types_test.go` - Type tests (TDD)
+- `pkg/display/command_manager_test.go` - Command manager tests (TDD)
+- `pkg/display/facade_test.go` - Facade tests (TDD)
+- `pkg/display/middleware_test.go` - Middleware tests (TDD)
 - `pkg/tui/display.go` - TUIDisplay implementation
+- `pkg/tui/display_test.go` - TUIDisplay tests (TDD)
 
 ### Files Modified
 - `pkg/di/container.go` - Add display service registrations
 - `pkg/tui/model.go` - Use display.Message types
+
+### TDD Coverage
+All testable components follow Test-Driven Development:
+- **Task 1**: Types tested with MessageType String() tests
+- **Task 3**: CommandManager with Register, Execute, IsCommand tests
+- **Task 4**: DisplayFacade with RegisterDisplay, DisplayMessage, ring buffer tests
+- **Task 5**: DisplayMiddleware with Process tests for all part types
+- **Task 7**: TUIDisplay with ID, OnMessage, history, multi-line tests
 
 ### Key Patterns
 - All services follow `guide.golang.di.md` patterns
 - Private implementations (`commandManagerImpl`, `displayFacadeImpl`)
 - Method receiver `p` as per coding standards
 - Compile-time interface verification with `var _ Interface = (*impl)(nil)`
+- TDD: Write failing test → Implement → Verify passing test → Commit
