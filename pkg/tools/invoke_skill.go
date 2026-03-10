@@ -155,25 +155,28 @@ func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args map[strin
 	}
 
 	// Determine model (parent's model or override)
-	llmProvider := shared.LLMProviderAnthropic // Default
+	llmClientConfig := &shared.LLMClientConfig{
+		Model: "anthropic/claude-3-5-sonnet-20241022",
+	}
 	if parentAgent, hasParent := t.registry.GetAgent(t.senderID); hasParent {
-		llmProvider = parentAgent.GetConfig().LLMProvider
+		llmClientConfig = parentAgent.GetConfig().LLMClientConfig
 	}
 
 	if modelStr, exists := args["model"].(string); exists && modelStr != "" {
 		switch modelStr {
 		case "sonnet":
-			llmProvider = shared.LLMProviderAnthropic
+			llmClientConfig = &shared.LLMClientConfig{Model: "anthropic/claude-3-5-sonnet-20241022"}
 		case "opus":
-			llmProvider = shared.LLMProviderAnthropic // Could be extended for specific model selection
+			llmClientConfig = &shared.LLMClientConfig{Model: "anthropic/claude-3-opus-20240229"}
 		case "haiku":
-			llmProvider = shared.LLMProviderAnthropic
+			llmClientConfig = &shared.LLMClientConfig{Model: "anthropic/claude-3-5-haiku-20241022"}
 		default:
 			return t.executionHelper.ErrorResponse(fmt.Sprintf("invalid model '%s'. Use 'sonnet', 'opus', or 'haiku'.", modelStr)), nil
 		}
 	}
 
 	// Build skill hook context with typed payload
+	modelName, _ := llmClientConfig.ModelName()
 	skillHookCtx := &hooks.TypedHookContext[hooks.SkillPayload]{
 		BaseContext: hooks.BaseContext{
 			AgentID: t.senderID,
@@ -182,7 +185,7 @@ func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args map[strin
 			Name:        skill.Name,
 			Type:        hooks.SkillType(skill.Type),
 			ContextMode: hooks.SkillContextMode(contextMode),
-			Model:       string(llmProvider),
+			Model:       modelName,
 			FilePath:    skill.FilePath,
 			Version:     skill.Version,
 		},
@@ -195,7 +198,7 @@ func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args map[strin
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("skill invocation blocked: %v", beforeResult.Error)), nil
 	}
 
-	t.logService.Infof("Invoking skill: name=%s context_mode=%s model=%s", skill.Name, contextMode, llmProvider)
+	t.logService.Infof("Invoking skill: name=%s context_mode=%s model=%s", skill.Name, contextMode, modelName)
 
 	// Get skill system prompt (content from SKILL.md)
 	systemPrompt := skill.Content
@@ -227,7 +230,7 @@ func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args map[strin
 		SystemPrompt:    skillPrompt,
 		Role:            fmt.Sprintf("Skill: %s", skill.Name),
 		Description:     fmt.Sprintf("Executing skill: %s", skill.Name),
-		LLMProvider:     llmProvider,
+		LLMClientConfig: llmClientConfig,
 		OutputMode:      shared.OutputModeSummary,
 		History:         history,
 	}

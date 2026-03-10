@@ -167,15 +167,18 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args map[string]
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to get subagent prompt: %v", err)), nil
 	}
 
-	// Get parent agent to inherit LLM provider and optionally message history
+	// Get parent agent to inherit LLM client config and optionally message history
 	parentAgent, hasParent := t.registry.GetAgent(t.senderID)
-	var llmProvider shared.LLMProvider
+	var llmClientConfig *shared.LLMClientConfig
 	if hasParent {
-		llmProvider = parentAgent.GetConfig().LLMProvider
-		t.logService.Debugf("Inheriting LLM provider from parent agent %s", t.senderID)
+		llmClientConfig = parentAgent.GetConfig().LLMClientConfig
+		t.logService.Debugf("Inheriting LLM config from parent agent %s", t.senderID)
 	} else {
-		llmProvider = shared.LLMProviderAnthropic // Default fallback
-		t.logService.Debugf("Using default LLM provider (no parent agent found)")
+		// Default fallback
+		llmClientConfig = &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		}
+		t.logService.Debugf("Using default LLM config (no parent agent found)")
 	}
 
 	var history *gollem.History
@@ -190,15 +193,15 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args map[string]
 	// Create subagent configuration
 	taskID := uuid.New()
 	subagentConfig := &shared.AgentConfig{
-		AllowCompaction: false, // Don't allow compaction in Sub-agents
-		ID:              taskID,
-		ParentID:        &t.senderID,
-		SystemPrompt:    systemPrompt,
-		Role:            role,
-		Description:     description,
-		LLMProvider:     llmProvider,
-		OutputMode:      shared.OutputModeSummary, // Sub-agents use summary mode
-		History:         history,                  // Include parent message history for context awareness
+		AllowCompaction:  false, // Don't allow compaction in Sub-agents
+		ID:               taskID,
+		ParentID:         &t.senderID,
+		SystemPrompt:     systemPrompt,
+		Role:             role,
+		Description:      description,
+		LLMClientConfig:  llmClientConfig,
+		OutputMode:       shared.OutputModeSummary, // Sub-agents use summary mode
+		History:          history,                  // Include parent message history for context awareness
 	}
 
 	// Create the subagent using the factory (which now adds default tools)
