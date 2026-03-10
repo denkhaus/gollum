@@ -139,6 +139,7 @@ func (tr ToolResult) HasDiff() bool {
 var (
 	ErrTargetAgentNotFound     = errors.New("target agent not found")
 	ErrLLMProviderNotSupported = errors.New("LLM provider not supported")
+	ErrInvalidModelFormat      = errors.New("model must be in 'provider/model' format")
 	ErrAgentNotFound           = errors.New("agent not found")
 	ErrPermissionDenied        = errors.New("permission denied")
 )
