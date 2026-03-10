@@ -154,7 +154,7 @@ type AgentConfig struct {
 	Strategy        gollem.Strategy  `json:"-"`
 	Tools           []gollem.Tool    `json:"-"`
 	ToolSets        []gollem.ToolSet `json:"-"`
-	LLMProvider     LLMProvider      `json:"llm_provider"`
+	LLMClientConfig *LLMClientConfig `json:"llm_client_config"`
 	OutputMode      OutputMode       `json:"output_mode"`
 	AllowCompaction bool             `json:"allow_compaction"`
 	History         *gollem.History  `json:"history,omitempty"` // Optional parent message history for context awareness
