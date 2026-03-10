@@ -8,6 +8,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/samber/do/v2"
 )
 
@@ -19,13 +20,22 @@ func NewOptimizerProvider(injector do.Injector) (PromptOptimizer, error) {
 
 	optimizerCfg := cfg.GetPromptOptimizerConfig()
 	strategy := optimizerCfg.DefaultStrategy
-	provider := optimizerCfg.DefaultProvider
+	model := optimizerCfg.Model
+
+	// Create LLM client config for the optimizer
+	llmConfig := &shared.LLMClientConfig{
+		Model: model,
+	}
 
 	// Get LLM client (context.Background is used as client creation is one-time)
-	client, err := clientProvider.GetClient(context.Background(), provider)
+	client, err := clientProvider.GetClient(context.Background(), llmConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get LLM client: %w", err)
 	}
+
+	// Extract provider from model string for optimizer config
+	llmClientCfg := &shared.LLMClientConfig{Model: model}
+	provider, _ := llmClientCfg.Provider()
 
 	// Create optimizer config
 	optCfg := &OptimizerConfig{

@@ -142,11 +142,10 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 	}
 
 	// Get LLM client
-	client, err := f.clientProvider.GetClient(ctx, config.LLMProvider)
+	client, err := f.clientProvider.GetClient(ctx, config.LLMClientConfig)
 	if err != nil {
 		return nil, errs.Wrap(err, errs.TypeInternal, "failed to create llm client").
-			WithContext("agent_id", config.ID).
-			WithContext("llm_provider", config.LLMProvider)
+			WithContext("agent_id", config.ID)
 	}
 
 	// Set the LLM client for session recreation
