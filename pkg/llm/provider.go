@@ -23,7 +23,7 @@ type (
 
 	// ClientProvider provides LLM clients for different providers (Anthropic, OpenAI, Gemini)
 	ClientProvider interface {
-		GetClient(ctx context.Context, provider shared.LLMProvider) (gollem.LLMClient, error)
+		GetClient(ctx context.Context, cnf *shared.LLMClientConfig) (gollem.LLMClient, error)
 	}
 )
 
@@ -40,16 +40,47 @@ func NewClientProvider(injector do.Injector) (ClientProvider, error) {
 	return prov, nil
 }
 
-func (p *clientProvider) GetClient(ctx context.Context, provider shared.LLMProvider) (gollem.LLMClient, error) {
+func (p *clientProvider) GetClient(ctx context.Context, cnf *shared.LLMClientConfig) (gollem.LLMClient, error) {
+	// Parse provider from model string (e.g., "anthropic/claude-3-5-sonnet-20241022")
+	provider, err := cnf.Provider()
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse model name from model string
+	modelName, err := cnf.ModelName()
+	if err != nil {
+		return nil, err
+	}
+
 	switch provider {
 	case shared.LLMProviderGemini:
-
 		cfg := p.configService.GetGeminiConfig()
+		if cfg.ProjectID == "" || cfg.Location == "" {
+			return nil, fmt.Errorf("gemini project_id and location must be configured")
+		}
+
+		// Use config values as defaults, override with cnf values if provided
+		temp := float32(cfg.Temperature)
+		if cnf.Temperature != nil {
+			temp = float32(*cnf.Temperature)
+		}
+
+		maxTokens := int32(cfg.MaxTokens)
+		if cnf.MaxTokens != nil {
+			maxTokens = int32(*cnf.MaxTokens)
+		}
+
+		topP := float32(cfg.TopP)
+		if cnf.TopP != nil {
+			topP = float32(*cnf.TopP)
+		}
+
 		client, err := gemini.New(ctx, cfg.ProjectID, cfg.Location,
-			gemini.WithModel(cfg.Model),
-			gemini.WithTemperature(float32(cfg.Temperature)),
-			gemini.WithMaxTokens(int32(cfg.MaxTokens)),
-			gemini.WithTopP(float32(cfg.TopP)),
+			gemini.WithModel(modelName),
+			gemini.WithTemperature(temp),
+			gemini.WithMaxTokens(maxTokens),
+			gemini.WithTopP(topP),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create gemini client: %v", err)
@@ -57,29 +88,72 @@ func (p *clientProvider) GetClient(ctx context.Context, provider shared.LLMProvi
 		return client, nil
 
 	case shared.LLMProviderAnthropic:
-
 		cfg := p.configService.GetAnthropicConfig()
+		if cfg.APIKey == "" {
+			return nil, fmt.Errorf("anthropic api_key must be configured")
+		}
+
+		// Use config values as defaults, override with cnf values if provided
+		temp := cfg.Temperature
+		if cnf.Temperature != nil {
+			temp = *cnf.Temperature
+		}
+
+		maxTokens := int64(cfg.MaxTokens)
+		if cnf.MaxTokens != nil {
+			maxTokens = int64(*cnf.MaxTokens)
+		}
+
+		topP := cfg.TopP
+		if cnf.TopP != nil {
+			topP = *cnf.TopP
+		}
+
+		baseURL := cfg.BaseURL
+		if baseURL == "" {
+			baseURL = "https://api.anthropic.com"
+		}
+
 		client, err := claude.New(ctx, cfg.APIKey,
-			claude.WithTemperature(cfg.Temperature),
-			claude.WithMaxTokens(int64(cfg.MaxTokens)),
-			claude.WithTopP(cfg.TopP),
-			claude.WithBaseURL(cfg.BaseURL),
-			claude.WithModel(cfg.Model),
+			claude.WithTemperature(temp),
+			claude.WithMaxTokens(maxTokens),
+			claude.WithTopP(topP),
+			claude.WithBaseURL(baseURL),
+			claude.WithModel(modelName),
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create antropic client: %v", err)
+			return nil, fmt.Errorf("failed to create anthropic client: %v", err)
 		}
 		return client, nil
 
 	case shared.LLMProviderOpenAI:
-
 		cfg := p.configService.GetOpenAIConfig()
+		if cfg.APIKey == "" {
+			return nil, fmt.Errorf("openai api_key must be configured")
+		}
+
+		// Use config values as defaults, override with cnf values if provided
+		temp := float32(cfg.Temperature)
+		if cnf.Temperature != nil {
+			temp = float32(*cnf.Temperature)
+		}
+
+		maxTokens := cfg.MaxTokens
+		if cnf.MaxTokens != nil {
+			maxTokens = *cnf.MaxTokens
+		}
+
+		topP := float32(cfg.TopP)
+		if cnf.TopP != nil {
+			topP = float32(*cnf.TopP)
+		}
+
 		client, err := openai.New(ctx, cfg.APIKey,
 			openai.WithBaseURL(cfg.BaseURL),
-			openai.WithModel(cfg.Model),
-			openai.WithMaxTokens(cfg.MaxTokens),
-			openai.WithTemperature(float32(cfg.Temperature)),
-			openai.WithTopP(float32(cfg.TopP)),
+			openai.WithModel(modelName),
+			openai.WithMaxTokens(maxTokens),
+			openai.WithTemperature(temp),
+			openai.WithTopP(topP),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create openai client: %v", err)
