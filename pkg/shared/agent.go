@@ -3,6 +3,7 @@ package shared
 
 import (
 	"context"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
@@ -27,4 +28,33 @@ type Agent interface {
 	// Non-blocking - can be called on-the-fly.
 	// Used by Observed Memory Pattern for compaction.
 	UpdateHistory(ctx context.Context, modifier func(*gollem.History) (*gollem.History, error)) error
+}
+
+type LLMClientConfig struct {
+	// Model describes a llm-provider/model combination in the format "<provider>/model"
+	Model string
+	// Temperature for model initialization (optional)
+	Temperature *float64
+	// MaxTokens for model initialization (optional)
+	MaxTokens *int
+	// TopP for model initialization (optional)
+	TopP *float64
+}
+
+// Provider parses and returns the LLM provider from the Model field.
+// Model must be in "provider/model" format (e.g., "anthropic/claude-3-5-sonnet-20241022").
+// Returns ErrInvalidModelFormat if no slash is present or if slash is at the start/end.
+// Returns ErrLLMProviderNotSupported if the provider is not recognized.
+func (c *LLMClientConfig) Provider() (LLMProvider, error) {
+	idx := strings.Index(c.Model, "/")
+	if idx == -1 || idx == 0 || idx == len(c.Model)-1 {
+		return "", ErrInvalidModelFormat
+	}
+	providerStr := c.Model[:idx]
+	switch LLMProvider(providerStr) {
+	case LLMProviderAnthropic, LLMProviderOpenAI, LLMProviderGemini:
+		return LLMProvider(providerStr), nil
+	default:
+		return "", ErrLLMProviderNotSupported
+	}
 }
