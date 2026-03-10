@@ -45,7 +45,12 @@ func (p *clientProvider) GetClient(ctx context.Context, provider shared.LLMProvi
 	case shared.LLMProviderGemini:
 
 		cfg := p.configService.GetGeminiConfig()
-		client, err := gemini.New(ctx, cfg.ProjectID, cfg.Location, gemini.WithModel(cfg.Model))
+		client, err := gemini.New(ctx, cfg.ProjectID, cfg.Location,
+			gemini.WithModel(cfg.Model),
+			gemini.WithTemperature(float32(cfg.Temperature)),
+			gemini.WithMaxTokens(int32(cfg.MaxTokens)),
+			gemini.WithTopP(float32(cfg.TopP)),
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create gemini client: %v", err)
 		}
@@ -55,6 +60,9 @@ func (p *clientProvider) GetClient(ctx context.Context, provider shared.LLMProvi
 
 		cfg := p.configService.GetAnthropicConfig()
 		client, err := claude.New(ctx, cfg.APIKey,
+			claude.WithTemperature(cfg.Temperature),
+			claude.WithMaxTokens(int64(cfg.MaxTokens)),
+			claude.WithTopP(cfg.TopP),
 			claude.WithBaseURL(cfg.BaseURL),
 			claude.WithModel(cfg.Model),
 		)
@@ -69,6 +77,9 @@ func (p *clientProvider) GetClient(ctx context.Context, provider shared.LLMProvi
 		client, err := openai.New(ctx, cfg.APIKey,
 			openai.WithBaseURL(cfg.BaseURL),
 			openai.WithModel(cfg.Model),
+			openai.WithMaxTokens(cfg.MaxTokens),
+			openai.WithTemperature(float32(cfg.Temperature)),
+			openai.WithTopP(float32(cfg.TopP)),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create openai client: %v", err)

@@ -12,23 +12,32 @@ import (
 
 // AnthropicConfig holds configuration for Anthropic's Claude API.
 type AnthropicConfig struct {
-	APIKey  string `envconfig:"API_KEY"`
-	BaseURL string `envconfig:"BASE_URL"`
-	Model   string `envconfig:"MODEL"`
+	APIKey      string  `envconfig:"API_KEY"`
+	BaseURL     string  `envconfig:"BASE_URL"`
+	Model       string  `envconfig:"MODEL"`
+	Temperature float64 `envconfig:"TEMPERATURE" default:"0.7"`
+	MaxTokens   int     `envconfig:"MAX_TOKENS" default:"8192"`
+	TopP        float64 `envconfig:"TOP_P" default:"1.0"`
 }
 
 // OpenAIConfig holds configuration for OpenAI's GPT API.
 type OpenAIConfig struct {
-	APIKey  string `envconfig:"API_KEY"`
-	BaseURL string `envconfig:"BASE_URL"`
-	Model   string `envconfig:"MODEL"`
+	APIKey      string  `envconfig:"API_KEY"`
+	BaseURL     string  `envconfig:"BASE_URL"`
+	Model       string  `envconfig:"MODEL"`
+	Temperature float64 `envconfig:"TEMPERATURE" default:"0.7"`
+	MaxTokens   int     `envconfig:"MAX_TOKENS" default:"4096"`
+	TopP        float64 `envconfig:"TOP_P" default:"1.0"`
 }
 
 // GeminiConfig holds configuration for Google's Gemini API.
 type GeminiConfig struct {
-	ProjectID string `envconfig:"PROJECT_ID"`
-	Location  string `envconfig:"LOCATION"`
-	Model     string `envconfig:"MODEL"`
+	ProjectID   string  `envconfig:"PROJECT_ID"`
+	Location    string  `envconfig:"LOCATION"`
+	Model       string  `envconfig:"MODEL"`
+	Temperature float64 `envconfig:"TEMPERATURE" default:"1.0"`
+	MaxTokens   int     `envconfig:"MAX_TOKENS" default:"4096"`
+	TopP        float64 `envconfig:"TOP_P" default:"1.0"`
 }
 
 // AgentLimitsConfig defines limits for agent creation and management.
