@@ -1,6 +1,11 @@
 package flows
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"strings"
+
+	"github.com/denkhaus/gollum/pkg/shared"
+)
 
 // Flow represents a complete workflow definition
 type Flow struct {
@@ -17,13 +22,13 @@ type Flow struct {
 
 // InputBlock defines the flow's input interface
 type InputBlock struct {
-	Strings  []FieldDef `xml:"string"`
-	Ints     []FieldDef `xml:"int"`
-	Bools    []FieldDef `xml:"bool"`
-	Floats   []FieldDef `xml:"float"`
-	Arrays   []FieldDef `xml:"array"`
-	Maps     []FieldDef `xml:"map"`
-	Objects  []ObjectDef `xml:"object"`
+	Strings []FieldDef  `xml:"string"`
+	Ints    []FieldDef  `xml:"int"`
+	Bools   []FieldDef  `xml:"bool"`
+	Floats  []FieldDef  `xml:"float"`
+	Arrays  []FieldDef  `xml:"array"`
+	Maps    []FieldDef  `xml:"map"`
+	Objects []ObjectDef `xml:"object"`
 }
 
 // GetAllFields returns all input fields as a slice
@@ -97,11 +102,11 @@ func (i *InputBlock) GetAllFields() []FieldDef {
 
 // OutputBlock defines the flow's output interface
 type OutputBlock struct {
-	Strings  []FieldDef `xml:"string"`
-	Ints     []FieldDef `xml:"int"`
-	Bools    []FieldDef `xml:"bool"`
-	Floats   []FieldDef `xml:"float"`
-	Objects  []ObjectDef `xml:"object"`
+	Strings []FieldDef  `xml:"string"`
+	Ints    []FieldDef  `xml:"int"`
+	Bools   []FieldDef  `xml:"bool"`
+	Floats  []FieldDef  `xml:"float"`
+	Objects []ObjectDef `xml:"object"`
 }
 
 // GetAllFields returns all output fields as a slice
@@ -136,11 +141,11 @@ func (o *OutputBlock) GetAllFields() []FieldDef {
 
 // ContextBlock defines internal context fields
 type ContextBlock struct {
-	Strings   []ContextField `xml:"string"`
-	Ints      []ContextField `xml:"int"`
-	Bools     []ContextField `xml:"bool"`
-	Floats    []ContextField `xml:"float"`
-	Objects   []ObjectDef    `xml:"object"`
+	Strings   []ContextField  `xml:"string"`
+	Ints      []ContextField  `xml:"int"`
+	Bools     []ContextField  `xml:"bool"`
+	Floats    []ContextField  `xml:"float"`
+	Objects   []ObjectDef     `xml:"object"`
 	Computeds []ComputedField `xml:"computed"`
 }
 
@@ -172,18 +177,70 @@ type ContextField struct {
 
 // ComputedField represents a computed context field
 type ComputedField struct {
-	Name  string `xml:"name,attr"`
-	Type  string `xml:"type,attr"`
-	When  string `xml:"when,attr"`  // Expression
+	Name string `xml:"name,attr"`
+	Type string `xml:"type,attr"`
+	When string `xml:"when,attr"` // Expression
 }
 
 // Agent defines an LLM agent
 type Agent struct {
-	Name        string `xml:"name,attr"`
-	Model       string `xml:"model,attr"`
-	Prompt      string `xml:"prompt"`
-	Temperature string `xml:"temperature"`
-	MaxTokens   int    `xml:"max_tokens"`
+	Name        string  `xml:"name,attr"`
+	Model       string  `xml:"model,attr"`
+	Prompt      string  `xml:"prompt"`
+	Temperature float64 `xml:"temperature"`
+	TopP        float64 `xml:"top_p"`
+	MaxTokens   int     `xml:"max_tokens"`
+}
+
+func (p Agent) ToClientConfig() *shared.LLMClientConfig {
+	// Infer provider and add prefix to model
+	provider := inferProvider(p.Model)
+	model := string(provider) + "/" + p.Model
+
+	cnf := &shared.LLMClientConfig{
+		Model: model,
+	}
+
+	if p.MaxTokens != 0 {
+		cnf.MaxTokens = &p.MaxTokens
+	}
+
+	if p.Temperature != 0.0 {
+		cnf.Temperature = &p.Temperature
+	}
+
+	if p.TopP != 0.0 {
+		cnf.TopP = &p.TopP
+	}
+
+	return cnf
+}
+
+// inferProvider infers the LLM provider from the model name
+func inferProvider(model string) shared.LLMProvider {
+	modelLower := strings.ToLower(model)
+
+	// OpenAI models
+	if strings.HasPrefix(modelLower, "gpt-") ||
+		strings.HasPrefix(modelLower, "o1-") ||
+		strings.Contains(modelLower, "openai") {
+		return shared.LLMProviderOpenAI
+	}
+
+	// Gemini models
+	if strings.HasPrefix(modelLower, "gemini-") ||
+		strings.Contains(modelLower, "google") {
+		return shared.LLMProviderGemini
+	}
+
+	// Claude models (default)
+	if strings.HasPrefix(modelLower, "claude-") ||
+		strings.HasPrefix(modelLower, "anthropic") {
+		return shared.LLMProviderAnthropic
+	}
+
+	// Default to Anthropic
+	return shared.LLMProviderAnthropic
 }
 
 // State represents a state in the workflow
@@ -197,20 +254,20 @@ type State struct {
 
 // Step is a single execution step
 type Step struct {
-	XMLName   xml.Name
-	Type      string  `xml:"type,attr"`
-	Name      string  `xml:"name,attr"`
-	Agent     string  `xml:"agent,attr"`
-	Function  string  `xml:"function,attr"`
-	Tool      string  `xml:"tool,attr"`
-	Prompt    string  `xml:"prompt"`
-	Cmd       string  `xml:"cmd"`
-	Tools     string  `xml:"tools"`
-	Timeout   string  `xml:"timeout"`
-	Params    []StepParam `xml:"params>param"`
-	OnError   *OnErrorTransition `xml:"on-error"`
-	Retry     *Retry  `xml:"retry"`
-	Output    *StepOutput `xml:"output"`
+	XMLName  xml.Name
+	Type     string             `xml:"type,attr"`
+	Name     string             `xml:"name,attr"`
+	Agent    string             `xml:"agent,attr"`
+	Function string             `xml:"function,attr"`
+	Tool     string             `xml:"tool,attr"`
+	Prompt   string             `xml:"prompt"`
+	Cmd      string             `xml:"cmd"`
+	Tools    string             `xml:"tools"`
+	Timeout  string             `xml:"timeout"`
+	Params   []StepParam        `xml:"params>param"`
+	OnError  *OnErrorTransition `xml:"on-error"`
+	Retry    *Retry             `xml:"retry"`
+	Output   *StepOutput        `xml:"output"`
 }
 
 // OnErrorTransition defines an error handler transition
@@ -226,7 +283,7 @@ type Retry struct {
 
 // StepOutput defines step output mapping
 type StepOutput struct {
-	Assign string     `xml:"assign,attr"`
+	Assign string       `xml:"assign,attr"`
 	Paths  []OutputPath `xml:",any"`
 }
 
@@ -246,12 +303,12 @@ type StepParam struct {
 
 // Call invokes a sub-flow
 type Call struct {
-	Ref      string             `xml:"ref,attr"`
-	When     string             `xml:"when,attr"`
-	Timeout  string             `xml:"timeout,attr"`
-	OnError  *OnErrorTransition `xml:"on-error"`
-	Input    []CallField        `xml:"input>field"`
-	Output   []CallField        `xml:"output>field"`
+	Ref     string             `xml:"ref,attr"`
+	When    string             `xml:"when,attr"`
+	Timeout string             `xml:"timeout,attr"`
+	OnError *OnErrorTransition `xml:"on-error"`
+	Input   []CallField        `xml:"input>field"`
+	Output  []CallField        `xml:"output>field"`
 }
 
 // CallField maps fields for call input/output

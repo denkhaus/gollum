@@ -32,15 +32,15 @@ func (p *flowExecutorImpl) executeLLMStep(step *flows.Step, stateName string) er
 
 	// Map flow Agent to shared.AgentConfig
 	config := &shared.AgentConfig{
-		ID:           uuid.New(),
-		SystemPrompt: agentConfig.Prompt,
-		Role:         "flow-llm-step",
-		Description:  fmt.Sprintf("LLM agent for flow %s, step %s", p.flow.Name, step.Name),
-		LLMProvider:  p.inferLLMProvider(agentConfig.Model),
-		OutputMode:   shared.OutputModeSilent, // Suppress output during flow execution
-		Strategy:     simple.New(),
-		Tools:        nil, // Tools can be added later if needed
-		ToolSets:     nil,
+		ID:              uuid.New(),
+		SystemPrompt:    agentConfig.Prompt,
+		Role:            "flow-llm-step",
+		Description:     fmt.Sprintf("LLM agent for flow %s, step %s", p.flow.Name, step.Name),
+		LLMClientConfig: agentConfig.ToClientConfig(),
+		OutputMode:      shared.OutputModeSilent, // Suppress output during flow execution
+		Strategy:        simple.New(),
+		Tools:           nil, // Tools can be added later if needed
+		ToolSets:        nil,
 	}
 
 	// Create agent using factory
@@ -84,36 +84,6 @@ func (p *flowExecutorImpl) executeLLMStep(step *flows.Step, stateName string) er
 	}
 
 	return nil
-}
-
-// inferLLMProvider infers the LLM provider from the model name
-// Default to Anthropic if unknown
-func (p *flowExecutorImpl) inferLLMProvider(model string) shared.LLMProvider {
-	// Check model name patterns
-	modelLower := strings.ToLower(model)
-
-	// OpenAI models
-	if strings.HasPrefix(modelLower, "gpt-") ||
-		strings.HasPrefix(modelLower, "o1-") ||
-		strings.Contains(modelLower, "openai") {
-		return shared.LLMProviderOpenAI
-	}
-
-	// Gemini models
-	if strings.HasPrefix(modelLower, "gemini-") ||
-		strings.Contains(modelLower, "google") {
-		return shared.LLMProviderGemini
-	}
-
-	// Claude models (default)
-	// claude-3, claude-3.5, claude-3.7, claude-4, etc.
-	if strings.HasPrefix(modelLower, "claude-") ||
-		strings.HasPrefix(modelLower, "anthropic") {
-		return shared.LLMProviderAnthropic
-	}
-
-	// Default to Anthropic
-	return shared.LLMProviderAnthropic
 }
 
 // parseTools parses tools attribute into tool names
