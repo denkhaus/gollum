@@ -154,8 +154,10 @@ func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (sha
 		AllowCompaction: true,
 		SystemPrompt:    systemPrompt,
 		Role:            "Supervisor Agent",
-		LLMProvider:     shared.LLMProviderAnthropic,
-		ToolSets:        toolSet,
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
+		ToolSets: toolSet,
 	}
 
 	// Create agent
