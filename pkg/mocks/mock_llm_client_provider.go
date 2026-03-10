@@ -43,16 +43,16 @@ func (m *MockClientProvider) EXPECT() *MockClientProviderMockRecorder {
 }
 
 // GetClient mocks base method.
-func (m *MockClientProvider) GetClient(ctx context.Context, provider shared.LLMProvider) (gollem.LLMClient, error) {
+func (m *MockClientProvider) GetClient(ctx context.Context, cnf *shared.LLMClientConfig) (gollem.LLMClient, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetClient", ctx, provider)
+	ret := m.ctrl.Call(m, "GetClient", ctx, cnf)
 	ret0, _ := ret[0].(gollem.LLMClient)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetClient indicates an expected call of GetClient.
-func (mr *MockClientProviderMockRecorder) GetClient(ctx, provider any) *gomock.Call {
+func (mr *MockClientProviderMockRecorder) GetClient(ctx, cnf any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClient", reflect.TypeOf((*MockClientProvider)(nil).GetClient), ctx, provider)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClient", reflect.TypeOf((*MockClientProvider)(nil).GetClient), ctx, cnf)
 }
