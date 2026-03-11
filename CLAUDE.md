@@ -1,5 +1,11 @@
 # Gollum Project - Infos for the coding agent
 
+
+# What's next
+
+To know what's next to do in this repo use te `forgejo-cli` skill.
+Then use `forgejo issue ready --repo denkhaus/gollum` to lern about the next ready tasks.
+
 # Knowledge Base
 
 - `/home/denkhaus/dev/kb`
