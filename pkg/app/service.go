@@ -64,7 +64,7 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 	workspaceService := do.MustInvoke[workspace.Service](injector)
 	skillsService := do.MustInvoke[skills.SkillService](injector)
 	mcpRegistry := do.MustInvoke[mcpregistry.MCPRegistry](injector)
-	channelFacade := do.MustInvoke[channel.ChannelFacade](injector)
+	channelFacade := do.MustInvoke[channel.ChannelFacadeService](injector)
 
 	return &applicationServiceImpl{
 		sessionID:        uuid.New(),

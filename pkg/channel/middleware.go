@@ -41,7 +41,7 @@ func NewChannelMiddleware(facade ChannelFacade, agentID uuid.UUID, agentRole str
 
 // NewChannelMiddlewareProvider creates a provider for channel middleware
 func NewChannelMiddlewareProvider(injector do.Injector) (ChannelMiddlewareProvider, error) {
-	facade := do.MustInvoke[ChannelFacade](injector)
+	facade := do.MustInvoke[ChannelFacadeService](injector)
 
 	return &channelMiddlewareProvider{
 		facade: facade,

@@ -34,7 +34,7 @@ var _ ChannelFacade = (*channelFacadeImpl)(nil)
 
 // NewChannelFacade creates a new channel facade service
 func NewChannelFacade(injector do.Injector) (ChannelFacadeService, error) {
-	cm := do.MustInvoke[CommandManager](injector)
+	cm := do.MustInvoke[CommandManagerService](injector)
 	reg := do.MustInvoke[registry.AgentRegistry](injector)
 	cfg := do.MustInvoke[config.ConfigService](injector)
 
