@@ -20,7 +20,7 @@ func TestSkillDiscovery_Integration(t *testing.T) {
 
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	// Create temporary directory with test skills
 	tmpDir := t.TempDir()
@@ -96,7 +96,7 @@ func TestSkillDiscovery_MultiplePaths(t *testing.T) {
 
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	// Create multiple directories with skills
 	tmpDir := t.TempDir()
@@ -142,7 +142,7 @@ func TestSkillDiscovery_IgnoredDirectories(t *testing.T) {
 
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	tmpDir := t.TempDir()
 
@@ -191,7 +191,7 @@ func TestSkillDiscovery_MaxDepth(t *testing.T) {
 
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	tmpDir := t.TempDir()
 
@@ -238,7 +238,7 @@ func TestSkillDiscovery_DuplicateDetection(t *testing.T) {
 
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	tmpDir := t.TempDir()
 	dir1 := filepath.Join(tmpDir, "dir1")
@@ -538,7 +538,7 @@ func TestSkillDiscovery_MustBeInOwnFolder(t *testing.T) {
 
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	tmpDir := t.TempDir()
 

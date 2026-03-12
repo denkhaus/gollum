@@ -84,13 +84,13 @@ func TestFlowExecutor_ExecuteStepWithHooks(t *testing.T) {
 	var capturedBefore, capturedAfter *hooks.ExecutorPayload
 
 	// Register before hook
-	hm.RegisterExecutorHook(func(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.ExecutorPayload], next func() error) error {
+	_ = hm.RegisterExecutorHook(func(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.ExecutorPayload], next func() error) error {
 		capturedBefore = &hookCtx.Payload
 		return next()
 	}, hooks.TypedHookMetadata{Name: "before", Point: hooks.BeforeFlowStep})
 
 	// Register after hook
-	hm.RegisterExecutorHook(func(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.ExecutorPayload], next func() error) error {
+	_ = hm.RegisterExecutorHook(func(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.ExecutorPayload], next func() error) error {
 		capturedAfter = &hookCtx.Payload
 		return next()
 	}, hooks.TypedHookMetadata{Name: "after", Point: hooks.AfterFlowStep})

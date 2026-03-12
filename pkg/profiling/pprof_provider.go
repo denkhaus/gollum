@@ -78,10 +78,14 @@ func (p *PProfProvider) Disable() error {
 
 	// Close profile files
 	if p.cpuProfile != nil {
-		p.cpuProfile.Close()
+		if err := p.cpuProfile.Close(); err != nil {
+			// Log error but don't fail - continue with shutdown
+		}
 	}
 	if p.memProfile != nil {
-		p.memProfile.Close()
+		if err := p.memProfile.Close(); err != nil {
+			// Log error but don't fail - continue with shutdown
+		}
 	}
 
 	p.enabled = false

@@ -26,7 +26,7 @@ func TestMCPRegistry_CreateStdioClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewMCPRegistryWithLoader() error = %v", err)
 	}
-	defer registry.Close()
+	defer func() { _ = registry.Close() }()
 
 	// Invalid servers should be skipped, returning 0 ToolSets
 	toolSets := registry.GetToolSets()
@@ -51,7 +51,7 @@ func TestMCPRegistry_CreateSSEClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewMCPRegistryWithLoader() error = %v", err)
 	}
-	defer registry.Close()
+	defer func() { _ = registry.Close() }()
 
 	// Invalid SSE servers should be skipped
 	toolSets := registry.GetToolSets()
@@ -76,7 +76,7 @@ func TestMCPRegistry_CreateStreamableHTTPClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewMCPRegistryWithLoader() error = %v", err)
 	}
-	defer registry.Close()
+	defer func() { _ = registry.Close() }()
 
 	// Invalid streamable HTTP servers should be skipped
 	toolSets := registry.GetToolSets()
@@ -100,7 +100,7 @@ func TestMCPRegistry_UnsupportedType(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewMCPRegistryWithLoader() error = %v", err)
 	}
-	defer registry.Close()
+	defer func() { _ = registry.Close() }()
 
 	// Unsupported type should be skipped
 	toolSets := registry.GetToolSets()

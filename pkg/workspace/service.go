@@ -53,7 +53,9 @@ func NewServiceProvider(injector do.Injector) (Service, error) {
 
 	// Initialize with current working directory
 	if wd, err := os.Getwd(); err == nil && wd != "" {
-		service.setCurrentWorkspace(wd)
+		if err := service.setCurrentWorkspace(wd); err != nil {
+			logService.Error("failed to set initial workspace", zap.Error(err))
+		}
 	}
 
 	// Subscribe to events
