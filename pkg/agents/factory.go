@@ -29,6 +29,7 @@ type defaultAgentFactory struct {
 	promptManager   manager.PromptManager
 	displayProvider middleware.DisplayMiddlewareProvider
 	summaryProvider middleware.SummaryMiddlewareProvider
+	channelProvider middleware.ChannelMiddlewareProvider
 	// Tool providers for adding default tools to all agents
 	spawnAgentToolProv      tools.SpawnAgentToolProvider
 	agentOutputToolProv     tools.AgentOutputToolProvider
@@ -56,6 +57,7 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 	promptManager := do.MustInvoke[manager.PromptManager](injector)
 	displayProvider := do.MustInvoke[middleware.DisplayMiddlewareProvider](injector)
 	summaryProvider := do.MustInvoke[middleware.SummaryMiddlewareProvider](injector)
+	channelProvider := do.MustInvoke[middleware.ChannelMiddlewareProvider](injector)
 
 	// Get tool providers
 	spawnAgentToolProv := do.MustInvoke[tools.SpawnAgentToolProvider](injector)
@@ -82,6 +84,7 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 		promptManager:           promptManager,
 		displayProvider:         displayProvider,
 		summaryProvider:         summaryProvider,
+		channelProvider:         channelProvider,
 		spawnAgentToolProv:      spawnAgentToolProv,
 		agentOutputToolProv:     agentOutputToolProv,
 		removeAgentToolProv:     removeAgentToolProv,
@@ -211,6 +214,14 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 	case shared.OutputModeSilent:
 		// use unaltered base options
 	}
+
+	// Add channel middleware (always - routes all agent output to channel system)
+	// This is added AFTER display middleware so it captures all output
+	channelMiddleware := f.channelProvider.CreateChannelMiddleware(config.ID, config.Role)
+	baseOptions = append(baseOptions,
+		gollem.WithContentBlockMiddleware(channelMiddleware.ContentBlockMiddleware),
+		gollem.WithToolMiddleware(channelMiddleware.ToolMiddleware),
+	)
 
 	// Create gollem agent with configured options
 	defAgent.base = gollem.New(client, baseOptions...)

@@ -93,6 +93,7 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	// Middleware
 	do.Provide(p.injector, middleware.NewDisplayMiddlewareProvider)
 	do.Provide(p.injector, middleware.NewSummaryMiddlewareProvider)
+	do.Provide(p.injector, middleware.NewChannelMiddlewareProvider)
 
 	// Channel Abstraction Layer
 	do.Provide(p.injector, channel.NewCommandManager)
