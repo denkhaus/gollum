@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/markdown"
@@ -18,8 +19,8 @@ import (
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/denkhaus/gollum/pkg/tui"
 	"github.com/denkhaus/gollum/pkg/workspace"
+	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/samber/do/v2"
 )
 
@@ -36,6 +37,7 @@ type ApplicationService interface {
 // applicationServiceImpl implements the ApplicationService interface
 type applicationServiceImpl struct {
 	gollumDir        string
+	sessionID        uuid.UUID
 	logService       logger.LoggerService
 	fsm              state.FileStateManager
 	agentRegistry    registry.AgentRegistry
@@ -65,6 +67,7 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 	channelFacade := do.MustInvoke[channel.ChannelFacade](injector)
 
 	return &applicationServiceImpl{
+		sessionID:        uuid.New(),
 		logService:       logService,
 		fsm:              fsm,
 		agentRegistry:    agentRegistry,
@@ -81,6 +84,16 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 // Run starts the application, performing all initialization and running the interactive loop
 func (p *applicationServiceImpl) Run(ctx context.Context) error {
 
+	// Enable file logging (LoggerService handles logs/ subdir and cleanup)
+	if err := p.logService.EnableFileLogging(p.gollumDir, p.sessionID); err != nil {
+		return fmt.Errorf("failed to enable file logging: %w", err)
+	}
+	defer func() {
+		if err := p.logService.CloseFileLogging(); err != nil {
+			p.logService.Warnf("failed to close file logging: %v", err)
+		}
+	}()
+
 	// Create .gollum directory
 	if err := p.ensureGollumDirectory(); err != nil {
 		return fmt.Errorf("failed to create .gollum directory: %w", err)
@@ -96,16 +109,6 @@ func (p *applicationServiceImpl) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	// Enable file logging (LoggerService handles logs/ subdir and cleanup)
-	if err := p.logService.EnableFileLogging(p.gollumDir, agent.GetID()); err != nil {
-		return fmt.Errorf("failed to enable file logging: %w", err)
-	}
-	defer func() {
-		if err := p.logService.CloseFileLogging(); err != nil {
-			p.logService.Warnf("failed to close file logging: %v", err)
-		}
-	}()
 
 	// Run interactive loop
 	return p.runInteractiveLoop(ctx, agent)
@@ -183,8 +186,8 @@ func (p *applicationServiceImpl) runInteractiveLoop(ctx context.Context, agent s
 	// Create the TUI model with all options
 	// This creates the TUIChannel which we need to register with ChannelFacade
 	model := tui.NewModel(ctx, executor)
-	tui.WithTUIChannel()(&model)            // Create and set TUIChannel
-	tui.WithLoggerService(p.logService)(&model)   // Set logger service
+	tui.WithTUIChannel()(&model)                         // Create and set TUIChannel
+	tui.WithLoggerService(p.logService)(&model)          // Set logger service
 	tui.WithMarkdownRenderer(p.markdownRenderer)(&model) // Set markdown renderer
 
 	// Register the TUIChannel with ChannelFacade
