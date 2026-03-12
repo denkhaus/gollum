@@ -21,17 +21,24 @@ func TestJSONLogFormat(t *testing.T) {
 	sessionID := uuid.New()
 
 	// Create a minimal logger service
+	logger, err := zap.NewProduction()
+	require.NoError(t, err)
+
 	svc := &service{
-		config: zap.NewProductionConfig(),
+		logger:         logger,
+		atomicLevel:    zap.NewAtomicLevelAt(zap.InfoLevel),
+		config:        zap.NewProductionConfig(),
+		logBuffer:      newLogBuffer(1000, false), // disabled for test
 		configService: &mockConfigService{},
 	}
 
 	// Enable file logging
-	err := svc.EnableFileLogging(tmpDir, sessionID)
+	logErr := svc.EnableFileLogging(tmpDir, sessionID)
+	require.NoError(t, logErr)
 	require.NoError(t, err)
 	defer svc.CloseFileLogging()
 
-	// Log with agent ID
+	// Log with agent ID (using InfoWithAgent)
 	agentID := uuid.New()
 	svc.InfoWithAgent("Test message", agentID, zap.String("test_field", "test_value"))
 
@@ -39,17 +46,18 @@ func TestJSONLogFormat(t *testing.T) {
 	err = svc.Flush()
 	require.NoError(t, err)
 
-	// Read the log file
-	logPath := filepath.Join(tmpDir, sessionID.String()+".log")
+	// Read the log file (it's in the logs/ subdirectory)
+	logPath := filepath.Join(tmpDir, "logs", sessionID.String()+".log")
 	content, err := os.ReadFile(logPath)
 	require.NoError(t, err)
 
 	// Verify it's valid JSON
 	lines := strings.Split(strings.TrimSpace(string(content)), "\n")
-	require.Greater(t, len(lines), 0, "Log file should have at least one line")
+	require.Greater(t, len(lines), 1, "Log file should have at least two lines")
 
+	// First line is "Session logging enabled", second line is our test message
 	var logEntry map[string]interface{}
-	err = json.Unmarshal([]byte(lines[0]), &logEntry)
+	err = json.Unmarshal([]byte(lines[1]), &logEntry)
 	require.NoError(t, err, "Log line should be valid JSON")
 
 	// Verify required fields

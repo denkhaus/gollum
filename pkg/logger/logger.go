@@ -25,6 +25,14 @@ type LoggerService interface {
 	Debugf(template string, args ...any)
 	Warn(msg string, fields ...zap.Field)
 	Warnf(template string, args ...any)
+	// InfoWithAgent logs an info message with agent ID
+	InfoWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)
+	// ErrorWithAgent logs an error message with agent ID
+	ErrorWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)
+	// DebugWithAgent logs a debug message with agent ID
+	DebugWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)
+	// WarnWithAgent logs a warning message with agent ID
+	WarnWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)
 	GetLogger() *zap.Logger
 	// GetLogs retrieves log entries from the session buffer
 	GetLogs(filter LogFilter) []LogEntry
@@ -197,6 +205,30 @@ func (s *service) Warnf(template string, args ...any) {
 	s.storeInBuffer("warn", msg, nil)
 }
 
+// InfoWithAgent logs an info message with agent ID included as a structured field.
+func (s *service) InfoWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
+	allFields := append([]zap.Field{zap.String("agent_id", agentID.String())}, fields...)
+	s.Info(msg, allFields...)
+}
+
+// ErrorWithAgent logs an error message with agent ID included as a structured field.
+func (s *service) ErrorWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
+	allFields := append([]zap.Field{zap.String("agent_id", agentID.String())}, fields...)
+	s.Error(msg, allFields...)
+}
+
+// DebugWithAgent logs a debug message with agent ID included as a structured field.
+func (s *service) DebugWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
+	allFields := append([]zap.Field{zap.String("agent_id", agentID.String())}, fields...)
+	s.Debug(msg, allFields...)
+}
+
+// WarnWithAgent logs a warning message with agent ID included as a structured field.
+func (s *service) WarnWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
+	allFields := append([]zap.Field{zap.String("agent_id", agentID.String())}, fields...)
+	s.Warn(msg, allFields...)
+}
+
 // storeInBuffer stores a log entry in the session buffer.
 func (s *service) storeInBuffer(level string, msg string, fields []zap.Field) {
 	entry := LogEntry{
@@ -204,8 +236,19 @@ func (s *service) storeInBuffer(level string, msg string, fields []zap.Field) {
 		Level:     level,
 		Message:   msg,
 		Fields:    zapFieldsToMap(fields),
-		// AgentID is optional and would need to be extracted from fields if present
-		// For now, we'll leave it as Nil (can be set by tools that call Info/Error/etc)
+	}
+
+	// Extract agent_id from fields if present
+	for _, field := range fields {
+		if field.Key == "agent_id" {
+			// For zap.String fields, the value is stored in field.String
+			if field.Type == zapcore.StringType {
+				entry.AgentID, _ = uuid.Parse(field.String)
+			} else if agentStr, ok := field.Interface.(string); ok {
+				entry.AgentID, _ = uuid.Parse(agentStr)
+			}
+			break
+		}
 	}
 
 	s.logBuffer.add(entry)

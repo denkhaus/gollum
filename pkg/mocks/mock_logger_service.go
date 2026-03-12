@@ -287,3 +287,71 @@ func (mr *MockLoggerServiceMockRecorder) Warnf(template any, args ...any) *gomoc
 	varargs := append([]any{template}, args...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Warnf", reflect.TypeOf((*MockLoggerService)(nil).Warnf), varargs...)
 }
+
+// InfoWithAgent mocks base method.
+func (m *MockLoggerService) InfoWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
+	m.ctrl.T.Helper()
+	varargs := []any{msg, agentID}
+	for _, a := range fields {
+		varargs = append(varargs, a)
+	}
+	m.ctrl.Call(m, "InfoWithAgent", varargs...)
+}
+
+// InfoWithAgent indicates an expected call of InfoWithAgent.
+func (mr *MockLoggerServiceMockRecorder) InfoWithAgent(msg, agentID any, fields ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{msg, agentID}, fields...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InfoWithAgent", reflect.TypeOf((*MockLoggerService)(nil).InfoWithAgent), varargs...)
+}
+
+// ErrorWithAgent mocks base method.
+func (m *MockLoggerService) ErrorWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
+	m.ctrl.T.Helper()
+	varargs := []any{msg, agentID}
+	for _, a := range fields {
+		varargs = append(varargs, a)
+	}
+	m.ctrl.Call(m, "ErrorWithAgent", varargs...)
+}
+
+// ErrorWithAgent indicates an expected call of ErrorWithAgent.
+func (mr *MockLoggerServiceMockRecorder) ErrorWithAgent(msg, agentID any, fields ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{msg, agentID}, fields...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ErrorWithAgent", reflect.TypeOf((*MockLoggerService)(nil).ErrorWithAgent), varargs...)
+}
+
+// DebugWithAgent mocks base method.
+func (m *MockLoggerService) DebugWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
+	m.ctrl.T.Helper()
+	varargs := []any{msg, agentID}
+	for _, a := range fields {
+		varargs = append(varargs, a)
+	}
+	m.ctrl.Call(m, "DebugWithAgent", varargs...)
+}
+
+// DebugWithAgent indicates an expected call of DebugWithAgent.
+func (mr *MockLoggerServiceMockRecorder) DebugWithAgent(msg, agentID any, fields ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{msg, agentID}, fields...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DebugWithAgent", reflect.TypeOf((*MockLoggerService)(nil).DebugWithAgent), varargs...)
+}
+
+// WarnWithAgent mocks base method.
+func (m *MockLoggerService) WarnWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
+	m.ctrl.T.Helper()
+	varargs := []any{msg, agentID}
+	for _, a := range fields {
+		varargs = append(varargs, a)
+	}
+	m.ctrl.Call(m, "WarnWithAgent", varargs...)
+}
+
+// WarnWithAgent indicates an expected call of WarnWithAgent.
+func (mr *MockLoggerServiceMockRecorder) WarnWithAgent(msg, agentID any, fields ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{msg, agentID}, fields...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WarnWithAgent", reflect.TypeOf((*MockLoggerService)(nil).WarnWithAgent), varargs...)
+}

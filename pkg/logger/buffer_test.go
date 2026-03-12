@@ -9,6 +9,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 // TestNewLogBuffer tests buffer creation and initialization.
@@ -415,5 +417,62 @@ func BenchmarkLogBuffer_ConcurrentAccess(b *testing.B) {
 			})
 			_ = buf.getEntries(LogFilter{})
 		}
+	})
+}
+
+// TestLogBuffer_AgentIDExtraction tests that agent_id is extracted from zap fields
+// when using the *WithAgent methods
+func TestLogBuffer_AgentIDExtraction(t *testing.T) {
+	t.Run("Agent ID extracted when using InfoWithAgent", func(t *testing.T) {
+		buf := newLogBuffer(10, true)
+		logger, _ := zap.NewProduction()
+		svc := &service{
+			logger:      logger,
+			logBuffer:   buf,
+			atomicLevel: zap.NewAtomicLevelAt(zap.InfoLevel),
+		}
+
+		agentID := uuid.New()
+		svc.InfoWithAgent("test message", agentID, zap.String("other_field", "value"))
+
+		entries := buf.getEntries(LogFilter{})
+		require.Equal(t, 1, len(entries))
+		assert.Equal(t, agentID, entries[0].AgentID)
+		assert.Equal(t, "test message", entries[0].Message)
+	})
+
+	t.Run("Agent ID extracted when using ErrorWithAgent", func(t *testing.T) {
+		buf := newLogBuffer(10, true)
+		logger, _ := zap.NewProduction()
+		svc := &service{
+			logger:      logger,
+			logBuffer:   buf,
+			atomicLevel: zap.NewAtomicLevelAt(zap.ErrorLevel),
+		}
+
+		agentID := uuid.New()
+		svc.ErrorWithAgent("error message", agentID, zap.String("error_detail", "something failed"))
+
+		entries := buf.getEntries(LogFilter{})
+		require.Equal(t, 1, len(entries))
+		assert.Equal(t, agentID, entries[0].AgentID)
+		assert.Equal(t, "error message", entries[0].Message)
+	})
+
+	t.Run("Nil agent ID when using regular Info", func(t *testing.T) {
+		buf := newLogBuffer(10, true)
+		logger, _ := zap.NewProduction()
+		svc := &service{
+			logger:      logger,
+			logBuffer:   buf,
+			atomicLevel: zap.NewAtomicLevelAt(zap.InfoLevel),
+		}
+
+		svc.Info("regular message", zap.String("other_field", "value"))
+
+		entries := buf.getEntries(LogFilter{})
+		require.Equal(t, 1, len(entries))
+		assert.Equal(t, uuid.Nil, entries[0].AgentID)
+		assert.Equal(t, "regular message", entries[0].Message)
 	})
 }
