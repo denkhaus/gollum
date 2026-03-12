@@ -6,10 +6,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/markdown"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
-	"github.com/denkhaus/gollum/pkg/middleware"
 	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
@@ -19,6 +19,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/tui"
 	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/m-mizutani/gollem"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/samber/do/v2"
 )
 
@@ -39,12 +40,12 @@ type applicationServiceImpl struct {
 	fsm              state.FileStateManager
 	agentRegistry    registry.AgentRegistry
 	promptMgr        manager.PromptManager
-	displayProv      middleware.DisplayMiddlewareProvider
 	agentFactory     shared.AgentFactory
 	markdownRenderer markdown.Renderer
 	workspaceService workspace.Service
 	skillsService    skills.SkillService
 	mcpRegistry      mcpregistry.MCPRegistry
+	channelFacade    channel.ChannelFacade
 }
 
 // Ensure implementation satisfies interface
@@ -56,12 +57,12 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 	fsm := do.MustInvoke[state.FileStateManager](injector)
 	agentRegistry := do.MustInvoke[registry.AgentRegistry](injector)
 	promptMgr := do.MustInvoke[manager.PromptManager](injector)
-	displayProv := do.MustInvoke[middleware.DisplayMiddlewareProvider](injector)
 	agentFactory := do.MustInvoke[shared.AgentFactory](injector)
 	markdownRenderer := do.MustInvoke[markdown.Renderer](injector)
 	workspaceService := do.MustInvoke[workspace.Service](injector)
 	skillsService := do.MustInvoke[skills.SkillService](injector)
 	mcpRegistry := do.MustInvoke[mcpregistry.MCPRegistry](injector)
+	channelFacade := do.MustInvoke[channel.ChannelFacade](injector)
 
 	return &applicationServiceImpl{
 		logService:       logService,
@@ -70,10 +71,10 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 		workspaceService: workspaceService,
 		skillsService:    skillsService,
 		promptMgr:        promptMgr,
-		displayProv:      displayProv,
 		agentFactory:     agentFactory,
 		markdownRenderer: markdownRenderer,
 		mcpRegistry:      mcpRegistry,
+		channelFacade:    channelFacade,
 	}, nil
 }
 
@@ -175,14 +176,30 @@ func (p *applicationServiceImpl) runInteractiveLoop(ctx context.Context, agent s
 
 	defer p.logService.SetTUIMode(false) // Restore stdout logging on exit
 
-	// Create and run the TUI program with message channel integration, logger service, and markdown renderer
-	// This ensures AgentMessenger sends messages to the TUI instead of stdout
-	// and logs are displayed in a dedicated panel
-	// Markdown is rendered with syntax highlighting for agent responses
-	prog := tui.NewProgramWithContext(ctx, executor,
-		tui.WithMessageChannel(),
-		tui.WithLoggerService(p.logService),
-		tui.WithMarkdownRenderer(p.markdownRenderer),
+	// Create the TUI model with all options
+	// This creates the TUIChannel which we need to register with ChannelFacade
+	model := tui.NewModel(ctx, executor)
+	tui.WithTUIChannel()(&model)            // Create and set TUIChannel
+	tui.WithLoggerService(p.logService)(&model)   // Set logger service
+	tui.WithMarkdownRenderer(p.markdownRenderer)(&model) // Set markdown renderer
+
+	// Register the TUIChannel with ChannelFacade
+	// This allows the channel system to send messages to the TUI
+	tuiChannel := model.GetTUIChannel()
+	if tuiChannel != nil {
+		if err := p.channelFacade.RegisterChannel(tuiChannel); err != nil {
+			return fmt.Errorf("failed to register TUI channel: %w", err)
+		}
+		p.logService.Infof("TUI channel registered with ChannelFacade")
+	}
+
+	// Create and run the TUI program
+	prog := tea.NewProgram(model,
+		tea.WithContext(ctx),
+		tea.WithAltScreen(),
+		// Enable mouse cell motion for click detection on tool messages
+		// This allows text selection in most terminals while still receiving clicks
+		tea.WithMouseCellMotion(),
 	)
 
 	_, err := prog.Run()

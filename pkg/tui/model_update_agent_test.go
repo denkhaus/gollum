@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"github.com/denkhaus/gollum/pkg/channel"
 	"testing"
 	"time"
 
@@ -78,8 +79,8 @@ func TestUpdate_AgentCompleteMsgWithError(t *testing.T) {
 		t.Error("agentCompleteMsg with error should add error message")
 	}
 
-	if newM.messages[0].Type != MessageTypeError {
-		t.Error("Error message should have MessageTypeError")
+	if newM.messages[0].Type != channel.MessageTypeError {
+		t.Error("Error message should have channel.MessageTypeError")
 	}
 
 	if !strings.Contains(newM.messages[0].Content, "test error") {
@@ -98,8 +99,8 @@ func TestUpdate_HistoryNavigation(t *testing.T) {
 	// Set up viewport with content so scrolling works
 	m.width = 80
 	m.height = 20
-	m.messages = []Message{
-		{ID: uuid.New(), Type: MessageTypeSystem, Content: "test", Timestamp: time.Now()},
+	m.messages = []channel.Message{
+		{ID: uuid.New(), Type: channel.MessageTypeSystemInfo, Content: "test", Timestamp: time.Now()},
 	}
 	m.viewport.SetContent(m.updateViewportContent())
 

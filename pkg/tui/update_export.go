@@ -9,6 +9,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/google/uuid"
 )
 
@@ -18,17 +19,17 @@ func (m Model) handleExport() (tea.Model, tea.Cmd) {
 	content := buildExportContent(m.messages)
 
 	if err := writeExportFile(filename, content); err != nil {
-		errorMsg := Message{
+		errorMsg := channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeError,
+			Type:      channel.MessageTypeError,
 			Content:   fmt.Sprintf("Failed to export conversation: %v", err),
 			Timestamp: time.Now(),
 		}
 		m.addMessage(errorMsg)
 	} else {
-		successMsg := Message{
+		successMsg := channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeSystem,
+			Type:      channel.MessageTypeSystemInfo,
 			Content:   fmt.Sprintf("Conversation exported to: %s", filename),
 			Timestamp: time.Now(),
 		}
@@ -47,7 +48,7 @@ func generateExportFilename() string {
 }
 
 // buildExportContent formats messages for export.
-func buildExportContent(messages []Message) string {
+func buildExportContent(messages []channel.Message) string {
 	var content strings.Builder
 	content.WriteString("# Gollum Conversation Export\n")
 	content.WriteString(fmt.Sprintf("# Exported: %s\n", time.Now().Format(time.RFC3339)))
@@ -59,15 +60,15 @@ func buildExportContent(messages []Message) string {
 		var prefix string
 
 		switch msg.Type {
-		case MessageTypeUser:
+		case channel.MessageTypeUserChat:
 			prefix = fmt.Sprintf("[%s] You:", timestamp)
-		case MessageTypeAgent:
+		case channel.MessageTypeAgentChat:
 			prefix = fmt.Sprintf("[%s] Agent:", timestamp)
-		case MessageTypeTool:
+		case channel.MessageTypeToolRequest, channel.MessageTypeToolResponse:
 			prefix = fmt.Sprintf("[%s] Tool:", timestamp)
-		case MessageTypeSystem:
+		case channel.MessageTypeSystemInfo:
 			prefix = fmt.Sprintf("[%s] System:", timestamp)
-		case MessageTypeError:
+		case channel.MessageTypeError:
 			prefix = fmt.Sprintf("[%s] Error:", timestamp)
 		default:
 			prefix = fmt.Sprintf("[%s] Unknown:", timestamp)

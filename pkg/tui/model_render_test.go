@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"github.com/denkhaus/gollum/pkg/channel"
 
 	"go.uber.org/mock/gomock"
 )
@@ -123,7 +124,7 @@ func TestExecuteCommand_Unknown(t *testing.T) {
 		t.Errorf("Unknown command should add error message, got %d messages", len(newM.messages))
 	}
 
-	if len(newM.messages) > 0 && newM.messages[0].Type != MessageTypeError {
+	if len(newM.messages) > 0 && newM.messages[0].Type != channel.MessageTypeError {
 		t.Error("Unknown command should add error message type")
 	}
 }

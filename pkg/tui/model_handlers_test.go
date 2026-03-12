@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 	"time"
+	"github.com/denkhaus/gollum/pkg/channel"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/denkhaus/gollum/pkg/mocks"
@@ -21,9 +22,9 @@ func TestHandleNewMessageMsg(t *testing.T) {
 	m.width = 80
 	m.height = 20
 
-	newMsg := Message{
+	newMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeAgent,
+		Type:      channel.MessageTypeAgentChat,
 		Content:   "Test message",
 		Timestamp: time.Now(),
 	}
@@ -69,9 +70,9 @@ func TestHandleExport(t *testing.T) {
 	m.height = 20
 
 	// Add some messages
-	m.messages = []Message{
-		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Hi there!", Timestamp: time.Now()},
+	m.messages = []channel.Message{
+		{ID: uuid.New(), Type: channel.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: channel.MessageTypeAgentChat, Content: "Hi there!", Timestamp: time.Now()},
 	}
 
 	// Test handleExport

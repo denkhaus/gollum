@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"github.com/denkhaus/gollum/pkg/channel"
 	"time"
 
 	"github.com/google/uuid"
@@ -60,16 +61,16 @@ func TestViewWithMessages(t *testing.T) {
 	m.viewport.Width = 80
 	m.viewport.Height = 20
 
-	m.messages = []Message{
+	m.messages = []channel.Message{
 		{
 			ID:        uuid.New(),
-			Type:      MessageTypeSystem,
+			Type:      channel.MessageTypeSystemInfo,
 			Content:   "message 1",
 			Timestamp: time.Now(),
 		},
 		{
 			ID:        uuid.New(),
-			Type:      MessageTypeSystem,
+			Type:      channel.MessageTypeSystemInfo,
 			Content:   "message 2",
 			Timestamp: time.Now(),
 		},

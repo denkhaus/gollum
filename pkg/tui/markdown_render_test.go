@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
@@ -27,9 +28,9 @@ func TestMarkdownRendering(t *testing.T) {
 	m.width = 80
 
 	// Test message with markdown content
-	agentMsg := Message{
+	agentMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeAgent,
+		Type:      channel.MessageTypeAgentChat,
 		Content:   "# Test Heading\n\nThis is **bold** text.",
 		Timestamp: time.Now(),
 		AgentID:   uuid.New(),
@@ -76,9 +77,9 @@ func TestPlainTextFallback(t *testing.T) {
 	m.width = 80
 
 	// Test message with markdown content
-	agentMsg := Message{
+	agentMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeAgent,
+		Type:      channel.MessageTypeAgentChat,
 		Content:   "# Test Heading\n\nThis is **bold** text.",
 		Timestamp: time.Now(),
 		AgentID:   uuid.New(),

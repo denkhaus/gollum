@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 	"time"
+	"github.com/denkhaus/gollum/pkg/channel"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/google/uuid"
@@ -20,10 +21,10 @@ func TestUpdateViewportContentTracksMessagePositions(t *testing.T) {
 	m.width = 80
 
 	// Add messages
-	m.messages = []Message{
-		{ID: uuid.New(), Type: MessageTypeUser, Content: "Hello", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Hi there", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool output", Timestamp: time.Now(), IsTool: true, Collapsed: true},
+	m.messages = []channel.Message{
+		{ID: uuid.New(), Type: channel.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: channel.MessageTypeAgentChat, Content: "Hi there", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: channel.MessageTypeToolResponse, Content: "Tool output", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
 	}
 
 	// Update viewport content
@@ -39,7 +40,7 @@ func TestUpdateViewportContentTracksMessagePositions(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		startLine := m.getMessageStartLine(i)
 		if startLine < 0 {
-			t.Errorf("Message %d should have a valid start line", i)
+			t.Errorf("channel.Message %d should have a valid start line", i)
 		}
 	}
 
@@ -48,7 +49,7 @@ func TestUpdateViewportContentTracksMessagePositions(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		startLine := m.getMessageStartLine(i)
 		if startLine <= prevStartLine {
-			t.Errorf("Message %d start line (%d) should be greater than previous (%d)",
+			t.Errorf("channel.Message %d start line (%d) should be greater than previous (%d)",
 				i, startLine, prevStartLine)
 		}
 		prevStartLine = startLine

@@ -8,6 +8,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/markdown"
 )
@@ -234,45 +235,8 @@ func NewProgramWithContext(ctx context.Context, agent AgentExecutor, opts ...fun
 func WithMessageChannel() func(*Model) {
 	return func(m *Model) {
 		// Create the internal message channel for the TUI
-		ch := make(chan Message, 100)
+		ch := make(chan channel.Message, 100)
 		m.SetMessageChannel(ch)
-
-		// Create and set the messenger channel for AgentMessenger integration
-		// This allows AgentMessenger to send messages to the TUI
-		adapterChan := make(chan MessageAdapter, 100)
-		SetMessengerChannel(adapterChan)
-		m.SetMessengerChannel(adapterChan) // Store for cleanup
-
-		// Start a goroutine to bridge MessageAdapter to Message
-		// The goroutine exits when either the context is cancelled or adapterChan is closed
-		go func() {
-			defer close(ch) // Ensure message channel is closed on exit
-
-			for {
-				select {
-				case <-m.ctx.Done():
-					// Context cancelled - drain remaining messages and exit
-					for range adapterChan {
-						// Drain channel without processing
-					}
-					return
-
-				case adapterMsg, ok := <-adapterChan:
-					if !ok {
-						// adapterChan closed, exit cleanly
-						return
-					}
-					msg := adapterMsg.ToMessage()
-					select {
-					case ch <- msg:
-						// Message sent successfully
-					case <-m.ctx.Done():
-						// Context cancelled while sending, exit
-						return
-					}
-				}
-			}
-		}()
 	}
 }
 
@@ -297,5 +261,25 @@ func WithLoggerService(service logger.LoggerService) func(*Model) {
 func WithMarkdownRenderer(renderer markdown.Renderer) func(*Model) {
 	return func(m *Model) {
 		m.SetMarkdownRenderer(renderer)
+	}
+}
+
+// WithTUIChannel is an option for NewProgramWithContext that creates a TUIChannel
+// and stores it in the model for later retrieval.
+// This allows the channel system to send messages to the TUI.
+//
+// Usage:
+//
+//	p := tui.NewProgramWithContext(ctx, agent, tui.WithTUIChannel())
+//	// After TUI starts, retrieve the channel with model.GetTUIChannel()
+func WithTUIChannel() func(*Model) {
+	return func(m *Model) {
+		// Create the internal message channel for the TUI
+		ch := make(chan channel.Message, 100)
+		m.SetMessageChannel(ch)
+
+		// Create TUIChannel that will send messages to the TUI
+		tuiCh := NewTUIChannel(ch)
+		m.SetTUIChannel(tuiCh)
 	}
 }

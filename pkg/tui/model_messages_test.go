@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"github.com/denkhaus/gollum/pkg/channel"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,10 +25,10 @@ func TestAddMessageRingBuffer(t *testing.T) {
 
 	// Add 5 messages (at limit)
 	for i := 0; i < 5; i++ {
-		msg := Message{
+		msg := channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeAgent,
-			Content:   fmt.Sprintf("Message %d", i),
+			Type:      channel.MessageTypeAgentChat,
+			Content:   fmt.Sprintf("channel.Message %d", i),
 			Timestamp: time.Now(),
 		}
 		m.addMessage(msg)
@@ -54,10 +55,10 @@ func TestAddMessageRingBuffer(t *testing.T) {
 	}
 
 	// Add 6th message (exceeds limit by 1)
-	newMsg := Message{
+	newMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeAgent,
-		Content:   "Message 5",
+		Type:      channel.MessageTypeAgentChat,
+		Content:   "channel.Message 5",
 		Timestamp: time.Now(),
 	}
 	m.addMessage(newMsg)
@@ -102,10 +103,10 @@ func TestAddMessageWithZeroLimit(t *testing.T) {
 
 	// Add messages up to 501 (exceeds default of 500)
 	for i := 0; i < 501; i++ {
-		msg := Message{
+		msg := channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeAgent,
-			Content:   fmt.Sprintf("Message %d", i),
+			Type:      channel.MessageTypeAgentChat,
+			Content:   fmt.Sprintf("channel.Message %d", i),
 			Timestamp: time.Now(),
 		}
 		m.addMessage(msg)
@@ -116,9 +117,9 @@ func TestAddMessageWithZeroLimit(t *testing.T) {
 		t.Errorf("Expected 500 messages (default limit), got %d", len(m.messages))
 	}
 
-	// Verify first message is "Message 1" (index 1, since 0 was evicted)
-	if m.messages[0].Content != "Message 1" {
-		t.Errorf("Expected first message to be 'Message 1', got '%s'", m.messages[0].Content)
+	// Verify first message is "channel.Message 1" (index 1, since 0 was evicted)
+	if m.messages[0].Content != "channel.Message 1" {
+		t.Errorf("Expected first message to be 'channel.Message 1', got '%s'", m.messages[0].Content)
 	}
 }
 

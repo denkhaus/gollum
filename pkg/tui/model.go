@@ -41,6 +41,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
+	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/markdown"
 )
@@ -79,72 +80,10 @@ type agentCompleteMsg struct {
 	err      error
 }
 
-// MessageType represents the type of message being displayed.
-type MessageType int
-
-const (
-	// MessageTypeUser represents a message from the user.
-	MessageTypeUser MessageType = iota
-	// MessageTypeAgent represents a message from an agent (LLM output).
-	MessageTypeAgent
-	// MessageTypeTool represents a tool execution message.
-	MessageTypeTool
-	// MessageTypeSystem represents a system-level message.
-	MessageTypeSystem
-	// MessageTypeError represents an error message.
-	MessageTypeError
-)
-
-// String returns the string representation of the MessageType.
-func (mt MessageType) String() string {
-	switch mt {
-	case MessageTypeUser:
-		return "user"
-	case MessageTypeAgent:
-		return "agent"
-	case MessageTypeTool:
-		return "tool"
-	case MessageTypeSystem:
-		return "system"
-	case MessageTypeError:
-		return "error"
-	default:
-		return "unknown"
-	}
-}
-
-// Message represents a single message in the conversation history.
-// Messages are displayed in the viewport with styling based on type.
-type Message struct {
-	// ID is the unique identifier for this message.
-	ID uuid.UUID
-
-	// Type is the category of message (user, agent, tool, system, error).
-	Type MessageType
-
-	// Content is the message text to display.
-	Content string
-
-	// Timestamp is when the message was created.
-	Timestamp time.Time
-
-	// AgentID is the ID of the agent that sent this message (for agent/tool messages).
-	AgentID uuid.UUID
-
-	// AgentRole is the display role/name of the agent.
-	AgentRole string
-
-	// IsTool indicates whether this is a tool execution message.
-	IsTool bool
-
-	// Collapsed indicates whether this message is collapsed (tool messages only).
-	// When collapsed, only a summary header is shown. Click to expand/collapse.
-	Collapsed bool
-}
 
 // newMessageMsg is sent when a new message should be added to the viewport.
 type newMessageMsg struct {
-	message Message
+	message channel.Message
 }
 
 // Config holds TUI configuration from environment variables.
@@ -201,7 +140,7 @@ type Model struct {
 	quit bool
 
 	// messages stores conversation history with full message metadata
-	messages []Message
+	messages []channel.Message
 
 	// agent executes user commands
 	agent AgentExecutor
@@ -241,11 +180,7 @@ type Model struct {
 	activeViewport Viewport
 
 	// messageChan receives messages from AgentMessenger (optional, for TUI mode)
-	messageChan chan Message
-
-	// messengerChan is the adapter channel for AgentMessenger integration
-	// This must be stored for cleanup when the TUI shuts down
-	messengerChan chan MessageAdapter
+	messageChan chan channel.Message
 
 	// viewport manages scrollable message display
 	viewport viewport.Model
@@ -328,6 +263,10 @@ type Model struct {
 
 	// doubleClickThreshold is the maximum time between clicks to count as double-click
 	doubleClickThreshold time.Duration
+
+	// tuiChannel is the TUIChannel instance for channel system integration
+	// This allows the channel facade to send messages to the TUI
+	tuiChannel *TUIChannel
 }
 
 // NewModel creates a new TUI model with initial state.
@@ -353,7 +292,7 @@ func NewModel(ctx context.Context, agent AgentExecutor) Model {
 	return Model{
 		textInput:             ti,
 		quit:                  false,
-		messages:              []Message{},
+		messages:              []channel.Message{},
 		agent:                 agent,
 		ctx:                   ctx,
 		inputHistory:          []string{},
@@ -398,7 +337,7 @@ func (m *Model) SetMarkdownRenderer(renderer markdown.Renderer) {
 // addMessage appends a message to the history while enforcing the MaxMessages limit.
 // When the limit is exceeded, oldest messages are removed (ring buffer behavior).
 // This also cleans up the format cache and differential rendering cache for evicted messages.
-func (m *Model) addMessage(msg Message) {
+func (m *Model) addMessage(msg channel.Message) {
 	m.messages = append(m.messages, msg)
 
 	// Enforce message limit - remove oldest messages if exceeded
@@ -454,24 +393,25 @@ func (m Model) logTickCmd() tea.Cmd {
 
 // SetMessageChannel sets the channel for receiving messages from AgentMessenger.
 // This enables the TUI to receive messages instead of AgentMessenger printing to stdout.
-func (m *Model) SetMessageChannel(ch chan Message) {
+func (m *Model) SetMessageChannel(ch chan channel.Message) {
 	m.messageChan = ch
 }
 
 // GetMessageChannel returns the message channel for AgentMessenger to send messages.
-func (m Model) GetMessageChannel() chan Message {
+func (m Model) GetMessageChannel() chan channel.Message {
 	return m.messageChan
 }
 
-// SetMessengerChannel sets the adapter channel for AgentMessenger integration.
-// This stores the channel for cleanup when the TUI shuts down.
-func (m *Model) SetMessengerChannel(ch chan MessageAdapter) {
-	m.messengerChan = ch
+// SetTUIChannel sets the TUIChannel instance for channel system integration.
+// This allows the channel facade to send messages to the TUI.
+func (m *Model) SetTUIChannel(ch *TUIChannel) {
+	m.tuiChannel = ch
 }
 
-// GetMessengerChannel returns the adapter channel for AgentMessenger integration.
-func (m Model) GetMessengerChannel() chan MessageAdapter {
-	return m.messengerChan
+// GetTUIChannel returns the TUIChannel instance for channel system integration.
+// This allows registering the TUI as a channel in the channel facade.
+func (m Model) GetTUIChannel() *TUIChannel {
+	return m.tuiChannel
 }
 
 // waitForMessages returns a command that waits for messages on the message channel.
@@ -615,12 +555,20 @@ func (m *Model) toggleMessageCollapse(msgIdx int) bool {
 
 	msg := &m.messages[msgIdx]
 	// Only tool messages can be collapsed
-	if !msg.IsTool && msg.Type != MessageTypeTool {
+	isTool := msg.Type == channel.MessageTypeToolRequest || msg.Type == channel.MessageTypeToolResponse
+	if !isTool {
 		return false
 	}
 
-	// Toggle collapsed state
-	msg.Collapsed = !msg.Collapsed
+	// Toggle collapsed state in metadata
+	if msg.Metadata == nil {
+		msg.Metadata = make(map[string]any)
+	}
+	if collapsed, ok := msg.Metadata["collapsed"].(bool); ok {
+		msg.Metadata["collapsed"] = !collapsed
+	} else {
+		msg.Metadata["collapsed"] = true
+	}
 
 	// Invalidate cache for this message to force re-render
 	delete(m.formatCache, msg.ID)
@@ -682,7 +630,7 @@ func (m *Model) invalidateCacheFor(msgID uuid.UUID) {
 //	╰────────────────────────────────────────────────────────────╯
 //
 // When selected, the message uses double-line borders (╔═╗║╚╝) to indicate selection.
-func (m *Model) formatMessage(msgIdx int, msg Message) string {
+func (m *Model) formatMessage(msgIdx int, msg channel.Message) string {
 	// Check cache first - return cached formatted message if available
 	// Cache key: message ID
 	// Cache invalidation: width change, message update, selection change
@@ -712,9 +660,16 @@ func (m *Model) formatMessage(msgIdx int, msg Message) string {
 // formatMessageImpl implements the actual message formatting logic.
 // This is separated from formatMessage to enable caching.
 // The selected parameter determines whether to use bold/double-line borders.
-func (m *Model) formatMessageImpl(_ int, msg Message, selected bool) string {
+func (m *Model) formatMessageImpl(_ int, msg channel.Message, selected bool) string {
 	// For collapsed tool messages, render a compact header with click indicator
-	if msg.IsTool && msg.Type == MessageTypeTool && msg.Collapsed {
+	isTool := msg.Type == channel.MessageTypeToolRequest || msg.Type == channel.MessageTypeToolResponse
+	collapsed := false
+	if msg.Metadata != nil {
+		if c, ok := msg.Metadata["collapsed"].(bool); ok {
+			collapsed = c
+		}
+	}
+	if isTool && collapsed {
 		return m.formatCollapsedToolMessage(msg, selected)
 	}
 
@@ -727,14 +682,14 @@ func (m *Model) formatMessageImpl(_ int, msg Message, selected bool) string {
 	var col1, col2, col3 string
 
 	switch msg.Type {
-	case MessageTypeUser:
+	case channel.MessageTypeUserChat:
 		col1 = "You"
 		col2 = "User"
 		col3 = timestamp
 
-	case MessageTypeAgent, MessageTypeTool:
+	case channel.MessageTypeAgentChat, channel.MessageTypeToolRequest, channel.MessageTypeToolResponse:
 		agentName := formatAgentName(msg.AgentID, msg.AgentRole)
-		if msg.IsTool || msg.Type == MessageTypeTool {
+		if msg.Type == channel.MessageTypeToolRequest || msg.Type == channel.MessageTypeToolResponse {
 			col1 = fmt.Sprintf("Agent: %s", agentName)
 			col2 = "Tool"
 		} else {
@@ -743,12 +698,12 @@ func (m *Model) formatMessageImpl(_ int, msg Message, selected bool) string {
 		}
 		col3 = timestamp
 
-	case MessageTypeSystem:
+	case channel.MessageTypeSystemInfo:
 		col1 = "System"
 		col2 = "Info"
 		col3 = timestamp
 
-	case MessageTypeError:
+	case channel.MessageTypeError:
 		col1 = "Error"
 		col2 = "Error"
 		col3 = timestamp
@@ -796,7 +751,7 @@ func (m *Model) formatMessageImpl(_ int, msg Message, selected bool) string {
 
 	// For agent messages, use markdown renderer if available
 	var contentLines []string
-	if msg.Type == MessageTypeAgent && m.markdownRenderer != nil {
+	if msg.Type == channel.MessageTypeAgentChat && m.markdownRenderer != nil {
 		rendered, err := m.markdownRenderer.Render(context.Background(), msg.Content, contentWidth)
 		if err != nil {
 			contentLines = wrapText(msg.Content, contentWidth)
@@ -917,7 +872,7 @@ func (m *Model) formatMessageImpl(_ int, msg Message, selected bool) string {
 // formatCollapsedToolMessage renders a collapsed tool message with a click-to-expand indicator.
 // Shows a compact header: "⚡ Tool Output [Click to expand]" with agent name and timestamp.
 // When selected, uses double-line borders to indicate selection.
-func (m *Model) formatCollapsedToolMessage(msg Message, selected bool) string {
+func (m *Model) formatCollapsedToolMessage(msg channel.Message, selected bool) string {
 	timestamp := msg.Timestamp.Format("15:04:05")
 	agentName := formatAgentName(msg.AgentID, msg.AgentRole)
 
@@ -1004,12 +959,12 @@ func (m *Model) executeCommand(cmd string) (tea.Model, tea.Cmd) {
 	switch command {
 	case "/clear":
 		// Clear all messages and cache
-		m.messages = []Message{}
+		m.messages = []channel.Message{}
 		m.clearFormatCache()
 		m.viewport.SetContent("")
-		systemMsg := Message{
+		systemMsg := channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeSystem,
+			Type:      channel.MessageTypeSystemInfo,
 			Content:   "Messages cleared",
 			Timestamp: time.Now(),
 		}
@@ -1021,9 +976,9 @@ func (m *Model) executeCommand(cmd string) (tea.Model, tea.Cmd) {
 	case "/quit":
 		// Quit the TUI
 		m.quit = true
-		goodbyeMsg := Message{
+		goodbyeMsg := channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeSystem,
+			Type:      channel.MessageTypeSystemInfo,
 			Content:   "👋 Goodbye!",
 			Timestamp: time.Now(),
 		}
@@ -1046,9 +1001,9 @@ Enter     - Submit input
 Alt+Enter - New line (multi-line input)
 ↑/↓       - Navigate history
 Ctrl+R    - Search history (type query, use C-s/C-r to navigate)`
-		helpMsg := Message{
+		helpMsg := channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeSystem,
+			Type:      channel.MessageTypeSystemInfo,
 			Content:   helpText,
 			Timestamp: time.Now(),
 		}
@@ -1065,9 +1020,9 @@ Ctrl+R    - Search history (type query, use C-s/C-r to navigate)`
 
 	default:
 		// Unknown command
-		errorMsg := Message{
+		errorMsg := channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeError,
+			Type:      channel.MessageTypeError,
 			Content:   fmt.Sprintf("Unknown command: %s. Type /help for available commands.", command),
 			Timestamp: time.Now(),
 		}

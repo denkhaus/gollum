@@ -8,6 +8,18 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
+	"github.com/samber/do/v2"
+)
+
+type (
+	// ChannelMiddlewareProvider creates channel middleware instances via DI
+	ChannelMiddlewareProvider interface {
+		CreateChannelMiddleware(agentID uuid.UUID, agentRole string) *ChannelMiddleware
+	}
+
+	channelMiddlewareProvider struct {
+		facade ChannelFacade
+	}
 )
 
 // ChannelMiddleware sends agent outputs to channel facade.
@@ -25,6 +37,23 @@ func NewChannelMiddleware(facade ChannelFacade, agentID uuid.UUID, agentRole str
 		agentID:   agentID,
 		agentRole: agentRole,
 	}
+}
+
+// NewChannelMiddlewareProvider creates a provider for channel middleware
+func NewChannelMiddlewareProvider(injector do.Injector) (ChannelMiddlewareProvider, error) {
+	facade := do.MustInvoke[ChannelFacade](injector)
+
+	return &channelMiddlewareProvider{
+		facade: facade,
+	}, nil
+}
+
+// CreateChannelMiddleware creates a new channel middleware for a specific agent
+func (p *channelMiddlewareProvider) CreateChannelMiddleware(
+	agentID uuid.UUID,
+	agentRole string,
+) *ChannelMiddleware {
+	return NewChannelMiddleware(p.facade, agentID, agentRole)
 }
 
 // ContentBlockMiddleware processes text content blocks and sends to channel

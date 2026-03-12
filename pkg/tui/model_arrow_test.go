@@ -8,6 +8,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
 )
@@ -24,10 +25,10 @@ func TestArrowKeyScrolling(t *testing.T) {
 
 	// Add some messages to scroll through
 	for i := 0; i < 20; i++ {
-		m.messages = append(m.messages, Message{
+		m.messages = append(m.messages, channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeAgent,
-			Content:   fmt.Sprintf("Message %d", i),
+			Type:      channel.MessageTypeAgentChat,
+			Content:   fmt.Sprintf("channel.Message %d", i),
 			Timestamp: time.Now(),
 		})
 	}

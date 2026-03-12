@@ -20,7 +20,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/markdown"
 	mcpconfig "github.com/denkhaus/gollum/pkg/mcp/config"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
-	"github.com/denkhaus/gollum/pkg/middleware"
 	"github.com/denkhaus/gollum/pkg/profiling"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/prompt/optimizer"
@@ -29,7 +28,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/skills"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/denkhaus/gollum/pkg/tools"
-	"github.com/denkhaus/gollum/pkg/ui"
 	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/samber/do/v2"
 )
@@ -86,14 +84,11 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	do.Provide(p.injector, skills.NewService)
 
 	// UI
-	do.Provide(p.injector, ui.NewAgentMessenger)
 	do.Provide(p.injector, markdown.ProvideRenderer)
 	do.Provide(p.injector, diff.NewProvider)
 
 	// Middleware
-	do.Provide(p.injector, middleware.NewDisplayMiddlewareProvider)
-	do.Provide(p.injector, middleware.NewSummaryMiddlewareProvider)
-	do.Provide(p.injector, middleware.NewChannelMiddlewareProvider)
+	do.Provide(p.injector, channel.NewChannelMiddlewareProvider)
 
 	// Channel Abstraction Layer
 	do.Provide(p.injector, channel.NewCommandManager)

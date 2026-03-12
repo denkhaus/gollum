@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"github.com/denkhaus/gollum/pkg/channel"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -24,10 +25,10 @@ func TestHandleMouseMsg_WheelEvents(t *testing.T) {
 
 	// Add messages to create scrollable content
 	for i := 0; i < 20; i++ {
-		m.messages = append(m.messages, Message{
+		m.messages = append(m.messages, channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeAgent,
-			Content:   fmt.Sprintf("Message %d", i),
+			Type:      channel.MessageTypeAgentChat,
+			Content:   fmt.Sprintf("channel.Message %d", i),
 			Timestamp: time.Now(),
 		})
 	}
@@ -75,10 +76,10 @@ func TestHandleMouseDebounceMsg(t *testing.T) {
 
 	// Add messages to create scrollable content
 	for i := 0; i < 20; i++ {
-		m.messages = append(m.messages, Message{
+		m.messages = append(m.messages, channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeAgent,
-			Content:   fmt.Sprintf("Message %d", i),
+			Type:      channel.MessageTypeAgentChat,
+			Content:   fmt.Sprintf("channel.Message %d", i),
 			Timestamp: time.Now(),
 		})
 	}
@@ -117,10 +118,10 @@ func TestScrollViewport(t *testing.T) {
 
 	// Add messages to create scrollable content
 	for i := 0; i < 20; i++ {
-		m.messages = append(m.messages, Message{
+		m.messages = append(m.messages, channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeAgent,
-			Content:   fmt.Sprintf("Message %d", i),
+			Type:      channel.MessageTypeAgentChat,
+			Content:   fmt.Sprintf("channel.Message %d", i),
 			Timestamp: time.Now(),
 		})
 	}

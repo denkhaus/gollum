@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"github.com/denkhaus/gollum/pkg/channel"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,9 +22,9 @@ func BenchmarkUpdateViewportContentDifferential(b *testing.B) {
 
 	// Start with 100 messages (simulating existing conversation)
 	for i := 0; i < 100; i++ {
-		m.messages = append(m.messages, Message{
+		m.messages = append(m.messages, channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeAgent,
+			Type:      channel.MessageTypeAgentChat,
 			Content:   fmt.Sprintf("Existing message %d with some content to format", i),
 			Timestamp: time.Now(),
 		})
@@ -39,9 +40,9 @@ func BenchmarkUpdateViewportContentDifferential(b *testing.B) {
 	// Each iteration adds one message and updates viewport
 	for i := 0; i < b.N; i++ {
 		// Add new message
-		m.messages = append(m.messages, Message{
+		m.messages = append(m.messages, channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeAgent,
+			Type:      channel.MessageTypeAgentChat,
 			Content:   fmt.Sprintf("New message %d", i),
 			Timestamp: time.Now(),
 		})
@@ -68,10 +69,10 @@ func BenchmarkUpdateViewportContentFullRebuild(b *testing.B) {
 
 	// Create 100 messages (simulating a typical conversation)
 	for i := 0; i < 100; i++ {
-		m.messages = append(m.messages, Message{
+		m.messages = append(m.messages, channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeAgent,
-			Content:   fmt.Sprintf("Message %d with some content to format", i),
+			Type:      channel.MessageTypeAgentChat,
+			Content:   fmt.Sprintf("channel.Message %d with some content to format", i),
 			Timestamp: time.Now(),
 		})
 	}
@@ -105,10 +106,10 @@ func TestDifferentialRenderingCorrectness(t *testing.T) {
 
 	// Build content incrementally
 	for i := 0; i < 10; i++ {
-		m.messages = append(m.messages, Message{
+		m.messages = append(m.messages, channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeAgent,
-			Content:   fmt.Sprintf("Message %d", i),
+			Type:      channel.MessageTypeAgentChat,
+			Content:   fmt.Sprintf("channel.Message %d", i),
 			Timestamp: time.Now(),
 		})
 		_ = m.updateViewportContent()
@@ -143,10 +144,10 @@ func TestDifferentialRenderingCacheInvalidation(t *testing.T) {
 
 	// Add some messages
 	for i := 0; i < 5; i++ {
-		m.messages = append(m.messages, Message{
+		m.messages = append(m.messages, channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeAgent,
-			Content:   fmt.Sprintf("Message %d", i),
+			Type:      channel.MessageTypeAgentChat,
+			Content:   fmt.Sprintf("channel.Message %d", i),
 			Timestamp: time.Now(),
 		})
 	}

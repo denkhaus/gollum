@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/markdown"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
@@ -51,9 +52,9 @@ func TestE2EMarkdownRendererSetup(t *testing.T) {
 	m.height = 24
 
 	// Step 6: Create a real agent message
-	agentMsg := Message{
+	agentMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeAgent,
+		Type:      channel.MessageTypeAgentChat,
 		Content:   "# Test\n\nThis is **bold** text.",
 		Timestamp: time.Now(),
 		AgentID:   uuid.New(),

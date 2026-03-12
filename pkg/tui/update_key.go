@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/google/uuid"
 )
 
@@ -66,9 +67,9 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // handleCtrlC handles graceful shutdown.
 func (m Model) handleCtrlC() (tea.Model, tea.Cmd) {
 	m.quit = true
-	cancelMsg := Message{
+	cancelMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeSystem,
+		Type:      channel.MessageTypeSystemInfo,
 		Content:   "^C",
 		Timestamp: time.Now(),
 	}
@@ -150,9 +151,9 @@ func (m Model) handleSubmitInput() (tea.Model, tea.Cmd) {
 	}
 
 	// Add user message to messages
-	userMsg := Message{
+	userMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeUser,
+		Type:      channel.MessageTypeUserChat,
 		Content:   input,
 		Timestamp: time.Now(),
 	}
@@ -176,9 +177,9 @@ func (m Model) handleSubmitInput() (tea.Model, tea.Cmd) {
 // handleQuitCommand handles quit/exit commands.
 func (m Model) handleQuitCommand() (tea.Model, tea.Cmd) {
 	m.quit = true
-	goodbyeMsg := Message{
+	goodbyeMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeSystem,
+		Type:      channel.MessageTypeSystemInfo,
 		Content:   "👋 Goodbye!",
 		Timestamp: time.Now(),
 	}

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 )
@@ -34,9 +35,9 @@ func TestFixFirstUserMessageHasTopBorder(t *testing.T) {
 	m.viewport.Height = viewportHeight
 
 	// Simulate user typing "hi" and submitting (like in the bug report)
-	userMsg := Message{
+	userMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeUser,
+		Type:      channel.MessageTypeUserChat,
 		Content:   "hi",
 		Timestamp: time.Now(),
 	}
@@ -45,9 +46,9 @@ func TestFixFirstUserMessageHasTopBorder(t *testing.T) {
 	m.viewport.GotoTop() // The fix!
 
 	// Simulate agent responding
-	agentMsg := Message{
+	agentMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeAgent,
+		Type:      channel.MessageTypeAgentChat,
 		Content:   "Hello! How can I help you today? I'm here to assist with a variety of tasks including: Searching and storing information in my knowledge base, Researching topics on the web, Managing files and code, Running commands and processes, Working with agents for specialized tasks. What would you like help with?",
 		Timestamp: time.Now(),
 	}
@@ -103,17 +104,17 @@ func TestFixPreservesScrolling(t *testing.T) {
 
 	// Add a long conversation that exceeds viewport height
 	for i := 0; i < 5; i++ {
-		userMsg := Message{
+		userMsg := channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeUser,
+			Type:      channel.MessageTypeUserChat,
 			Content:   "Test message",
 			Timestamp: time.Now(),
 		}
 		m.messages = append(m.messages, userMsg)
 
-		agentMsg := Message{
+		agentMsg := channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeAgent,
+			Type:      channel.MessageTypeAgentChat,
 			Content:   strings.Repeat("This is a long response. ", 10),
 			Timestamp: time.Now(),
 		}

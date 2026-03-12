@@ -8,7 +8,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/errs"
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/middleware"
 	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
@@ -30,10 +29,8 @@ type (
 		config         *shared.AgentConfig
 
 		// Required for session recreation
-		llmClient       gollem.LLMClient
-		displayProvider middleware.DisplayMiddlewareProvider
-		summaryProvider middleware.SummaryMiddlewareProvider
-		promptManager   manager.PromptManager
+		llmClient     gollem.LLMClient
+		promptManager manager.PromptManager
 	}
 )
 
@@ -141,23 +138,6 @@ func (p *defaultAgent) buildOptionsWithHistory(history *gollem.History) []gollem
 	// Add history if present
 	if history != nil && len(history.Messages) > 0 {
 		options = append(options, gollem.WithHistory(history))
-	}
-
-	// Recreate middlewares based on OutputMode
-	switch p.config.OutputMode {
-	case shared.OutputModeSummary:
-		summaryMW := p.summaryProvider.CreateSummaryMiddleware(p.id, p.config.Role)
-		options = append(options,
-			gollem.WithContentBlockMiddleware(summaryMW.ContentBlockMiddleware),
-			gollem.WithToolMiddleware(summaryMW.ToolMiddleware),
-		)
-	case shared.OutputModeFull:
-		displayMW := p.displayProvider.CreateDisplayMiddleware(p.id, p.config.Role)
-		options = append(options,
-			gollem.WithContentBlockMiddleware(displayMW.ContentBlockMiddleware),
-			gollem.WithToolMiddleware(displayMW.ToolMiddleware),
-		)
-		// OutputModeSilent: no middlewares
 	}
 
 	// Add compacter middleware if enabled

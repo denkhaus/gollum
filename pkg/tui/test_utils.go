@@ -1,18 +1,19 @@
 package tui
 
 import (
+	"strings"
+
 	"github.com/denkhaus/gollum/pkg/mocks"
-	"github.com/m-mizutani/gollem"
 	"go.uber.org/mock/gomock"
 )
 
-// setupMockAgent creates a mock agent with default expectations for TUI tests.
-// This helper is in a separate file (not *_test.go) so it can be shared across test files.
+// containsSubstring checks if a string contains a substring
+// This is a test utility function
+func containsSubstring(s, substr string) bool {
+	return strings.Contains(s, substr)
+}
+
+// setupMockAgent creates a mock agent executor for testing
 func setupMockAgent(ctrl *gomock.Controller) *mocks.MockAgentExecutor {
-	mockAgent := mocks.NewMockAgentExecutor(ctrl)
-	// Default: return simple response for any Execute call
-	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).
-		Return(&gollem.ExecuteResponse{Texts: []string{"response"}}, nil).
-		AnyTimes()
-	return mockAgent
+	return mocks.NewMockAgentExecutor(ctrl)
 }

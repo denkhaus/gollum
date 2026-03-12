@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
 )
@@ -23,28 +24,28 @@ func TestClickOnCollapsedToolMessage(t *testing.T) {
 	m.viewport.Height = 40
 
 	// Create messages where a collapsed tool message is in the middle
-	userMsg := Message{
+	userMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeUser,
+		Type:      channel.MessageTypeUserChat,
 		Content:   "Hello, this is a user message",
 		Timestamp: time.Now(),
 	}
-	toolMsg := Message{
+	toolMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeTool,
+		Type:      channel.MessageTypeToolResponse,
 		Content:   "This is a long tool output that should be collapsed",
 		Timestamp: time.Now(),
-		IsTool:    true,
-		Collapsed: true,
+		Metadata: map[string]any{"is_tool": true, "collapsed": true},
+		
 	}
-	agentMsg := Message{
+	agentMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeAgent,
+		Type:      channel.MessageTypeAgentChat,
 		Content:   "Agent response here",
 		Timestamp: time.Now(),
 	}
 
-	m.messages = []Message{userMsg, toolMsg, agentMsg}
+	m.messages = []channel.Message{userMsg, toolMsg, agentMsg}
 	content := m.updateViewportContent()
 	m.viewport.SetContent(content)
 
@@ -90,28 +91,28 @@ func TestClickOnExpandedToolMessage(t *testing.T) {
 	m.viewport.Height = 40
 
 	// Create messages with an EXPANDED tool message
-	userMsg := Message{
+	userMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeUser,
+		Type:      channel.MessageTypeUserChat,
 		Content:   "Hello",
 		Timestamp: time.Now(),
 	}
-	toolMsg := Message{
+	toolMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeTool,
+		Type:      channel.MessageTypeToolResponse,
 		Content:   "This is tool output that should be visible",
 		Timestamp: time.Now(),
-		IsTool:    true,
-		Collapsed: false, // EXPANDED
+		Metadata: map[string]any{"is_tool": true, "collapsed": true},
+		 // EXPANDED
 	}
-	agentMsg := Message{
+	agentMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeAgent,
+		Type:      channel.MessageTypeAgentChat,
 		Content:   "Response",
 		Timestamp: time.Now(),
 	}
 
-	m.messages = []Message{userMsg, toolMsg, agentMsg}
+	m.messages = []channel.Message{userMsg, toolMsg, agentMsg}
 	content := m.updateViewportContent()
 	m.viewport.SetContent(content)
 
@@ -140,8 +141,8 @@ func TestClickOnToolMessageWithDifferentialUpdate(t *testing.T) {
 	m.viewport.Height = 40
 
 	// Start with one message
-	m.messages = []Message{
-		{ID: uuid.New(), Type: MessageTypeUser, Content: "First message", Timestamp: time.Now()},
+	m.messages = []channel.Message{
+		{ID: uuid.New(), Type: channel.MessageTypeUserChat, Content: "First message", Timestamp: time.Now()},
 	}
 	m.updateViewportContent()
 	m.viewport.SetContent(m.cachedContent)
@@ -149,13 +150,13 @@ func TestClickOnToolMessageWithDifferentialUpdate(t *testing.T) {
 	t.Logf("After first message: lastRenderedCount=%d", m.lastRenderedCount)
 
 	// Add more messages via differential update
-	m.messages = append(m.messages, Message{
+	m.messages = append(m.messages, channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeTool,
+		Type:      channel.MessageTypeToolResponse,
 		Content:   "Tool output",
 		Timestamp: time.Now(),
-		IsTool:    true,
-		Collapsed: true,
+		Metadata: map[string]any{"is_tool": true, "collapsed": true},
+		
 	})
 	m.updateViewportContent()
 	m.viewport.SetContent(m.cachedContent)
@@ -163,9 +164,9 @@ func TestClickOnToolMessageWithDifferentialUpdate(t *testing.T) {
 	t.Logf("After tool message: lastRenderedCount=%d", m.lastRenderedCount)
 
 	// Add one more
-	m.messages = append(m.messages, Message{
+	m.messages = append(m.messages, channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeAgent,
+		Type:      channel.MessageTypeAgentChat,
 		Content:   "Agent response",
 		Timestamp: time.Now(),
 	})
@@ -212,25 +213,29 @@ func TestClickOnToolMessageWithScrolling(t *testing.T) {
 
 	// Create many messages so content overflows viewport
 	for i := 0; i < 10; i++ {
-		msgType := MessageTypeAgent
-		content := fmt.Sprintf("Message %d with some content to make it longer", i)
+		msgType := channel.MessageTypeAgentChat
+		content := fmt.Sprintf("channel.Message %d with some content to make it longer", i)
 		isTool := false
 
 		// Every third message is a tool message
 		if i%3 == 2 {
-			msgType = MessageTypeTool
+			msgType = channel.MessageTypeToolResponse
 			content = fmt.Sprintf("Tool output %d", i)
 			isTool = true
 		}
 
-		m.messages = append(m.messages, Message{
+		msg := channel.Message{
 			ID:        uuid.New(),
 			Type:      msgType,
 			Content:   content,
 			Timestamp: time.Now(),
-			IsTool:    isTool,
-			Collapsed: isTool, // Tool messages start collapsed
-		})
+			Metadata:  make(map[string]any),
+		}
+		if isTool {
+			msg.Metadata["is_tool"] = true
+			msg.Metadata["collapsed"] = true
+		}
+		m.messages = append(m.messages, msg)
 	}
 
 	m.updateViewportContent()
@@ -287,9 +292,9 @@ func TestClickOnFirstToolMessage(t *testing.T) {
 	m.viewport.Height = 40
 
 	// Add a user message
-	userMsg := Message{
+	userMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeUser,
+		Type:      channel.MessageTypeUserChat,
 		Content:   "Hello, please help me",
 		Timestamp: time.Now(),
 	}
@@ -300,15 +305,15 @@ func TestClickOnFirstToolMessage(t *testing.T) {
 	t.Logf("After user message: lastRenderedCount=%d", m.lastRenderedCount)
 
 	// Now add a tool message (collapsed)
-	toolMsg := Message{
+	toolMsg := channel.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeTool,
+		Type:      channel.MessageTypeToolResponse,
 		Content:   "Tool output here",
 		Timestamp: time.Now(),
 		AgentID:   uuid.New(),
 		AgentRole: "runner",
-		IsTool:    true,
-		Collapsed: true,
+		Metadata: map[string]any{"is_tool": true, "collapsed": true},
+		
 	}
 	m.messages = append(m.messages, toolMsg)
 	content = m.updateViewportContent()

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/denkhaus/gollum/pkg/channel"
 )
 
 // Debug log file for click detection debugging
@@ -84,7 +85,14 @@ func (m Model) handleClickOnToolMessage(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	debugLog("clickY=%d, yOffset=%d, viewportHeight=%d", clickY, yOffset, viewportHeight)
 	debugLog("messages count: %d", len(m.messages))
 	for i, msg := range m.messages {
-		debugLog("  msg[%d]: type=%s, isTool=%v, collapsed=%v", i, msg.Type.String(), msg.IsTool, msg.Collapsed)
+		isTool := msg.Type == channel.MessageTypeToolRequest || msg.Type == channel.MessageTypeToolResponse
+		collapsed := false
+		if msg.Metadata != nil {
+			if c, ok := msg.Metadata["collapsed"].(bool); ok {
+				collapsed = c
+			}
+		}
+		debugLog("  msg[%d]: type=%s, isTool=%v, collapsed=%v", i, msg.Type.String(), isTool, collapsed)
 	}
 
 	// Only process clicks within the viewport bounds
@@ -162,15 +170,21 @@ func (m Model) handleClickOnToolMessage(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 
 	// Select the message (always)
 	m.selectMessage(msgIdx)
-	debugLog("SELECTED message %d (type=%s, isTool=%v)", msgIdx, m.messages[msgIdx].Type.String(), m.messages[msgIdx].IsTool)
+	isTool := m.messages[msgIdx].Type == channel.MessageTypeToolRequest || m.messages[msgIdx].Type == channel.MessageTypeToolResponse
+	debugLog("SELECTED message %d (type=%s, isTool=%v)", msgIdx, m.messages[msgIdx].Type.String(), isTool)
 
 	// On double-click, also toggle collapse state if it's a tool message
 	if isDoubleClick {
 		debugLog("DOUBLE-CLICK: Attempting toggle on message %d", msgIdx)
-		debugLog("  message type=%s, isTool=%v", m.messages[msgIdx].Type.String(), m.messages[msgIdx].IsTool)
+		debugLog("  message type=%s, isTool=%v", m.messages[msgIdx].Type.String(), isTool)
 
-		if m.messages[msgIdx].IsTool || m.messages[msgIdx].Type == MessageTypeTool {
-			oldCollapsed := m.messages[msgIdx].Collapsed
+		if isTool {
+			oldCollapsed := false
+			if m.messages[msgIdx].Metadata != nil {
+				if c, ok := m.messages[msgIdx].Metadata["collapsed"].(bool); ok {
+					oldCollapsed = c
+				}
+			}
 			if m.toggleMessageCollapse(msgIdx) {
 				debugLog("  TOGGLE SUCCESS: collapsed %v -> %v", oldCollapsed, !oldCollapsed)
 				// Message was toggled, rebuild viewport content

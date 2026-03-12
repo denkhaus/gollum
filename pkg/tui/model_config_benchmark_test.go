@@ -8,6 +8,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
 )
@@ -75,13 +76,13 @@ func BenchmarkUpdateViewportContent(b *testing.B) {
 	m := NewModel(ctx, agent)
 
 	// Add realistic messages to simulate typical TUI workload
-	m.messages = []Message{
-		{ID: uuid.New(), Type: MessageTypeSystem, Content: "System initialization message", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Agent response 1", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Agent response 2 with some text that needs markdown rendering", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool execution result", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: MessageTypeUser, Content: "User input message", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: MessageTypeUser, Content: "Another user message for realistic workload", Timestamp: time.Now()},
+	m.messages = []channel.Message{
+		{ID: uuid.New(), Type: channel.MessageTypeSystemInfo, Content: "System initialization message", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: channel.MessageTypeAgentChat, Content: "Agent response 1", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: channel.MessageTypeAgentChat, Content: "Agent response 2 with some text that needs markdown rendering", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: channel.MessageTypeToolResponse, Content: "Tool execution result", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: channel.MessageTypeUserChat, Content: "User input message", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: channel.MessageTypeUserChat, Content: "Another user message for realistic workload", Timestamp: time.Now()},
 	}
 
 	b.ResetTimer()
@@ -108,12 +109,12 @@ func BenchmarkFormatMessage(b *testing.B) {
 	m := NewModel(ctx, agent)
 
 	// Test with different message types to cover all code paths
-	testMessages := []Message{
-		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Simple agent response", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: MessageTypeAgent, Content: "Response with markdown formatting: **bold** text and `code`", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: MessageTypeTool, Content: "Tool execution output", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: MessageTypeUser, Content: "User message with emoji 🎉", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: MessageTypeSystem, Content: "System notification", Timestamp: time.Now()},
+	testMessages := []channel.Message{
+		{ID: uuid.New(), Type: channel.MessageTypeAgentChat, Content: "Simple agent response", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: channel.MessageTypeAgentChat, Content: "Response with markdown formatting: **bold** text and `code`", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: channel.MessageTypeToolResponse, Content: "Tool execution output", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: channel.MessageTypeUserChat, Content: "User message with emoji 🎉", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: channel.MessageTypeSystemInfo, Content: "System notification", Timestamp: time.Now()},
 	}
 
 	b.ResetTimer()
@@ -146,9 +147,9 @@ func BenchmarkModelUpdate(b *testing.B) {
 	// Simulate realistic workload: multiple messages being appended
 	baseMessageCount := 100
 	for i := 0; i < baseMessageCount; i++ {
-		msg := Message{
+		msg := channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeAgent,
+			Type:      channel.MessageTypeAgentChat,
 			Content:   fmt.Sprintf("Agent response message %d", i),
 			Timestamp: time.Now(),
 		}
@@ -201,11 +202,11 @@ func BenchmarkUpdateViewportContentWithScrolling(b *testing.B) {
 	m := NewModel(ctx, agent)
 
 	// Realistic TUI session: 100 messages in history
-	m.messages = make([]Message, 100)
+	m.messages = make([]channel.Message, 100)
 	for i := range m.messages {
-		m.messages[i] = Message{
+		m.messages[i] = channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeAgent,
+			Type:      channel.MessageTypeAgentChat,
 			Content:   fmt.Sprintf("Agent response message %d", i),
 			Timestamp: time.Now(),
 		}
@@ -241,11 +242,11 @@ func BenchmarkFormatMessageWithCache(b *testing.B) {
 	m.width = 80
 
 	// Create test messages
-	testMessages := make([]Message, 10)
+	testMessages := make([]channel.Message, 10)
 	for i := range testMessages {
-		testMessages[i] = Message{
+		testMessages[i] = channel.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeAgent,
+			Type:      channel.MessageTypeAgentChat,
 			Content:   fmt.Sprintf("Agent response message %d with some markdown formatting **bold** and `code`", i),
 			Timestamp: time.Now(),
 		}
@@ -278,7 +279,7 @@ func BenchmarkFormatMessageNoCache(b *testing.B) {
 	m.width = 80
 
 	// Create test messages with unique IDs (always cache miss)
-	testMessages := make([]Message, 10)
+	testMessages := make([]channel.Message, 10)
 
 	b.ResetTimer()
 
@@ -289,9 +290,9 @@ func BenchmarkFormatMessageNoCache(b *testing.B) {
 
 		// Create new messages for each iteration (UUID will be different)
 		for j := range testMessages {
-			testMessages[j] = Message{
+			testMessages[j] = channel.Message{
 				ID:        uuid.New(),
-				Type:      MessageTypeAgent,
+				Type:      channel.MessageTypeAgentChat,
 				Content:   fmt.Sprintf("Agent response message %d with some markdown formatting **bold** and `code`", j),
 				Timestamp: time.Now(),
 			}

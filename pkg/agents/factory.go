@@ -3,11 +3,11 @@ package agents
 import (
 	"context"
 
+	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/errs"
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/middleware"
 	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
@@ -27,9 +27,7 @@ type defaultAgentFactory struct {
 	clientProvider  llm.ClientProvider
 	registry        registry.AgentRegistry
 	promptManager   manager.PromptManager
-	displayProvider middleware.DisplayMiddlewareProvider
-	summaryProvider middleware.SummaryMiddlewareProvider
-	channelProvider middleware.ChannelMiddlewareProvider
+	channelProvider channel.ChannelMiddlewareProvider
 	// Tool providers for adding default tools to all agents
 	spawnAgentToolProv      tools.SpawnAgentToolProvider
 	agentOutputToolProv     tools.AgentOutputToolProvider
@@ -55,9 +53,7 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 	clientProvider := do.MustInvoke[llm.ClientProvider](injector)
 	registry := do.MustInvoke[registry.AgentRegistry](injector)
 	promptManager := do.MustInvoke[manager.PromptManager](injector)
-	displayProvider := do.MustInvoke[middleware.DisplayMiddlewareProvider](injector)
-	summaryProvider := do.MustInvoke[middleware.SummaryMiddlewareProvider](injector)
-	channelProvider := do.MustInvoke[middleware.ChannelMiddlewareProvider](injector)
+	channelProvider := do.MustInvoke[channel.ChannelMiddlewareProvider](injector)
 
 	// Get tool providers
 	spawnAgentToolProv := do.MustInvoke[tools.SpawnAgentToolProvider](injector)
@@ -82,8 +78,6 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 		clientProvider:          clientProvider,
 		registry:                registry,
 		promptManager:           promptManager,
-		displayProvider:         displayProvider,
-		summaryProvider:         summaryProvider,
 		channelProvider:         channelProvider,
 		spawnAgentToolProv:      spawnAgentToolProv,
 		agentOutputToolProv:     agentOutputToolProv,
@@ -133,15 +127,13 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 
 	// Create the base agent
 	defAgent := &defaultAgent{
-		clientProvider:  f.clientProvider,
-		configService:   f.configService,
-		logService:      f.logService,
-		registry:        f.registry,
-		id:              config.ID,
-		config:          config,
-		displayProvider: f.displayProvider,
-		summaryProvider: f.summaryProvider,
-		promptManager:   f.promptManager,
+		clientProvider: f.clientProvider,
+		configService:  f.configService,
+		logService:     f.logService,
+		registry:       f.registry,
+		id:             config.ID,
+		config:         config,
+		promptManager:  f.promptManager,
 	}
 
 	// Get LLM client
@@ -195,28 +187,8 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 		)
 	}
 
-	// Add display middleware based on OutputMode
-	switch config.OutputMode {
-	case shared.OutputModeSummary:
-		// Summary mode: only show final result
-		summaryMiddleware := f.summaryProvider.CreateSummaryMiddleware(config.ID, config.Role)
-		baseOptions = append(baseOptions,
-			gollem.WithContentBlockMiddleware(summaryMiddleware.ContentBlockMiddleware),
-			gollem.WithToolMiddleware(summaryMiddleware.ToolMiddleware),
-		)
-	case shared.OutputModeFull:
-		// Full mode: show all steps
-		displayMiddleware := f.displayProvider.CreateDisplayMiddleware(config.ID, config.Role)
-		baseOptions = append(baseOptions,
-			gollem.WithContentBlockMiddleware(displayMiddleware.ContentBlockMiddleware),
-			gollem.WithToolMiddleware(displayMiddleware.ToolMiddleware),
-		)
-	case shared.OutputModeSilent:
-		// use unaltered base options
-	}
-
 	// Add channel middleware (always - routes all agent output to channel system)
-	// This is added AFTER display middleware so it captures all output
+	// The channel SDK handles all messaging, replacing the old DisplayMiddleware and SummaryMiddleware
 	channelMiddleware := f.channelProvider.CreateChannelMiddleware(config.ID, config.Role)
 	baseOptions = append(baseOptions,
 		gollem.WithContentBlockMiddleware(channelMiddleware.ContentBlockMiddleware),
