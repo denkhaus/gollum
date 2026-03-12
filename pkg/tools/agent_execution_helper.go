@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
+	"go.uber.org/zap"
 )
 
 // AgentExecutionHelper provides common agent execution functionality for tools
@@ -54,13 +55,15 @@ func NewAgentExecutionHelper(injector do.Injector) (AgentExecutionHelper, error)
 func (h *agentExecutionHelper) ExecuteSynchronously(ctx context.Context, agent shared.Agent, prompt string) (map[string]any, error) {
 	start := time.Now()
 	agentID := agent.GetID()
-	h.logService.Debugf("Starting synchronous execution for agent %s", agentID)
+	h.logService.DebugWithAgent("Starting synchronous execution", agentID)
 
 	// Execute the prompt
 	response, err := agent.Execute(ctx, gollem.Text(prompt))
 	if err != nil {
 		duration := time.Since(start)
-		h.logService.Errorf("Agent execution failed after %v: %v", duration, err)
+		h.logService.ErrorWithAgent("Agent execution failed", agentID,
+			zap.Duration("duration", duration),
+			zap.Error(err))
 
 		// Update agent result with error
 		now := time.Now().Unix()
@@ -70,7 +73,8 @@ func (h *agentExecutionHelper) ExecuteSynchronously(ctx context.Context, agent s
 			Error:       err.Error(),
 			CompletedAt: &now,
 		}); storeErr != nil {
-			h.logService.Warnf("Failed to store error agent result: %v", storeErr)
+			h.logService.WarnWithAgent("Failed to store error agent result", agentID,
+				zap.Error(storeErr))
 		}
 
 		return nil, errs.Wrap(err, errs.TypeInternal, "execution failed").
@@ -86,7 +90,8 @@ func (h *agentExecutionHelper) ExecuteSynchronously(ctx context.Context, agent s
 	}
 
 	duration := time.Since(start)
-	h.logService.Debugf("Agent execution completed in %v", duration)
+	h.logService.DebugWithAgent("Agent execution completed", agentID,
+		zap.Duration("duration", duration))
 
 	// Update agent result with completion
 	now := time.Now().Unix()
@@ -96,7 +101,8 @@ func (h *agentExecutionHelper) ExecuteSynchronously(ctx context.Context, agent s
 		Output:      map[string]any{"response": responseContent},
 		CompletedAt: &now,
 	}); storeErr != nil {
-		h.logService.Warnf("Failed to store completion agent result: %v", storeErr)
+		h.logService.WarnWithAgent("Failed to store completion agent result", agentID,
+			zap.Error(storeErr))
 	}
 
 	// Return successful response
@@ -107,7 +113,7 @@ func (h *agentExecutionHelper) ExecuteSynchronously(ctx context.Context, agent s
 func (h *agentExecutionHelper) ExecuteInBackground(ctx context.Context, agent shared.Agent, prompt string) {
 	start := time.Now()
 	agentID := agent.GetID()
-	h.logService.Debugf("Starting background execution for agent %s", agentID)
+	h.logService.DebugWithAgent("Starting background execution", agentID)
 
 	response, err := agent.Execute(ctx, gollem.Text(prompt))
 	duration := time.Since(start)
@@ -115,7 +121,8 @@ func (h *agentExecutionHelper) ExecuteInBackground(ctx context.Context, agent sh
 
 	// Check if execution was cancelled
 	if ctx.Err() != nil {
-		h.logService.Infof("Background agent %s was cancelled after %v", agentID, duration)
+		h.logService.InfoWithAgent("Background agent was cancelled", agentID,
+			zap.Duration("duration", duration))
 		_ = h.registry.StoreAgentResult(shared.AgentResult{
 			AgentID:     agent.GetID(),
 			Status:      shared.AgentStatusFailed,
@@ -126,7 +133,9 @@ func (h *agentExecutionHelper) ExecuteInBackground(ctx context.Context, agent sh
 	}
 
 	if err != nil {
-		h.logService.Errorf("Background agent %s failed after %v: %v", agentID, duration, err)
+		h.logService.ErrorWithAgent("Background agent failed", agentID,
+			zap.Duration("duration", duration),
+			zap.Error(err))
 		_ = h.registry.StoreAgentResult(shared.AgentResult{
 			AgentID:     agent.GetID(),
 			Status:      shared.AgentStatusFailed,
@@ -144,7 +153,8 @@ func (h *agentExecutionHelper) ExecuteInBackground(ctx context.Context, agent sh
 		}
 	}
 
-	h.logService.Infof("Background agent %s completed in %v", agentID, duration)
+	h.logService.InfoWithAgent("Background agent completed", agentID,
+		zap.Duration("duration", duration))
 
 	_ = h.registry.StoreAgentResult(shared.AgentResult{
 		AgentID:     agent.GetID(),

@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
+	"go.uber.org/zap"
 )
 
 type (
@@ -158,12 +159,16 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args map[string]
 		}
 	}
 
-	t.logService.Infof("Spawning subagent: role=%s description=%s background=%v share_context=%v", role, description, runInBackground, shareContext)
+	t.logService.InfoWithAgent("Spawning subagent", t.senderID,
+		zap.String("role", role),
+		zap.String("description", description),
+		zap.Bool("background", runInBackground),
+		zap.Bool("share_context", shareContext))
 
 	// Get specialized subagent prompt from PromptManager (includes role, description, and tool names)
 	systemPrompt, err := t.promptManager.GetSubagentTaskPrompt(role, description)
 	if err != nil {
-		t.logService.Errorf("Failed to get subagent prompt: %v", err)
+		t.logService.ErrorWithAgent("Failed to get subagent prompt", t.senderID, zap.Error(err))
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to get subagent prompt: %v", err)), nil
 	}
 
@@ -172,20 +177,21 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args map[string]
 	var llmClientConfig *shared.LLMClientConfig
 	if hasParent {
 		llmClientConfig = parentAgent.GetConfig().LLMClientConfig
-		t.logService.Debugf("Inheriting LLM config from parent agent %s", t.senderID)
+		t.logService.DebugWithAgent("Inheriting LLM config from parent", t.senderID,
+			zap.String("parent_agent_id", t.senderID.String()))
 	} else {
 		// Default fallback
 		llmClientConfig = &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		}
-		t.logService.Debugf("Using default LLM config (no parent agent found)")
+		t.logService.DebugWithAgent("Using default LLM config", t.senderID)
 	}
 
 	var history *gollem.History
 	if shareContext && hasParent {
 		history, err = parentAgent.GetMessageHistory(ctx)
 		if err != nil {
-			t.logService.Warnf("Failed to get message history from parent agent: %v", err)
+			t.logService.WarnWithAgent("Failed to get message history from parent", t.senderID, zap.Error(err))
 			// Continue without history - non-fatal error
 		}
 	}
@@ -207,11 +213,13 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args map[string]
 	// Create the subagent using the factory (which now adds default tools)
 	subagent, err := t.agentFactory.CreateAgent(ctx, subagentConfig)
 	if err != nil {
-		t.logService.Errorf("Failed to create subagent: %v", err)
+		t.logService.ErrorWithAgent("Failed to create subagent", t.senderID, zap.Error(err))
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to create subagent: %v", err)), nil
 	}
 
-	t.logService.Infof("Created subagent %s (role=%s)", subagent.GetID(), role)
+	t.logService.InfoWithAgent("Created subagent", t.senderID,
+		zap.String("subagent_id", subagent.GetID().String()),
+		zap.String("role", role))
 
 	// Create initial agent result
 	agentResult := shared.AgentResult{
@@ -221,7 +229,7 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args map[string]
 		StartedAt: time.Now().Unix(),
 	}
 	if err := t.registry.StoreAgentResult(agentResult); err != nil {
-		t.logService.Errorf("Failed to store agent result: %v", err)
+		t.logService.ErrorWithAgent("Failed to store agent result", t.senderID, zap.Error(err))
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to store agent result: %v", err)), nil
 	}
 

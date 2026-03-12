@@ -131,7 +131,7 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args map[string]any) 
 	cmdCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	t.logService.Infof("Executing bash command: %s", command)
+	t.logService.InfoWithAgent("Executing bash command", t.agentID, zap.String("command", command))
 
 	cmd := exec.CommandContext(cmdCtx, "bash", "-c", command)
 
@@ -154,12 +154,16 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args map[string]any) 
 
 	if err != nil {
 		if cmdCtx.Err() == context.DeadlineExceeded {
-			t.logService.Warnf("Command timed out after %.2fs: %s", timeout.Seconds(), command)
+			t.logService.WarnWithAgent("Command timed out", t.agentID,
+				zap.Float64("timeout_seconds", timeout.Seconds()),
+				zap.String("command", command))
 			result[string(shared.KeySuccess)] = false
 			result[string(shared.KeyError)] = fmt.Sprintf("command timed out after %.2fs", timeout.Seconds())
 			result[string(shared.KeyExitCode)] = -1
 		} else {
-			t.logService.Errorf("Command failed: %s - %v", command, err)
+			t.logService.ErrorWithAgent("Command failed", t.agentID,
+				zap.String("command", command),
+				zap.Error(err))
 			result[string(shared.KeySuccess)] = false
 			result[string(shared.KeyError)] = err.Error()
 			result[string(shared.KeyExitCode)] = cmd.ProcessState.ExitCode()
@@ -167,7 +171,9 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args map[string]any) 
 		return result, nil
 	}
 
-	t.logService.Infof("Command succeeded in %.2fs: %s", duration.Seconds(), command)
+	t.logService.InfoWithAgent("Command succeeded", t.agentID,
+		zap.Float64("duration_seconds", duration.Seconds()),
+		zap.String("command", command))
 	result[string(shared.KeySuccess)] = true
 	result[string(shared.KeyExitCode)] = 0
 
@@ -182,11 +188,11 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args map[string]any) 
 		// Detect changes
 		changes, detectErr := t.fileState.DetectChanges(beforeStats)
 		if detectErr != nil {
-			t.logService.Warn("Failed to detect file changes", zap.Error(detectErr))
+			t.logService.WarnWithAgent("Failed to detect file changes", t.agentID, zap.Error(detectErr))
 			result[string(shared.KeyWarning)] = fmt.Sprintf("Failed to detect file changes: %v", detectErr)
 		} else if len(changes) > 0 {
 			// Log detected changes
-			t.logService.Info("Bash command modified files",
+			t.logService.InfoWithAgent("Bash command modified files", t.agentID,
 				zap.Int("count", len(changes)),
 				zap.String("command", command))
 
@@ -197,7 +203,9 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args map[string]any) 
 					// Get the current content of the file
 					currentContent, err := os.ReadFile(change.Path)
 					if err != nil {
-						t.logService.Warnf("Failed to get current content for diff: %s - %v", change.Path, err)
+						t.logService.WarnWithAgent("Failed to get current content for diff", t.agentID,
+							zap.String("path", change.Path),
+							zap.Error(err))
 						continue
 					}
 
@@ -214,7 +222,9 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args map[string]any) 
 					}
 
 					if err != nil {
-						t.logService.Warnf("Failed to generate diff for %s: %v", change.Path, err)
+						t.logService.WarnWithAgent("Failed to generate diff", t.agentID,
+							zap.String("path", change.Path),
+							zap.Error(err))
 						continue
 					}
 

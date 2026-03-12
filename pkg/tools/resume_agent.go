@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
+	"go.uber.org/zap"
 )
 
 type (
@@ -125,14 +126,17 @@ func (t *resumeAgentToolImpl) runResumeAgent(ctx context.Context, args map[strin
 
 	// PERMISSION CHECK: Verify caller is DIRECT parent of target agent
 	if !t.registry.IsDirectParent(t.senderID, agentID) {
-		t.logService.Warnf("Permission denied: agent %s attempted to resume agent %s (not direct parent)", t.senderID, agentID)
+		t.logService.WarnWithAgent("Permission denied: not direct parent", t.senderID,
+			zap.String("target_agent_id", agentID.String()))
 
 		return t.executionHelper.ErrorResponse(
 			fmt.Sprintf("permission denied: you can only resume your direct subagents (not grandchildren or other agents). Agent %s is not your direct child.", agentID),
 		), nil
 	}
 
-	t.logService.Infof("Resuming agent %s from sender %s (background=%v)", agentID, t.senderID, runInBackground)
+	t.logService.InfoWithAgent("Resuming agent", t.senderID,
+		zap.String("target_agent_id", agentID.String()),
+		zap.Bool("background", runInBackground))
 
 	// Get the agent from registry
 	agent, exists := t.registry.GetAgent(agentID)
@@ -145,11 +149,15 @@ func (t *resumeAgentToolImpl) runResumeAgent(ctx context.Context, args map[strin
 	// Get agent config from the agent itself
 	agentConfig := agent.GetConfig()
 
-	t.logService.Infof("Found agent %s (role=%s)", agentID, agentConfig.Role)
+	t.logService.InfoWithAgent("Found agent to resume", t.senderID,
+		zap.String("target_agent_id", agentID.String()),
+		zap.String("role", agentConfig.Role))
 
 	// Delete any previous agent result to prevent returning stale results
 	if err := t.registry.DeleteAgentResult(agentID); err != nil {
-		t.logService.Warnf("Failed to delete previous agent result for %s: %v", agentID, err)
+		t.logService.WarnWithAgent("Failed to delete previous agent result", t.senderID,
+			zap.String("target_agent_id", agentID.String()),
+			zap.Error(err))
 		// Continue anyway - this is not a critical error
 	}
 
@@ -161,23 +169,30 @@ func (t *resumeAgentToolImpl) runResumeAgent(ctx context.Context, args map[strin
 
 		// Store cancel function in registry for this agent
 		if err := t.registry.SetCancelFunc(agentID, cancel); err != nil {
-			t.logService.Warnf("Failed to store cancel function for agent %s: %v", agentID, err)
+			t.logService.WarnWithAgent("Failed to store cancel function", t.senderID,
+				zap.String("target_agent_id", agentID.String()),
+				zap.Error(err))
 			// Continue anyway - the agent will still run, just won't be cancellable
 		}
 
-		t.logService.Infof("Starting background execution for agent %s", agentID)
+		t.logService.InfoWithAgent("Starting background execution for agent", t.senderID,
+			zap.String("target_agent_id", agentID.String()))
 		go t.executionHelper.ExecuteInBackground(bgCtx, agent, prompt)
 		return t.executionHelper.SuccessResponseResumeAsync(agentID, agentConfig.Role, agentConfig.Description), nil
 	}
 
 	// Synchronous execution
-	t.logService.Infof("Executing agent %s synchronously", agentID)
+	t.logService.InfoWithAgent("Executing agent synchronously", t.senderID,
+		zap.String("target_agent_id", agentID.String()))
 	response, err := t.executionHelper.ExecuteSynchronously(ctx, agent, prompt)
 	if err != nil {
-		t.logService.Errorf("Agent execution failed: %v", err)
+		t.logService.ErrorWithAgent("Agent execution failed", t.senderID,
+			zap.String("target_agent_id", agentID.String()),
+			zap.Error(err))
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("execution failed: %v", err)), nil
 	}
 
-	t.logService.Infof("Agent %s completed successfully", agentID)
+	t.logService.InfoWithAgent("Agent completed successfully", t.senderID,
+		zap.String("target_agent_id", agentID.String()))
 	return response, nil
 }
