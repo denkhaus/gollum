@@ -252,12 +252,6 @@ func TestPrimeFileStateManager_PrimeError(t *testing.T) {
 
 // TestCreateToolSet_Success tests that createToolSet returns tool sets from MCP registry
 func TestCreateToolSet_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockLogger := mocks.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Info("create tool-set for main agent").Times(1)
-
 	// Create a mock MCP registry
 	mockMCPRegistry := &mockMCPRegistry{
 		toolSets: []gollem.ToolSet{},
@@ -289,7 +283,7 @@ func TestCreateSupervisorAgent_ToolSetSuccess(t *testing.T) {
 	ctx := context.Background()
 
 	mockLogger := mocks.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Info("create tool-set for main agent").Times(1)
+	mockLogger.EXPECT().Warn("no mcp servers configured for supervison agent").Times(1)
 	mockLogger.EXPECT().Infof("Supervisor agent %s registered", gomock.Any()).Times(1)
 
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
@@ -344,7 +338,6 @@ func TestCreateSupervisorAgent_PromptError(t *testing.T) {
 	ctx := context.Background()
 
 	mockLogger := mocks.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Info("create tool-set for main agent").Times(1)
 
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
@@ -387,7 +380,7 @@ func TestCreateSupervisorAgent_AgentFactoryError(t *testing.T) {
 	ctx := context.Background()
 
 	mockLogger := mocks.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Info("create tool-set for main agent").Times(1)
+	mockLogger.EXPECT().Warn("no mcp servers configured for supervison agent").Times(1)
 
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
@@ -434,7 +427,7 @@ func TestCreateSupervisorAgent_RegistryError(t *testing.T) {
 	agentID := uuid.New()
 
 	mockLogger := mocks.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Info("create tool-set for main agent").Times(1)
+	mockLogger.EXPECT().Warn("no mcp servers configured for supervison agent").Times(1)
 
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
 

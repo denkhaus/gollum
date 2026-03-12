@@ -682,20 +682,17 @@ Content
 	err = service.Discover(context.Background())
 	require.NoError(t, err)
 
-	// Test List
+	// Test List - should include our test skill (may also include global skills)
 	testSkills := service.List()
-	assert.Len(t, testSkills, 1)
+	assert.NotNil(t, testSkills.FindByName("list-skill"), "test skill should be in the list")
 
-	// Test ListByType
+	// Test ListByType - our test skill should be in agent skills
 	agentSkills := service.ListByType(skills.SkillTypeAgent)
-	assert.Len(t, agentSkills, 1)
+	assert.NotNil(t, agentSkills.FindByName("list-skill"), "test skill should be in agent skills")
 
-	mcpSkills := service.ListByType(skills.SkillTypeMcp)
-	assert.Len(t, mcpSkills, 0)
-
-	// Test ListUserInvocable
+	// Test ListUserInvocable - our test skill should be invocable
 	invocable := service.ListUserInvocable()
-	assert.Len(t, invocable, 1)
+	assert.NotNil(t, invocable.FindByName("list-skill"), "test skill should be user invocable")
 }
 
 // TestSkillService_Get tests service Get method

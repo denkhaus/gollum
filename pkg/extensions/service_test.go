@@ -55,22 +55,26 @@ func TestExtensionService_GetFuncRunner(t *testing.T) {
 // Mocks
 type mockLogger struct{}
 
-func (m *mockLogger) Info(msg string, fields ...zap.Field) {}
-func (m *mockLogger) Infof(template string, args ...interface{}) {}
-func (m *mockLogger) Error(msg string, fields ...zap.Field) {}
-func (m *mockLogger) Errorf(template string, args ...interface{}) {}
-func (m *mockLogger) Debug(msg string, fields ...zap.Field) {}
-func (m *mockLogger) Debugf(template string, args ...interface{}) {}
-func (m *mockLogger) Warn(msg string, fields ...zap.Field) {}
-func (m *mockLogger) Warnf(template string, args ...interface{}) {}
-func (m *mockLogger) GetLogger() *zap.Logger { return nil }
+func (m *mockLogger) Info(msg string, fields ...zap.Field)                         {}
+func (m *mockLogger) Infof(template string, args ...interface{})                    {}
+func (m *mockLogger) Error(msg string, fields ...zap.Field)                        {}
+func (m *mockLogger) Errorf(template string, args ...interface{})                   {}
+func (m *mockLogger) Debug(msg string, fields ...zap.Field)                        {}
+func (m *mockLogger) Debugf(template string, args ...interface{})                   {}
+func (m *mockLogger) Warn(msg string, fields ...zap.Field)                         {}
+func (m *mockLogger) Warnf(template string, args ...interface{})                    {}
+func (m *mockLogger) InfoWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)  {}
+func (m *mockLogger) ErrorWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {}
+func (m *mockLogger) DebugWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {}
+func (m *mockLogger) WarnWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)  {}
+func (m *mockLogger) GetLogger() *zap.Logger                                { return nil }
 func (m *mockLogger) GetLogs(filter logger.LogFilter) []logger.LogEntry { return nil }
-func (m *mockLogger) GetLogStats() map[string]interface{} { return nil }
-func (m *mockLogger) SetTUIMode(enabled bool) {}
-func (m *mockLogger) IsTUIMode() bool { return false }
+func (m *mockLogger) GetLogStats() map[string]interface{}             { return nil }
+func (m *mockLogger) SetTUIMode(enabled bool)                           {}
+func (m *mockLogger) IsTUIMode() bool                                { return false }
 func (m *mockLogger) EnableFileLogging(gollumDir string, sessionID uuid.UUID) error { return nil }
-func (m *mockLogger) CloseFileLogging() error { return nil }
-func (m *mockLogger) Flush() error { return nil }
+func (m *mockLogger) CloseFileLogging() error                              { return nil }
+func (m *mockLogger) Flush() error                                     { return nil }
 
 type mockWorkspace struct{}
 

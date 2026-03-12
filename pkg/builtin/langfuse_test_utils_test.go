@@ -26,6 +26,10 @@ func (n *nopLogger) Debug(msg string, fields ...zap.Field)             {}
 func (n *nopLogger) Debugf(template string, args ...any)               {}
 func (n *nopLogger) Warn(msg string, fields ...zap.Field)              {}
 func (n *nopLogger) Warnf(template string, args ...any)                {}
+func (n *nopLogger) InfoWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)  {}
+func (n *nopLogger) ErrorWithAgent(_ string, _ uuid.UUID, _ ...zap.Field) {}
+func (n *nopLogger) DebugWithAgent(_ string, _ uuid.UUID, _ ...zap.Field) {}
+func (n *nopLogger) WarnWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)  {}
 func (n *nopLogger) GetLogger() *zap.Logger                            { return zap.NewNop() }
 func (n *nopLogger) GetLogs(filter logger.LogFilter) []logger.LogEntry { return nil }
 func (n *nopLogger) GetLogStats() map[string]interface{}               { return nil }
