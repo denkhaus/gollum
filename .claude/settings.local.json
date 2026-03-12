@@ -79,7 +79,8 @@
       "Bash(/home/denkhaus/go/bin/forgejo issue:*)",
       "Bash(go list:*)",
       "Bash(git add:*)",
-      "Bash(forgejo pr:*)"
+      "Bash(forgejo pr:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

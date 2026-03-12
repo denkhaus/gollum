@@ -7,6 +7,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/agents"
 	"github.com/denkhaus/gollum/pkg/app"
 	"github.com/denkhaus/gollum/pkg/builtin"
+	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/diff"
 	"github.com/denkhaus/gollum/pkg/events"
@@ -92,6 +93,10 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	// Middleware
 	do.Provide(p.injector, middleware.NewDisplayMiddlewareProvider)
 	do.Provide(p.injector, middleware.NewSummaryMiddlewareProvider)
+
+	// Channel Abstraction Layer
+	do.Provide(p.injector, channel.NewCommandManager)
+	do.Provide(p.injector, channel.NewChannelFacade)
 
 	// State
 	do.Provide(p.injector, state.NewFileStateManager)
