@@ -125,7 +125,7 @@ func TestUpdate_AltEnterMultiLine(t *testing.T) {
 
 	// Type second line
 	newModel, _ = newModel.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("second line")})
-	m = newModel.(Model)
+	_ = newModel.(Model) //nolint:staticcheck // value is never used, but type assertion validates model type
 
 	// Press Alt+Enter again to add another line
 	newModel, _ = newModel.Update(altEnterMsg)

@@ -133,7 +133,7 @@ func TestFixPreservesScrolling(t *testing.T) {
 	}
 
 	// Verify we can scroll down
-	m.viewport.LineDown(10)
+	m.viewport.ScrollDown(10)
 	viewAfterScroll := m.viewport.View()
 	if len(viewAfterScroll) == 0 || viewAfterScroll == view {
 		t.Error("FAILED: Scrolling down doesn't change the view")

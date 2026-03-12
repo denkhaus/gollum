@@ -480,7 +480,7 @@ func TestSkill_String(t *testing.T) {
 }
 
 // setupTestService creates a skill service with centralized mocks for testing
-func setupTestService(t *testing.T) (skills.SkillService, *mocks.MockService, *mocks.MockBus) {
+func setupTestService(t *testing.T) skills.SkillService {
 	ctrl := gomock.NewController(t)
 
 	mockWorkspace := mocks.NewMockService(ctrl)
@@ -502,12 +502,12 @@ func setupTestService(t *testing.T) (skills.SkillService, *mocks.MockService, *m
 	service, err := skills.NewService(injector)
 	require.NoError(t, err)
 
-	return service, mockWorkspace, mockBus
+	return service
 }
 
 // TestNewService tests service creation with centralized mocks
 func TestNewService(t *testing.T) {
-	service, _, _ := setupTestService(t)
+	service := setupTestService(t)
 	require.NotNil(t, service)
 }
 
@@ -636,7 +636,7 @@ func TestSkill_IsToolFiltered(t *testing.T) {
 
 // TestSkillService_SearchPaths tests search path management
 func TestSkillService_SearchPaths(t *testing.T) {
-	service, _, _ := setupTestService(t)
+	service := setupTestService(t)
 
 	// Test AddSearchPath
 	service.AddSearchPath("/path/one")
@@ -658,7 +658,7 @@ func TestSkillService_SearchPaths(t *testing.T) {
 
 // TestSkillService_ListMethods tests service list methods
 func TestSkillService_ListMethods(t *testing.T) {
-	service, _, _ := setupTestService(t)
+	service := setupTestService(t)
 
 	// Create temp skill directory
 	tmpDir, err := os.MkdirTemp("", "skill-list-test-*")
@@ -697,7 +697,7 @@ Content
 
 // TestSkillService_Get tests service Get method
 func TestSkillService_Get(t *testing.T) {
-	service, _, _ := setupTestService(t)
+	service := setupTestService(t)
 
 	// Create temp skill directory
 	tmpDir, err := os.MkdirTemp("", "skill-get-test-*")
@@ -743,7 +743,7 @@ Content
 
 // TestSkillService_Refresh tests Refresh method
 func TestSkillService_Refresh(t *testing.T) {
-	service, _, _ := setupTestService(t)
+	service := setupTestService(t)
 
 	// Refresh on empty should not error
 	err := service.Refresh(context.Background())
@@ -830,7 +830,7 @@ Content
 
 // TestSkillService_AutoRemoveEmptySearchPaths tests that search paths with no skills are removed after discovery
 func TestSkillService_AutoRemoveEmptySearchPaths(t *testing.T) {
-	service, _, _ := setupTestService(t)
+	service := setupTestService(t)
 
 	// Create temp directories
 	dirWithSkill, err := os.MkdirTemp("", "skill-with-*")

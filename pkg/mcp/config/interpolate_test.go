@@ -12,10 +12,10 @@ import (
 
 func TestInterpolateValue_EnvVars(t *testing.T) {
 	// Set up test env vars
-	os.Setenv("TEST_VAR", "test-value")
-	os.Setenv("ANOTHER_VAR", "another-value")
-	defer os.Unsetenv("TEST_VAR")
-	defer os.Unsetenv("ANOTHER_VAR")
+	_ = os.Setenv("TEST_VAR", "test-value")
+	_ = os.Setenv("ANOTHER_VAR", "another-value")
+	defer func() { _ = os.Unsetenv("TEST_VAR") }()
+	defer func() { _ = os.Unsetenv("ANOTHER_VAR") }()
 
 	tests := []struct {
 		name     string
@@ -117,8 +117,8 @@ func TestInterpolateValue_ShellCommands(t *testing.T) {
 }
 
 func TestInterpolateValue_Combined(t *testing.T) {
-	os.Setenv("PREFIX", "pre")
-	defer os.Unsetenv("PREFIX")
+	_ = os.Setenv("PREFIX", "pre")
+	defer func() { _ = os.Unsetenv("PREFIX") }()
 
 	ctrl := gomock.NewController(t)
 	mockLog := mocks.NewMockLoggerService(ctrl)
@@ -130,10 +130,10 @@ func TestInterpolateValue_Combined(t *testing.T) {
 }
 
 func TestInterpolateEnvMap(t *testing.T) {
-	os.Setenv("KEY1", "value1")
-	os.Setenv("KEY2", "value2")
-	defer os.Unsetenv("KEY1")
-	defer os.Unsetenv("KEY2")
+	_ = os.Setenv("KEY1", "value1")
+	_ = os.Setenv("KEY2", "value2")
+	defer func() { _ = os.Unsetenv("KEY1") }()
+	defer func() { _ = os.Unsetenv("KEY2") }()
 
 	input := map[string]string{
 		"key1":     "$KEY1",
@@ -163,8 +163,8 @@ func TestInterpolateEnvMap(t *testing.T) {
 }
 
 func TestInterpolateConfig(t *testing.T) {
-	os.Setenv("API_KEY", "secret-key")
-	defer os.Unsetenv("API_KEY")
+	_ = os.Setenv("API_KEY", "secret-key")
+	defer func() { _ = os.Unsetenv("API_KEY") }()
 
 	cfg := MCPServerConfig{
 		Command: "test-command",
@@ -199,8 +199,8 @@ func TestInterpolateConfig(t *testing.T) {
 }
 
 func TestConfigLoader_Load_WithInterpolation(t *testing.T) {
-	os.Setenv("TEST_TOKEN", "interpolated-token")
-	defer os.Unsetenv("TEST_TOKEN")
+	_ = os.Setenv("TEST_TOKEN", "interpolated-token")
+	defer func() { _ = os.Unsetenv("TEST_TOKEN") }()
 
 	tmpDir := t.TempDir()
 	configContent := `{
@@ -246,8 +246,8 @@ func TestConfigLoader_Load_WithInterpolation(t *testing.T) {
 }
 
 func TestConfigLoader_Load_WithHeadersInterpolation(t *testing.T) {
-	os.Setenv("AUTH_HEADER", "Bearer token123")
-	defer os.Unsetenv("AUTH_HEADER")
+	_ = os.Setenv("AUTH_HEADER", "Bearer token123")
+	defer func() { _ = os.Unsetenv("AUTH_HEADER") }()
 
 	tmpDir := t.TempDir()
 	configContent := `{

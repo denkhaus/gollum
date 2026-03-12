@@ -24,7 +24,7 @@ type myDatabaseService struct {
 }
 
 // NewDatabaseService creates a new database service
-func NewDatabaseService(inj do.Injector) (DatabaseService, error) {
+func NewDatabaseService(_ do.Injector) (DatabaseService, error) {
 	return &myDatabaseService{
 		connectionString: "postgres://localhost:5432/mydb",
 	}, nil
@@ -49,6 +49,8 @@ func (s *myDatabaseService) Close() error {
 
 // Init is required for all extensions
 // It is called automatically when the extension is loaded
+//
+//nolint:unparam // error return is required by extension interface
 func Init() error {
 	fmt.Println("Database extension: initializing...")
 

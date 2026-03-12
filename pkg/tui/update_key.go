@@ -292,16 +292,16 @@ func (m Model) handleShiftArrows(keyType tea.KeyType) (tea.Model, tea.Cmd) {
 	scrollLines := 10 // Scroll 10 lines for faster navigation
 	if m.activeViewport == ViewportLogs {
 		if keyType == tea.KeyShiftUp {
-			m.logViewport.LineUp(scrollLines)
+			m.logViewport.ScrollUp(scrollLines)
 		} else {
-			m.logViewport.LineDown(scrollLines)
+			m.logViewport.ScrollDown(scrollLines)
 		}
 		return m, nil
 	}
 	if keyType == tea.KeyShiftUp {
-		m.viewport.LineUp(scrollLines)
+		m.viewport.ScrollUp(scrollLines)
 	} else {
-		m.viewport.LineDown(scrollLines)
+		m.viewport.ScrollDown(scrollLines)
 	}
 	return m, nil
 }

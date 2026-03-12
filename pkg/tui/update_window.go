@@ -5,6 +5,8 @@ import tea "github.com/charmbracelet/bubbletea"
 // This file handles window resize events for the TUI.
 
 // handleWindowSizeMsg handles terminal resize events.
+//
+//nolint:unparam // Cmd return is always nil by design (no async commands needed)
 func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 	widthChanged := m.width != msg.Width
 	m.width = msg.Width

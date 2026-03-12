@@ -3,7 +3,6 @@ package executor
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -13,7 +12,7 @@ import (
 )
 
 // executeLLMStep executes an LLM step
-func (p *flowExecutorImpl) executeLLMStep(step *flows.Step, stateName string) error {
+func (p *flowExecutorImpl) executeLLMStep(step *flows.Step, _ string) error {
 	// Find agent configuration
 	var agentConfig *flows.Agent
 	for i := range p.flow.Agents {
@@ -84,14 +83,4 @@ func (p *flowExecutorImpl) executeLLMStep(step *flows.Step, stateName string) er
 	}
 
 	return nil
-}
-
-// parseTools parses tools attribute into tool names
-// Note: This is kept for compatibility but tools are not yet implemented for LLM steps
-func (p *flowExecutorImpl) parseTools(toolsStr string) []string {
-	if toolsStr == "" {
-		return nil
-	}
-
-	return strings.Split(toolsStr, ",")
 }

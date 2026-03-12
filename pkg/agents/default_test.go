@@ -86,7 +86,7 @@ func TestDefaultAgent_Execute_NilBase(t *testing.T) {
 
 	// Should panic when calling Execute on nil base
 	assert.Panics(t, func() {
-		agent.Execute(ctx, gollem.Text("test input"))
+		_, _ = agent.Execute(ctx, gollem.Text("test input"))
 	})
 }
 
@@ -112,7 +112,7 @@ func TestDefaultAgent_UpdateSystemPrompt(t *testing.T) {
 
 	t.Run("config is updated with new prompt", func(t *testing.T) {
 		agent := &defaultAgent{
-			id: uuid.New(),
+			id: uuid.New(), //nolint:unusedwrite // field is required but not used in this test
 			config: &shared.AgentConfig{
 				SystemPrompt: "original prompt",
 			},
@@ -156,7 +156,7 @@ func TestDefaultAgent_UpdateHistory(t *testing.T) {
 
 		// Create a modifier that tracks if it was called
 		modifierCalled := false
-		modifier := func(h *gollem.History) (*gollem.History, error) {
+		modifier := func(h *gollem.History) (*gollem.History, error) { //nolint:unparam // test helper, error always nil
 			modifierCalled = true
 			return h, nil
 		}
@@ -174,7 +174,7 @@ func TestDefaultAgent_UpdateHistory(t *testing.T) {
 	})
 
 	t.Run("modifier can add messages", func(t *testing.T) {
-		modifier := func(h *gollem.History) (*gollem.History, error) {
+		modifier := func(h *gollem.History) (*gollem.History, error) { //nolint:unparam // test helper, error always nil
 			if h == nil {
 				h = &gollem.History{
 					Version:  gollem.HistoryVersion,
@@ -204,7 +204,7 @@ func TestDefaultAgent_UpdateHistory(t *testing.T) {
 			},
 		}
 
-		modifier := func(h *gollem.History) (*gollem.History, error) {
+		modifier := func(h *gollem.History) (*gollem.History, error) { //nolint:unparam // test helper, error always nil
 			// Filter out assistant messages
 			filtered := make([]gollem.Message, 0)
 			for _, msg := range h.Messages {
@@ -239,7 +239,7 @@ func TestDefaultAgent_UpdateHistory_NilBase(t *testing.T) {
 	}
 
 	// Modifier that returns an error
-	modifier := func(h *gollem.History) (*gollem.History, error) {
+	modifier := func(_ *gollem.History) (*gollem.History, error) {
 		return nil, errors.New("modifier failed")
 	}
 
@@ -264,7 +264,7 @@ func TestBuildOptionsWithHistory_BaseOptions(t *testing.T) {
 		mockPromptMgr.EXPECT().GetPromptByID(gomock.Any(), gomock.Any()).Return(&prompt.Prompt{Content: "compacter prompt"}, nil).AnyTimes()
 
 		agent := &defaultAgent{
-			id:           agentID,
+			id:            agentID,
 			llmClient:     mockLLMClient,
 			promptManager: mockPromptMgr,
 			config: &shared.AgentConfig{
@@ -293,7 +293,7 @@ func TestBuildOptionsWithHistory_BaseOptions(t *testing.T) {
 		mockPromptMgr.EXPECT().GetPromptByID(gomock.Any(), gomock.Any()).Return(&prompt.Prompt{Content: "compacter prompt"}, nil).AnyTimes()
 
 		agent := &defaultAgent{
-			id:           agentID,
+			id:            agentID,
 			llmClient:     mockLLMClient,
 			promptManager: mockPromptMgr,
 			config: &shared.AgentConfig{
@@ -322,7 +322,7 @@ func TestBuildOptionsWithHistory_BaseOptions(t *testing.T) {
 		mockPromptMgr.EXPECT().GetPromptByID(gomock.Any(), gomock.Any()).Return(&prompt.Prompt{Content: "compacter prompt"}, nil).AnyTimes()
 
 		agent := &defaultAgent{
-			id:           agentID,
+			id:            agentID,
 			llmClient:     mockLLMClient,
 			promptManager: mockPromptMgr,
 			config: &shared.AgentConfig{
@@ -346,7 +346,7 @@ func TestBuildOptionsWithHistory_BaseOptions(t *testing.T) {
 		mockPromptMgr.EXPECT().GetPromptByID(gomock.Any(), gomock.Any()).Return(&prompt.Prompt{Content: "compacter prompt"}, nil).AnyTimes()
 
 		agent := &defaultAgent{
-			id:           agentID,
+			id:            agentID,
 			llmClient:     mockLLMClient,
 			promptManager: mockPromptMgr,
 			config: &shared.AgentConfig{

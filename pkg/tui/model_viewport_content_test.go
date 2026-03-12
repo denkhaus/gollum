@@ -61,7 +61,7 @@ func TestUpdateViewportContentTracksMessagePositions(t *testing.T) {
 	m.viewport.SetContent(m.updateViewportContent())
 
 	// Click on first message (at its start line)
-	clickOnFirst := tea.MouseMsg{Type: tea.MouseLeft, Y: 0}
+	clickOnFirst := tea.MouseMsg{Button: tea.MouseButtonLeft, Y: 0}
 	resultModel, _ := m.handleClickOnToolMessage(clickOnFirst)
 	result := resultModel.(Model)
 	if result.selectedMessageIndex != 0 {
@@ -70,7 +70,7 @@ func TestUpdateViewportContentTracksMessagePositions(t *testing.T) {
 
 	// Click on second message (at its start line)
 	clickY := m.getMessageStartLine(1)
-	clickOnSecond := tea.MouseMsg{Type: tea.MouseLeft, Y: clickY}
+	clickOnSecond := tea.MouseMsg{Button: tea.MouseButtonLeft, Y: clickY}
 	resultModel2, _ := result.handleClickOnToolMessage(clickOnSecond)
 	result2 := resultModel2.(Model)
 	if result2.selectedMessageIndex != 1 {
@@ -79,7 +79,7 @@ func TestUpdateViewportContentTracksMessagePositions(t *testing.T) {
 
 	// Click on third message (collapsed tool, at its start line)
 	clickY2 := m.getMessageStartLine(2)
-	clickOnThird := tea.MouseMsg{Type: tea.MouseLeft, Y: clickY2}
+	clickOnThird := tea.MouseMsg{Button: tea.MouseButtonLeft, Y: clickY2}
 	resultModel3, _ := result2.handleClickOnToolMessage(clickOnThird)
 	result3 := resultModel3.(Model)
 	if result3.selectedMessageIndex != 2 {

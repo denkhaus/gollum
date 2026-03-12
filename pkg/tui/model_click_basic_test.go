@@ -62,7 +62,7 @@ func TestClickOnCollapsedToolMessage(t *testing.T) {
 
 	// Click at various positions within the tool message
 	for clickY := toolStartLine; clickY <= toolEndLine && clickY < m.viewport.Height; clickY++ {
-		clickMsg := tea.MouseMsg{Type: tea.MouseLeft, Y: clickY}
+		clickMsg := tea.MouseMsg{Button: tea.MouseButtonLeft, Y: clickY}
 		resultModel, _ := m.handleClickOnToolMessage(clickMsg)
 		result := resultModel.(Model)
 
@@ -118,7 +118,7 @@ func TestClickOnExpandedToolMessage(t *testing.T) {
 
 	// Click at the start of the tool message
 	toolStartLine := m.getMessageStartLine(1)
-	clickMsg := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
+	clickMsg := tea.MouseMsg{Button: tea.MouseButtonLeft, Y: toolStartLine}
 	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
 	result := resultModel.(Model)
 
@@ -177,7 +177,7 @@ func TestClickOnToolMessageWithDifferentialUpdate(t *testing.T) {
 
 	// Now click on the tool message (index 1)
 	toolStartLine := m.getMessageStartLine(1)
-	clickMsg := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
+	clickMsg := tea.MouseMsg{Button: tea.MouseButtonLeft, Y: toolStartLine}
 	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
 	result := resultModel.(Model)
 
@@ -188,7 +188,7 @@ func TestClickOnToolMessageWithDifferentialUpdate(t *testing.T) {
 
 	// Also verify clicking on the first message
 	userStartLine := m.getMessageStartLine(0)
-	clickMsg2 := tea.MouseMsg{Type: tea.MouseLeft, Y: userStartLine}
+	clickMsg2 := tea.MouseMsg{Button: tea.MouseButtonLeft, Y: userStartLine}
 	resultModel2, _ := m.handleClickOnToolMessage(clickMsg2)
 	result2 := resultModel2.(Model)
 
@@ -245,12 +245,12 @@ func TestClickOnToolMessageWithScrolling(t *testing.T) {
 	t.Logf("Viewport height: %d", m.viewport.Height)
 
 	// Scroll down a bit
-	m.viewport.LineDown(10)
+	m.viewport.ScrollDown(10)
 	yOffset := m.viewport.YOffset
 	t.Logf("Scrolled down, YOffset: %d", yOffset)
 
 	// Click at Y=0 in the viewport (which is actually at content line yOffset)
-	clickMsg := tea.MouseMsg{Type: tea.MouseLeft, Y: 0}
+	clickMsg := tea.MouseMsg{Button: tea.MouseButtonLeft, Y: 0}
 	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
 	result := resultModel.(Model)
 
@@ -264,7 +264,7 @@ func TestClickOnToolMessageWithScrolling(t *testing.T) {
 	}
 
 	// Now click at Y=5 in the viewport
-	clickMsg2 := tea.MouseMsg{Type: tea.MouseLeft, Y: 5}
+	clickMsg2 := tea.MouseMsg{Button: tea.MouseButtonLeft, Y: 5}
 	resultModel2, _ := result.handleClickOnToolMessage(clickMsg2)
 	result2 := resultModel2.(Model)
 
@@ -336,7 +336,7 @@ func TestClickOnFirstToolMessage(t *testing.T) {
 
 	// Now click at the START of the tool message
 	toolStartLine := m.getMessageStartLine(1)
-	clickMsg := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
+	clickMsg := tea.MouseMsg{Button: tea.MouseButtonLeft, Y: toolStartLine}
 	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
 	result := resultModel.(Model)
 
@@ -347,7 +347,7 @@ func TestClickOnFirstToolMessage(t *testing.T) {
 	}
 
 	// Also click at a line within the tool message (not at the start)
-	clickMsg2 := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine + 1}
+	clickMsg2 := tea.MouseMsg{Button: tea.MouseButtonLeft, Y: toolStartLine + 1}
 	resultModel2, _ := result.handleClickOnToolMessage(clickMsg2)
 	result2 := resultModel2.(Model)
 

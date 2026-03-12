@@ -174,13 +174,13 @@ func TestHookManager_WithFlowStepHooks_BeforeAndAfter(t *testing.T) {
 	var beforePayload, afterPayload *ExecutorPayload
 
 	// Before hook
-	hm.RegisterExecutorHook(func(_ context.Context, hookCtx *TypedHookContext[ExecutorPayload], next func() error) error {
+	_ = hm.RegisterExecutorHook(func(_ context.Context, hookCtx *TypedHookContext[ExecutorPayload], next func() error) error {
 		beforePayload = &hookCtx.Payload
 		return next()
 	}, TypedHookMetadata{Name: "before", Point: BeforeFlowStep})
 
 	// After hook
-	hm.RegisterExecutorHook(func(_ context.Context, hookCtx *TypedHookContext[ExecutorPayload], next func() error) error {
+	_ = hm.RegisterExecutorHook(func(_ context.Context, hookCtx *TypedHookContext[ExecutorPayload], next func() error) error {
 		afterPayload = &hookCtx.Payload
 		return next()
 	}, TypedHookMetadata{Name: "after", Point: AfterFlowStep})
@@ -222,7 +222,7 @@ func TestHookManager_WithFlowStepHooks_ExecutionBlocked(t *testing.T) {
 	hm := newTestHookManager()
 
 	// Blocking before hook
-	hm.RegisterExecutorHook(func(_ context.Context, _ *TypedHookContext[ExecutorPayload], _ func() error) error {
+	_ = hm.RegisterExecutorHook(func(_ context.Context, _ *TypedHookContext[ExecutorPayload], _ func() error) error {
 		// Stop the chain by not calling next()
 		return nil
 	}, TypedHookMetadata{Name: "blocker", Point: BeforeFlowStep})
@@ -250,7 +250,7 @@ func TestHookManager_WithFlowStepHooks_WorkError(t *testing.T) {
 	hm := newTestHookManager()
 
 	var afterPayload *ExecutorPayload
-	hm.RegisterExecutorHook(func(_ context.Context, hookCtx *TypedHookContext[ExecutorPayload], next func() error) error {
+	_ = hm.RegisterExecutorHook(func(_ context.Context, hookCtx *TypedHookContext[ExecutorPayload], next func() error) error {
 		afterPayload = &hookCtx.Payload
 		return next()
 	}, TypedHookMetadata{Name: "after", Point: AfterFlowStep})

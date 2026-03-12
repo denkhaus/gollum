@@ -129,7 +129,7 @@ func (s *service) Info(msg string, fields ...zap.Field) {
 	s.logger.Info(msg, fields...)
 	if s.fileLogger != nil {
 		s.fileLogger.Info(msg, fields...) // Always write to file
-		s.fileLogger.Sync()               // Immediately sync to disk
+		_ = s.fileLogger.Sync()           // Immediately sync to disk
 	}
 	s.storeInBuffer("info", msg, fields)
 }
@@ -138,7 +138,7 @@ func (s *service) Infof(template string, args ...any) {
 	s.logger.Sugar().Infof(template, args...)
 	if s.fileLogger != nil {
 		s.fileLogger.Sugar().Infof(template, args...) // Always write to file
-		s.fileLogger.Sync()                           // Immediately sync to disk
+		_ = s.fileLogger.Sync()                       // Immediately sync to disk
 	}
 	// Store formatted message in buffer for TUI log panel
 	msg := fmt.Sprintf(template, args...)
@@ -149,7 +149,7 @@ func (s *service) Error(msg string, fields ...zap.Field) {
 	s.logger.Error(msg, fields...)
 	if s.fileLogger != nil {
 		s.fileLogger.Error(msg, fields...) // Always write to file
-		s.fileLogger.Sync()                // Immediately sync to disk
+		_ = s.fileLogger.Sync()            // Immediately sync to disk
 	}
 	s.storeInBuffer("error", msg, fields)
 }
@@ -158,7 +158,7 @@ func (s *service) Errorf(template string, args ...any) {
 	s.logger.Sugar().Errorf(template, args...)
 	if s.fileLogger != nil {
 		s.fileLogger.Sugar().Errorf(template, args...) // Always write to file
-		s.fileLogger.Sync()                            // Immediately sync to disk
+		_ = s.fileLogger.Sync()                        // Immediately sync to disk
 	}
 	// Store formatted message in buffer for TUI log panel
 	msg := fmt.Sprintf(template, args...)
@@ -169,7 +169,7 @@ func (s *service) Debug(msg string, fields ...zap.Field) {
 	s.logger.Debug(msg, fields...)
 	if s.fileLogger != nil {
 		s.fileLogger.Debug(msg, fields...) // Always write to file
-		s.fileLogger.Sync()                // Immediately sync to disk
+		_ = s.fileLogger.Sync()            // Immediately sync to disk
 	}
 	s.storeInBuffer("debug", msg, fields)
 }
@@ -178,7 +178,7 @@ func (s *service) Debugf(template string, args ...any) {
 	s.logger.Sugar().Debugf(template, args...)
 	if s.fileLogger != nil {
 		s.fileLogger.Sugar().Debugf(template, args...) // Always write to file
-		s.fileLogger.Sync()                            // Immediately sync to disk
+		_ = s.fileLogger.Sync()                        // Immediately sync to disk
 	}
 	// Store formatted message in buffer for TUI log panel
 	msg := fmt.Sprintf(template, args...)
@@ -189,7 +189,7 @@ func (s *service) Warn(msg string, fields ...zap.Field) {
 	s.logger.Warn(msg, fields...)
 	if s.fileLogger != nil {
 		s.fileLogger.Warn(msg, fields...) // Always write to file
-		s.fileLogger.Sync()               // Immediately sync to disk
+		_ = s.fileLogger.Sync()           // Immediately sync to disk
 	}
 	s.storeInBuffer("warn", msg, fields)
 }
@@ -198,7 +198,7 @@ func (s *service) Warnf(template string, args ...any) {
 	s.logger.Sugar().Warnf(template, args...)
 	if s.fileLogger != nil {
 		s.fileLogger.Sugar().Warnf(template, args...) // Always write to file
-		s.fileLogger.Sync()                           // Immediately sync to disk
+		_ = s.fileLogger.Sync()                       // Immediately sync to disk
 	}
 	// Store formatted message in buffer for TUI log panel
 	msg := fmt.Sprintf(template, args...)

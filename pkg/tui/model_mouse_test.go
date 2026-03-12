@@ -37,7 +37,7 @@ func TestHandleMouseMsg_WheelEvents(t *testing.T) {
 	initialTag := m.mouseDebounceTag
 
 	// Test mouse wheel up
-	wheelUpMsg := tea.MouseMsg{Type: tea.MouseWheelUp, Y: 0}
+	wheelUpMsg := tea.MouseMsg{Button: tea.MouseButtonWheelUp, Y: 0}
 	resultModel, cmd := m.handleMouseMsg(wheelUpMsg)
 	result := resultModel.(Model)
 
@@ -49,7 +49,7 @@ func TestHandleMouseMsg_WheelEvents(t *testing.T) {
 	}
 
 	// Test mouse wheel down
-	wheelDownMsg := tea.MouseMsg{Type: tea.MouseWheelDown, Y: 0}
+	wheelDownMsg := tea.MouseMsg{Button: tea.MouseButtonWheelDown, Y: 0}
 	resultModel, cmd = result.handleMouseMsg(wheelDownMsg)
 	result = resultModel.(Model)
 

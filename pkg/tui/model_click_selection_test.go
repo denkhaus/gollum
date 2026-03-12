@@ -54,7 +54,7 @@ func TestMultipleDoubleClicks(t *testing.T) {
 		t.Logf("Iteration %d start: tool message Collapsed=%v", i, getCollapsed(m.messages[1]))
 
 		// First click
-		click1 := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
+		click1 := tea.MouseMsg{Button: tea.MouseButtonLeft, Y: toolStartLine}
 		resultModel1, _ := m.handleClickOnToolMessage(click1)
 		m = resultModel1.(Model)
 
@@ -64,7 +64,7 @@ func TestMultipleDoubleClicks(t *testing.T) {
 		m.lastClickTime = m.lastClickTime.Add(-100 * time.Millisecond)
 
 		// Second click (should be double-click)
-		click2 := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
+		click2 := tea.MouseMsg{Button: tea.MouseButtonLeft, Y: toolStartLine}
 		resultModel2, _ := m.handleClickOnToolMessage(click2)
 		m = resultModel2.(Model)
 
@@ -128,13 +128,13 @@ func TestDoubleClickLinePositionChange(t *testing.T) {
 
 	// Double-click to expand tool message
 	toolStartLine := m.getMessageStartLine(1)
-	click1 := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
+	click1 := tea.MouseMsg{Button: tea.MouseButtonLeft, Y: toolStartLine}
 	resultModel1, _ := m.handleClickOnToolMessage(click1)
 	m = resultModel1.(Model)
 
 	// Quick second click
 	m.lastClickTime = m.lastClickTime.Add(-100 * time.Millisecond)
-	click2 := tea.MouseMsg{Type: tea.MouseLeft, Y: toolStartLine}
+	click2 := tea.MouseMsg{Button: tea.MouseButtonLeft, Y: toolStartLine}
 	resultModel2, _ := m.handleClickOnToolMessage(click2)
 	m = resultModel2.(Model)
 
@@ -182,7 +182,7 @@ func TestHandleClickOnToolMessage(t *testing.T) {
 	// Click on the actual line where tool message starts
 	toolStartLine := m.getMessageStartLine(1)
 	clickMsg := tea.MouseMsg{
-		Type: tea.MouseLeft,
+		Button: tea.MouseButtonLeft,
 		Y:    toolStartLine, // Click on the tool message
 	}
 	t.Logf("Clicking at line %d (tool message start)", toolStartLine)
@@ -242,7 +242,7 @@ func TestHandleClickOnNonToolMessage(t *testing.T) {
 
 	// Click on line 0 (user message)
 	clickMsg := tea.MouseMsg{
-		Type: tea.MouseLeft,
+		Button: tea.MouseButtonLeft,
 		Y:    0,
 	}
 
@@ -282,7 +282,7 @@ func TestHandleClickOutsideViewport(t *testing.T) {
 
 	// Click outside viewport bounds (Y = 15, but viewport height is 10)
 	clickMsg := tea.MouseMsg{
-		Type: tea.MouseLeft,
+		Button: tea.MouseButtonLeft,
 		Y:    15, // Outside viewport
 	}
 
@@ -311,7 +311,7 @@ func TestHandleClickOnInvalidLine(t *testing.T) {
 
 	// Click somewhere
 	clickMsg := tea.MouseMsg{
-		Type: tea.MouseLeft,
+		Button: tea.MouseButtonLeft,
 		Y:    5,
 	}
 

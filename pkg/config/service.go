@@ -337,7 +337,7 @@ func (s *serviceImpl) GetPromptOptimizerConfig() *PromptOptimizerConfig {
 }
 
 func (s *serviceImpl) GetLangfuseConfig() *LangfuseConfig {
-	return (*LangfuseConfig)(&s.Hooks)
+	return &s.Hooks
 }
 
 func (s *serviceImpl) GetEventsConfig() *EventsConfig {

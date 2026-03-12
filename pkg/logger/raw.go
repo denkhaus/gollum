@@ -61,6 +61,6 @@ func (e *rawModeConsoleEncoder) EncodeEntry(entry zapcore.Entry, fields []zapcor
 
 	// Create a new buffer from the pool and write our processed string to it
 	newBuf := buffer.NewPool().Get()
-	newBuf.WriteString(result.String())
+	_, _ = newBuf.WriteString(result.String())
 	return newBuf, nil
 }

@@ -162,7 +162,7 @@ func setupTestDIWithBashProviderAndMCPRegistry(t *testing.T, provider tools.Bash
 	do.ProvideValue(injector, provider)
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
 	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
-	do.ProvideValue(injector, mcpregistry.MCPRegistry(mcpReg))
+	do.ProvideValue(injector, mcpReg)
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 
 	// Create mock AgentFactory for LLM step testing

@@ -245,7 +245,7 @@ func TestNewLangfuseHooksProvider(t *testing.T) {
 		}
 
 		// Simulate provider behavior
-		provider := func() (*LangfuseHook, error) {
+		provider := func() (*LangfuseHook, error) { //nolint:unparam // test helper, error always nil
 			return &LangfuseHook{
 				log:         mockLog,
 				config:      mockCfg,

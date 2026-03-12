@@ -204,7 +204,7 @@ func TestConfigLoader_Load_ProjectOverridesGlobal(t *testing.T) {
         }
     }`
 	globalPath := filepath.Join(globalDir, "mcp.json")
-	os.WriteFile(globalPath, []byte(globalContent), 0644)
+	_ = os.WriteFile(globalPath, []byte(globalContent), 0644)
 
 	// Create project config that overrides shared-server
 	projectContent := `{
@@ -221,7 +221,7 @@ func TestConfigLoader_Load_ProjectOverridesGlobal(t *testing.T) {
         }
     }`
 	projectPath := filepath.Join(projectDir, "mcp.json")
-	os.WriteFile(projectPath, []byte(projectContent), 0644)
+	_ = os.WriteFile(projectPath, []byte(projectContent), 0644)
 
 	loader := NewConfigLoaderForTest(projectDir, globalDir)
 	result, err := loader.Load()
@@ -257,7 +257,7 @@ func TestConfigLoader_Load_InvalidJSON(t *testing.T) {
 	invalidContent := `{"invalid json content`
 
 	configPath := filepath.Join(tmpDir, "mcp.json")
-	os.WriteFile(configPath, []byte(invalidContent), 0644)
+	_ = os.WriteFile(configPath, []byte(invalidContent), 0644)
 
 	loader := NewConfigLoaderForTest(tmpDir, "")
 	_, err := loader.Load()
@@ -285,7 +285,7 @@ func TestConfigLoader_Load_EnabledFiltering(t *testing.T) {
         }
     }`
 	configPath := filepath.Join(tmpDir, "mcp.json")
-	os.WriteFile(configPath, []byte(configContent), 0644)
+	_ = os.WriteFile(configPath, []byte(configContent), 0644)
 
 	loader := NewConfigLoaderForTest(tmpDir, "")
 	result, err := loader.Load()

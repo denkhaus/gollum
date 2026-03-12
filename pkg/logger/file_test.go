@@ -36,7 +36,7 @@ func TestJSONLogFormat(t *testing.T) {
 	logErr := svc.EnableFileLogging(tmpDir, sessionID)
 	require.NoError(t, logErr)
 	require.NoError(t, err)
-	defer svc.CloseFileLogging()
+	defer func() { _ = svc.CloseFileLogging() }()
 
 	// Log with agent ID (using InfoWithAgent)
 	agentID := uuid.New()

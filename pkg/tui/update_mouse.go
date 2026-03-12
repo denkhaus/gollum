@@ -36,24 +36,24 @@ func debugLog(format string, args ...interface{}) {
 //
 // This prevents rapid mouse wheel events from overwhelming the UI.
 //
-// For mouse clicks (tea.MouseLeft), this function detects clicks on tool message
+// For mouse clicks ( MouseButtonLeft with MouseActionPress), this function detects clicks on tool message
 // headers to toggle collapse/expand state.
 func (m Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	switch msg.Type {
-	case tea.MouseWheelUp, tea.MouseWheelDown:
+	switch msg.Button {
+	case tea.MouseButtonWheelUp, tea.MouseButtonWheelDown:
 		// Increment tag to invalidate any pending debounce commands
 		m.mouseDebounceTag++
 
 		// Determine scroll direction (-1 for up, 1 for down)
 		direction := -1
-		if msg.Type == tea.MouseWheelDown {
+		if msg.Button == tea.MouseButtonWheelDown {
 			direction = 1
 		}
 
 		// Return a debounce command with the current tag
 		return m, m.createDebounceCommand(m.mouseDebounceTag, direction, m.activeViewport)
 
-	case tea.MouseLeft:
+	case tea.MouseButtonLeft:
 		// Handle click on tool message header to toggle collapse state
 		return m.handleClickOnToolMessage(msg)
 	}
@@ -227,9 +227,9 @@ func (m Model) scrollViewport(viewportName Viewport, direction int) Model {
 // scrollMainViewport scrolls the main viewport.
 func (m Model) scrollMainViewport(direction int, scrollLines int) Model {
 	if direction < 0 {
-		m.viewport.LineUp(scrollLines)
+		m.viewport.ScrollUp(scrollLines)
 	} else {
-		m.viewport.LineDown(scrollLines)
+		m.viewport.ScrollDown(scrollLines)
 	}
 	return m
 }
@@ -237,9 +237,9 @@ func (m Model) scrollMainViewport(direction int, scrollLines int) Model {
 // scrollLogViewport scrolls the log viewport.
 func (m Model) scrollLogViewport(direction int, scrollLines int) Model {
 	if direction < 0 {
-		m.logViewport.LineUp(scrollLines)
+		m.logViewport.ScrollUp(scrollLines)
 	} else {
-		m.logViewport.LineDown(scrollLines)
+		m.logViewport.ScrollDown(scrollLines)
 	}
 	return m
 }

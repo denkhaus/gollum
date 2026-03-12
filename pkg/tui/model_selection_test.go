@@ -100,7 +100,7 @@ func TestClickSelectsMessage(t *testing.T) {
 
 	// Click on first line (first message)
 	clickMsg := tea.MouseMsg{
-		Type: tea.MouseLeft,
+		Button: tea.MouseButtonLeft,
 		Y:    0,
 	}
 
@@ -115,7 +115,7 @@ func TestClickSelectsMessage(t *testing.T) {
 	// Click on the actual line where second message starts
 	secondMsgLine := m.getMessageStartLine(1)
 	clickMsg2 := tea.MouseMsg{
-		Type: tea.MouseLeft,
+		Button: tea.MouseButtonLeft,
 		Y:    secondMsgLine,
 	}
 	t.Logf("Clicking on line %d (second message start)", secondMsgLine)
@@ -155,7 +155,7 @@ func TestDoubleClickThreshold(t *testing.T) {
 	// Click on the actual line where tool message starts
 	toolStartLine := m.getMessageStartLine(1)
 	clickMsg := tea.MouseMsg{
-		Type: tea.MouseLeft,
+		Button: tea.MouseButtonLeft,
 		Y:    toolStartLine,
 	}
 	t.Logf("Clicking at line %d (tool message start)", toolStartLine)
@@ -221,7 +221,7 @@ func TestDoubleClickDifferentY(t *testing.T) {
 
 	// First click on first message (line 0)
 	clickMsg := tea.MouseMsg{
-		Type: tea.MouseLeft,
+		Button: tea.MouseButtonLeft,
 		Y:    0,
 	}
 
@@ -239,7 +239,7 @@ func TestDoubleClickDifferentY(t *testing.T) {
 
 	// Second click on line belonging to message 1 (different message, within threshold time)
 	clickMsg2 := tea.MouseMsg{
-		Type: tea.MouseLeft,
+		Button: tea.MouseButtonLeft,
 		Y:    msg1StartLine,
 	}
 
