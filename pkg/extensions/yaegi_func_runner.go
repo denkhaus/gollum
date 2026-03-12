@@ -51,14 +51,18 @@ func NewYaegiFuncRunner(injector do.Injector) (YaegiFuncRunner, error) {
 	}
 
 	i := interp.New(interp.Options{})
-	i.Use(stdlib.Symbols)
+	if err := i.Use(stdlib.Symbols); err != nil {
+		return nil, fmt.Errorf("use stdlib symbols: %w", err)
+	}
 
 	// Export injector for functions that need DI access
-	i.Use(interp.Exports{
+	if err := i.Use(interp.Exports{
 		"github.com/denkhaus/gollum/pkg/extensions": {
 			"injector": reflect.ValueOf(gateway.Injector()),
 		},
-	})
+	}); err != nil {
+		return nil, fmt.Errorf("use exports: %w", err)
+	}
 
 	return &yaegiFuncRunnerImpl{
 		gateway: gateway,

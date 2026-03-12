@@ -103,14 +103,18 @@ func (p *yaegiLoaderImpl) LoadExtension(path string) (*Extension, error) {
 	}
 
 	i := interp.New(interp.Options{})
-	i.Use(stdlib.Symbols)
+	if err := i.Use(stdlib.Symbols); err != nil {
+		return nil, fmt.Errorf("use stdlib symbols: %w", err)
+	}
 
 	// Export the injector to the extension
-	i.Use(interp.Exports{
+	if err := i.Use(interp.Exports{
 		"github.com/denkhaus/gollum/pkg/extensions": {
 			"injector": reflect.ValueOf(p.gateway.Injector()),
 		},
-	})
+	}); err != nil {
+		return nil, fmt.Errorf("use exports: %w", err)
+	}
 
 	// Load main.go
 	mainPath := filepath.Join(path, "main.go")

@@ -101,7 +101,11 @@ func (p *applicationServiceImpl) Run(ctx context.Context) error {
 	if err := p.logService.EnableFileLogging(p.gollumDir, agent.GetID()); err != nil {
 		return fmt.Errorf("failed to enable file logging: %w", err)
 	}
-	defer p.logService.CloseFileLogging()
+	defer func() {
+		if err := p.logService.CloseFileLogging(); err != nil {
+			p.logService.Warnf("failed to close file logging: %v", err)
+		}
+	}()
 
 	// Run interactive loop
 	return p.runInteractiveLoop(ctx, agent)

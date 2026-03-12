@@ -82,7 +82,7 @@ func Init() error {
 			require.NoError(t, err)
 
 			// Clean up directory after test
-			defer os.RemoveAll(tt.path)
+			defer func() { _ = os.RemoveAll(tt.path) }()
 
 			ext, err := yaegiLoader.LoadExtension(tt.path)
 			require.NoError(t, err)

@@ -275,7 +275,7 @@ func TestCommandManager_Execute_CallsHandler(t *testing.T) {
 			}
 
 			// Clean up for next test
-			service.Unregister("/test")
+			_ = service.Unregister("/test")
 		})
 	}
 }

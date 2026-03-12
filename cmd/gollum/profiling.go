@@ -21,7 +21,11 @@ func setupProfiling(config *profiling.ProfilingConfig, injector do.Injector) fun
 				log.Printf("Warning: failed to start CPU profiling: %v", err)
 			} else {
 				log.Printf("CPU profiling to %s", config.CPUProfile)
-				defer profilingService.StopCPUProfiling()
+				defer func() {
+					if err := profilingService.StopCPUProfiling(); err != nil {
+						log.Printf("Warning: failed to stop CPU profiling: %v", err)
+					}
+				}()
 			}
 		}
 
@@ -31,7 +35,11 @@ func setupProfiling(config *profiling.ProfilingConfig, injector do.Injector) fun
 				log.Printf("Warning: failed to start memory profiling: %v", err)
 			} else {
 				log.Printf("Memory profiling to %s", config.MemProfile)
-				defer profilingService.StopMemProfiling()
+				defer func() {
+					if err := profilingService.StopMemProfiling(); err != nil {
+						log.Printf("Warning: failed to stop memory profiling: %v", err)
+					}
+				}()
 			}
 		}
 

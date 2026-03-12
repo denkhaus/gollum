@@ -127,7 +127,14 @@ func (b *memoryBus) Publish(ctx context.Context, event Event) error {
 
 	// Execute async handlers in background
 	for _, sub := range asyncHandlers {
-		go b.executeWithRetry(context.Background(), sub, event)
+		go func(s *subscription) {
+			if err := b.executeWithRetry(context.Background(), s, event); err != nil {
+				b.logger.Error("async handler failed after retries",
+					zap.String("subscription_id", s.id),
+					zap.String("event_type", event.Type()),
+					zap.Error(err))
+			}
+		}(sub)
 	}
 
 	return nil

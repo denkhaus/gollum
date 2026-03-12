@@ -86,11 +86,11 @@ func TestParseInvalidXML_UnclosedComment(t *testing.T) {
 
 	tmpFile, err := os.CreateTemp("", "invalid-*.xml")
 	assert.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() { _ = os.Remove(tmpFile.Name()) }()
 
 	_, err = tmpFile.WriteString(invalidXML)
 	assert.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	flow, err := Parse(tmpFile.Name())
 
@@ -107,11 +107,11 @@ func TestParseInvalidXML_UnclosedTag(t *testing.T) {
 
 	tmpFile, err := os.CreateTemp("", "invalid-*.xml")
 	assert.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() { _ = os.Remove(tmpFile.Name()) }()
 
 	_, err = tmpFile.WriteString(invalidXML)
 	assert.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	flow, err := Parse(tmpFile.Name())
 

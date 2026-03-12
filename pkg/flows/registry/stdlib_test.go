@@ -51,13 +51,14 @@ func TestRegisterFunction_AddsNewFunction(t *testing.T) {
 func TestRegisterFunction_Duplicate(t *testing.T) {
 	registry := NewRegistry()
 
-	registry.Register("test.Func", FunctionSignature{
+	err := registry.Register("test.Func", FunctionSignature{
 		Name:       "Func",
 		Params:     []Param{{Name: "x", Type: "int"}},
 		ReturnType: "string",
 	})
+	require.NoError(t, err)
 
-	err := registry.Register("test.Func", FunctionSignature{
+	err = registry.Register("test.Func", FunctionSignature{
 		Name:       "Func",
 		Params:     []Param{{Name: "y", Type: "string"}},
 		ReturnType: "int",

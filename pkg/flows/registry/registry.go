@@ -107,53 +107,63 @@ func GetBuiltinRegistry() *Registry {
 // init registers all built-in stdlib functions
 func init() {
 	// strings package
-	builtinRegistry.Register("strings.ToUpper", FunctionSignature{
+	if err := builtinRegistry.Register("strings.ToUpper", FunctionSignature{
 		Name:       "ToUpper",
 		Params:     []Param{{Name: "s", Type: "string"}},
 		ReturnType: "string",
 		Func: func(args []any) (any, error) {
 			return strings.ToUpper(args[0].(string)), nil
 		},
-	})
+	}); err != nil {
+		panic(fmt.Sprintf("failed to register strings.ToUpper: %v", err))
+	}
 
-	builtinRegistry.Register("strings.ToLower", FunctionSignature{
+	if err := builtinRegistry.Register("strings.ToLower", FunctionSignature{
 		Name:       "ToLower",
 		Params:     []Param{{Name: "s", Type: "string"}},
 		ReturnType: "string",
 		Func: func(args []any) (any, error) {
 			return strings.ToLower(args[0].(string)), nil
 		},
-	})
+	}); err != nil {
+		panic(fmt.Sprintf("failed to register strings.ToLower: %v", err))
+	}
 
-	builtinRegistry.Register("strings.Contains", FunctionSignature{
+	if err := builtinRegistry.Register("strings.Contains", FunctionSignature{
 		Name:       "Contains",
 		Params:     []Param{{Name: "s", Type: "string"}, {Name: "substr", Type: "string"}},
 		ReturnType: "bool",
 		Func: func(args []any) (any, error) {
 			return strings.Contains(args[0].(string), args[1].(string)), nil
 		},
-	})
+	}); err != nil {
+		panic(fmt.Sprintf("failed to register strings.Contains: %v", err))
+	}
 
-	builtinRegistry.Register("strings.HasPrefix", FunctionSignature{
+	if err := builtinRegistry.Register("strings.HasPrefix", FunctionSignature{
 		Name:       "HasPrefix",
 		Params:     []Param{{Name: "s", Type: "string"}, {Name: "prefix", Type: "string"}},
 		ReturnType: "bool",
 		Func: func(args []any) (any, error) {
 			return strings.HasPrefix(args[0].(string), args[1].(string)), nil
 		},
-	})
+	}); err != nil {
+		panic(fmt.Sprintf("failed to register strings.HasPrefix: %v", err))
+	}
 
-	builtinRegistry.Register("strings.HasSuffix", FunctionSignature{
+	if err := builtinRegistry.Register("strings.HasSuffix", FunctionSignature{
 		Name:       "HasSuffix",
 		Params:     []Param{{Name: "s", Type: "string"}, {Name: "suffix", Type: "string"}},
 		ReturnType: "bool",
 		Func: func(args []any) (any, error) {
 			return strings.HasSuffix(args[0].(string), args[1].(string)), nil
 		},
-	})
+	}); err != nil {
+		panic(fmt.Sprintf("failed to register strings.HasSuffix: %v", err))
+	}
 
 	// fmt package
-	builtinRegistry.Register("fmt.Sprintf", FunctionSignature{
+	if err := builtinRegistry.Register("fmt.Sprintf", FunctionSignature{
 		Name:       "Sprintf",
 		Params:     []Param{{Name: "format", Type: "string"}, {Name: "args", Type: "any"}},
 		ReturnType: "string",
@@ -169,10 +179,12 @@ func init() {
 			}
 			return fmt.Sprintf(format, variadicArgs...), nil
 		},
-	})
+	}); err != nil {
+		panic(fmt.Sprintf("failed to register fmt.Sprintf: %v", err))
+	}
 
 	// len function
-	builtinRegistry.Register("len", FunctionSignature{
+	if err := builtinRegistry.Register("len", FunctionSignature{
 		Name:       "len",
 		Params:     []Param{{Name: "v", Type: "any"}},
 		ReturnType: "int",
@@ -191,5 +203,7 @@ func init() {
 				return 0, fmt.Errorf("unsupported type for len: %T", v)
 			}
 		},
-	})
+	}); err != nil {
+		panic(fmt.Sprintf("failed to register len: %v", err))
+	}
 }
