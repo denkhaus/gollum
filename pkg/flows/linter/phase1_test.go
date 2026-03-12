@@ -67,3 +67,66 @@ func TestPhase1_ValidMinimalFlow(t *testing.T) {
 	assert.NotContains(t, result.Errors, flows.LinterError{Code: flows.ErrMissingInput})
 	assert.NotContains(t, result.Errors, flows.LinterError{Code: flows.ErrMissingOutput})
 }
+
+// ========== Initial State Validation Tests ==========
+
+func TestPhase1_NoInitialState(t *testing.T) {
+	flow := &flows.Flow{
+		Name:   "test",
+		Input:  &flows.InputBlock{},
+		Output: &flows.OutputBlock{},
+		States: []flows.State{
+			{Name: "a"},
+			{Name: "b"},
+		},
+	}
+
+	result := Lint(flow)
+	assert.False(t, result.Valid)
+	assert.True(t, hasErrorCode(result, flows.ErrNoInitialState), "should have no initial state error")
+}
+
+func TestPhase1_MultipleInitialStates(t *testing.T) {
+	flow := &flows.Flow{
+		Name:   "test",
+		Input:  &flows.InputBlock{},
+		Output: &flows.OutputBlock{},
+		States: []flows.State{
+			{Name: "a", Initial: true},
+			{Name: "b", Initial: true}, // duplicate initial
+		},
+	}
+
+	result := Lint(flow)
+	assert.False(t, result.Valid)
+	assert.True(t, hasErrorCode(result, flows.ErrNoInitialState), "should have no initial state error (multiple initials)")
+}
+
+func TestPhase1_ExactlyOneInitialState(t *testing.T) {
+	flow := &flows.Flow{
+		Name:   "test",
+		Input:  &flows.InputBlock{},
+		Output: &flows.OutputBlock{},
+		States: []flows.State{
+			{Name: "init", Initial: true},
+			{Name: "process"},
+			{Name: "done"},
+		},
+	}
+
+	result := Lint(flow)
+	assert.False(t, hasErrorCode(result, flows.ErrNoInitialState), "should not have initial state error when exactly one initial")
+}
+
+func TestPhase1_NoStatesNoError(t *testing.T) {
+	flow := &flows.Flow{
+		Name:   "test",
+		Input:  &flows.InputBlock{},
+		Output: &flows.OutputBlock{},
+		States: []flows.State{}, // empty states
+	}
+
+	result := Lint(flow)
+	// No initial state error should be reported when there are no states
+	assert.False(t, hasErrorCode(result, flows.ErrNoInitialState), "should not have initial state error when no states exist")
+}

@@ -2,10 +2,23 @@ package linter
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/flows/ast"
 )
+
+// varRefRegex matches ${variable.reference} patterns
+var varRefRegex = regexp.MustCompile(`\$\{([^}]+)\}`)
+
+// validPrefixes are the allowed variable reference prefixes
+var validPrefixes = map[string]bool{
+	"input":   true,
+	"output":  true,
+	"context": true,
+	"error":   true,
+}
 
 // ExpressionChecker validates expressions
 type ExpressionChecker struct{}
@@ -61,6 +74,48 @@ func (e *ExpressionChecker) Check(flow *flows.Flow, result *flows.LinterResult) 
 					})
 				}
 			}
+		}
+
+		// Validate call input/output field references
+		for _, call := range state.Calls {
+			for _, field := range call.Input {
+				e.checkVarRefs(field.Value, "call input", result)
+			}
+			for _, field := range call.Output {
+				e.checkVarRefs(field.Value, "call output", result)
+			}
+		}
+
+		// Validate step parameters and prompts
+		for _, step := range state.Steps {
+			for _, param := range step.Params {
+				e.checkVarRefs(param.Value, "step param", result)
+			}
+			if step.Prompt != "" {
+				e.checkVarRefs(step.Prompt, "step prompt", result)
+			}
+		}
+	}
+}
+
+// checkVarRefs validates that all variable references have absolute paths
+func (e *ExpressionChecker) checkVarRefs(text, location string, result *flows.LinterResult) {
+	matches := varRefRegex.FindAllStringSubmatch(text, -1)
+	for _, match := range matches {
+		if len(match) < 2 {
+			continue
+		}
+		ref := match[0]  // Full match ${...}
+		path := match[1] // Content inside ${...}
+
+		// Check if the path has a valid prefix
+		parts := strings.SplitN(path, ".", 2)
+		if len(parts) < 2 || !validPrefixes[parts[0]] {
+			result.Errors = append(result.Errors, flows.LinterError{
+				Code:    flows.ErrRelativePath,
+				Message: fmt.Sprintf("variable reference %s in %s must use absolute path (e.g., ${context.%s} or ${output.%s})", ref, location, path, path),
+				Context: text,
+			})
 		}
 	}
 }
