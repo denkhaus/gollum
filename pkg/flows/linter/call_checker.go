@@ -2,14 +2,12 @@ package linter
 
 import (
 	"fmt"
-	"path/filepath"
-	"strings"
 
 	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/flows/parser"
 )
 
-// CallChecker validates call references to modules and flows
+// CallChecker validates that call input/output arguments match the called flow's interface
 type CallChecker struct {
 	Resolver *parser.Resolver
 }
@@ -21,98 +19,112 @@ func NewCallChecker() *CallChecker {
 	}
 }
 
-// Check validates all call references in a flow
+// Check validates all call steps in the flow
 func (c *CallChecker) Check(flowPath string, flow *flows.Flow, result *flows.LinterResult) {
-	// Collect all unique call references
-	calls := make(map[string]string) // ref -> location
-
 	for _, state := range flow.States {
 		for _, call := range state.Calls {
-			if call.Ref == "" {
-				result.Errors = append(result.Errors, flows.LinterError{
-					Code:    flows.ErrInvalidTransition,
-					Message: "call element missing 'ref' attribute",
-				})
-				continue
-			}
-
-			// Track location for error messages
-			loc := fmt.Sprintf("state '%s'", state.Name)
-			calls[call.Ref] = loc
+			c.checkCall(flowPath, call, result)
 		}
 	}
+}
 
-	// Resolve each call reference
-	for ref, loc := range calls {
-		_, err := c.Resolver.ResolveCall(ref, flowPath)
-		if err != nil {
-			result.Errors = append(result.Errors, flows.LinterError{
-				Code:    flows.ErrInvalidTransition,
-				Message: fmt.Sprintf("unresolved call reference '%s' in %s: %s", ref, loc, err),
+// checkCall validates a single call against its referenced flow
+func (c *CallChecker) checkCall(flowPath string, call flows.Call, result *flows.LinterResult) {
+	// Resolve the called flow
+	resolvedPath, err := c.Resolver.ResolveCall(call.Ref, flowPath)
+	if err != nil {
+		// Call reference not found - this is caught by phase4, so just skip
+		return
+	}
+
+	// Parse the called flow
+	calledFlow, err := parser.Parse(resolvedPath)
+	if err != nil {
+		// Can't parse the called flow - will be caught elsewhere
+		return
+	}
+
+	// Get called flow's input and output fields
+	calledInputFields := calledFlow.Input.GetAllFields()
+	calledOutputFields := calledFlow.Output.GetAllFields()
+
+	// Build maps for quick lookup
+	calledInputsByName := make(map[string]flows.FieldDef)
+	for _, f := range calledInputFields {
+		calledInputsByName[f.Name] = f
+	}
+	calledOutputsByName := make(map[string]flows.FieldDef)
+	for _, f := range calledOutputFields {
+		calledOutputsByName[f.Name] = f
+	}
+
+	// Build maps of call inputs/outputs
+	callInputsByName := make(map[string]flows.CallField)
+	for _, f := range call.Input {
+		callInputsByName[f.Name] = f
+	}
+	callOutputsByName := make(map[string]flows.CallField)
+	for _, f := range call.Output {
+		callOutputsByName[f.Name] = f
+	}
+
+	// Check required inputs are provided
+	for _, inputField := range calledInputFields {
+		_, provided := callInputsByName[inputField.Name]
+		if !provided {
+			// Check if input has default value
+			if inputField.Default != "" {
+				// Has default, so not required in call
+				continue
+			}
+			// Missing required input
+			result.Warnings = append(result.Warnings, flows.LinterError{
+				FlowPath: flowPath,
+				Code:     flows.ErrCallInputMissing,
+				Message:  fmt.Sprintf("call to '%s': required input parameter '%s' (type=%s) has no default value", call.Ref, inputField.Name, inputField.Type),
 			})
 		}
 	}
 
-	// Validate that modules have main.xml when referenced by module name
-	for ref := range calls {
-		// Only validate module references (simple names, no slashes)
-		if !containsSlash(ref) {
-			resolved, err := c.Resolver.ResolveCall(ref, flowPath)
-			if err != nil {
-				continue // Will be caught by other validation
-			}
-
-			// Skip validation if:
-			// 1. The call is within the same module (current flow and resolved are in same module dir)
-			// 2. The resolved file is already main.xml
-			if c.isSameModule(flowPath, resolved) || filepath.Base(resolved) == "main.xml" {
+	// Check required outputs are captured
+	for _, outputField := range calledOutputFields {
+		_, captured := callOutputsByName[outputField.Name]
+		if !captured {
+			// Check if output has default value
+			if outputField.Default != "" {
+				// Has default, so not required in call
 				continue
 			}
-
-			// Only validate if the resolved path is in a modules/ directory
-			if c.isInModulesDirectory(resolved) {
-				result.Errors = append(result.Errors, flows.LinterError{
-					Code:    flows.ErrInvalidTransition,
-					Message: fmt.Sprintf("module '%s' must have main.xml as entry point (found %s)", ref, filepath.Base(resolved)),
-				})
-			}
+			// Missing required output
+			result.Warnings = append(result.Warnings, flows.LinterError{
+				FlowPath: flowPath,
+				Code:     flows.ErrCallOutputMissing,
+				Message:  fmt.Sprintf("call to '%s': required output parameter '%s' (type=%s) has no default value", call.Ref, outputField.Name, outputField.Type),
+			})
 		}
 	}
-}
 
-// isInModulesDirectory checks if a path is inside a modules directory
-func (c *CallChecker) isInModulesDirectory(path string) bool {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return false
-	}
-
-	// Check if path contains /modules/ directory separator
-	return strings.Contains(absPath, string(filepath.Separator)+"modules"+string(filepath.Separator)) ||
-		strings.Contains(absPath, "/modules/")
-}
-
-// isSameModule checks if two paths are within the same module directory
-func (c *CallChecker) isSameModule(currentFlowPath, resolvedPath string) bool {
-	currentDir := filepath.Dir(currentFlowPath)
-	resolvedDir := filepath.Dir(resolvedPath)
-
-	// Normalize paths for comparison
-	currentAbs, _ := filepath.Abs(currentDir)
-	resolvedAbs, _ := filepath.Abs(resolvedDir)
-
-	return currentAbs == resolvedAbs
-}
-
-func containsSlash(s string) bool {
-	return len(s) > 0 && (s[0] == '/' || s[len(s)-1] == '/' || indexOfChar(s, '/') != -1)
-}
-
-func indexOfChar(s string, c byte) int {
-	for i := 0; i < len(s); i++ {
-		if s[i] == c {
-			return i
+	// Check for extra inputs (not defined in called flow)
+	for _, callInput := range call.Input {
+		_, exists := calledInputsByName[callInput.Name]
+		if !exists {
+			result.Warnings = append(result.Warnings, flows.LinterError{
+				FlowPath: flowPath,
+				Code:     flows.ErrCallExtraInput,
+				Message:  fmt.Sprintf("call to '%s': input parameter '%s' not defined in called flow's input block", call.Ref, callInput.Name),
+			})
 		}
 	}
-	return -1
+
+	// Check for extra outputs (not defined in called flow)
+	for _, callOutput := range call.Output {
+		_, exists := calledOutputsByName[callOutput.Name]
+		if !exists {
+			result.Warnings = append(result.Warnings, flows.LinterError{
+				FlowPath: flowPath,
+				Code:     flows.ErrCallExtraOutput,
+				Message:  fmt.Sprintf("call to '%s': output parameter '%s' not defined in called flow's output block", call.Ref, callOutput.Name),
+			})
+		}
+	}
 }

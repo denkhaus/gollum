@@ -29,6 +29,10 @@ func LintPath(flowPath string, flow *flows.Flow) *flows.LinterResult {
 	phase4 := NewCallChecker()
 	phase4.Check(flowPath, flow, result)
 
+	// Phase 5: Timeout validation
+	phase5 := NewTimeoutChecker()
+	phase5.Check(flowPath, flow, result)
+
 	// Determine validity
 	result.Valid = len(result.Errors) == 0
 
