@@ -19,7 +19,6 @@ require (
 	github.com/urfave/cli/v3 v3.7.0
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.1
-	gotest.tools/v3 v3.5.2
 )
 
 require (

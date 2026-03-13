@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v3"
-	"gotest.tools/v3/assert"
 )
 
 func TestExitCode(t *testing.T) {

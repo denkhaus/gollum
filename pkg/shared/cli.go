@@ -46,3 +46,13 @@ func MustGetInjector(cmd *cli.Command) do.Injector {
 	}
 	return injector
 }
+
+// MustGetInjectorFromRoot retrieves the DI injector by traversing to the root command.
+// Panics if the injector is not found or has an invalid type.
+func MustGetInjectorFromRoot(cmd *cli.Command) do.Injector {
+	root := cmd.Root()
+	if root == nil {
+		panic("command has no root")
+	}
+	return MustGetInjector(root)
+}
