@@ -99,13 +99,15 @@ func LintAction(ctx context.Context, cmd *cli.Command) error {
 
 ### 4. Default Flow Execution
 
-**Decision:** Running `gollum` with no args executes the default flow.
+**Decision:** Running `gollum` with no args executes the default flow via ApplicationService.
 
-**Resolution Order:**
+**Architecture:** The ApplicationService handles default flow detection and execution, not the CLI layer.
+
+**Resolution Order (in ApplicationService):**
 1. Check if CWD is inside a workspace (contains `.gollum/` directory)
 2. If in workspace: Look for `<workspace>/.gollum/flows/default/main.xml`
 3. Fallback: `~/.config/gollum/flows/default/main.xml`
-4. Error if not found: "No default flow found. Create one at .gollum/flows/default/main.xml"
+4. If no default flow: Run TUI (current behavior)
 
 **Default Flow Structure:**
 - Must be a module directory (not a single file)
@@ -114,14 +116,40 @@ func LintAction(ctx context.Context, cmd *cli.Command) error {
 
 **Rationale:**
 - Aligns with "everything is a flow" philosophy
-- Workspace-local flows override global
+- ApplicationService is the main entry point - should handle this logic
+- CLI just delegates to ApplicationService.Run()
 - TUI becomes one channel facade among others
 
-**Workspace Detection:**
+**CLI Root Command:**
 ```go
-func isInWorkspace() bool {
-    _, err := os.Stat(".gollum")
-    return err == nil
+// cmd/gollum/cli/root.go
+func RootCommand() *cli.Command {
+    return &cli.Command{
+        Name:  "gollum",
+        Usage: "AI agent workflow system",
+        Action: func(ctx context.Context, cmd *cli.Command) error {
+            injector := shared.MustGetInjector(cmd)
+            appSvc := do.MustInvoke[app.ApplicationService](injector)
+            return appSvc.Run(ctx) // ApplicationService handles default flow logic
+        },
+        Commands: []*cli.Command{
+            flow.FlowCommandGroup(),
+        },
+    }
+}
+```
+
+**ApplicationService Changes:**
+```go
+// pkg/app/service.go
+func (p *applicationServiceImpl) Run(ctx context.Context) error {
+    // Check for default flow first
+    if flowPath, err := p.resolveDefaultFlowPath(); err == nil {
+        return p.runDefaultFlow(ctx, flowPath)
+    }
+
+    // Fall back to TUI (current behavior)
+    return p.runTUI(ctx)
 }
 ```
 
@@ -391,35 +419,41 @@ Use `.gollum/flows/examples/` for test fixtures:
    - Implement metadata access functions
    - Add reusable flags and helpers
 
-2. **Create CLI package structure** (`cmd/gollum/cli/`)
-   - Add `root.go` with basic command registration
+2. **Update ApplicationService for default flow detection**
+   - Add `resolveDefaultFlowPath()` method
+   - Add `runDefaultFlow()` method
+   - Add `runTUI()` method (refactor existing logic)
+   - Write tests for flow resolution
+   - **TUI remains default behavior** (no flow found = run TUI)
+
+3. **Create CLI package structure** (`cmd/gollum/cli/`)
+   - Add `root.go` with simple delegation to ApplicationService
    - Add `flow/` subdirectory
 
-3. **Update main.go minimally**
-   - Wrap existing `startup()` in CLI framework
-   - Keep TUI as default behavior
-   - Verify existing functionality works
+4. **Update main.go minimally**
+   - Wrap existing startup in CLI framework
+   - Root command delegates to ApplicationService.Run()
+   - Verify existing TUI functionality works
 
 ### Phase 2: Flow Commands
 
-4. **Implement `gollum flow lint`**
+5. **Implement `gollum flow lint`**
    - Migrate functionality from `cmd/flows/lint/main.go`
    - Add tests
    - Verify output format matches existing
 
-5. **Implement `gollum flow run`**
+6. **Implement `gollum flow run`**
    - Write tests first
    - Implement using FlowExecutorService
    - Test with example flows
 
-### Phase 3: Default Flow
+### Phase 3: Default Flow (Optional - User Creates Flow)
 
-6. **Implement default flow execution**
-   - Add workspace detection
-   - Implement flow resolution logic
-   - Create example default flow
+7. **Create example default flow**
+   - Add `.gollum/flows/default/main.xml` example
+   - Document how to enable default flow behavior
 
-7. **Clean up**
+8. **Clean up**
    - Remove `cmd/flows/lint/main.go`
    - Update documentation
 
@@ -440,12 +474,15 @@ Use `.gollum/flows/examples/` for test fixtures:
 
 ### To Be Modified
 
-- `cmd/gollum/main.go` - Add CLI setup, keep TUI as default flow
+- `cmd/gollum/main.go` - Add CLI framework setup, root command delegates to ApplicationService
+- `pkg/app/service.go` - Add default flow detection, refactor Run() method
 
 ### Backward Compatibility
 
-- Existing TUI behavior preserved via default flow
+- **TUI remains default behavior** when no default flow exists
+- Existing TUI functionality fully preserved
 - No breaking changes to flow definitions or loading
+- Default flow is opt-in (user creates `.gollum/flows/default/main.xml`)
 
 ## Future Extensions
 
@@ -517,11 +554,10 @@ package cli
 
 import (
     "context"
-    "fmt"
-    "os"
-    "path/filepath"
 
+    "github.com/denkhaus/gollum/pkg/app"
     "github.com/denkhaus/gollum/pkg/shared"
+    "github.com/samber/do/v2"
     "github.com/urfave/cli/v3"
 )
 
@@ -530,34 +566,97 @@ func RootCommand() *cli.Command {
     return &cli.Command{
         Name:  "gollum",
         Usage: "AI agent workflow system",
-        Action: RunDefaultFlow,
+        Action: RunDefault,
         Commands: []*cli.Command{
             flow.FlowCommandGroup(),
         },
     }
 }
 
-// RunDefaultFlow executes the default flow
-func RunDefaultFlow(ctx context.Context, cmd *cli.Command) error {
-    flowPath, err := resolveDefaultFlowPath()
-    if err != nil {
-        return fmt.Errorf("default flow not found: %w\n"+
-            "Create a default flow at .gollum/flows/default/main.xml", err)
+// RunDefault executes the default application behavior
+// Delegates to ApplicationService which handles:
+// - Default flow detection and execution
+// - Fallback to TUI if no default flow
+func RunDefault(ctx context.Context, cmd *cli.Command) error {
+    injector := shared.MustGetInjector(cmd)
+    appSvc := do.MustInvoke[app.ApplicationService](injector)
+    return appSvc.Run(ctx)
+}
+```
+
+### Example 2b: ApplicationService Default Flow Logic
+
+```go
+// pkg/app/service.go
+
+// Add imports
+import (
+    "path/filepath"
+
+    "github.com/denkhaus/gollum/pkg/flows"
+    "github.com/denkhaus/gollum/pkg/flows/executor"
+    flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
+    "github.com/denkhaus/gollum/pkg/flows/parser"
+)
+
+// Add to applicationServiceImpl struct
+type applicationServiceImpl struct {
+    // ... existing fields ...
+    flowExecutorService flowexecutor.FlowExecutorService // Add this
+    flowRegistry        flowregistry.FlowRegistry        // Add this
+}
+
+// Update NewService to inject flow services
+func NewService(injector do.Injector) (ApplicationService, error) {
+    // ... existing code ...
+    flowExecutorService := do.MustInvoke[flowexecutor.FlowExecutorService](injector)
+    flowRegistry := do.MustInvoke[flowregistry.FlowRegistry](injector)
+
+    return &applicationServiceImpl{
+        // ... existing fields ...
+        flowExecutorService: flowExecutorService,
+        flowRegistry:        flowRegistry,
+    }, nil
+}
+
+func (p *applicationServiceImpl) Run(ctx context.Context) error {
+    // Enable file logging
+    if err := p.logService.EnableFileLogging(p.gollumDir, p.sessionID); err != nil {
+        return fmt.Errorf("failed to enable file logging: %w", err)
+    }
+    defer func() {
+        if err := p.logService.CloseFileLogging(); err != nil {
+            p.logService.Warnf("failed to close file logging: %v", err)
+        }
+    }()
+
+    // Create .gollum directory
+    if err := p.ensureGollumDirectory(); err != nil {
+        return fmt.Errorf("failed to create .gollum directory: %w", err)
     }
 
-    injector := shared.MustGetInjector(cmd)
-    return executeFlow(injector, flowPath)
+    // Prime FileStateManager
+    if err := p.primeFileStateManager(ctx); err != nil {
+        return err
+    }
+
+    // Check for default flow
+    if flowPath, err := p.resolveDefaultFlowPath(); err == nil {
+        return p.runDefaultFlow(ctx, flowPath)
+    }
+
+    // No default flow - run TUI (current behavior)
+    return p.runTUI(ctx)
 }
 
 // resolveDefaultFlowPath finds the default flow location
-func resolveDefaultFlowPath() (string, error) {
+func (p *applicationServiceImpl) resolveDefaultFlowPath() (string, error) {
+    cwd := p.workspaceService.GetCurrentWorkspace()
+
     // Check workspace-local first
-    if isInWorkspace() {
-        cwd, _ := os.Getwd()
-        localPath := filepath.Join(cwd, ".gollum", "flows", "default", "main.xml")
-        if _, err := os.Stat(localPath); err == nil {
-            return localPath, nil
-        }
+    localPath := filepath.Join(cwd, ".gollum", "flows", "default", "main.xml")
+    if _, err := os.Stat(localPath); err == nil {
+        return localPath, nil
     }
 
     // Check global config directory
@@ -570,10 +669,42 @@ func resolveDefaultFlowPath() (string, error) {
     return "", fmt.Errorf("no default flow found")
 }
 
-// isInWorkspace checks if current directory is a gollum workspace
-func isInWorkspace() bool {
-    _, err := os.Stat(".gollum")
-    return err == nil
+// runDefaultFlow executes the default flow using FlowExecutorService
+func (p *applicationServiceImpl) runDefaultFlow(ctx context.Context, flowPath string) error {
+    // Parse flow
+    flow, err := parser.Parse(flowPath)
+    if err != nil {
+        return fmt.Errorf("failed to parse default flow: %w", err)
+    }
+
+    // Create executor
+    executor := p.flowExecutorService.New(flow)
+
+    // Set empty input (default flow should define required inputs with defaults)
+    executor.SetInput(make(map[string]any))
+
+    // Validate and run
+    if err := executor.Validate(); err != nil {
+        return fmt.Errorf("default flow validation failed: %w", err)
+    }
+
+    if err := executor.Run(); err != nil {
+        return fmt.Errorf("default flow execution failed: %w", err)
+    }
+
+    return nil
+}
+
+// runTUI runs the TUI application (current behavior)
+func (p *applicationServiceImpl) runTUI(ctx context.Context) error {
+    // Create and register Supervisor agent
+    agent, _, err := p.createSupervisorAgent(ctx)
+    if err != nil {
+        return err
+    }
+
+    // Run interactive loop
+    return p.runInteractiveLoop(ctx, agent)
 }
 ```
 
