@@ -12,12 +12,14 @@ require (
 	github.com/git-hulk/langfuse-go v0.1.0
 	github.com/google/uuid v1.6.0
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/m-mizutani/gollem v0.22.1
+	github.com/m-mizutani/gollem v0.23.0
 	github.com/samber/do/v2 v2.0.0
 	github.com/stretchr/testify v1.11.1
 	github.com/traefik/yaegi v0.16.1
+	github.com/urfave/cli/v3 v3.7.0
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.1
+	gotest.tools/v3 v3.5.2
 )
 
 require (
@@ -37,7 +39,6 @@ require (
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/segmentio/encoding v0.5.3 // indirect
-	github.com/urfave/cli/v3 v3.7.0 // indirect
 	github.com/yuin/goldmark v1.7.16 // indirect
 	github.com/yuin/goldmark-emoji v1.0.5 // indirect
 	golang.org/x/term v0.40.0 // indirect
