@@ -10,6 +10,7 @@ func FlowCommandGroup() *cli.Command {
 		Commands: []*cli.Command{
 			LintCommand(),
 			RunCommand(),
+			MigrateCommand(),
 		},
 	}
 }
