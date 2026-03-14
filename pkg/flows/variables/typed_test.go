@@ -98,3 +98,95 @@ func TestInputValues_TypeMismatch(t *testing.T) {
 	err := input.SetInt("name", 42)
 	assert.Error(t, err)
 }
+
+func TestContextValues_GetSet(t *testing.T) {
+	block := &flows.ContextBlock{
+		Strings: []flows.ContextField{{Name: "status", Type: "string"}},
+		Ints:    []flows.ContextField{{Name: "count", Type: "int"}},
+	}
+
+	context := variables.NewContextValues(block)
+
+	// Set values
+	err := context.SetString("status", "ready")
+	require.NoError(t, err)
+
+	err = context.SetInt("count", 10)
+	require.NoError(t, err)
+
+	// Get values
+	val, err := context.GetString("status")
+	require.NoError(t, err)
+	assert.Equal(t, "ready", val)
+
+	count, err := context.GetInt("count")
+	require.NoError(t, err)
+	assert.Equal(t, 10, count)
+}
+
+func TestContextValues_DefaultValues(t *testing.T) {
+	block := &flows.ContextBlock{
+		Ints: []flows.ContextField{
+			{Name: "timeout", Type: "int", Default: "30"},
+		},
+	}
+
+	context := variables.NewContextValues(block)
+
+	// Get default value before set
+	val, err := context.GetInt("timeout")
+	require.NoError(t, err)
+	assert.Equal(t, 30, val)
+}
+
+func TestContextValues_BoolFloat(t *testing.T) {
+	block := &flows.ContextBlock{
+		Bools:  []flows.ContextField{{Name: "enabled", Type: "bool", Default: "true"}},
+		Floats: []flows.ContextField{{Name: "rate", Type: "float", Default: "1.5"}},
+	}
+
+	context := variables.NewContextValues(block)
+
+	// Get default values
+	enabled, err := context.GetBool("enabled")
+	require.NoError(t, err)
+	assert.True(t, enabled)
+
+	rate, err := context.GetFloat("rate")
+	require.NoError(t, err)
+	assert.InDelta(t, 1.5, rate, 0.001)
+
+	// Set new values
+	err = context.SetBool("enabled", false)
+	require.NoError(t, err)
+
+	err = context.SetFloat("rate", 2.5)
+	require.NoError(t, err)
+
+	// Verify new values
+	enabled, err = context.GetBool("enabled")
+	require.NoError(t, err)
+	assert.False(t, enabled)
+
+	rate, err = context.GetFloat("rate")
+	require.NoError(t, err)
+	assert.InDelta(t, 2.5, rate, 0.001)
+}
+
+func TestContextValues_UnknownField(t *testing.T) {
+	block := &flows.ContextBlock{}
+	context := variables.NewContextValues(block)
+
+	err := context.SetString("unknown", "test")
+	assert.Error(t, err)
+}
+
+func TestContextValues_TypeMismatch(t *testing.T) {
+	block := &flows.ContextBlock{
+		Strings: []flows.ContextField{{Name: "status", Type: "string"}},
+	}
+	context := variables.NewContextValues(block)
+
+	err := context.SetInt("status", 42)
+	assert.Error(t, err)
+}
