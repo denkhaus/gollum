@@ -55,3 +55,39 @@ func TestExpressionParser_ExtractDependenciesMultiple(t *testing.T) {
 	assert.Contains(t, names, "b")
 	assert.Contains(t, names, "c")
 }
+
+func TestExpressionEvaluator_EvaluateGT(t *testing.T) {
+	evaluator := variables.NewExpressionEvaluator()
+	scope := &variables.EvaluationScope{
+		Context: map[string]any{"x": 15},
+	}
+
+	result, err := evaluator.Evaluate("GT(context.x, 10)", scope)
+	require.NoError(t, err)
+	assert.True(t, result.(bool))
+}
+
+func TestExpressionEvaluator_EvaluateAND(t *testing.T) {
+	evaluator := variables.NewExpressionEvaluator()
+	scope := &variables.EvaluationScope{
+		Context: map[string]any{
+			"a": true,
+			"b": true,
+		},
+	}
+
+	result, err := evaluator.Evaluate("AND(context.a, context.b)", scope)
+	require.NoError(t, err)
+	assert.True(t, result.(bool))
+}
+
+func TestExpressionEvaluator_EvaluateADD(t *testing.T) {
+	evaluator := variables.NewExpressionEvaluator()
+	scope := &variables.EvaluationScope{
+		Input: map[string]any{"x": 5, "y": 3},
+	}
+
+	result, err := evaluator.Evaluate("ADD(input.x, input.y)", scope)
+	require.NoError(t, err)
+	assert.Equal(t, 8, result)
+}
