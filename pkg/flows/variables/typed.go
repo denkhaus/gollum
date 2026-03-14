@@ -532,3 +532,263 @@ func (cv *ContextValues) Has(name string) bool {
 func (cv *ContextValues) SetEvaluator(eval *ComputedEvaluator) {
 	cv.evaluator = eval
 }
+
+// OutputValues stores output field values (write-once per field)
+type OutputValues struct {
+	fields  map[string]FieldValue
+	defs    map[string]flows.FieldDef
+	written map[string]bool
+}
+
+// NewOutputValues creates a new OutputValues from OutputBlock
+func NewOutputValues(block *flows.OutputBlock) *OutputValues {
+	ov := &OutputValues{
+		fields:  make(map[string]FieldValue),
+		defs:    make(map[string]flows.FieldDef),
+		written: make(map[string]bool),
+	}
+
+	if block == nil {
+		return ov
+	}
+
+	for _, field := range block.GetAllFields() {
+		ov.defs[field.Name] = field
+	}
+
+	return ov
+}
+
+// SetString sets a string output value (write-once)
+func (ov *OutputValues) SetString(name string, value string) error {
+	if ov.written[name] {
+		return &errors.ImmutableFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeImmutable,
+				Message: "output field already written",
+				Field:   name,
+			},
+			AttemptedOperation: "SetString",
+		}
+	}
+
+	if _, ok := ov.defs[name]; !ok {
+		return &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "output field not defined",
+				Field:   name,
+			},
+			Scope: "output",
+		}
+	}
+
+	if ov.defs[name].Type != string(TypeString) {
+		return &errors.TypeError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeTypeMismatch,
+				Message: "field type mismatch",
+				Field:   name,
+			},
+			ExpectedType: ov.defs[name].Type,
+			ActualType:   string(TypeString),
+		}
+	}
+
+	ov.fields[name] = NewStringValue(value)
+	ov.written[name] = true
+	return nil
+}
+
+// SetInt sets an int output value (write-once)
+func (ov *OutputValues) SetInt(name string, value int) error {
+	if ov.written[name] {
+		return &errors.ImmutableFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeImmutable,
+				Message: "output field already written",
+				Field:   name,
+			},
+			AttemptedOperation: "SetInt",
+		}
+	}
+
+	if _, ok := ov.defs[name]; !ok {
+		return &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "output field not defined",
+				Field:   name,
+			},
+			Scope: "output",
+		}
+	}
+
+	if ov.defs[name].Type != string(TypeInt) {
+		return &errors.TypeError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeTypeMismatch,
+				Message: "field type mismatch",
+				Field:   name,
+			},
+			ExpectedType: ov.defs[name].Type,
+			ActualType:   string(TypeInt),
+		}
+	}
+
+	ov.fields[name] = NewIntValue(value)
+	ov.written[name] = true
+	return nil
+}
+
+// SetBool sets a bool output value (write-once)
+func (ov *OutputValues) SetBool(name string, value bool) error {
+	if ov.written[name] {
+		return &errors.ImmutableFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeImmutable,
+				Message: "output field already written",
+				Field:   name,
+			},
+			AttemptedOperation: "SetBool",
+		}
+	}
+
+	if _, ok := ov.defs[name]; !ok {
+		return &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "output field not defined",
+				Field:   name,
+			},
+			Scope: "output",
+		}
+	}
+
+	if ov.defs[name].Type != string(TypeBool) {
+		return &errors.TypeError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeTypeMismatch,
+				Message: "field type mismatch",
+				Field:   name,
+			},
+			ExpectedType: ov.defs[name].Type,
+			ActualType:   string(TypeBool),
+		}
+	}
+
+	ov.fields[name] = NewBoolValue(value)
+	ov.written[name] = true
+	return nil
+}
+
+// SetFloat sets a float output value (write-once)
+func (ov *OutputValues) SetFloat(name string, value float64) error {
+	if ov.written[name] {
+		return &errors.ImmutableFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeImmutable,
+				Message: "output field already written",
+				Field:   name,
+			},
+			AttemptedOperation: "SetFloat",
+		}
+	}
+
+	if _, ok := ov.defs[name]; !ok {
+		return &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "output field not defined",
+				Field:   name,
+			},
+			Scope: "output",
+		}
+	}
+
+	if ov.defs[name].Type != string(TypeFloat) {
+		return &errors.TypeError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeTypeMismatch,
+				Message: "field type mismatch",
+				Field:   name,
+			},
+			ExpectedType: ov.defs[name].Type,
+			ActualType:   string(TypeFloat),
+		}
+	}
+
+	ov.fields[name] = NewFloatValue(value)
+	ov.written[name] = true
+	return nil
+}
+
+// GetString returns a string output value
+func (ov *OutputValues) GetString(name string) (string, error) {
+	fv, ok := ov.fields[name]
+	if !ok {
+		return "", &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "output field not set",
+				Field:   name,
+			},
+			Scope: "output",
+		}
+	}
+	return fv.String()
+}
+
+// GetInt returns an int output value
+func (ov *OutputValues) GetInt(name string) (int, error) {
+	fv, ok := ov.fields[name]
+	if !ok {
+		return 0, &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "output field not set",
+				Field:   name,
+			},
+			Scope: "output",
+		}
+	}
+	return fv.Int()
+}
+
+// GetBool returns a bool output value
+func (ov *OutputValues) GetBool(name string) (bool, error) {
+	fv, ok := ov.fields[name]
+	if !ok {
+		return false, &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "output field not set",
+				Field:   name,
+			},
+			Scope: "output",
+		}
+	}
+	return fv.Bool()
+}
+
+// GetFloat returns a float output value
+func (ov *OutputValues) GetFloat(name string) (float64, error) {
+	fv, ok := ov.fields[name]
+	if !ok {
+		return 0, &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "output field not set",
+				Field:   name,
+			},
+			Scope: "output",
+		}
+	}
+	return fv.Float()
+}
+
+// Has returns true if field has a value
+func (ov *OutputValues) Has(name string) bool {
+	_, ok := ov.fields[name]
+	return ok
+}

@@ -190,3 +190,113 @@ func TestContextValues_TypeMismatch(t *testing.T) {
 	err := context.SetInt("status", 42)
 	assert.Error(t, err)
 }
+
+func TestOutputValues_GetSet(t *testing.T) {
+	block := &flows.OutputBlock{
+		Strings: []flows.FieldDef{{Name: "result", Type: "string"}},
+		Bools:   []flows.FieldDef{{Name: "success", Type: "bool"}},
+	}
+
+	output := variables.NewOutputValues(block)
+
+	// Set values
+	err := output.SetString("result", "done")
+	require.NoError(t, err)
+
+	err = output.SetBool("success", true)
+	require.NoError(t, err)
+
+	// Get values
+	val, err := output.GetString("result")
+	require.NoError(t, err)
+	assert.Equal(t, "done", val)
+
+	success, err := output.GetBool("success")
+	require.NoError(t, err)
+	assert.True(t, success)
+}
+
+func TestOutputValues_WriteOnce(t *testing.T) {
+	block := &flows.OutputBlock{
+		Strings: []flows.FieldDef{{Name: "result", Type: "string"}},
+	}
+
+	output := variables.NewOutputValues(block)
+
+	err := output.SetString("result", "first")
+	require.NoError(t, err)
+
+	// Second write should fail
+	err = output.SetString("result", "second")
+	assert.Error(t, err)
+}
+
+func TestOutputValues_AllTypes(t *testing.T) {
+	block := &flows.OutputBlock{
+		Strings: []flows.FieldDef{{Name: "message", Type: "string"}},
+		Ints:    []flows.FieldDef{{Name: "count", Type: "int"}},
+		Bools:   []flows.FieldDef{{Name: "flag", Type: "bool"}},
+		Floats:  []flows.FieldDef{{Name: "rate", Type: "float"}},
+	}
+
+	output := variables.NewOutputValues(block)
+
+	// Set all types
+	err := output.SetString("message", "test")
+	require.NoError(t, err)
+
+	err = output.SetInt("count", 42)
+	require.NoError(t, err)
+
+	err = output.SetBool("flag", true)
+	require.NoError(t, err)
+
+	err = output.SetFloat("rate", 3.14)
+	require.NoError(t, err)
+
+	// Get all types
+	msg, err := output.GetString("message")
+	require.NoError(t, err)
+	assert.Equal(t, "test", msg)
+
+	count, err := output.GetInt("count")
+	require.NoError(t, err)
+	assert.Equal(t, 42, count)
+
+	flag, err := output.GetBool("flag")
+	require.NoError(t, err)
+	assert.True(t, flag)
+
+	rate, err := output.GetFloat("rate")
+	require.NoError(t, err)
+	assert.InDelta(t, 3.14, rate, 0.001)
+}
+
+func TestOutputValues_UnknownField(t *testing.T) {
+	block := &flows.OutputBlock{}
+	output := variables.NewOutputValues(block)
+
+	err := output.SetString("unknown", "test")
+	assert.Error(t, err)
+}
+
+func TestOutputValues_TypeMismatch(t *testing.T) {
+	block := &flows.OutputBlock{
+		Strings: []flows.FieldDef{{Name: "result", Type: "string"}},
+	}
+	output := variables.NewOutputValues(block)
+
+	err := output.SetInt("result", 42)
+	assert.Error(t, err)
+}
+
+func TestOutputValues_GetNotSet(t *testing.T) {
+	block := &flows.OutputBlock{
+		Strings: []flows.FieldDef{{Name: "result", Type: "string"}},
+	}
+	output := variables.NewOutputValues(block)
+
+	// Getting a value that hasn't been set should return error
+	_, err := output.GetString("result")
+	assert.Error(t, err)
+}
