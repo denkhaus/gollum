@@ -6,6 +6,12 @@ import (
 	"strings"
 )
 
+// FieldReference represents a reference to a field
+type FieldReference struct {
+	Scope string // "input", "context", "output", "computed"
+	Name  string
+}
+
 // Expression represents a parsed expression
 type Expression struct {
 	Operator string
@@ -60,4 +66,22 @@ func (ep *ExpressionParser) Parse(expr string) (*Expression, error) {
 		Operator: operator,
 		Args:     args,
 	}, nil
+}
+
+// ExtractDependencies extracts field references from an expression
+func (ep *ExpressionParser) ExtractDependencies(expr string) []FieldReference {
+	var deps []FieldReference
+
+	// Match patterns like: scope.fieldName
+	re := regexp.MustCompile(`(input|context|output|computed)\.([a-zA-Z_][a-zA-Z0-9_]*)`)
+	matches := re.FindAllStringSubmatch(expr, -1)
+
+	for _, match := range matches {
+		deps = append(deps, FieldReference{
+			Scope: match[1],
+			Name:  match[2],
+		})
+	}
+
+	return deps
 }
