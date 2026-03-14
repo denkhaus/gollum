@@ -7,6 +7,13 @@ import (
 	"github.com/denkhaus/gollum/pkg/flows/errors"
 )
 
+// Evaluator interface for reactive updates
+type Evaluator interface {
+	MarkDirty(changedField string)
+	ComputeDirty() error
+	GetValue(name string) (any, error)
+}
+
 // ComputedField represents a single computed field with its definition and cached value
 type ComputedField struct {
 	Name         string
@@ -175,4 +182,315 @@ func (cv *ComputedValues) GetDependents(fieldRef FieldReference) []string {
 	}
 
 	return dependents
+}
+
+// ComputedEvaluator manages reactive computed field evaluation
+type ComputedEvaluator struct {
+	computed   *ComputedValues
+	input      *InputValues
+	context    *ContextValues
+	output     *OutputValues
+	exprEval   *ExpressionEvaluator
+	dependents map[string][]string // fieldRef -> computed fields that depend on it
+	evaluating map[string]bool     // for cycle detection
+}
+
+// NewComputedEvaluator creates a new computed evaluator
+func NewComputedEvaluator(computed *ComputedValues, input *InputValues,
+	context *ContextValues, output *OutputValues) *ComputedEvaluator {
+
+	evaluator := &ComputedEvaluator{
+		computed:   computed,
+		input:      input,
+		context:    context,
+		output:     output,
+		exprEval:   NewExpressionEvaluator(),
+		dependents: make(map[string][]string),
+		evaluating: make(map[string]bool),
+	}
+
+	// Build dependency graph
+	evaluator.buildDependentsMap()
+
+	return evaluator
+}
+
+// buildDependentsMap builds the reverse dependency graph
+func (ce *ComputedEvaluator) buildDependentsMap() {
+	for _, field := range ce.computed.GetAll() {
+		for _, dep := range field.Dependencies {
+			key := dep.Scope + "." + dep.Name
+			ce.dependents[key] = append(ce.dependents[key], field.Name)
+		}
+	}
+}
+
+// MarkDirty marks a computed field and its dependents as dirty
+func (ce *ComputedEvaluator) MarkDirty(changedField string) {
+	// This is called when a context/input/output field changes
+	key := "context." + changedField // Assuming context for now
+
+	// Mark direct dependents
+	for _, depName := range ce.dependents[key] {
+		ce.computed.MarkDirty(depName)
+		// Recursively mark dependents of dependents
+		ce.markDependentsDirty(depName)
+	}
+}
+
+// markDependentsDirty recursively marks dependents dirty
+func (ce *ComputedEvaluator) markDependentsDirty(computedName string) {
+	key := "computed." + computedName
+
+	for _, depName := range ce.dependents[key] {
+		ce.computed.MarkDirty(depName)
+		ce.markDependentsDirty(depName)
+	}
+}
+
+// ComputeDirty evaluates all dirty computed fields
+func (ce *ComputedEvaluator) ComputeDirty() error {
+	evaluated := make(map[string]bool)
+
+	for name, field := range ce.computed.GetAll() {
+		if field.dirty && !evaluated[name] {
+			if err := ce.evaluateField(name, evaluated); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// evaluateField evaluates a single computed field
+func (ce *ComputedEvaluator) evaluateField(name string, evaluated map[string]bool) error {
+	// Check for cycles
+	if ce.evaluating[name] {
+		return &errors.CircularDependencyError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeCircularDep,
+				Message: "circular dependency detected",
+			},
+			Cycle: ce.extractCycle(name),
+		}
+	}
+
+	ce.evaluating[name] = true
+	defer delete(ce.evaluating, name)
+
+	field, err := ce.computed.GetField(name)
+	if err != nil {
+		return err
+	}
+
+	// First, evaluate all dependencies
+	for _, dep := range field.Dependencies {
+		if dep.Scope == "computed" && !evaluated[dep.Name] {
+			if err := ce.evaluateField(dep.Name, evaluated); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Build evaluation scope
+	scope := ce.buildScope()
+
+	// Evaluate the expression
+	result, err := ce.exprEval.Evaluate(field.Expression, scope)
+	if err != nil {
+		return &errors.ExpressionError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeExpression,
+				Message: "expression evaluation failed",
+				Field:   name,
+				Cause:   err,
+			},
+			Expression: field.Expression,
+		}
+	}
+
+	// Store the result
+	var fv FieldValue
+	switch field.Type {
+	case TypeBool:
+		boolVal, ok := result.(bool)
+		if !ok {
+			return &errors.TypeError{
+				FlowError: errors.FlowError{
+					Code:    errors.ErrCodeTypeMismatch,
+					Message: "type mismatch",
+					Field:   name,
+				},
+				ExpectedType: string(TypeBool),
+				ActualType:   fmt.Sprintf("%T", result),
+			}
+		}
+		fv = NewBoolValue(boolVal)
+	case TypeInt:
+		intVal, ok := result.(int)
+		if !ok {
+			if floatVal, ok := result.(float64); ok {
+				intVal = int(floatVal)
+			} else {
+				return &errors.TypeError{
+					FlowError: errors.FlowError{
+						Code:    errors.ErrCodeTypeMismatch,
+						Message: "type mismatch",
+						Field:   name,
+					},
+					ExpectedType: string(TypeInt),
+					ActualType:   fmt.Sprintf("%T", result),
+				}
+			}
+		}
+		fv = NewIntValue(intVal)
+	case TypeString:
+		strVal, ok := result.(string)
+		if !ok {
+			return &errors.TypeError{
+				FlowError: errors.FlowError{
+					Code:    errors.ErrCodeTypeMismatch,
+					Message: "type mismatch",
+					Field:   name,
+				},
+				ExpectedType: string(TypeString),
+				ActualType:   fmt.Sprintf("%T", result),
+			}
+		}
+		fv = NewStringValue(strVal)
+	case TypeFloat:
+		floatVal, ok := result.(float64)
+		if !ok {
+			return &errors.TypeError{
+				FlowError: errors.FlowError{
+					Code:    errors.ErrCodeTypeMismatch,
+					Message: "type mismatch",
+					Field:   name,
+				},
+				ExpectedType: string(TypeFloat),
+				ActualType:   fmt.Sprintf("%T", result),
+			}
+		}
+		fv = NewFloatValue(floatVal)
+	default:
+		return fmt.Errorf("unknown type: %s", field.Type)
+	}
+
+	ce.computed.SetValue(name, fv)
+	evaluated[name] = true
+
+	return nil
+}
+
+// buildScope builds the evaluation scope
+func (ce *ComputedEvaluator) buildScope() *EvaluationScope {
+	scope := &EvaluationScope{
+		Input:    make(map[string]any),
+		Context:  make(map[string]any),
+		Output:   make(map[string]any),
+		Computed: make(map[string]any),
+	}
+
+	// Populate from input container
+	if ce.input != nil {
+		for name := range ce.input.defs {
+			if val, err := ce.input.GetString(name); err == nil {
+				scope.Input[name] = val
+			} else if val, err := ce.input.GetInt(name); err == nil {
+				scope.Input[name] = val
+			} else if val, err := ce.input.GetBool(name); err == nil {
+				scope.Input[name] = val
+			} else if val, err := ce.input.GetFloat(name); err == nil {
+				scope.Input[name] = val
+			}
+		}
+	}
+
+	// Populate from context container
+	if ce.context != nil {
+		for name := range ce.context.defs {
+			if val, err := ce.context.GetString(name); err == nil {
+				scope.Context[name] = val
+			} else if val, err := ce.context.GetInt(name); err == nil {
+				scope.Context[name] = val
+			} else if val, err := ce.context.GetBool(name); err == nil {
+				scope.Context[name] = val
+			} else if val, err := ce.context.GetFloat(name); err == nil {
+				scope.Context[name] = val
+			}
+		}
+	}
+
+	// Populate from output container
+	if ce.output != nil {
+		for name := range ce.output.defs {
+			if val, err := ce.output.GetString(name); err == nil {
+				scope.Output[name] = val
+			} else if val, err := ce.output.GetInt(name); err == nil {
+				scope.Output[name] = val
+			} else if val, err := ce.output.GetBool(name); err == nil {
+				scope.Output[name] = val
+			} else if val, err := ce.output.GetFloat(name); err == nil {
+				scope.Output[name] = val
+			}
+		}
+	}
+
+	// Populate from computed container
+	if ce.computed != nil {
+		for name, field := range ce.computed.GetAll() {
+			if field.lastValue != nil && !field.dirty {
+				if val, err := field.lastValue.Bool(); err == nil {
+					scope.Computed[name] = val
+				} else if val, err := field.lastValue.Int(); err == nil {
+					scope.Computed[name] = val
+				} else if val, err := field.lastValue.String(); err == nil {
+					scope.Computed[name] = val
+				} else if val, err := field.lastValue.Float(); err == nil {
+					scope.Computed[name] = val
+				}
+			}
+		}
+	}
+
+	return scope
+}
+
+// extractCycle extracts the cycle from the current evaluation state
+func (ce *ComputedEvaluator) extractCycle(startNode string) []string {
+	cycle := []string{startNode}
+	for name := range ce.evaluating {
+		if name != startNode {
+			cycle = append([]string{name}, cycle...)
+		}
+	}
+	return cycle
+}
+
+// GetValue returns a computed value (evaluates if dirty)
+func (ce *ComputedEvaluator) GetValue(name string) (any, error) {
+	field, err := ce.computed.GetField(name)
+	if err != nil {
+		return nil, err
+	}
+
+	if field.dirty {
+		if err := ce.ComputeDirty(); err != nil {
+			return nil, err
+		}
+	}
+
+	switch field.Type {
+	case TypeBool:
+		return ce.computed.GetBool(name)
+	case TypeInt:
+		return ce.computed.GetInt(name)
+	case TypeString:
+		return ce.computed.GetString(name)
+	case TypeFloat:
+		return ce.computed.GetFloat(name)
+	default:
+		return nil, fmt.Errorf("unknown type: %s", field.Type)
+	}
 }

@@ -172,3 +172,49 @@ func TestComputedValues_GetAll(t *testing.T) {
 	assert.Contains(t, all, "a")
 	assert.Contains(t, all, "b")
 }
+
+func TestComputedEvaluator_ReactiveUpdate(t *testing.T) {
+	computedFields := []flows.ComputedField{
+		{Name: "is_large", Type: "bool", When: "GT(context.x, 10)"},
+	}
+	computed := variables.NewComputedValues(computedFields)
+
+	contextBlock := &flows.ContextBlock{
+		Ints: []flows.ContextField{{Name: "x", Type: "int"}},
+	}
+	context := variables.NewContextValues(contextBlock)
+
+	evaluator := variables.NewComputedEvaluator(computed, nil, context, nil)
+	context.SetEvaluator(evaluator)
+
+	// Initial evaluation
+	context.SetInt("x", 15)
+	err := evaluator.ComputeDirty()
+	require.NoError(t, err)
+
+	val, err := computed.GetBool("is_large")
+	require.NoError(t, err)
+	assert.True(t, val) // 15 > 10
+
+	// Change dependency
+	context.SetInt("x", 5)
+	err = evaluator.ComputeDirty()
+	require.NoError(t, err)
+
+	val, err = computed.GetBool("is_large")
+	require.NoError(t, err)
+	assert.False(t, val) // 5 < 10
+}
+
+func TestComputedEvaluator_CircularDependency(t *testing.T) {
+	computedFields := []flows.ComputedField{
+		{Name: "a", Type: "bool", When: "computed.b"},
+		{Name: "b", Type: "bool", When: "computed.a"},
+	}
+	computed := variables.NewComputedValues(computedFields)
+
+	evaluator := variables.NewComputedEvaluator(computed, nil, nil, nil)
+
+	err := evaluator.ComputeDirty()
+	assert.Error(t, err)
+}

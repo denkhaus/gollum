@@ -229,16 +229,6 @@ func (iv *InputValues) Has(name string) bool {
 	return ok
 }
 
-// ComputedEvaluator is a placeholder for reactive evaluation (will be implemented later)
-type ComputedEvaluator struct {
-	// Will be implemented in a later task
-}
-
-// MarkDirty marks a computed field as needing re-evaluation
-func (ce *ComputedEvaluator) MarkDirty(field string) {
-	// Will be implemented in a later task
-}
-
 // ContextValues stores context field values (mutable by tools)
 type ContextValues struct {
 	fields    map[string]FieldValue
