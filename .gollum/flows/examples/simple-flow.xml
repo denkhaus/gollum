@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 Simple Flow Example
-Demonstrates: Input/Output interface, Context, Agents, States, LLM steps
+Demonstrates: Input/Output interface, Context, Computed fields, Agents, States, LLM steps
 Note: Fragments removed - use sub-flows for reusable step groups
 -->
 <flow name="simple-flow" version="1.0">
     <description>
-        Minimal flow demonstrating core concepts.
+        Minimal flow demonstrating core concepts including reactive computed fields.
+        The is_complex computed field automatically updates when context.complexity changes.
     </description>
 
     <input>
