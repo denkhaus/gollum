@@ -79,15 +79,15 @@ func TestExecuteCall_SimpleFlowCall(t *testing.T) {
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(mainFlow)
-	exec.SetInput(map[string]any{"message": "hello"})
+	exec.SetInput(map[string]string{"message": "hello"})
 
 	// Execute the call
 	call := &mainFlow.States[0].Calls[0]
 	err := exec.(*flowExecutorImpl).executeCall(call, "init")
 
 	require.NoError(t, err)
-	result, ok := exec.(*flowExecutorImpl).ctx.GetOutputField("output")
-	require.True(t, ok)
+	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("output")
+	require.NoError(t, err)
 	assert.Equal(t, "HELLO", result)
 }
 
@@ -168,14 +168,14 @@ func TestExecuteCall_MultipleInputFields(t *testing.T) {
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(mainFlow)
-	exec.SetInput(map[string]any{"greeting": "Hello", "name": "World"})
+	exec.SetInput(map[string]string{"greeting": "Hello", "name": "World"})
 
 	call := &mainFlow.States[0].Calls[0]
 	err := exec.(*flowExecutorImpl).executeCall(call, "init")
 
 	require.NoError(t, err)
-	result, ok := exec.(*flowExecutorImpl).ctx.GetOutputField("message")
-	require.True(t, ok)
+	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("message")
+	require.NoError(t, err)
 	// Note: fmt.Sprintf with the args parameter doesn't work as expected with current registry implementation
 	// This test might need adjustment based on how fmt.Sprintf is implemented
 	assert.NotNil(t, result)

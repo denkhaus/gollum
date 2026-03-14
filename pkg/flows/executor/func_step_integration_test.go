@@ -132,13 +132,13 @@ func Double(x int) int {
 	// Create executor and run the flow
 	execSvc := do.MustInvoke[FlowExecutorService](injector)
 	exec := execSvc.New(flow)
-	exec.SetInput(map[string]any{"value": 21})
+	exec.SetInput(map[string]string{"value": "21"})
 
 	err := exec.Run()
 	require.NoError(t, err, "Flow execution should succeed")
 
 	// Verify the output
-	result, ok := exec.GetContext().GetOutputField("result")
-	require.True(t, ok, "Result field should exist")
+	result, err := exec.GetContext().GetOutputField("result")
+	require.NoError(t, err, "Result field should exist")
 	assert.Equal(t, 42, result, "21 doubled should be 42")
 }

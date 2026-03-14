@@ -11,12 +11,12 @@ func TestNewContext_InitializesWithDefaults(t *testing.T) {
 	input := &flows.InputBlock{
 		Strings: []flows.FieldDef{{Name: "repo", Required: true}},
 	}
-	inputVals := map[string]any{"repo": "gollum"}
+	inputVals := map[string]string{"repo": "gollum"}
 
 	ctx := NewContext(input, inputVals)
 
 	assert.Equal(t, "gollum", ctx.GetInput("repo"))
-	assert.NotNil(t, ctx.values)
+	assert.NotNil(t, ctx.contextVals)
 	assert.NotNil(t, ctx.computed)
 }
 
@@ -46,8 +46,8 @@ func TestContext_EvaluateComputedFields(t *testing.T) {
 	err := ctx.EvaluateComputedFields(flow.Context)
 
 	assert.NoError(t, err)
-	val, ok := ctx.GetContextField("is_open")
-	assert.True(t, ok)
+	val, err := ctx.GetContextField("is_open")
+	assert.NoError(t, err)
 	assert.Equal(t, true, val)
 }
 
@@ -62,13 +62,13 @@ func TestContext_ComputedFieldsAreImmutable(t *testing.T) {
 	}
 
 	ctx := NewContext(&flows.InputBlock{}, nil)
-	ctx.SetContextField("count", 5)
+	ctx.SetContextField("count", "5")
 
 	err := ctx.EvaluateComputedFields(flow.Context)
 	assert.NoError(t, err)
 
 	// Try to modify computed field
-	ctx.SetContextField("is_large", true)
+	ctx.SetContextField("is_large", "true")
 
 	// Computed field should NOT be modified
 	val, _ := ctx.GetContextField("is_large")

@@ -166,9 +166,9 @@ func (c *Context) EvaluateComputedFields(ctxBlock *flows.ContextBlock) error {
 				if err != nil {
 					return err
 				}
-				// Set directly in values map, bypassing SetContextField
+				// Set directly in contextVals map, bypassing SetContextField
 				// to avoid the immutability check during initial evaluation
-				c.values[cf.Name] = val
+				c.contextVals[cf.Name] = val
 				evaluated[cf.Name] = true
 				progress = true
 			}

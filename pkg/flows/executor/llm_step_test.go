@@ -123,7 +123,7 @@ func TestExecuteLLMStep_SubstitutesPrompt(t *testing.T) {
 	}
 
 	exec := svc.New(flow)
-	exec.SetInput(map[string]any{"pr_number": 123})
+	exec.SetInput(map[string]string{"pr_number": "123"})
 
 	step := &flows.Step{Type: "llm", Agent: "worker", Prompt: "Analyze PR #${input.pr_number}", Output: &flows.StepOutput{Assign: "${output.text}"}}
 	err := exec.(*flowExecutorImpl).executeStep(step, "init")

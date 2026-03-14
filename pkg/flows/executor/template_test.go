@@ -9,7 +9,7 @@ import (
 
 func TestSubstituteTemplate_ReplacesVariables(t *testing.T) {
 	ctx := NewContext(&flows.InputBlock{}, nil)
-	ctx.inputVals = map[string]any{"pr_number": 123}
+	ctx.inputVals = map[string]string{"pr_number": 123}
 	ctx.SetContextField("pr_title", "Fix bug")
 
 	result := SubstituteTemplate(ctx, "Analyze PR #${input.pr_number}: ${context.pr_title}")

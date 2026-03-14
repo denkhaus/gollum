@@ -22,11 +22,11 @@ type (
 		// SetOutputField sets an output field value
 		SetOutputField(name string, value string) error
 		// GetOutputField retrieves an output field value
-		GetOutputField(name string) (string, error)
+		GetOutputField(name string) (any, error)
 		// SetContextField sets a context field value
 		SetContextField(name string, value string) error
 		// GetContextField retrieves a context field value
-		GetContextField(name string) (string, error)
+		GetContextField(name string) (any, error)
 		// GetCurrentState returns the current state name
 		GetCurrentState() string
 		// GetAllContextFields returns all context fields
@@ -173,7 +173,14 @@ func (t *setOutputFieldTool) runSetOutputField(_ context.Context, args map[strin
 		return nil, fmt.Errorf("field name is required")
 	}
 
-	value := t.flowCtx.SetOutputField(name, args["value"])
+	value, ok := args["value"].(string)
+	if !ok {
+		return nil, fmt.Errorf("field value must be a string")
+	}
+
+	if err := t.flowCtx.SetOutputField(name, value); err != nil {
+		return nil, err
+	}
 	t.logService.Debugf("Set output field '%s' = %v", name, value)
 
 	return map[string]any{"success": true}, nil
@@ -211,9 +218,14 @@ func (t *setContextFieldTool) runSetContextField(_ context.Context, args map[str
 		return nil, fmt.Errorf("field name is required")
 	}
 
-	value := args["value"]
+	value, ok := args["value"].(string)
+	if !ok {
+		return nil, fmt.Errorf("field value must be a string")
+	}
 
-	t.flowCtx.SetContextField(name, value)
+	if err := t.flowCtx.SetContextField(name, value); err != nil {
+		return nil, err
+	}
 	t.logService.Debugf("Set context field '%s' = %v", name, value)
 
 	return map[string]any{"success": true}, nil

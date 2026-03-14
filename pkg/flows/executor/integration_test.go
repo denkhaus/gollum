@@ -45,7 +45,7 @@ func TestExecutor_SimpleFlow_ExecutesSuccessfully(t *testing.T) {
 	injector := setupTestDI(t)
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.SetInput(map[string]any{"message": "hello"})
+	exec.SetInput(map[string]string{"message": "hello"})
 
 	// LLM step will fail but we can test state transitions
 	err := exec.Validate()
@@ -58,7 +58,7 @@ func TestExecutor_SimpleFlow_ExecutesSuccessfully(t *testing.T) {
 	assert.NoError(t, err)
 
 	val, ok := exec.(*flowExecutorImpl).ctx.GetContextField("is_ready")
-	assert.True(t, ok)
+	assert.NoError(t, err)
 	assert.Equal(t, true, val)
 }
 
@@ -87,7 +87,7 @@ func TestExecutor_ErrorHandling_TransitionsToErrorState(t *testing.T) {
 
 	// Verify error context was set
 	val, ok := exec.(*flowExecutorImpl).ctx.GetContextField("error.step_name")
-	assert.True(t, ok)
+	assert.NoError(t, err)
 	assert.Equal(t, "analyze", val)
 
 	// Verify we ended up in error state (or init, since it transitioned)

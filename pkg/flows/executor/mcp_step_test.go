@@ -30,7 +30,7 @@ func (m *mockMCPTool) Run(ctx context.Context, args map[string]any) (map[string]
 	if m.runFunc != nil {
 		return m.runFunc(ctx, args)
 	}
-	return map[string]any{}, nil
+	return map[string]string{}, nil
 }
 
 // mockMCPToolSet is a mock ToolSet for testing
@@ -76,7 +76,7 @@ func TestExecuteMCPStep_ToolCall(t *testing.T) {
 		runFunc: func(ctx context.Context, args map[string]any) (map[string]any, error) {
 			// Verify parameters
 			query, ok := args["query"].(string)
-			require.True(t, ok)
+			require.NoError(t, err)
 			assert.Equal(t, "test search query", query)
 
 			// Return mock search results
@@ -127,7 +127,7 @@ func TestExecuteMCPStep_ToolCall(t *testing.T) {
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.SetInput(map[string]any{"query": "test search query"})
+	exec.SetInput(map[string]string{"query": "test search query"})
 
 	// Execute the MCP step
 	step := &flow.States[0].Steps[0]
@@ -136,8 +136,8 @@ func TestExecuteMCPStep_ToolCall(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify output was mapped
-	result, ok := exec.(*flowExecutorImpl).ctx.GetOutputField("result")
-	require.True(t, ok)
+	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("result")
+	require.NoError(t, err)
 	assert.NotNil(t, result)
 }
 
@@ -247,7 +247,7 @@ func TestExecuteMCPStep_TemplateSubstitution(t *testing.T) {
 			for k, v := range args {
 				receivedParams[k] = v
 			}
-			return map[string]any{}, nil
+			return map[string]string{}, nil
 		},
 	}
 
@@ -285,7 +285,7 @@ func TestExecuteMCPStep_TemplateSubstitution(t *testing.T) {
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.SetInput(map[string]any{"name": "Alice"})
+	exec.SetInput(map[string]string{"name": "Alice"})
 
 	step := &flow.States[0].Steps[0]
 	err := exec.(*flowExecutorImpl).executeMCPStep(step, "init")

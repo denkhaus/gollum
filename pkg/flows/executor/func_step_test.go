@@ -40,14 +40,14 @@ func TestExecuteFuncStep_StringsToUpper(t *testing.T) {
 	injector := setupTestDI(t)
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.SetInput(map[string]any{"text": "hello"})
+	exec.SetInput(map[string]string{"text": "hello"})
 	step := &flow.States[0].Steps[0]
 
 	err := exec.(*flowExecutorImpl).executeFuncStep(step, "init")
 
 	require.NoError(t, err)
-	result, ok := exec.(*flowExecutorImpl).ctx.GetOutputField("result")
-	require.True(t, ok)
+	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("result")
+	require.NoError(t, err)
 	assert.Equal(t, "HELLO", result)
 }
 
@@ -82,14 +82,14 @@ func TestExecuteFuncStep_StringsToLower(t *testing.T) {
 	injector := setupTestDI(t)
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.SetInput(map[string]any{"text": "HELLO"})
+	exec.SetInput(map[string]string{"text": "HELLO"})
 	step := &flow.States[0].Steps[0]
 
 	err := exec.(*flowExecutorImpl).executeFuncStep(step, "init")
 
 	require.NoError(t, err)
-	result, ok := exec.(*flowExecutorImpl).ctx.GetOutputField("result")
-	require.True(t, ok)
+	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("result")
+	require.NoError(t, err)
 	assert.Equal(t, "hello", result)
 }
 
@@ -130,14 +130,14 @@ func TestExecuteFuncStep_StringsContains(t *testing.T) {
 	injector := setupTestDI(t)
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.SetInput(map[string]any{"text": "hello world", "substr": "world"})
+	exec.SetInput(map[string]string{"text": "hello world", "substr": "world"})
 	step := &flow.States[0].Steps[0]
 
 	err := exec.(*flowExecutorImpl).executeFuncStep(step, "init")
 
 	require.NoError(t, err)
-	result, ok := exec.(*flowExecutorImpl).ctx.GetOutputField("result")
-	require.True(t, ok)
+	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("result")
+	require.NoError(t, err)
 	assert.Equal(t, true, result)
 }
 
@@ -172,13 +172,13 @@ func TestExecuteFuncStep_Len_String(t *testing.T) {
 	injector := setupTestDI(t)
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.SetInput(map[string]any{"text": "hello"})
+	exec.SetInput(map[string]string{"text": "hello"})
 	step := &flow.States[0].Steps[0]
 
 	err := exec.(*flowExecutorImpl).executeFuncStep(step, "init")
 
 	require.NoError(t, err)
-	result, ok := exec.(*flowExecutorImpl).ctx.GetOutputField("length")
-	require.True(t, ok)
+	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("length")
+	require.NoError(t, err)
 	assert.Equal(t, 5, result)
 }

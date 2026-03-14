@@ -102,8 +102,8 @@ func TestExecuteShellStep_SuccessfulExecution(t *testing.T) {
 	err := exec.(*flowExecutorImpl).executeShellStep(step, "init")
 
 	require.NoError(t, err)
-	result, ok := exec.(*flowExecutorImpl).ctx.GetOutputField("greeting")
-	require.True(t, ok)
+	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("greeting")
+	require.NoError(t, err)
 	assert.Equal(t, "Hello World\n", result)
 }
 
@@ -149,14 +149,14 @@ func TestExecuteShellStep_WithInputVariable(t *testing.T) {
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.SetInput(map[string]any{"name": "Claude"})
+	exec.SetInput(map[string]string{"name": "Claude"})
 
 	step := &flow.States[0].Steps[0]
 	err := exec.(*flowExecutorImpl).executeShellStep(step, "init")
 
 	require.NoError(t, err)
-	result, ok := exec.(*flowExecutorImpl).ctx.GetOutputField("greeting")
-	require.True(t, ok)
+	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("greeting")
+	require.NoError(t, err)
 	assert.Equal(t, "Hello Claude\n", result)
 }
 
@@ -186,7 +186,7 @@ func TestExecuteShellStep_WithTimeout(t *testing.T) {
 	mockTool := &mockBashToolRunner{
 		runFunc: func(ctx context.Context, args map[string]any) (map[string]any, error) {
 			timeout, ok := args["timeout"]
-			require.True(t, ok)
+			require.NoError(t, err)
 			assert.Equal(t, 0.5, timeout)
 			return map[string]any{
 				"stdout":    "",
@@ -217,7 +217,7 @@ func TestSubstituteTemplate_InputVariables(t *testing.T) {
 	injector := setupTestDI(t)
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.SetInput(map[string]any{"name": "Claude"})
+	exec.SetInput(map[string]string{"name": "Claude"})
 
 	result := exec.(*flowExecutorImpl).substituteTemplate("echo 'Hello ${input.name}'")
 
@@ -280,7 +280,7 @@ func TestSubstituteTemplate_MultipleVariables(t *testing.T) {
 	injector := setupTestDI(t)
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.SetInput(map[string]any{"name": "app", "action": "deploy"})
+	exec.SetInput(map[string]string{"name": "app", "action": "deploy"})
 	// Initialize context with default values manually for this test
 	if flow.Context != nil {
 		for _, field := range flow.Context.Strings {

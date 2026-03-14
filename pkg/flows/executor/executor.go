@@ -313,7 +313,7 @@ func (p *flowExecutorImpl) executeShellStep(step *flows.Step, _ string) error {
 		if step.Output.Assign != "" {
 			fieldName := extractFieldName(step.Output.Assign)
 			if val, ok := result["stdout"]; ok {
-				p.ctx.SetOutputField(fieldName, val)
+				p.ctx.SetOutputField(fieldName, anyToString(val))
 			}
 		}
 		// Handle path-based outputs
@@ -322,26 +322,16 @@ func (p *flowExecutorImpl) executeShellStep(step *flows.Step, _ string) error {
 			switch path.Path {
 			case "stdout":
 				if val, ok := result["stdout"]; ok {
-					p.ctx.SetOutputField(fieldName, val)
+					p.ctx.SetOutputField(fieldName, anyToString(val))
 				}
 			case "stderr":
 				if val, ok := result["stderr"]; ok {
-					p.ctx.SetOutputField(fieldName, val)
+					p.ctx.SetOutputField(fieldName, anyToString(val))
 				}
 			case "exit_code":
 				// Bash tool returns exit_code as a number
 				if val, ok := result["exit_code"]; ok {
-					// Convert to int based on type
-					switch v := val.(type) {
-					case int:
-						p.ctx.SetOutputField(fieldName, v)
-					case float64:
-						p.ctx.SetOutputField(fieldName, int(v))
-					case string:
-						if code, err := strconv.Atoi(v); err == nil {
-							p.ctx.SetOutputField(fieldName, code)
-						}
-					}
+					p.ctx.SetOutputField(fieldName, anyToString(val))
 				}
 			}
 		}
@@ -418,7 +408,7 @@ func (p *flowExecutorImpl) executeFuncStep(step *flows.Step, stateName string) e
 	// Map result to output
 	if step.Output != nil && step.Output.Assign != "" {
 		fieldName := extractFieldName(step.Output.Assign)
-		p.ctx.SetOutputField(fieldName, result)
+		p.ctx.SetOutputField(fieldName, anyToString(result))
 	}
 
 	return nil
@@ -469,7 +459,7 @@ func (p *flowExecutorImpl) executeMCPStep(step *flows.Step, stateName string) er
 					if step.Output.Assign != "" {
 						fieldName := extractFieldName(step.Output.Assign)
 						// For MCP tools, we'll map the entire result to the field
-						p.ctx.SetOutputField(fieldName, result)
+						p.ctx.SetOutputField(fieldName, anyToString(result))
 					}
 					// TODO: Handle path-based outputs with JSONPath extraction
 					// This would allow mapping specific fields from the result
@@ -526,14 +516,14 @@ func (p *flowExecutorImpl) executeCall(call *flows.Call, _ string) error {
 	for _, field := range call.Output {
 		// Get the value from sub-flow output
 		fieldName := extractFieldName(field.Value)
-		value, ok := subExec.ctx.GetOutputField(fieldName)
-		if !ok {
+		value, err := subExec.ctx.GetOutputField(fieldName)
+		if err != nil {
 			continue // Skip if field doesn't exist in sub-flow output
 		}
 
 		// Set the value in parent flow output
 		targetField := extractFieldName(field.Name)
-		p.ctx.SetOutputField(targetField, value)
+		p.ctx.SetOutputField(targetField, anyToString(value))
 	}
 
 	return nil
@@ -630,3 +620,27 @@ func (p *flowExecutorImpl) RequestTransition(to string) error {
 	p.pendingTransition = to
 	return nil
 }
+
+// anyToString converts any value to its string representation
+func anyToString(v any) string {
+	if v == nil {
+		return ""
+	}
+	switch val := v.(type) {
+	case string:
+		return val
+	case int:
+		return strconv.Itoa(val)
+	case int64:
+		return strconv.FormatInt(val, 10)
+	case float64:
+		return strconv.FormatFloat(val, 'f', -1, 64)
+	case bool:
+		return strconv.FormatBool(val)
+	case []byte:
+		return string(val)
+	default:
+		return fmt.Sprintf("%v", val)
+	}
+}
+

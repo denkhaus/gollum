@@ -118,7 +118,7 @@ func TestFlowExecutor_ExecuteStepWithHooks(t *testing.T) {
 	}
 
 	instance := execService.New(flow)
-	instance.SetInput(map[string]any{"name": "test"})
+	instance.SetInput(map[string]string{"name": "test"})
 
 	// Mock the func step to return successfully
 	// (For now, we'll test that the wrapper works even if step fails)
