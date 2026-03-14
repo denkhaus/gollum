@@ -5,9 +5,14 @@ package app
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/denkhaus/gollum/pkg/channel"
+	"github.com/denkhaus/gollum/pkg/flows/executor"
+	"github.com/denkhaus/gollum/pkg/flows/parser"
+	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/markdown"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
@@ -36,18 +41,20 @@ type ApplicationService interface {
 
 // applicationServiceImpl implements the ApplicationService interface
 type applicationServiceImpl struct {
-	gollumDir        string
-	sessionID        uuid.UUID
-	logService       logger.LoggerService
-	fsm              state.FileStateManager
-	agentRegistry    registry.AgentRegistry
-	promptMgr        manager.PromptManager
-	agentFactory     shared.AgentFactory
-	markdownRenderer markdown.Renderer
-	workspaceService workspace.Service
-	skillsService    skills.SkillService
-	mcpRegistry      mcpregistry.MCPRegistry
-	channelFacade    channel.ChannelFacade
+	gollumDir           string
+	sessionID           uuid.UUID
+	logService          logger.LoggerService
+	fsm                 state.FileStateManager
+	agentRegistry       registry.AgentRegistry
+	promptMgr           manager.PromptManager
+	agentFactory        shared.AgentFactory
+	markdownRenderer    markdown.Renderer
+	workspaceService    workspace.Service
+	skillsService       skills.SkillService
+	mcpRegistry         mcpregistry.MCPRegistry
+	channelFacade       channel.ChannelFacade
+	flowExecutorService executor.FlowExecutorService
+	flowRegistry        flowregistry.FlowRegistry
 }
 
 // Ensure implementation satisfies interface
@@ -65,25 +72,42 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 	skillsService := do.MustInvoke[skills.SkillService](injector)
 	mcpRegistry := do.MustInvoke[mcpregistry.MCPRegistry](injector)
 	channelFacade := do.MustInvoke[channel.ChannelFacadeService](injector)
+	flowExecutorService := do.MustInvoke[executor.FlowExecutorService](injector)
+	flowRegistry := do.MustInvoke[flowregistry.FlowRegistry](injector)
 
 	return &applicationServiceImpl{
-		sessionID:        uuid.New(),
-		logService:       logService,
-		fsm:              fsm,
-		agentRegistry:    agentRegistry,
-		workspaceService: workspaceService,
-		skillsService:    skillsService,
-		promptMgr:        promptMgr,
-		agentFactory:     agentFactory,
-		markdownRenderer: markdownRenderer,
-		mcpRegistry:      mcpRegistry,
-		channelFacade:    channelFacade,
+		sessionID:           uuid.New(),
+		logService:          logService,
+		fsm:                 fsm,
+		agentRegistry:       agentRegistry,
+		workspaceService:    workspaceService,
+		skillsService:       skillsService,
+		promptMgr:           promptMgr,
+		agentFactory:        agentFactory,
+		markdownRenderer:    markdownRenderer,
+		mcpRegistry:         mcpRegistry,
+		channelFacade:       channelFacade,
+		flowExecutorService: flowExecutorService,
+		flowRegistry:        flowRegistry,
 	}, nil
 }
 
 // Run starts the application, performing all initialization and running the interactive loop
 func (p *applicationServiceImpl) Run(ctx context.Context) error {
+	// Check for default flow first
+	defaultFlowPath, err := p.resolveDefaultFlowPath()
+	if err == nil && defaultFlowPath != "" {
+		// Default flow found, execute it
+		p.logService.Infof("Default flow found at: %s", defaultFlowPath)
+		return p.runDefaultFlow(ctx, defaultFlowPath)
+	}
 
+	// No default flow, run TUI
+	return p.runTUI(ctx)
+}
+
+// runTUI runs the terminal user interface
+func (p *applicationServiceImpl) runTUI(ctx context.Context) error {
 	// Enable file logging (LoggerService handles logs/ subdir and cleanup)
 	if err := p.logService.EnableFileLogging(p.gollumDir, p.sessionID); err != nil {
 		return fmt.Errorf("failed to enable file logging: %w", err)
@@ -112,6 +136,57 @@ func (p *applicationServiceImpl) Run(ctx context.Context) error {
 
 	// Run interactive loop
 	return p.runInteractiveLoop(ctx, agent)
+}
+
+// resolveDefaultFlowPath checks for default flow in workspace and global locations
+func (p *applicationServiceImpl) resolveDefaultFlowPath() (string, error) {
+	// Check workspace-local first: .gollum/flows/default/main.xml
+	workspace := p.workspaceService.GetCurrentWorkspace()
+	workspaceFlowPath := filepath.Join(workspace, ".gollum", "flows", "default", "main.xml")
+	if _, err := os.Stat(workspaceFlowPath); err == nil {
+		return workspaceFlowPath, nil
+	}
+
+	// Check global config: ~/.config/gollum/flows/default/main.xml
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+	globalFlowPath := filepath.Join(homeDir, ".config", "gollum", "flows", "default", "main.xml")
+	if _, err := os.Stat(globalFlowPath); err == nil {
+		return globalFlowPath, nil
+	}
+
+	return "", fmt.Errorf("no default flow found")
+}
+
+// runDefaultFlow executes the default flow using FlowExecutorService
+func (p *applicationServiceImpl) runDefaultFlow(ctx context.Context, flowPath string) error {
+	p.logService.Infof("Running default flow: %s", flowPath)
+
+	// Parse flow
+	flow, err := parser.Parse(flowPath)
+	if err != nil {
+		return fmt.Errorf("failed to parse default flow: %w", err)
+	}
+
+	// Create executor
+	executor := p.flowExecutorService.New(flow)
+
+	// Set empty input (default flow should define required inputs with defaults)
+	executor.SetInput(make(map[string]any))
+
+	// Validate and run
+	if err := executor.Validate(); err != nil {
+		return fmt.Errorf("default flow validation failed: %w", err)
+	}
+
+	if err := executor.Run(); err != nil {
+		return fmt.Errorf("default flow execution failed: %w", err)
+	}
+
+	p.logService.Infof("Default flow completed successfully")
+	return nil
 }
 
 // primeFileStateManager primes the file state manager with directory scan
