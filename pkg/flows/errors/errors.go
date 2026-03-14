@@ -21,16 +21,6 @@ func (fe *FlowError) Unwrap() error {
 	return fe.Cause
 }
 
-// Error code constants
-const (
-	ErrCodeUnknownField   = "ERR_UNKNOWN_FIELD"
-	ErrCodeTypeMismatch   = "ERR_TYPE_MISMATCH"
-	ErrCodeCircularDep    = "ERR_CIRCULAR_DEP"
-	ErrCodeExpression     = "ERR_EXPRESSION"
-	ErrCodeImmutableField = "ERR_IMMUTABLE_FIELD"
-	ErrCodeValidation     = "ERR_VALIDATION"
-)
-
 // UnknownFieldError indicates a field reference that doesn't exist in the flow
 type UnknownFieldError struct {
 	FlowError

@@ -69,3 +69,12 @@ func TestCircularDependencyError(t *testing.T) {
 
 	assert.Equal(t, []string{"a", "b", "a"}, err.Cycle)
 }
+
+func TestErrorCodes(t *testing.T) {
+	assert.Equal(t, "UNKNOWN_FIELD", errors.ErrCodeUnknownField)
+	assert.Equal(t, "TYPE_MISMATCH", errors.ErrCodeTypeMismatch)
+	assert.Equal(t, "CIRCULAR_DEPENDENCY", errors.ErrCodeCircularDep)
+	assert.Equal(t, "EXPRESSION_ERROR", errors.ErrCodeExpression)
+	assert.Equal(t, "IMMUTABLE_FIELD", errors.ErrCodeImmutable)
+	assert.Equal(t, "VALIDATION_FAILED", errors.ErrCodeValidation)
+}
