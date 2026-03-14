@@ -16,15 +16,16 @@ const (
 
 // Flow represents a complete workflow definition
 type Flow struct {
-	XMLName     xml.Name      `xml:"flow"`
-	Name        string        `xml:"name,attr"`
-	Version     string        `xml:"version,attr"`
-	Description string        `xml:"description"`
-	Input       *InputBlock   `xml:"input"`
-	Output      *OutputBlock  `xml:"output"`
-	Context     *ContextBlock `xml:"context"`
-	Agents      []Agent       `xml:"agents>agent"`
-	States      []State       `xml:"states>state"`
+	XMLName     xml.Name       `xml:"flow"`
+	Name        string         `xml:"name,attr"`
+	Version     string         `xml:"version,attr"`
+	Description string         `xml:"description"`
+	Input       *InputBlock    `xml:"input"`
+	Output      *OutputBlock   `xml:"output"`
+	Context     *ContextBlock  `xml:"context"`
+	Computed    *ComputedBlock `xml:"computed"`
+	Agents      []Agent        `xml:"agents>agent"`
+	States      []State        `xml:"states>state"`
 }
 
 // GetName implements shared.FlowInfo
@@ -208,11 +209,23 @@ type ContextField struct {
 	Default string `xml:"default,attr"`
 }
 
-// ComputedField represents a computed context field
+// ComputedField represents a computed context field (deprecated - use ComputedBlock)
 type ComputedField struct {
 	Name string `xml:"name,attr"`
 	Type string `xml:"type,attr"`
 	When string `xml:"when,attr"` // Expression
+}
+
+// ComputedBlock defines computed fields at the flow level
+type ComputedBlock struct {
+	Fields []ComputedFieldDef `xml:"field"`
+}
+
+// ComputedFieldDef defines a computed field with name, type, and evaluation expression
+type ComputedFieldDef struct {
+	Name string `xml:"name,attr"`
+	Type string `xml:"type,attr"`
+	Eval string `xml:"eval,attr"` // Expression to evaluate
 }
 
 // Agent defines an LLM agent
