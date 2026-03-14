@@ -32,6 +32,8 @@ type (
 		diffProvider diff.Provider
 	}
 
+	// BashToolProvider is an alias for shared.BashToolProvider for convenience
+
 	// BashToolProvider creates BashTool instances via DI
 	BashToolProvider interface {
 		CreateTool(agentID uuid.UUID) gollem.Tool

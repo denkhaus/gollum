@@ -2,7 +2,7 @@
 <!-- Call Module Example -->
 <flow name="pr-analyzer" version="1.0">
     <description>
-        Demonstr calling a module (code-analysis).
+        Demonstration calling a module (code-analysis).
         The module encapsulates internal complexity ( complexity-check, security-scan)
         Parameterized execution: different scan types (quick, full, deep)
     </description>

@@ -2,31 +2,86 @@ package cli
 
 import (
 	"context"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/denkhaus/gollum/cmd/gollum/cli/flow"
 	"github.com/denkhaus/gollum/pkg/app"
+	"github.com/denkhaus/gollum/pkg/di"
+	"github.com/denkhaus/gollum/pkg/profiling"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v3"
 )
 
+type rootHandler struct {
+}
+
 // RootCommand returns the root CLI command
 func RootCommand() *cli.Command {
+	r := &rootHandler{}
+
 	return &cli.Command{
-		Name:  "gollum",
-		Usage: "AI agent workflow system",
-		Action: RunDefault,
+		Name:   "gollum",
+		Usage:  "AI agent workflow system",
+		Before: r.before,
+		Action: r.run,
 		Commands: []*cli.Command{
 			flow.FlowCommandGroup(),
 		},
 	}
 }
 
-// RunDefault executes the default application behavior.
+func (p *rootHandler) before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+	// Create cancellable context for shutdown
+	shutdownCtx, cancel := context.WithCancel(ctx)
+
+	// Setup container and services
+	container := di.NewContainer()
+	injector := container.RegisterServices(shutdownCtx)
+
+	// Store injector in command metadata for subcommands to access
+	shared.SetInjector(cmd, injector)
+
+	// Handle graceful shutdown for SIGTERM
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		log.Println("Shutdown signal received")
+		cancel()
+	}()
+
+	// Parse profiling configuration and enable if configured
+	profilingConfig := profiling.ParseFlags()
+	if profilingConfig.Enable {
+		setupProfiling(profilingConfig, injector)
+	}
+
+	return shutdownCtx, nil
+}
+
+func (p *rootHandler) after(ctx context.Context, cmd *cli.Command) error {
+	// Get injector from metadata
+	injector, err := shared.GetInjector(cmd)
+	if err != nil {
+		return nil // No injector was set, nothing to clean up
+	}
+
+	// Get container from injector and shutdown
+	// The DI container manages its own shutdown
+	_ = injector // Container shutdown is handled by the injector lifecycle
+
+	return nil
+}
+
+// run executes the default application behavior.
 // Delegates to ApplicationService which handles:
 // - Default flow detection and execution
 // - Fallback to TUI if no default flow
-func RunDefault(ctx context.Context, cmd *cli.Command) error {
+func (p *rootHandler) run(ctx context.Context, cmd *cli.Command) error {
 	injector := shared.MustGetInjector(cmd)
 	appSvc := do.MustInvoke[app.ApplicationService](injector)
 	return appSvc.Run(ctx)

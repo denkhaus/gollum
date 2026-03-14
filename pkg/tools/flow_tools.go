@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -16,29 +15,28 @@ import (
 	"github.com/samber/do/v2"
 )
 
-// FlowContext defines the interface for accessing flow execution state
-type FlowContext interface {
-	// SetOutputField sets an output field value
-	SetOutputField(name string, value any)
-	// GetOutputField retrieves an output field value
-	GetOutputField(name string) (any, bool)
-	// SetContextField sets a context field value
-	SetContextField(name string, value any)
-	// GetContextField retrieves a context field value
-	GetContextField(name string) (any, bool)
-	// GetCurrentState returns the current state name
-	GetCurrentState() string
-	// GetFlow returns the flow definition
-	GetFlow() *flows.Flow
-	// GetAllContextFields returns all context fields
-	GetAllContextFields() map[string]any
-	// ValidateTransition checks if a transition is allowed
-	ValidateTransition(from, to string) error
-	// RequestTransition signals that the flow should transition to the target state
-	RequestTransition(to string) error
-}
-
 type (
+
+	// FlowContext defines the interface for accessing flow execution state
+	FlowContext interface {
+		// SetOutputField sets an output field value
+		SetOutputField(name string, value string) error
+		// GetOutputField retrieves an output field value
+		GetOutputField(name string) (string, error)
+		// SetContextField sets a context field value
+		SetContextField(name string, value string) error
+		// GetContextField retrieves a context field value
+		GetContextField(name string) (string, error)
+		// GetCurrentState returns the current state name
+		GetCurrentState() string
+		// GetAllContextFields returns all context fields
+		GetAllContextFields() map[string]any
+		// ValidateTransition checks if a transition is allowed
+		ValidateTransition(from, to string) error
+		// RequestTransition signals that the flow should transition to the target state
+		RequestTransition(to string) error
+	}
+
 	// setOutputFieldTool sets an output field value during flow execution
 	setOutputFieldTool struct {
 		logService  logger.LoggerService
@@ -79,14 +77,14 @@ type (
 		flowCtx     FlowContext
 	}
 
-	// FlowToolsProvider creates flow executor tools via DI
-	FlowToolsProvider interface {
-		CreateTool(agentID uuid.UUID, flowCtx FlowContext, toolName shared.ToolName) (gollem.Tool, error)
-	}
-
 	flowToolsProvider struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
+	}
+
+	// FlowToolsProvider creates flow executor tools via DI
+	FlowToolsProvider interface {
+		CreateTool(agentID uuid.UUID, flowCtx FlowContext, toolName shared.ToolName) (gollem.Tool, error)
 	}
 )
 
@@ -175,55 +173,10 @@ func (t *setOutputFieldTool) runSetOutputField(_ context.Context, args map[strin
 		return nil, fmt.Errorf("field name is required")
 	}
 
-	value := args["value"]
-
-	// Type validation if flow schema is available
-	if err := t.validateFieldType(name, value); err != nil {
-		return nil, err
-	}
-
-	t.flowCtx.SetOutputField(name, value)
+	value := t.flowCtx.SetOutputField(name, args["value"])
 	t.logService.Debugf("Set output field '%s' = %v", name, value)
 
 	return map[string]any{"success": true}, nil
-}
-
-func (t *setOutputFieldTool) validateFieldType(name string, value any) error {
-	flow := t.flowCtx.GetFlow()
-	if flow == nil || flow.Output == nil {
-		return nil
-	}
-
-	for _, field := range flow.Output.GetAllFields() {
-		if field.Name == name {
-			return validateFlowFieldType(field.Type, value)
-		}
-	}
-
-	// Field not found in output definition - that's okay, just set it
-	return nil
-}
-
-// validateFlowFieldType checks value type against flow schema
-func validateFlowFieldType(typ string, value any) error {
-	switch typ {
-	case "string":
-		if _, ok := value.(string); !ok {
-			return fmt.Errorf("expected string, got %T", value)
-		}
-	case "int":
-		switch value.(type) {
-		case int, int64, float64:
-			// Accept numeric types
-		default:
-			return fmt.Errorf("expected int, got %T", value)
-		}
-	case "bool":
-		if _, ok := value.(bool); !ok {
-			return fmt.Errorf("expected bool, got %T", value)
-		}
-	}
-	return nil
 }
 
 // Spec returns the tool specification for SetContextField
@@ -259,16 +212,6 @@ func (t *setContextFieldTool) runSetContextField(_ context.Context, args map[str
 	}
 
 	value := args["value"]
-
-	// Check if it's a computed field (immutable)
-	flow := t.flowCtx.GetFlow()
-	if flow != nil && flow.Context != nil {
-		for _, cf := range flow.Context.Computeds {
-			if cf.Name == name {
-				return nil, fmt.Errorf("cannot modify computed field '%s'", name)
-			}
-		}
-	}
 
 	t.flowCtx.SetContextField(name, value)
 	t.logService.Debugf("Set context field '%s' = %v", name, value)
@@ -308,7 +251,7 @@ func (t *getContextTool) runGetContext(_ context.Context, args map[string]any) (
 	} else {
 		for _, f := range fields {
 			if fieldName, ok := f.(string); ok {
-				if val, ok := t.flowCtx.GetContextField(fieldName); ok {
+				if val, err := t.flowCtx.GetContextField(fieldName); err == nil {
 					result[fieldName] = val
 				}
 			}

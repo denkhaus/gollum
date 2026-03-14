@@ -2,9 +2,16 @@ package flows
 
 import (
 	"encoding/xml"
-	"strings"
 
 	"github.com/denkhaus/gollum/pkg/shared"
+)
+
+type VarContainerTarget string
+
+const (
+	VarContainerTargetInput   VarContainerTarget = "input"
+	VarContainerTargetContext VarContainerTarget = "context"
+	VarContainerTargetOutput  VarContainerTarget = "output"
 )
 
 // Flow represents a complete workflow definition
@@ -18,6 +25,32 @@ type Flow struct {
 	Context     *ContextBlock `xml:"context"`
 	Agents      []Agent       `xml:"agents>agent"`
 	States      []State       `xml:"states>state"`
+}
+
+// GetName implements shared.FlowInfo
+func (f *Flow) GetName() string {
+	return f.Name
+}
+
+// GetOutputFields implements shared.FlowInfo
+func (f *Flow) GetOutputFields() []FieldDef {
+	if f.Output == nil {
+		return nil
+	}
+
+	return f.Output.GetAllFields()
+}
+
+// GetContextComputeds implements shared.FlowInfo
+func (f *Flow) GetContextComputeds() []any {
+	if f.Context == nil {
+		return nil
+	}
+	computeds := make([]any, len(f.Context.Computeds))
+	for i, cf := range f.Context.Computeds {
+		computeds[i] = cf
+	}
+	return computeds
 }
 
 // InputBlock defines the flow's input interface
@@ -193,12 +226,9 @@ type Agent struct {
 }
 
 func (p Agent) ToClientConfig() *shared.LLMClientConfig {
-	// Infer provider and add prefix to model
-	provider := inferProvider(p.Model)
-	model := string(provider) + "/" + p.Model
 
 	cnf := &shared.LLMClientConfig{
-		Model: model,
+		Model: p.Model,
 	}
 
 	if p.MaxTokens != 0 {
@@ -214,33 +244,6 @@ func (p Agent) ToClientConfig() *shared.LLMClientConfig {
 	}
 
 	return cnf
-}
-
-// inferProvider infers the LLM provider from the model name
-func inferProvider(model string) shared.LLMProvider {
-	modelLower := strings.ToLower(model)
-
-	// OpenAI models
-	if strings.HasPrefix(modelLower, "gpt-") ||
-		strings.HasPrefix(modelLower, "o1-") ||
-		strings.Contains(modelLower, "openai") {
-		return shared.LLMProviderOpenAI
-	}
-
-	// Gemini models
-	if strings.HasPrefix(modelLower, "gemini-") ||
-		strings.Contains(modelLower, "google") {
-		return shared.LLMProviderGemini
-	}
-
-	// Claude models (default)
-	if strings.HasPrefix(modelLower, "claude-") ||
-		strings.HasPrefix(modelLower, "anthropic") {
-		return shared.LLMProviderAnthropic
-	}
-
-	// Default to Anthropic
-	return shared.LLMProviderAnthropic
 }
 
 // State represents a state in the workflow

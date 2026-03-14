@@ -23,10 +23,11 @@ Note: Fragments removed - use sub-flows for reusable step groups
         <int name="complexity" />
         <string name="recommendation" />
         <bool name="needs_refactor" />
-
-        <!-- Computed: auto-evaluated, immutable -->
-        <computed name="is_complex" type="bool" when="GT(complexity, 10)" />
     </context>
+
+    <computed>
+        <bool name="is_complex" eval="GT(context.complexity, 10)" />
+    </computed>
 
     <agents>
         <agent name="analyzer" model="anthropic/claude-opus-4-6">
@@ -45,7 +46,7 @@ Note: Fragments removed - use sub-flows for reusable step groups
                         2. Brief recommendation - use set_context_field("recommendation", "<text>")
                         3. needs_refactor flag - use set_context_field("needs_refactor", true/false)
                     ]]></prompt>
-                    <tools>set_context_field, get_context</tools>
+                    <tools>set_context_field</tools>
                     <timeout>60s</timeout>
                 </step>
             </steps>

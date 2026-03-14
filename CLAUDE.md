@@ -9,7 +9,7 @@ Then use `forgejo issue ready --repo denkhaus/gollum` to lern about the next rea
 
 - `/home/denkhaus/dev/kb`
 
-## See Also
+## Guidelines you must strictly adhere
 
 - [Go Programming Guide](/home/denkhaus/dev/kb/guides/guide.golang.programming.md)
 - [Go Dependency Injection Guide](/home/denkhaus/dev/kb/guides/guide.golang.di.md)

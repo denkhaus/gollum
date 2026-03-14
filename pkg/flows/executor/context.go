@@ -5,6 +5,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/flows/ast"
+	"github.com/go-ap/errors"
 )
 
 // Evaluator wraps the ast package for expression evaluation
@@ -64,21 +65,23 @@ func extractDeps(expr ast.Expr, deps *[]string) {
 
 // Context manages execution context with input, output, and computed fields
 type Context struct {
-	input     *flows.InputBlock
-	inputVals map[string]any
-	values    map[string]any    // context and output fields
-	computed  map[string]string // computed field expressions
-	eval      *Evaluator
+	input       *flows.InputBlock
+	inputVals   map[string]any
+	contextVals map[string]any
+	outputVals  map[string]any
+	computed    map[string]string
+	eval        *Evaluator
 }
 
 // NewContext creates a new execution context
-func NewContext(input *flows.InputBlock, inputVals map[string]any) *Context {
+func NewContext(input *flows.InputBlock, inputVals map[string]string) *Context {
 	ctx := &Context{
-		input:     input,
-		inputVals: make(map[string]any),
-		values:    make(map[string]any),
-		computed:  make(map[string]string),
-		eval:      NewEvaluator(),
+		input:       input,
+		inputVals:   make(map[string]any),
+		contextVals: make(map[string]any),
+		outputVals:  make(map[string]any),
+		computed:    make(map[string]string),
+		eval:        NewEvaluator(),
 	}
 
 	// Apply input values or defaults
@@ -101,20 +104,31 @@ func (c *Context) GetInput(name string) any {
 }
 
 // GetContextField retrieves a context field value
-func (c *Context) GetContextField(name string) (any, bool) {
-	val, ok := c.values[name]
-	return val, ok
+func (c *Context) GetContextField(name string) (any, error) {
+	if val, ok := c.contextVals[name]; ok {
+		return val, nil
+	}
+
+	return nil, errors.Errorf("context variable %s undefined", name)
 }
 
-// SetOutputField sets an output field value
-func (c *Context) SetOutputField(name string, value any) {
-	c.values["output."+name] = value
+// SetOutputField sets the output variable by name
+// If the variable doesn't exist an error is thrown
+func (c *Context) SetOutputField(name string, value string) error {
+	if _, ok := c.outputVals[name]; ok {
+		c.outputVals[name] = value
+	}
+
+	return errors.Errorf("output variable %s undefined", name)
 }
 
 // GetOutputField retrieves an output field value
-func (c *Context) GetOutputField(name string) (any, bool) {
-	val, ok := c.values["output."+name]
-	return val, ok
+func (c *Context) GetOutputField(name string) (any, error) {
+	if val, ok := c.outputVals[name]; ok {
+		return val, nil
+	}
+
+	return nil, errors.Errorf("output variable %s undefined", name)
 }
 
 // EvaluateComputedFields evaluates all computed fields in dependency order
@@ -176,7 +190,7 @@ func (c *Context) isDependencyResolved(dep string, evaluated map[string]bool) bo
 		return true
 	}
 	// Check if it's a context field
-	if _, ok := c.values[dep]; ok {
+	if _, ok := c.contextVals[dep]; ok {
 		return true
 	}
 	// Check if it's a computed field that's been evaluated
@@ -196,36 +210,33 @@ func (c *Context) buildScope() map[string]any {
 		scope["input"] = inputScope
 	}
 
-	// Build context scope (non-output fields)
-	contextScope := make(map[string]any)
-	// Build output scope
 	outputScope := make(map[string]any)
-	for k, v := range c.values {
-		// Output fields are stored with "output." prefix
-		if len(k) > 7 && k[:7] == "output." {
-			fieldName := k[7:] // Remove "output." prefix
-			outputScope[fieldName] = v
-		} else {
-			contextScope[k] = v
-		}
-	}
-	if len(contextScope) > 0 {
-		scope["context"] = contextScope
+	for k, v := range c.outputVals {
+		outputScope[k] = v
 	}
 	if len(outputScope) > 0 {
 		scope["output"] = outputScope
 	}
 
+	contextScope := make(map[string]any)
+	for k, v := range c.outputVals {
+		contextScope[k] = v
+	}
+	if len(contextScope) > 0 {
+		scope["context"] = contextScope
+	}
+
 	return scope
 }
 
-// SetContextField with immutability check
-func (c *Context) SetContextField(name string, value any) {
-	if _, isComputed := c.computed[name]; isComputed {
-		// Silently ignore attempts to modify computed fields
-		return
+// SetContextField sets the context variable by name
+// If the variable doesn't exist an error is thrown
+func (c *Context) SetContextField(name string, value string) error {
+	if _, ok := c.contextVals[name]; ok {
+		c.contextVals[name] = value
 	}
-	c.values[name] = value
+
+	return errors.Errorf("context variable %s undefined", name)
 }
 
 // coerceType converts string to appropriate type

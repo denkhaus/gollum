@@ -27,7 +27,7 @@ type FlowExecutorService interface {
 // FlowExecutorInstance defines the interface for a flow executor instance
 type FlowExecutorInstance interface {
 	// SetInput sets input field values
-	SetInput(vals map[string]any)
+	SetInput(vals map[string]string)
 	// Validate validates the flow before execution
 	Validate() error
 	// Run executes the flow from the initial state
@@ -112,7 +112,7 @@ func (p *flowExecutorServiceImpl) New(flow *flows.Flow) FlowExecutorInstance {
 }
 
 // SetInput sets input field values
-func (p *flowExecutorImpl) SetInput(vals map[string]any) {
+func (p *flowExecutorImpl) SetInput(vals map[string]string) {
 	p.ctx = NewContext(p.flow.Input, vals)
 }
 
@@ -497,7 +497,7 @@ func (p *flowExecutorImpl) executeCall(call *flows.Call, _ string) error {
 	}
 
 	// Build input map from call.Input fields with template substitution
-	subInput := make(map[string]any)
+	subInput := make(map[string]string)
 	for _, field := range call.Input {
 		// Substitute template variables in field value
 		value := p.substituteTemplate(field.Value)
@@ -560,22 +560,22 @@ func (p *flowExecutorImpl) handleError(err error, step *flows.Step, state *flows
 // FlowContext interface implementation for tool access
 
 // SetOutputField sets an output field value
-func (p *flowExecutorImpl) SetOutputField(name string, value any) {
-	p.ctx.SetOutputField(name, value)
+func (p *flowExecutorImpl) SetOutputField(name string, value string) error {
+	return p.ctx.SetOutputField(name, value)
 }
 
 // GetOutputField retrieves an output field value
-func (p *flowExecutorImpl) GetOutputField(name string) (any, bool) {
+func (p *flowExecutorImpl) GetOutputField(name string) (any, error) {
 	return p.ctx.GetOutputField(name)
 }
 
 // SetContextField sets a context field value
-func (p *flowExecutorImpl) SetContextField(name string, value any) {
-	p.ctx.SetContextField(name, value)
+func (p *flowExecutorImpl) SetContextField(name string, value string) error {
+	return p.ctx.SetContextField(name, value)
 }
 
 // GetContextField retrieves a context field value
-func (p *flowExecutorImpl) GetContextField(name string) (any, bool) {
+func (p *flowExecutorImpl) GetContextField(name string) (any, error) {
 	return p.ctx.GetContextField(name)
 }
 
@@ -591,7 +591,7 @@ func (p *flowExecutorImpl) GetCurrentState() string {
 
 // GetAllContextFields returns all context fields
 func (p *flowExecutorImpl) GetAllContextFields() map[string]any {
-	return p.ctx.values
+	return p.ctx.contextVals
 }
 
 // ValidateTransition checks if a transition is valid

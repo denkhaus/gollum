@@ -3,6 +3,8 @@ package executor
 import (
 	"fmt"
 	"regexp"
+
+	"github.com/denkhaus/gollum/pkg/flows"
 )
 
 // Substitution matches ${input.field}, ${context.field}, ${output.field}
@@ -17,23 +19,23 @@ func SubstituteTemplate(ctx *Context, tmpl string) string {
 			return match
 		}
 
-		scope := parts[1]
+		scope := flows.VarContainerTarget(parts[1])
 		field := parts[2]
 
 		var value any
-		var ok bool
+		var err error
 
 		switch scope {
-		case "input":
+		case flows.VarContainerTargetInput:
 			value = ctx.GetInput(field)
-		case "context":
-			value, ok = ctx.GetContextField(field)
-			if !ok {
+		case flows.VarContainerTargetContext:
+			value, err = ctx.GetContextField(field)
+			if err != nil {
 				value = nil
 			}
-		case "output":
-			value, ok = ctx.GetOutputField(field)
-			if !ok {
+		case flows.VarContainerTargetOutput:
+			value, err = ctx.GetOutputField(field)
+			if err != nil {
 				value = nil
 			}
 		}

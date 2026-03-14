@@ -3,6 +3,7 @@ package variables_test
 import (
 	"testing"
 
+	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/flows/variables"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,5 +53,48 @@ func TestFieldValue_TypeMismatch(t *testing.T) {
 	fv := variables.NewStringValue("test")
 
 	_, err := fv.Int()
+	assert.Error(t, err)
+}
+
+func TestInputValues_GetSet(t *testing.T) {
+	block := &flows.InputBlock{
+		Strings: []flows.FieldDef{{Name: "name", Type: "string"}},
+		Ints:    []flows.FieldDef{{Name: "count", Type: "int"}},
+	}
+
+	input := variables.NewInputValues(block)
+
+	// Set values
+	err := input.SetString("name", "test")
+	require.NoError(t, err)
+
+	err = input.SetInt("count", 42)
+	require.NoError(t, err)
+
+	// Get values
+	val, err := input.GetString("name")
+	require.NoError(t, err)
+	assert.Equal(t, "test", val)
+
+	count, err := input.GetInt("count")
+	require.NoError(t, err)
+	assert.Equal(t, 42, count)
+}
+
+func TestInputValues_UnknownField(t *testing.T) {
+	block := &flows.InputBlock{}
+	input := variables.NewInputValues(block)
+
+	err := input.SetString("unknown", "test")
+	assert.Error(t, err)
+}
+
+func TestInputValues_TypeMismatch(t *testing.T) {
+	block := &flows.InputBlock{
+		Strings: []flows.FieldDef{{Name: "name", Type: "string"}},
+	}
+	input := variables.NewInputValues(block)
+
+	err := input.SetInt("name", 42)
 	assert.Error(t, err)
 }
