@@ -106,16 +106,39 @@ func (r *ModuleLinterResult) lintFlowRecursive(flowPath string, visited map[stri
 	}
 	visited[absPath] = true
 
-	// Parse the flow
-	flow, err := parser.Parse(absPath)
+	// Read the flow file for validation
+	data, err := os.ReadFile(absPath)
 	if err != nil {
 		r.Flows[absPath] = &flows.LinterResult{
 			Valid: false,
 			Errors: []flows.LinterError{
 				{
-					FlowPath: absPath,
-					Code:     flows.ErrXMLParse,
-					Message:  fmt.Sprintf("parse error: %v", err),
+					Code:    flows.ErrXMLParse,
+					Message: fmt.Sprintf("read error: %v", err),
+				},
+			},
+		}
+		return
+	}
+
+	// Phase 0: XML structure validation (before parsing)
+	structValidator := NewXMLStructureChecker()
+	preParseResult := &flows.LinterResult{}
+	structValidator.CheckRawXML(string(data), preParseResult)
+	if len(preParseResult.Errors) > 0 {
+		r.Flows[absPath] = preParseResult
+		return
+	}
+
+	// Parse the flow
+	flow, err := parser.ParseBytes(data)
+	if err != nil {
+		r.Flows[absPath] = &flows.LinterResult{
+			Valid: false,
+			Errors: []flows.LinterError{
+				{
+					Code:    flows.ErrXMLParse,
+					Message: fmt.Sprintf("parse error: %v", err),
 				},
 			},
 		}

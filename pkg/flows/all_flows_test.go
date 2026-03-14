@@ -109,7 +109,7 @@ func TestForgejoWorkflowIntegration(t *testing.T) {
 		"review-phase.xml",
 	}
 
-	var flowList []*flows.Flow
+	flowList := make([]*flows.Flow, 0, len(files))
 
 	// Parse all forgejo-workflow flows
 	for _, file := range files {

@@ -31,7 +31,7 @@
                         <field name="target_dir" value="${input.target_dir}" />
                     </input>
                     <output>
-                        <field name="score" value="${complexity_score}" />
+                        <field name="score" value="${context.complexity_score}" />
                     </output>
                     <on-error state="error" />
                 </call>
@@ -42,7 +42,7 @@
                         <field name="scan_type" value="${input.scan_type}" />
                     </input>
                     <output>
-                        <field name="issues" value="${security_issues}" />
+                        <field name="issues" value="${context.security_issues}" />
                     </output>
                     <on-error state="error" />
                 </call>
@@ -74,8 +74,8 @@
                 <step type="llm" agent="coordinator">
                     <prompt><![CDATA[
                         Analysis complete:
-                        - Complexity score: ${complexity_score}
-                        - Security issues: ${security_issues}
+                        - Complexity score: ${context.complexity_score}
+                        - Security issues: ${context.security_issues}
 
                         Use set_context_field("summary", "your summary here")
                     ]]></prompt>

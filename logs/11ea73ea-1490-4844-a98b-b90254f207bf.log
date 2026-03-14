@@ -1,0 +1,6 @@
+{"level":"info","timestamp":"2026-03-14T22:01:28.459470035+01:00","caller":"logger/logger.go:140","message":"Session logging enabled: logs/11ea73ea-1490-4844-a98b-b90254f207bf.log"}
+{"level":"info","timestamp":"2026-03-14T22:01:28.466512653+01:00","caller":"logger/logger.go:140","message":"Priming FileStateManager - scanning working directory..."}
+{"level":"info","timestamp":"2026-03-14T22:01:28.480409559+01:00","caller":"logger/logger.go:131","message":"FileStateManager primed","files_indexed":543}
+{"level":"info","timestamp":"2026-03-14T22:01:28.482883354+01:00","caller":"logger/logger.go:140","message":"FileStateManager primed successfully"}
+{"level":"info","timestamp":"2026-03-14T22:01:28.486735971+01:00","caller":"logger/logger.go:140","message":"Supervisor agent 3e1b642e-6479-4722-8f73-1a91bb32b483 registered"}
+{"level":"info","timestamp":"2026-03-14T22:01:28.489406848+01:00","caller":"logger/logger.go:140","message":"TUI channel registered with ChannelFacade"}

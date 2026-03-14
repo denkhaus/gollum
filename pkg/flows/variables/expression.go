@@ -155,15 +155,27 @@ func (ee *ExpressionEvaluator) resolveArgs(args []string, scope *EvaluationScope
 			}
 			resolved[i] = val
 		} else {
-			// It's a literal value (number or bool)
+			// It's a literal value (number, bool, or string)
+			// Check for string literal (enclosed in single or double quotes)
+			if strings.HasPrefix(arg, "'") && strings.HasSuffix(arg, "'") {
+				resolved[i] = strings.Trim(arg, "'")
+				continue
+			}
+			if strings.HasPrefix(arg, "\"") && strings.HasSuffix(arg, "\"") {
+				resolved[i] = strings.Trim(arg, "\"")
+				continue
+			}
+			// Try integer
 			if intVal, err := strconv.Atoi(arg); err == nil {
 				resolved[i] = intVal
 				continue
 			}
+			// Try boolean
 			if boolVal, err := strconv.ParseBool(arg); err == nil {
 				resolved[i] = boolVal
 				continue
 			}
+			// Default to raw string
 			resolved[i] = arg
 		}
 	}

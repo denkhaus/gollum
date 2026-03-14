@@ -8,9 +8,16 @@ import (
 )
 
 func TestSubstituteTemplate_ReplacesVariables(t *testing.T) {
-	ctx := NewContext(&flows.InputBlock{}, nil)
-	ctx.inputVals = map[string]string{"pr_number": 123}
-	ctx.SetContextField("pr_title", "Fix bug")
+	// Create a simple context with input fields
+	input := &flows.InputBlock{
+		Strings: []flows.FieldDef{{Name: "pr_number"}},
+	}
+	contextBlock := &flows.ContextBlock{
+		Strings: []flows.ContextField{{Name: "pr_title"}},
+	}
+	ctx := NewContext(input, nil, contextBlock, map[string]string{"pr_number": "123"})
+	// Set context field directly
+	_ = ctx.SetContextField("pr_title", "Fix bug")
 
 	result := SubstituteTemplate(ctx, "Analyze PR #${input.pr_number}: ${context.pr_title}")
 
@@ -18,7 +25,7 @@ func TestSubstituteTemplate_ReplacesVariables(t *testing.T) {
 }
 
 func TestSubstituteTemplate_HandlesMissingFields(t *testing.T) {
-	ctx := NewContext(&flows.InputBlock{}, nil)
+	ctx := NewContext(nil, nil, nil, nil)
 
 	result := SubstituteTemplate(ctx, "Value: ${input.missing}")
 

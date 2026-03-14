@@ -186,7 +186,7 @@ func TestExecuteShellStep_WithTimeout(t *testing.T) {
 	mockTool := &mockBashToolRunner{
 		runFunc: func(ctx context.Context, args map[string]any) (map[string]any, error) {
 			timeout, ok := args["timeout"]
-			require.NoError(t, err)
+			require.True(t, ok)
 			assert.Equal(t, 0.5, timeout)
 			return map[string]any{
 				"stdout":    "",
@@ -236,11 +236,11 @@ func TestSubstituteTemplate_ContextVariables(t *testing.T) {
 	injector := setupTestDI(t)
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.(*flowExecutorImpl).ctx = NewContext(flow.Input, nil)
+	exec.(*flowExecutorImpl).ctx = NewContext(flow.Input, flow.Output, flow.Context, nil)
 	// Initialize context with default values manually for this test
 	if flow.Context != nil {
 		for _, field := range flow.Context.Strings {
-			exec.(*flowExecutorImpl).ctx.SetContextField(field.Name, field.Default)
+			_ = exec.(*flowExecutorImpl).ctx.SetContextField(field.Name, field.Default)
 		}
 	}
 
@@ -260,8 +260,8 @@ func TestSubstituteTemplate_OutputVariables(t *testing.T) {
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
 	// Set output value before substitution
-	exec.(*flowExecutorImpl).ctx = NewContext(flow.Input, nil)
-	exec.(*flowExecutorImpl).ctx.SetOutputField("result", "success")
+	exec.(*flowExecutorImpl).ctx = NewContext(flow.Input, flow.Output, flow.Context, nil)
+	_ = exec.(*flowExecutorImpl).ctx.SetOutputField("result", "success")
 
 	result := exec.(*flowExecutorImpl).substituteTemplate("echo 'Status: ${output.result}'")
 
@@ -284,10 +284,10 @@ func TestSubstituteTemplate_MultipleVariables(t *testing.T) {
 	// Initialize context with default values manually for this test
 	if flow.Context != nil {
 		for _, field := range flow.Context.Strings {
-			exec.(*flowExecutorImpl).ctx.SetContextField(field.Name, field.Default)
+			_ = exec.(*flowExecutorImpl).ctx.SetContextField(field.Name, field.Default)
 		}
 	}
-	exec.(*flowExecutorImpl).ctx.SetOutputField("result", "pending")
+	_ = exec.(*flowExecutorImpl).ctx.SetOutputField("result", "pending")
 
 	cmd := "${input.action} ${input.name} in ${context.env}, status: ${output.result}"
 	result := exec.(*flowExecutorImpl).substituteTemplate(cmd)

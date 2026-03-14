@@ -50,7 +50,7 @@ func executeFlow(ctx context.Context, injector do.Injector, path string, w write
 	exec := execSvc.New(flow)
 
 	// Set empty input (flows should define required inputs with defaults)
-	exec.SetInput(make(map[string]any))
+	exec.SetInput(make(map[string]string))
 
 	// Validate
 	if err := exec.Validate(); err != nil {
@@ -58,12 +58,16 @@ func executeFlow(ctx context.Context, injector do.Injector, path string, w write
 	}
 
 	// Run
-	fmt.Fprintf(w, "Executing flow: %s\n", flow.Name)
+	if _, err := fmt.Fprintf(w, "Executing flow: %s\n", flow.Name); err != nil {
+		return fmt.Errorf("failed to write output: %w", err)
+	}
 	if err := exec.Run(); err != nil {
 		return fmt.Errorf("flow execution failed: %w", err)
 	}
 
-	fmt.Fprintf(w, "Flow completed successfully\n")
+	if _, err := fmt.Fprintf(w, "Flow completed successfully\n"); err != nil {
+		return fmt.Errorf("failed to write output: %w", err)
+	}
 	return nil
 }
 

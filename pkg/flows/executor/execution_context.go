@@ -46,7 +46,7 @@ func (c *ExecutionContext) GetInputField(name string) (any, error) {
 }
 
 // SetContextField sets a context field value
-func (c *ExecutionContext) SetContextField(name string, value string) error {
+func (c *ExecutionContext) SetContextField(name string, value any) error {
 	c.contextVals[name] = value
 	return nil
 }
@@ -60,7 +60,7 @@ func (c *ExecutionContext) GetContextField(name string) (any, error) {
 }
 
 // SetOutputField sets an output field value
-func (c *ExecutionContext) SetOutputField(name string, value string) error {
+func (c *ExecutionContext) SetOutputField(name string, value any) error {
 	c.outputVals[name] = value
 	return nil
 }

@@ -96,9 +96,16 @@ func NewFlowExecutor(injector do.Injector) (FlowExecutorService, error) {
 
 // New creates a new executor instance for a specific flow
 func (p *flowExecutorServiceImpl) New(flow *flows.Flow) FlowExecutorInstance {
+	ctx := NewContext(flow.Input, flow.Output, flow.Context, nil)
+
+	// Initialize computed fields from ComputedBlock
+	if flow.Computed != nil {
+		ctx.SetComputedBlock(flow.Computed)
+	}
+
 	return &flowExecutorImpl{
 		flow:              flow,
-		ctx:               NewContext(flow.Input, nil),
+		ctx:               ctx,
 		history:           NewExecutionHistory(),
 		startTime:         time.Now(),
 		bashToolProvider:  p.bashToolProvider,
@@ -113,7 +120,14 @@ func (p *flowExecutorServiceImpl) New(flow *flows.Flow) FlowExecutorInstance {
 
 // SetInput sets input field values
 func (p *flowExecutorImpl) SetInput(vals map[string]string) {
-	p.ctx = NewContext(p.flow.Input, vals)
+	ctx := NewContext(p.flow.Input, p.flow.Output, p.flow.Context, vals)
+
+	// Initialize computed fields from ComputedBlock
+	if p.flow.Computed != nil {
+		ctx.SetComputedBlock(p.flow.Computed)
+	}
+
+	p.ctx = ctx
 }
 
 // Validate validates the flow before execution
@@ -170,8 +184,8 @@ func (p *flowExecutorImpl) executeState(state *flows.State) error {
 	p.history.RecordStateEntry(state.Name, time.Now())
 
 	// Evaluate computed fields
-	if p.flow.Context != nil {
-		if err := p.ctx.EvaluateComputedFields(p.flow.Context); err != nil {
+	if p.flow.Computed != nil {
+		if err := p.ctx.EvaluateComputed(); err != nil {
 			return fmt.Errorf("computed field evaluation: %w", err)
 		}
 	}
@@ -313,7 +327,7 @@ func (p *flowExecutorImpl) executeShellStep(step *flows.Step, _ string) error {
 		if step.Output.Assign != "" {
 			fieldName := extractFieldName(step.Output.Assign)
 			if val, ok := result["stdout"]; ok {
-				p.ctx.SetOutputField(fieldName, anyToString(val))
+				_ = p.ctx.SetOutputField(fieldName, anyToString(val))
 			}
 		}
 		// Handle path-based outputs
@@ -322,16 +336,16 @@ func (p *flowExecutorImpl) executeShellStep(step *flows.Step, _ string) error {
 			switch path.Path {
 			case "stdout":
 				if val, ok := result["stdout"]; ok {
-					p.ctx.SetOutputField(fieldName, anyToString(val))
+					_ = p.ctx.SetOutputField(fieldName, anyToString(val))
 				}
 			case "stderr":
 				if val, ok := result["stderr"]; ok {
-					p.ctx.SetOutputField(fieldName, anyToString(val))
+					_ = p.ctx.SetOutputField(fieldName, anyToString(val))
 				}
 			case "exit_code":
 				// Bash tool returns exit_code as a number
 				if val, ok := result["exit_code"]; ok {
-					p.ctx.SetOutputField(fieldName, anyToString(val))
+					_ = p.ctx.SetOutputField(fieldName, anyToString(val))
 				}
 			}
 		}
@@ -408,7 +422,9 @@ func (p *flowExecutorImpl) executeFuncStep(step *flows.Step, stateName string) e
 	// Map result to output
 	if step.Output != nil && step.Output.Assign != "" {
 		fieldName := extractFieldName(step.Output.Assign)
-		p.ctx.SetOutputField(fieldName, anyToString(result))
+		if err := p.ctx.SetOutputField(fieldName, result); err != nil {
+			return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
+		}
 	}
 
 	return nil
@@ -459,7 +475,9 @@ func (p *flowExecutorImpl) executeMCPStep(step *flows.Step, stateName string) er
 					if step.Output.Assign != "" {
 						fieldName := extractFieldName(step.Output.Assign)
 						// For MCP tools, we'll map the entire result to the field
-						p.ctx.SetOutputField(fieldName, anyToString(result))
+						if err := p.ctx.SetOutputField(fieldName, anyToString(result)); err != nil {
+							return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
+						}
 					}
 					// TODO: Handle path-based outputs with JSONPath extraction
 					// This would allow mapping specific fields from the result
@@ -480,6 +498,23 @@ func (p *flowExecutorImpl) executeMCPStep(step *flows.Step, stateName string) er
 
 // executeCall executes a call step (sub-flow invocation)
 func (p *flowExecutorImpl) executeCall(call *flows.Call, _ string) error {
+	// Check if call has a condition
+	if call.When != "" {
+		// Evaluate the condition
+		scope := p.ctx.buildScope()
+		eval := NewEvaluator()
+		result, err := eval.EvaluateExpr(call.When, scope)
+		if err != nil {
+			return fmt.Errorf("call condition evaluation failed: %w", err)
+		}
+
+		// Skip call if condition is false
+		if boolVal, ok := result.(bool); !ok || !boolVal {
+			// Call is skipped - this is not an error, just don't execute
+			return nil
+		}
+	}
+
 	// Look up the sub-flow
 	subFlow, err := p.flowRegistry.GetFlow(call.Ref)
 	if err != nil {
@@ -488,16 +523,28 @@ func (p *flowExecutorImpl) executeCall(call *flows.Call, _ string) error {
 
 	// Build input map from call.Input fields with template substitution
 	subInput := make(map[string]string)
-	for _, field := range call.Input {
-		// Substitute template variables in field value
-		value := p.substituteTemplate(field.Value)
-		subInput[field.Name] = value
+	if call.Input != nil {
+		for _, field := range call.Input.GetFields() {
+			typedField := field.GetTypedField()
+			if typedField != nil {
+				// Substitute template variables in field value
+				value := p.substituteTemplate(typedField.Value)
+				subInput[typedField.Name] = value
+			}
+		}
 	}
 
 	// Create executor for sub-flow using the service
+	subCtx := NewContext(subFlow.Input, subFlow.Output, subFlow.Context, subInput)
+
+	// Initialize computed fields for sub-flow
+	if subFlow.Computed != nil {
+		subCtx.SetComputedBlock(subFlow.Computed)
+	}
+
 	subExec := &flowExecutorImpl{
 		flow:             subFlow,
-		ctx:              NewContext(subFlow.Input, subInput),
+		ctx:              subCtx,
 		history:          NewExecutionHistory(),
 		startTime:        time.Now(),
 		bashToolProvider: p.bashToolProvider,
@@ -513,17 +560,24 @@ func (p *flowExecutorImpl) executeCall(call *flows.Call, _ string) error {
 	}
 
 	// Map output fields back using call.Output
-	for _, field := range call.Output {
-		// Get the value from sub-flow output
-		fieldName := extractFieldName(field.Value)
-		value, err := subExec.ctx.GetOutputField(fieldName)
-		if err != nil {
-			continue // Skip if field doesn't exist in sub-flow output
-		}
+	if call.Output != nil {
+		for _, field := range call.Output.GetFields() {
+			typedField := field.GetTypedField()
+			if typedField != nil {
+				// Get the value from sub-flow output
+				fieldName := extractFieldName(typedField.Value)
+				value, err := subExec.ctx.GetOutputField(fieldName)
+				if err != nil {
+					continue // Skip if field doesn't exist in sub-flow output
+				}
 
-		// Set the value in parent flow output
-		targetField := extractFieldName(field.Name)
-		p.ctx.SetOutputField(targetField, anyToString(value))
+				// Set the value in parent flow output
+				targetField := extractFieldName(typedField.Name)
+				if err := p.ctx.SetOutputField(targetField, anyToString(value)); err != nil {
+					return fmt.Errorf("failed to set output field '%s': %w", targetField, err)
+				}
+			}
+		}
 	}
 
 	return nil
@@ -550,7 +604,7 @@ func (p *flowExecutorImpl) handleError(err error, step *flows.Step, state *flows
 // FlowContext interface implementation for tool access
 
 // SetOutputField sets an output field value
-func (p *flowExecutorImpl) SetOutputField(name string, value string) error {
+func (p *flowExecutorImpl) SetOutputField(name string, value any) error {
 	return p.ctx.SetOutputField(name, value)
 }
 
@@ -560,7 +614,7 @@ func (p *flowExecutorImpl) GetOutputField(name string) (any, error) {
 }
 
 // SetContextField sets a context field value
-func (p *flowExecutorImpl) SetContextField(name string, value string) error {
+func (p *flowExecutorImpl) SetContextField(name string, value any) error {
 	return p.ctx.SetContextField(name, value)
 }
 

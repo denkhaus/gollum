@@ -29,7 +29,7 @@
         <state name="scan" initial="true">
             <steps>
                 <step type="shell" name="run-gosec">
-                    <cmd><![CDATA[gosec -fmt=json ${target_dir}]]></cmd>
+                    <cmd><![CDATA[gosec -fmt=json ${input.target_dir}]]></cmd>
                     <output>
                         <string name="stdout" assign="scan_output" />
                         <int name="exit_code" assign="exit_code" />
@@ -40,7 +40,7 @@
 
                 <step type="func" function="JSONCount">
                     <params>
-                        <param name="json" value="${scan_output}" />
+                        <param name="json" value="${context.scan_output}" />
                         <param name="path" value="results" />
                     </params>
                     <output assign="issues" />
@@ -57,7 +57,7 @@
                 <step type="func" function="fmt.Sprintf">
                     <params>
                         <param name="format" value="Security scan failed: %s" />
-                        <param name="a" value="${last_error}" />
+                        <param name="a" value="${error.last_error}" />
                     </params>
                 </step>
             </steps>

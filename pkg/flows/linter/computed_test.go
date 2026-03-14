@@ -15,7 +15,7 @@ func TestComputedChecker_Check_Valid(t *testing.T) {
 			Ints: []flows.FieldDef{{Name: "x"}},
 		},
 		Computed: &flows.ComputedBlock{
-			Fields: []flows.ComputedFieldDef{
+			Bools: []flows.ComputedFieldDef{
 				{Name: "is_large", Type: "bool", Eval: "GT(input.x, 10)"},
 			},
 		},
@@ -34,7 +34,7 @@ func TestComputedChecker_Check_EmptyName(t *testing.T) {
 
 	flow := &flows.Flow{
 		Computed: &flows.ComputedBlock{
-			Fields: []flows.ComputedFieldDef{
+		Bools: []flows.ComputedFieldDef{
 				{Name: "", Type: "bool", Eval: "GT(input.x, 10)"},
 			},
 		},
@@ -57,7 +57,7 @@ func TestComputedChecker_Check_InvalidType(t *testing.T) {
 			Ints: []flows.FieldDef{{Name: "x"}},
 		},
 		Computed: &flows.ComputedBlock{
-			Fields: []flows.ComputedFieldDef{
+		Bools: []flows.ComputedFieldDef{
 				{Name: "test", Type: "invalid", Eval: "GT(input.x, 10)"},
 			},
 		},
@@ -77,7 +77,7 @@ func TestComputedChecker_Check_NoEval(t *testing.T) {
 
 	flow := &flows.Flow{
 		Computed: &flows.ComputedBlock{
-			Fields: []flows.ComputedFieldDef{
+		Bools: []flows.ComputedFieldDef{
 				{Name: "test", Type: "bool", Eval: ""},
 			},
 		},
@@ -97,7 +97,7 @@ func TestComputedChecker_Check_InvalidExpression(t *testing.T) {
 
 	flow := &flows.Flow{
 		Computed: &flows.ComputedBlock{
-			Fields: []flows.ComputedFieldDef{
+		Bools: []flows.ComputedFieldDef{
 				{Name: "test", Type: "bool", Eval: "INVALID(input.x, 10)"},
 			},
 		},
@@ -117,7 +117,7 @@ func TestComputedChecker_Check_UndefinedReference(t *testing.T) {
 
 	flow := &flows.Flow{
 		Computed: &flows.ComputedBlock{
-			Fields: []flows.ComputedFieldDef{
+		Bools: []flows.ComputedFieldDef{
 				{Name: "test", Type: "bool", Eval: "GT(input.undef, 10)"},
 			},
 		},
@@ -137,7 +137,7 @@ func TestComputedChecker_Check_CircularDependency(t *testing.T) {
 
 	flow := &flows.Flow{
 		Computed: &flows.ComputedBlock{
-			Fields: []flows.ComputedFieldDef{
+		Bools: []flows.ComputedFieldDef{
 				{Name: "a", Type: "bool", Eval: "GT(computed.b, 0)"},
 				{Name: "b", Type: "bool", Eval: "GT(computed.c, 0)"},
 				{Name: "c", Type: "bool", Eval: "GT(computed.a, 0)"},

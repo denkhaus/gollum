@@ -15,9 +15,12 @@
         <int name="changed_files" />
         <string name="head_branch" />
         <string name="base_branch" />
-        <computed name="is_open" type="bool" when="EQ(output.pr_state, 'open')" />
-        <computed name="is_large" type="bool" when="GT(output.changed_files, 10)" />
     </output>
+
+    <computed>
+        <bool name="is_open" eval="EQ(output.pr_state, 'open')" />
+        <bool name="is_large" eval="GT(output.changed_files, 10)" />
+    </computed>
 
     <states>
         <state name="fetch" initial="true">

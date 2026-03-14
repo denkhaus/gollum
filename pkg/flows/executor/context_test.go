@@ -13,11 +13,11 @@ func TestNewContext_InitializesWithDefaults(t *testing.T) {
 	}
 	inputVals := map[string]string{"repo": "gollum"}
 
-	ctx := NewContext(input, inputVals)
+	ctx := NewContext(input, nil, nil, inputVals)
 
 	assert.Equal(t, "gollum", ctx.GetInput("repo"))
 	assert.NotNil(t, ctx.contextVals)
-	assert.NotNil(t, ctx.computed)
+	assert.NotNil(t, ctx.computedVals)
 }
 
 func TestNewContext_AppliesInputDefaults(t *testing.T) {
@@ -25,52 +25,57 @@ func TestNewContext_AppliesInputDefaults(t *testing.T) {
 		Strings: []flows.FieldDef{{Name: "owner", Default: "denkhaus"}},
 	}
 
-	ctx := NewContext(input, nil)
+	ctx := NewContext(input, nil, nil, nil)
 
 	assert.Equal(t, "denkhaus", ctx.GetInput("owner"))
 }
 
 func TestContext_EvaluateComputedFields(t *testing.T) {
-	flow := &flows.Flow{
-		Context: &flows.ContextBlock{
-			Strings: []flows.ContextField{{Name: "status"}},
-			Computeds: []flows.ComputedField{
-				{Name: "is_open", Type: "bool", When: "EQ(context.status, 'open')"},
-			},
+	computedBlock := &flows.ComputedBlock{
+		Bools: []flows.ComputedFieldDef{
+			{Name: "is_open", Type: "bool", Eval: "EQ(context.status, 'open')"},
 		},
 	}
+	contextBlock := &flows.ContextBlock{
+		Strings: []flows.ContextField{{Name: "status"}},
+	}
 
-	ctx := NewContext(&flows.InputBlock{}, nil)
-	ctx.SetContextField("status", "open")
+	ctx := NewContext(&flows.InputBlock{}, nil, contextBlock, nil)
+	ctx.SetComputedBlock(computedBlock)
 
-	err := ctx.EvaluateComputedFields(flow.Context)
+	// Set the context field that the computed field depends on
+	_ = ctx.SetContextField("status", "open")
+
+	err := ctx.EvaluateComputed()
 
 	assert.NoError(t, err)
-	val, err := ctx.GetContextField("is_open")
+	val, err := ctx.GetComputedField("is_open")
 	assert.NoError(t, err)
 	assert.Equal(t, true, val)
 }
 
 func TestContext_ComputedFieldsAreImmutable(t *testing.T) {
-	flow := &flows.Flow{
-		Context: &flows.ContextBlock{
-			Strings: []flows.ContextField{{Name: "count"}},
-			Computeds: []flows.ComputedField{
-				{Name: "is_large", Type: "bool", When: "GT(context.count, 10)"},
-			},
+	computedBlock := &flows.ComputedBlock{
+		Bools: []flows.ComputedFieldDef{
+			{Name: "is_large", Type: "bool", Eval: "GT(context.count, 10)"},
 		},
 	}
+	contextBlock := &flows.ContextBlock{
+		Ints: []flows.ContextField{{Name: "count"}},
+	}
 
-	ctx := NewContext(&flows.InputBlock{}, nil)
-	ctx.SetContextField("count", "5")
+	ctx := NewContext(&flows.InputBlock{}, nil, contextBlock, nil)
+	ctx.SetComputedBlock(computedBlock)
+	_ = ctx.SetContextField("count", 5)
 
-	err := ctx.EvaluateComputedFields(flow.Context)
+	err := ctx.EvaluateComputed()
 	assert.NoError(t, err)
 
-	// Try to modify computed field
-	ctx.SetContextField("is_large", "true")
-
-	// Computed field should NOT be modified
-	val, _ := ctx.GetContextField("is_large")
+	// Computed fields are stored separately - context fields don't include them
+	val, err := ctx.GetComputedField("is_large")
+	assert.NoError(t, err)
 	assert.Equal(t, false, val)
+
+	// Context field is separate and mutable
+	assert.NoError(t, ctx.SetContextField("count", 15))
 }

@@ -108,14 +108,14 @@ func (p *Parser) parseFieldRef() (Expr, error) {
 		p.advance()
 	}
 
-	// Determine prefix (first part should be input/output/context/error)
+	// Determine prefix (first part should be input/output/context/error/computed)
 	if len(parts) < 2 {
 		return nil, p.error("field reference must have prefix (e.g., context.field)")
 	}
 
 	prefix := parts[0]
-	if prefix != "input" && prefix != "output" && prefix != "context" && prefix != "error" {
-		return nil, p.error("invalid field prefix: " + prefix + ", expected one of: input, output, context, error")
+	if prefix != "input" && prefix != "output" && prefix != "context" && prefix != "error" && prefix != "computed" {
+		return nil, p.error("invalid field prefix: " + prefix + ", expected one of: input, output, context, error, computed")
 	}
 
 	return &FieldRef{

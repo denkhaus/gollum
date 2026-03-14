@@ -174,7 +174,7 @@ func (p *applicationServiceImpl) runDefaultFlow(ctx context.Context, flowPath st
 	executor := p.flowExecutorService.New(flow)
 
 	// Set empty input (default flow should define required inputs with defaults)
-	executor.SetInput(make(map[string]any))
+	executor.SetInput(make(map[string]string))
 
 	// Validate and run
 	if err := executor.Validate(); err != nil {

@@ -133,8 +133,8 @@ func TestExecuteLLMStep_SubstitutesPrompt(t *testing.T) {
 
 	// Check that the response was stored in output
 	ctx := exec.GetContext()
-	value, ok := ctx.GetOutputField("text")
-	require.True(t, ok, "output field 'text' should exist")
+	value, err := ctx.GetOutputField("text")
+	require.NoError(t, err)
 	assert.Equal(t, "Test response for PR 123", value)
 }
 

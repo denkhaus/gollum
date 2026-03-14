@@ -12,6 +12,15 @@ const (
 	VarContainerTargetInput   VarContainerTarget = "input"
 	VarContainerTargetContext VarContainerTarget = "context"
 	VarContainerTargetOutput  VarContainerTarget = "output"
+
+	// Field type constants
+	TypeString = "string"
+	TypeInt    = "int"
+	TypeBool   = "bool"
+	TypeFloat  = "float"
+	TypeArray  = "array"
+	TypeMap    = "map"
+	TypeObject = "object"
 )
 
 // Flow represents a complete workflow definition
@@ -42,18 +51,6 @@ func (f *Flow) GetOutputFields() []FieldDef {
 	return f.Output.GetAllFields()
 }
 
-// GetContextComputeds implements shared.FlowInfo
-func (f *Flow) GetContextComputeds() []any {
-	if f.Context == nil {
-		return nil
-	}
-	computeds := make([]any, len(f.Context.Computeds))
-	for i, cf := range f.Context.Computeds {
-		computeds[i] = cf
-	}
-	return computeds
-}
-
 // InputBlock defines the flow's input interface
 type InputBlock struct {
 	Strings []FieldDef  `xml:"string"`
@@ -72,7 +69,7 @@ func (i *InputBlock) GetAllFields() []FieldDef {
 		fields = append(fields, FieldDef{
 			XMLName:  f.XMLName,
 			Name:     f.Name,
-			Type:     "string",
+			Type:     TypeString,
 			Required: f.Required,
 			Default:  f.Default,
 		})
@@ -81,7 +78,7 @@ func (i *InputBlock) GetAllFields() []FieldDef {
 		fields = append(fields, FieldDef{
 			XMLName:  f.XMLName,
 			Name:     f.Name,
-			Type:     "int",
+			Type:     TypeInt,
 			Required: f.Required,
 			Default:  f.Default,
 		})
@@ -90,7 +87,7 @@ func (i *InputBlock) GetAllFields() []FieldDef {
 		fields = append(fields, FieldDef{
 			XMLName:  f.XMLName,
 			Name:     f.Name,
-			Type:     "bool",
+			Type:     TypeBool,
 			Required: f.Required,
 			Default:  f.Default,
 		})
@@ -99,7 +96,7 @@ func (i *InputBlock) GetAllFields() []FieldDef {
 		fields = append(fields, FieldDef{
 			XMLName:  f.XMLName,
 			Name:     f.Name,
-			Type:     "float",
+			Type:     TypeFloat,
 			Required: f.Required,
 			Default:  f.Default,
 		})
@@ -108,7 +105,7 @@ func (i *InputBlock) GetAllFields() []FieldDef {
 		fields = append(fields, FieldDef{
 			XMLName:  f.XMLName,
 			Name:     f.Name,
-			Type:     "array",
+			Type:     TypeArray,
 			Required: f.Required,
 			Default:  f.Default,
 		})
@@ -117,7 +114,7 @@ func (i *InputBlock) GetAllFields() []FieldDef {
 		fields = append(fields, FieldDef{
 			XMLName:  f.XMLName,
 			Name:     f.Name,
-			Type:     "map",
+			Type:     TypeMap,
 			Required: f.Required,
 			Default:  f.Default,
 		})
@@ -126,7 +123,7 @@ func (i *InputBlock) GetAllFields() []FieldDef {
 		fields = append(fields, FieldDef{
 			XMLName:  obj.XMLName,
 			Name:     obj.Name,
-			Type:     "object",
+			Type:     TypeObject,
 			Required: false,
 			Default:  obj.Default,
 		})
@@ -147,40 +144,61 @@ type OutputBlock struct {
 func (o *OutputBlock) GetAllFields() []FieldDef {
 	var fields []FieldDef
 	for _, f := range o.Strings {
-		f.Type = "string"
+		f.Type = TypeString
 		fields = append(fields, f)
 	}
 	for _, f := range o.Ints {
-		f.Type = "int"
+		f.Type = TypeInt
 		fields = append(fields, f)
 	}
 	for _, f := range o.Bools {
-		f.Type = "bool"
+		f.Type = TypeBool
 		fields = append(fields, f)
 	}
 	for _, f := range o.Floats {
-		f.Type = "float"
+		f.Type = TypeFloat
 		fields = append(fields, f)
 	}
 	for _, obj := range o.Objects {
 		fields = append(fields, FieldDef{
 			XMLName:  obj.XMLName,
 			Name:     obj.Name,
-			Type:     "object",
+			Type:     TypeObject,
 			Required: false,
 		})
 	}
 	return fields
 }
 
-// ContextBlock defines internal context fields
+// ContextBlock defines internal context fields (mutable by tools)
 type ContextBlock struct {
-	Strings   []ContextField  `xml:"string"`
-	Ints      []ContextField  `xml:"int"`
-	Bools     []ContextField  `xml:"bool"`
-	Floats    []ContextField  `xml:"float"`
-	Objects   []ObjectDef     `xml:"object"`
-	Computeds []ComputedField `xml:"computed"`
+	Strings []ContextField `xml:"string"`
+	Ints    []ContextField `xml:"int"`
+	Bools   []ContextField `xml:"bool"`
+	Floats  []ContextField `xml:"float"`
+	Objects []ObjectDef    `xml:"object"`
+}
+
+// GetAllFields returns all context field definitions as a slice
+func (c *ContextBlock) GetAllFields() []ContextField {
+	var fields []ContextField
+	for _, f := range c.Strings {
+		f.Type = TypeString
+		fields = append(fields, f)
+	}
+	for _, f := range c.Ints {
+		f.Type = TypeInt
+		fields = append(fields, f)
+	}
+	for _, f := range c.Bools {
+		f.Type = TypeBool
+		fields = append(fields, f)
+	}
+	for _, f := range c.Floats {
+		f.Type = TypeFloat
+		fields = append(fields, f)
+	}
+	return fields
 }
 
 // ObjectDef represents nested object fields
@@ -213,12 +231,49 @@ type ContextField struct {
 type ComputedField struct {
 	Name string `xml:"name,attr"`
 	Type string `xml:"type,attr"`
-	When string `xml:"when,attr"` // Expression
+	Eval string `xml:"eval,attr"` // Expression to compute value
 }
 
 // ComputedBlock defines computed fields at the flow level
 type ComputedBlock struct {
-	Fields []ComputedFieldDef `xml:"field"`
+	Strings []ComputedFieldDef `xml:"string"`
+	Ints    []ComputedFieldDef `xml:"int"`
+	Bools   []ComputedFieldDef `xml:"bool"`
+	Floats  []ComputedFieldDef `xml:"float"`
+}
+
+// GetAllFields returns all computed field definitions as a slice
+func (c *ComputedBlock) GetAllFields() []ComputedFieldDef {
+	var fields []ComputedFieldDef
+	for _, f := range c.Strings {
+		field := f
+		if field.Type == "" {
+			field.Type = TypeString
+		}
+		fields = append(fields, field)
+	}
+	for _, f := range c.Ints {
+		field := f
+		if field.Type == "" {
+			field.Type = TypeInt
+		}
+		fields = append(fields, field)
+	}
+	for _, f := range c.Bools {
+		field := f
+		if field.Type == "" {
+			field.Type = TypeBool
+		}
+		fields = append(fields, field)
+	}
+	for _, f := range c.Floats {
+		field := f
+		if field.Type == "" {
+			field.Type = TypeFloat
+		}
+		fields = append(fields, field)
+	}
+	return fields
 }
 
 // ComputedFieldDef defines a computed field with name, type, and evaluation expression
@@ -323,11 +378,155 @@ type Call struct {
 	When    string             `xml:"when,attr"`
 	Timeout string             `xml:"timeout,attr"`
 	OnError *OnErrorTransition `xml:"on-error"`
-	Input   []CallField        `xml:"input>field"`
-	Output  []CallField        `xml:"output>field"`
+	Input   *CallInputBlock    `xml:"input"`
+	Output  *CallOutputBlock   `xml:"output"`
 }
 
-// CallField maps fields for call input/output
+// CallInputBlock defines typed input fields for a call
+type CallInputBlock struct {
+	Strings []CallTypedField `xml:"string"`
+	Ints    []CallTypedField `xml:"int"`
+	Bools   []CallTypedField `xml:"bool"`
+	Floats  []CallTypedField `xml:"float"`
+}
+
+// GetFields returns all input fields as a slice of CallInputField
+func (c *CallInputBlock) GetFields() []CallInputField {
+	var fields []CallInputField
+	for _, f := range c.Strings {
+		fields = append(fields, CallInputField{String: &f})
+	}
+	for _, f := range c.Ints {
+		fields = append(fields, CallInputField{Int: &f})
+	}
+	for _, f := range c.Bools {
+		fields = append(fields, CallInputField{Bool: &f})
+	}
+	for _, f := range c.Floats {
+		fields = append(fields, CallInputField{Float: &f})
+	}
+	return fields
+}
+
+// CallOutputBlock defines typed output fields for a call
+type CallOutputBlock struct {
+	Strings []CallTypedField `xml:"string"`
+	Ints    []CallTypedField `xml:"int"`
+	Bools   []CallTypedField `xml:"bool"`
+	Floats  []CallTypedField `xml:"float"`
+}
+
+// GetFields returns all output fields as a slice of CallOutputField
+func (c *CallOutputBlock) GetFields() []CallOutputField {
+	var fields []CallOutputField
+	for _, f := range c.Strings {
+		fields = append(fields, CallOutputField{String: &f})
+	}
+	for _, f := range c.Ints {
+		fields = append(fields, CallOutputField{Int: &f})
+	}
+	for _, f := range c.Bools {
+		fields = append(fields, CallOutputField{Bool: &f})
+	}
+	for _, f := range c.Floats {
+		fields = append(fields, CallOutputField{Float: &f})
+	}
+	return fields
+}
+
+// CallInputField represents a typed input field in a call (internal use)
+type CallInputField struct {
+	XMLName xml.Name        `xml:"-"`
+	String  *CallTypedField `xml:"string"`
+	Int     *CallTypedField `xml:"int"`
+	Bool    *CallTypedField `xml:"bool"`
+	Float   *CallTypedField `xml:"float"`
+}
+
+// GetTypedField returns the non-nil typed field
+func (c *CallInputField) GetTypedField() *CallTypedField {
+	if c.String != nil {
+		return c.String
+	}
+	if c.Int != nil {
+		return c.Int
+	}
+	if c.Bool != nil {
+		return c.Bool
+	}
+	if c.Float != nil {
+		return c.Float
+	}
+	return nil
+}
+
+// GetType returns the type name of this field
+func (c *CallInputField) GetType() string {
+	if c.String != nil {
+		return TypeString
+	}
+	if c.Int != nil {
+		return TypeInt
+	}
+	if c.Bool != nil {
+		return TypeBool
+	}
+	if c.Float != nil {
+		return TypeFloat
+	}
+	return ""
+}
+
+// CallOutputField represents a typed output field in a call
+type CallOutputField struct {
+	XMLName xml.Name        `xml:"-"`
+	String  *CallTypedField `xml:"string"`
+	Int     *CallTypedField `xml:"int"`
+	Bool    *CallTypedField `xml:"bool"`
+	Float   *CallTypedField `xml:"float"`
+}
+
+// GetTypedField returns the non-nil typed field
+func (c *CallOutputField) GetTypedField() *CallTypedField {
+	if c.String != nil {
+		return c.String
+	}
+	if c.Int != nil {
+		return c.Int
+	}
+	if c.Bool != nil {
+		return c.Bool
+	}
+	if c.Float != nil {
+		return c.Float
+	}
+	return nil
+}
+
+// GetType returns the type name of this field
+func (c *CallOutputField) GetType() string {
+	if c.String != nil {
+		return TypeString
+	}
+	if c.Int != nil {
+		return TypeInt
+	}
+	if c.Bool != nil {
+		return TypeBool
+	}
+	if c.Float != nil {
+		return TypeFloat
+	}
+	return ""
+}
+
+// CallTypedField represents a typed field reference in a call
+type CallTypedField struct {
+	Name  string `xml:"name,attr"`
+	Value string `xml:"value,attr"`
+}
+
+// CallField maps fields for call input/output (deprecated - use CallInputField/CallOutputField)
 type CallField struct {
 	Name  string `xml:"name,attr"`
 	Value string `xml:"value,attr"`

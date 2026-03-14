@@ -21,8 +21,10 @@ func TestExecutor_SimpleFlow_ExecutesSuccessfully(t *testing.T) {
 		},
 		Context: &flows.ContextBlock{
 			Strings: []flows.ContextField{{Name: "greeting"}},
-			Computeds: []flows.ComputedField{
-				{Name: "is_ready", Type: "bool", When: "EQ(context.greeting, 'hello')"},
+		},
+		Computed: &flows.ComputedBlock{
+		Bools: []flows.ComputedFieldDef{
+				{Name: "is_ready", Type: "bool", Eval: "EQ(context.greeting, 'hello')"},
 			},
 		},
 		States: []flows.State{
@@ -53,11 +55,11 @@ func TestExecutor_SimpleFlow_ExecutesSuccessfully(t *testing.T) {
 	assert.Equal(t, "init", exec.(*flowExecutorImpl).currentState)
 
 	// Test computed field evaluation
-	exec.(*flowExecutorImpl).ctx.SetContextField("greeting", "hello")
-	err = exec.(*flowExecutorImpl).ctx.EvaluateComputedFields(flow.Context)
+	_ = exec.(*flowExecutorImpl).ctx.SetContextField("greeting", "hello")
+	err = exec.(*flowExecutorImpl).ctx.EvaluateComputed()
 	assert.NoError(t, err)
 
-	val, ok := exec.(*flowExecutorImpl).ctx.GetContextField("is_ready")
+	val, err := exec.(*flowExecutorImpl).ctx.GetComputedField("is_ready")
 	assert.NoError(t, err)
 	assert.Equal(t, true, val)
 }
@@ -86,7 +88,7 @@ func TestExecutor_ErrorHandling_TransitionsToErrorState(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify error context was set
-	val, ok := exec.(*flowExecutorImpl).ctx.GetContextField("error.step_name")
+	val, err := exec.(*flowExecutorImpl).ctx.GetContextField("error.step_name")
 	assert.NoError(t, err)
 	assert.Equal(t, "analyze", val)
 

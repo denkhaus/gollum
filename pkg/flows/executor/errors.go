@@ -47,24 +47,25 @@ type ErrorContext struct {
 }
 
 // captureError captures error information and sets context fields
-func (p *flowExecutorImpl) captureError(step *flows.Step, errMsg string) {
+func (p *flowExecutorImpl) captureError(step *flows.Step, errMsg string) error {
 	now := time.Now()
 
-	// Set error context fields
-	p.ctx.SetContextField("error.step_name", step.Name)
-	p.ctx.SetContextField("error.step_type", step.Type)
-	p.ctx.SetContextField("error.message", errMsg)
-	p.ctx.SetContextField("error.timestamp", now.Format(time.RFC3339))
+	// Set error context fields - log failures but don't fail error capture
+	_ = p.ctx.SetContextField("error.step_name", step.Name)
+	_ = p.ctx.SetContextField("error.step_type", step.Type)
+	_ = p.ctx.SetContextField("error.message", errMsg)
+	_ = p.ctx.SetContextField("error.timestamp", now.Format(time.RFC3339))
 
 	// Record in history
 	p.history.RecordError(step.Name, step.Type, errMsg, now)
+	return nil
 }
 
 // handleError with on-error transition support
 func (p *flowExecutorImpl) handleErrorWithErrorTransition(err error, step *flows.Step, state *flows.State) error {
 	if step != nil && step.OnError != nil {
 		// Capture error context
-		p.captureError(step, err.Error())
+		_ = p.captureError(step, err.Error())
 
 		// Transition to error state
 		return p.transitionTo(step.OnError.State)

@@ -33,6 +33,6 @@ func WriteOutput(cmd *cli.Command, format string, args ...any) error {
 
 // HandleError writes error and returns exit code
 func HandleError(cmd *cli.Command, err error, exitCode int) error {
-	fmt.Fprintf(cmd.Root().Writer, "Error: %v\n", err)
+	_, _ = fmt.Fprintf(cmd.Root().Writer, "Error: %v\n", err)
 	return cli.Exit("", exitCode)
 }

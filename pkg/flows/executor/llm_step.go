@@ -66,18 +66,26 @@ func (p *flowExecutorImpl) executeLLMStep(step *flows.Step, _ string) error {
 		if step.Output.Assign != "" {
 			fieldName := extractFieldName(step.Output.Assign)
 			// For LLM steps, we assign the response text
-			p.ctx.SetOutputField(fieldName, responseText)
+			if err := p.ctx.SetOutputField(fieldName, responseText); err != nil {
+				return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
+			}
 		}
 		// Handle path-based outputs
 		for _, path := range step.Output.Paths {
 			fieldName := extractFieldName(path.Assign)
+			var value string
 			switch path.Path {
 			case "text", "content", "response":
-				p.ctx.SetOutputField(fieldName, responseText)
+				value = responseText
 			case "finish_reason":
 				// Note: ExecuteResponse doesn't have FinishReason
 				// The response was successful if we got here
-				p.ctx.SetOutputField(fieldName, "success")
+				value = "success"
+			default:
+				continue
+			}
+			if err := p.ctx.SetOutputField(fieldName, value); err != nil {
+				return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
 			}
 		}
 	}

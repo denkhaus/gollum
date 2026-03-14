@@ -35,26 +35,16 @@ Demonstr: Nested objects, computed fields, expression syntax
             </object>
         </object>
 
-        <!-- Computed fields: auto-evaluated, dependencies detected, immutable -->
-        <computed name="is_large" type="bool"
-                  when="GT(line_count, 500)"
-                  description="Target is large" />
-
-        <computed name="has_errors" type="bool"
-                  when="GT(context.metrics.testing.errors, 0)"
-                  description="Has test errors" />
-
-        <computed name="needs_refactor" type="bool"
-                  when="AND(is_large, has_errors)"
-                  description="Needs refactoring" />
-
-        <computed name="is_covered" type="bool"
-                  when="GTE(context.metrics.coverage.percentage, 80.0)"
-                  description="Has good coverage" />
-
         <!-- Internal field for parsing -->
         <string name="line_count_output" />
     </context>
+
+    <computed>
+        <bool name="is_large" eval="GT(context.line_count, 500)" />
+        <bool name="has_errors" eval="GT(context.metrics.testing.errors, 0)" />
+        <bool name="needs_refactor" eval="AND(computed.is_large, computed.has_errors)" />
+        <bool name="is_covered" eval="GTE(context.metrics.coverage.percentage, 80.0)" />
+    </computed>
 
     <agents>
         <agent name="analyzer" model="anthropic/claude-opus-4-6">
@@ -68,7 +58,7 @@ Demonstr: Nested objects, computed fields, expression syntax
             <steps>
                 <!-- Calculate metrics -->
                 <step type="shell">
-                    <cmd><![CDATA[wc -l ${target} | awk -1 | tail -1]]></cmd>
+                    <cmd><![CDATA[wc -l ${input.target} | awk -1 | tail -1]]></cmd>
                     <output>
                         <int path="exit_code" assign="exit_code" />
                     </output>
@@ -79,7 +69,7 @@ Demonstr: Nested objects, computed fields, expression syntax
                 <!-- Parse line count -->
                 <step type="func" function="strconv.Atoi">
                     <params>
-                        <param name="s" value="${line_count_output}" />
+                        <param name="s" value="${context.line_count_output}" />
                     </params>
                     <output assign="line_count" />
                 </step>
@@ -87,13 +77,13 @@ Demonstr: Nested objects, computed fields, expression syntax
                 <!-- Use computed values in LLM prompt -->
                 <step type="llm" agent="analyzer">
                     <prompt><![CDATA[
-                        Target: ${target}
-                        Lines: ${line_count}
-                        Functions: ${function_count}
-                        Large: ${is_large}
-                        Has errors: ${has_errors}
-                        Needs_refactor: ${needs_refactor}
-                        Covered: ${is_covered}
+                        Target: ${input.target}
+                        Lines: ${context.line_count}
+                        Functions: ${context.function_count}
+                        Large: ${computed.is_large}
+                        Has errors: ${computed.has_errors}
+                        Needs refactor: ${computed.needs_refactor}
+                        Covered: ${computed.is_covered}
 
                         Provide assessment.
                         Use set_context_field to report.
@@ -112,8 +102,8 @@ Demonstr: Nested objects, computed fields, expression syntax
             <steps>
                 <step type="llm" agent="analyzer">
                     <prompt><![CDATA[
-                        Analysis failed for target: ${target}
-                        Error: ${last_error}
+                        Analysis failed for target: ${input.target}
+                        Error: ${context.last_error}
 
                         Provide error assessment.
                     ]]></prompt>

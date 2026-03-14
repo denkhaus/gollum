@@ -12,9 +12,9 @@ import (
 func TestComputedField_DependencyExtraction(t *testing.T) {
 	// Create computed values with various dependencies
 	computedFields := []flows.ComputedField{
-		{Name: "is_large", Type: "bool", When: "GT(input.value, 10)"},
-		{Name: "is_small", Type: "bool", When: "LT(input.min, 5)"},
-		{Name: "combined", Type: "bool", When: "AND(input.flag, GT(context.count, 0))"},
+		{Name: "is_large", Type: "bool", Eval: "GT(input.value, 10)"},
+		{Name: "is_small", Type: "bool", Eval: "LT(input.min, 5)"},
+		{Name: "combined", Type: "bool", Eval: "AND(input.flag, GT(context.count, 0))"},
 	}
 
 	cv := NewComputedValues(computedFields)
@@ -55,9 +55,9 @@ func TestComputedField_DependencyExtraction(t *testing.T) {
 // TestComputedField_ComputedToComputedDependencies tests computed field referencing other computed fields
 func TestComputedField_ComputedToComputedDependencies(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "base", Type: "int", When: "input.value"},
-		{Name: "doubled", Type: "int", When: "MUL(computed.base, 2)"},
-		{Name: "quadrupled", Type: "int", When: "MUL(computed.doubled, 2)"},
+		{Name: "base", Type: "int", Eval: "input.value"},
+		{Name: "doubled", Type: "int", Eval: "MUL(computed.base, 2)"},
+		{Name: "quadrupled", Type: "int", Eval: "MUL(computed.doubled, 2)"},
 	}
 
 	cv := NewComputedValues(computedFields)
@@ -86,8 +86,8 @@ func TestComputedField_ComputedToComputedDependencies(t *testing.T) {
 // TestComputedField_DirtyMarking tests the dirty flag mechanism
 func TestComputedField_DirtyMarking(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "field1", Type: "int", When: "input.x"},
-		{Name: "field2", Type: "int", When: "MUL(computed.field1, 2)"},
+		{Name: "field1", Type: "int", Eval: "input.x"},
+		{Name: "field2", Type: "int", Eval: "MUL(computed.field1, 2)"},
 	}
 
 	cv := NewComputedValues(computedFields)
@@ -111,9 +111,9 @@ func TestComputedField_DirtyMarking(t *testing.T) {
 // TestComputedField_MultipleScopeDependencies tests dependencies across all scopes
 func TestComputedField_MultipleScopeDependencies(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "total", Type: "int", When: "ADD(input.a, context.b)"},
-		{Name: "average", Type: "int", When: "DIV(computed.total, 2)"},
-		{Name: "check_output", Type: "bool", When: "GT(output.result, 0)"},
+		{Name: "total", Type: "int", Eval: "ADD(input.a, context.b)"},
+		{Name: "average", Type: "int", Eval: "DIV(computed.total, 2)"},
+		{Name: "check_output", Type: "bool", Eval: "GT(output.result, 0)"},
 	}
 
 	cv := NewComputedValues(computedFields)
@@ -139,10 +139,10 @@ func TestComputedField_MultipleScopeDependencies(t *testing.T) {
 // TestComputedField_TypeMapping tests correct type mapping
 func TestComputedField_TypeMapping(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "bool_field", Type: "bool", When: "GT(input.x, 0)"},
-		{Name: "int_field", Type: "int", When: "input.y"},
-		{Name: "string_field", Type: "string", When: "input.z"},
-		{Name: "float_field", Type: "float", When: "input.w"},
+		{Name: "bool_field", Type: "bool", Eval: "GT(input.x, 0)"},
+		{Name: "int_field", Type: "int", Eval: "input.y"},
+		{Name: "string_field", Type: "string", Eval: "input.z"},
+		{Name: "float_field", Type: "float", Eval: "input.w"},
 	}
 
 	cv := NewComputedValues(computedFields)
@@ -171,7 +171,7 @@ func TestComputedField_TypeMapping(t *testing.T) {
 // TestComputedField_UnknownField tests error handling for unknown fields
 func TestComputedField_UnknownField(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "existing", Type: "int", When: "input.x"},
+		{Name: "existing", Type: "int", Eval: "input.x"},
 	}
 
 	cv := NewComputedValues(computedFields)
@@ -188,8 +188,8 @@ func TestComputedField_UnknownField(t *testing.T) {
 // TestComputedField_Has tests the Has method
 func TestComputedField_Has(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "field1", Type: "int", When: "input.x"},
-		{Name: "field2", Type: "bool", When: "GT(input.y, 0)"},
+		{Name: "field1", Type: "int", Eval: "input.x"},
+		{Name: "field2", Type: "bool", Eval: "GT(input.y, 0)"},
 	}
 
 	cv := NewComputedValues(computedFields)
@@ -212,7 +212,7 @@ func TestComputedField_EmptyComputedFields(t *testing.T) {
 // TestComputedField_ComplexExpressionParsing tests parsing of complex expressions
 func TestComputedField_ComplexExpressionParsing(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "complex", Type: "bool", When: "AND(GT(input.x, 0), LT(input.x, 100), EQ(input.status, \"active\"))"},
+		{Name: "complex", Type: "bool", Eval: "AND(GT(input.x, 0), LT(input.x, 100), EQ(input.status, \"active\"))"},
 	}
 
 	cv := NewComputedValues(computedFields)
@@ -230,9 +230,9 @@ func TestComputedField_CircularDependencyDetection(t *testing.T) {
 	// This test documents that circular dependencies CAN be created in ComputedValues
 	// but should be caught by the linter before execution
 	computedFields := []flows.ComputedField{
-		{Name: "a", Type: "int", When: "computed.b"},
-		{Name: "b", Type: "int", When: "computed.c"},
-		{Name: "c", Type: "int", When: "computed.a"},
+		{Name: "a", Type: "int", Eval: "computed.b"},
+		{Name: "b", Type: "int", Eval: "computed.c"},
+		{Name: "c", Type: "int", Eval: "computed.a"},
 	}
 
 	cv := NewComputedValues(computedFields)

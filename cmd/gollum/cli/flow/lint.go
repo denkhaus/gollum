@@ -37,7 +37,9 @@ func LintAction(ctx context.Context, cmd *cli.Command) error {
 
 // WriteLintResult outputs the lint result and returns appropriate exit code
 func WriteLintResult(w io.Writer, result *linter.ModuleLinterResult) error {
-	fmt.Fprint(w, result.String())
+	if _, err := fmt.Fprint(w, result.String()); err != nil {
+		return err
+	}
 
 	if !result.Valid {
 		return cli.Exit("", 1)

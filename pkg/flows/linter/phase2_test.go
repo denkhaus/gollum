@@ -22,9 +22,9 @@ func TestPhase2_InvalidExpression(t *testing.T) {
 		Name:   "test",
 		Input:  &flows.InputBlock{},
 		Output: &flows.OutputBlock{},
-		Context: &flows.ContextBlock{
-			Computeds: []flows.ComputedField{
-				{Name: "is_open", When: "INVALID(context.pr.state,"},
+		Computed: &flows.ComputedBlock{
+		Bools: []flows.ComputedFieldDef{
+				{Name: "is_open", Eval: "INVALID(context.pr.state,"},
 			},
 		},
 	}
@@ -52,8 +52,10 @@ func TestPhase2_FieldExists(t *testing.T) {
 			Strings: []flows.ContextField{
 				{Name: "status"},
 			},
-			Computeds: []flows.ComputedField{
-				{Name: "is_open", When: "EQ(context.status, 'open')"},
+		},
+		Computed: &flows.ComputedBlock{
+		Bools: []flows.ComputedFieldDef{
+				{Name: "is_open", Eval: "EQ(context.status, 'open')"},
 			},
 		},
 	}
@@ -82,11 +84,16 @@ func TestPhase2_BareVarRefInCallInput(t *testing.T) {
 			{
 				Name:    "init",
 				Initial: true,
-				Calls: []flows.Call{
+						Calls: []flows.Call{
 					{
 						Ref: "sub-flow",
-						Input: []flows.CallField{
-							{Name: "dir", Value: "${target}"}, // bare - should error
+						Input: &flows.CallInputBlock{
+							Strings: []flows.CallTypedField{
+								{
+									Name:  "dir",
+									Value: "${target}",
+								},
+							}, // bare - should error
 						},
 					},
 				},
@@ -111,11 +118,16 @@ func TestPhase2_BareVarRefInCallOutput(t *testing.T) {
 			{
 				Name:    "init",
 				Initial: true,
-				Calls: []flows.Call{
+						Calls: []flows.Call{
 					{
 						Ref: "sub-flow",
-						Output: []flows.CallField{
-							{Name: "result", Value: "${score}"}, // bare - should error
+						Output: &flows.CallOutputBlock{
+							Strings: []flows.CallTypedField{
+								{
+									Name:  "result",
+									Value: "${score}",
+								},
+							}, // bare - should error
 						},
 					},
 				},
@@ -198,8 +210,13 @@ func TestPhase2_ValidAbsoluteVarRefInCallInput(t *testing.T) {
 				Calls: []flows.Call{
 					{
 						Ref: "sub-flow",
-						Input: []flows.CallField{
-							{Name: "dir", Value: "${input.target}"}, // valid absolute path
+						Input: &flows.CallInputBlock{
+							Strings: []flows.CallTypedField{
+								{
+									Name:  "dir",
+									Value: "${input.target}",
+								},
+							}, // valid absolute path
 						},
 					},
 				},
@@ -226,8 +243,13 @@ func TestPhase2_ValidAbsoluteVarRefInCallOutput(t *testing.T) {
 				Calls: []flows.Call{
 					{
 						Ref: "sub-flow",
-						Output: []flows.CallField{
-							{Name: "result", Value: "${context.score}"}, // valid absolute path
+						Output: &flows.CallOutputBlock{
+							Strings: []flows.CallTypedField{
+								{
+									Name:  "result",
+									Value: "${context.score}",
+								},
+							}, // valid absolute path
 						},
 					},
 				},

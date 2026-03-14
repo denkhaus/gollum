@@ -17,3 +17,8 @@ Then use `forgejo issue ready --repo denkhaus/gollum` to lern about the next rea
 - [Go Config Guide](/home/denkhaus/dev/kb/guides/guide.golang.config.md)
 - [Go Logging Guide](/home/denkhaus/dev/kb/guides/guide.golang.logging.md)
 - [Langfuse Tracing Guide](/home/denkhaus/dev/kb/guides/guide.golang.langfuse-tracing.md)
+
+
+## Avoid build artifacts in the codebase
+
+- Whenever do you build the app for testing reasons run `go build -o /tmp/gollum ./cmd/gollum`

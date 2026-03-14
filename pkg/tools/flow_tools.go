@@ -20,11 +20,11 @@ type (
 	// FlowContext defines the interface for accessing flow execution state
 	FlowContext interface {
 		// SetOutputField sets an output field value
-		SetOutputField(name string, value string) error
+		SetOutputField(name string, value any) error
 		// GetOutputField retrieves an output field value
 		GetOutputField(name string) (any, error)
 		// SetContextField sets a context field value
-		SetContextField(name string, value string) error
+		SetContextField(name string, value any) error
 		// GetContextField retrieves a context field value
 		GetContextField(name string) (any, error)
 		// GetCurrentState returns the current state name

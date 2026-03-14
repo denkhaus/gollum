@@ -30,7 +30,7 @@ func (m *mockMCPTool) Run(ctx context.Context, args map[string]any) (map[string]
 	if m.runFunc != nil {
 		return m.runFunc(ctx, args)
 	}
-	return map[string]any, nil
+	return make(map[string]any), nil
 }
 
 // mockMCPToolSet is a mock ToolSet for testing
@@ -247,7 +247,7 @@ func TestExecuteMCPStep_TemplateSubstitution(t *testing.T) {
 			for k, v := range args {
 				receivedParams[k] = v
 			}
-			return map[string]string{}, nil
+			return make(map[string]any), nil
 		},
 	}
 

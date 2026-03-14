@@ -5,6 +5,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/flows/ast"
+	"github.com/denkhaus/gollum/pkg/flows/variables"
 	"github.com/go-ap/errors"
 )
 
@@ -50,41 +51,40 @@ func extractDeps(expr ast.Expr, deps *[]string) {
 		// For field references, we only care about the first path component
 		// since that's the top-level context field being accessed
 		if len(e.Path) > 0 {
-			// If there's a prefix (like "context.status"), add the first path element
-			// If there's no prefix (bare identifier like "status"), add it directly
-			if e.Prefix != "" {
-				// For "context.status", we depend on "status" being in the context scope
-				*deps = append(*deps, e.Path[0])
-			} else {
-				// For bare identifiers, use the first path element
-				*deps = append(*deps, e.Path[0])
-			}
+			// Add the first path element as a dependency (e.g., "status" from "context.status")
+			*deps = append(*deps, e.Path[0])
 		}
 	}
 }
 
 // Context manages execution context with input, output, and computed fields
 type Context struct {
-	input       *flows.InputBlock
-	inputVals   map[string]any
-	contextVals map[string]any
-	outputVals  map[string]any
-	computed    map[string]string
-	eval        *Evaluator
+	input        *flows.InputBlock
+	output       *flows.OutputBlock
+	contextBlock *flows.ContextBlock
+	computedBlock *flows.ComputedBlock
+	inputVals     map[string]any
+	contextVals   map[string]any
+	outputVals    map[string]any
+	computedVals  *variables.ComputedValues
+	eval          *Evaluator
 }
 
-// NewContext creates a new execution context
-func NewContext(input *flows.InputBlock, inputVals map[string]string) *Context {
+// NewContext creates a new execution context with optional schema definitions
+func NewContext(input *flows.InputBlock, output *flows.OutputBlock, contextBlock *flows.ContextBlock, inputVals map[string]string) *Context {
 	ctx := &Context{
-		input:       input,
-		inputVals:   make(map[string]any),
-		contextVals: make(map[string]any),
-		outputVals:  make(map[string]any),
-		computed:    make(map[string]string),
-		eval:        NewEvaluator(),
+		input:         input,
+		output:        output,
+		contextBlock:  contextBlock,
+		computedBlock: nil, // Will be set from flow.Computed if available
+		inputVals:     make(map[string]any),
+		contextVals:   make(map[string]any),
+		outputVals:    make(map[string]any),
+		computedVals:  variables.NewComputedValues(nil), // Empty initially, will be populated from flow
+		eval:          NewEvaluator(),
 	}
 
-	// Apply input values or defaults
+	// Initialize input values or defaults
 	if input != nil {
 		for _, field := range input.GetAllFields() {
 			if val, ok := inputVals[field.Name]; ok {
@@ -95,7 +95,44 @@ func NewContext(input *flows.InputBlock, inputVals map[string]string) *Context {
 		}
 	}
 
+	// Pre-initialize output fields with nil (so we can validate against schema)
+	if output != nil {
+		for _, field := range output.GetAllFields() {
+			ctx.outputVals[field.Name] = nil
+		}
+	}
+
+	// Pre-initialize context fields with nil (so we can validate against schema)
+	// NOTE: This is ONLY for regular context fields, NOT computed fields
+	if contextBlock != nil {
+		for _, field := range contextBlock.GetAllFields() {
+			ctx.contextVals[field.Name] = nil
+		}
+	}
+
 	return ctx
+}
+
+// SetComputedBlock sets the computed field definitions and initializes the evaluator
+func (c *Context) SetComputedBlock(block *flows.ComputedBlock) {
+	c.computedBlock = block
+
+	if block == nil {
+		return
+	}
+
+	// Convert ComputedFieldDef to ComputedField for the variables package
+	computedFields := make([]flows.ComputedField, 0, len(block.GetAllFields()))
+	for _, cf := range block.GetAllFields() {
+		computedFields = append(computedFields, flows.ComputedField{
+			Name: cf.Name,
+			Type: cf.Type,
+			Eval: cf.Eval,
+		})
+	}
+
+	// Initialize ComputedValues with the fields
+	c.computedVals = variables.NewComputedValues(computedFields)
 }
 
 // GetInput retrieves an input field value
@@ -113,13 +150,16 @@ func (c *Context) GetContextField(name string) (any, error) {
 }
 
 // SetOutputField sets the output variable by name
-// If the variable doesn't exist an error is thrown
-func (c *Context) SetOutputField(name string, value string) error {
-	if _, ok := c.outputVals[name]; ok {
-		c.outputVals[name] = value
+// Returns error if the field is not defined in the output schema
+func (c *Context) SetOutputField(name string, value any) error {
+	if c.output != nil {
+		// Check if field is defined in schema
+		if _, exists := c.outputVals[name]; !exists {
+			return errors.Errorf("output field '%s' not defined in flow schema", name)
+		}
 	}
-
-	return errors.Errorf("output variable %s undefined", name)
+	c.outputVals[name] = value
+	return nil
 }
 
 // GetOutputField retrieves an output field value
@@ -131,73 +171,58 @@ func (c *Context) GetOutputField(name string) (any, error) {
 	return nil, errors.Errorf("output variable %s undefined", name)
 }
 
-// EvaluateComputedFields evaluates all computed fields in dependency order
-func (c *Context) EvaluateComputedFields(ctxBlock *flows.ContextBlock) error {
-	if ctxBlock == nil {
+// EvaluateComputed evaluates all computed fields using the ComputedEvaluator
+func (c *Context) EvaluateComputed() error {
+	if c.computedVals == nil {
 		return nil
 	}
 
-	// Store computed expressions for immutability check
-	for _, cf := range ctxBlock.Computeds {
-		c.computed[cf.Name] = cf.When
+	// Create input/context/output wrappers for evaluation
+	inputVals := variables.NewInputValues(c.input)
+	for k, v := range c.inputVals {
+		inputVals.SetRaw(k, v)
 	}
 
-	// Build dependency graph and evaluate in topological order
-	evaluated := make(map[string]bool)
-	for len(evaluated) < len(ctxBlock.Computeds) {
-		progress := false
-		for _, cf := range ctxBlock.Computeds {
-			if evaluated[cf.Name] {
-				continue
-			}
-
-			// Check if all dependencies are evaluated
-			deps := c.eval.ExtractDependencies(cf.When)
-			ready := true
-			for _, dep := range deps {
-				if !c.isDependencyResolved(dep, evaluated) {
-					ready = false
-					break
-				}
-			}
-
-			if ready {
-				val, err := c.eval.EvaluateExpr(cf.When, c.buildScope())
-				if err != nil {
-					return err
-				}
-				// Set directly in contextVals map, bypassing SetContextField
-				// to avoid the immutability check during initial evaluation
-				c.contextVals[cf.Name] = val
-				evaluated[cf.Name] = true
-				progress = true
-			}
-		}
-
-		if !progress {
-			// Circular dependency detected
-			return nil
-		}
+	contextVals := variables.NewContextValues(c.contextBlock)
+	for k, v := range c.contextVals {
+		contextVals.SetRaw(k, v)
 	}
 
-	return nil
+	outputVals := variables.NewOutputValues(c.output)
+	for k, v := range c.outputVals {
+		outputVals.SetRaw(k, v)
+	}
+
+	// Create evaluator
+	eval := variables.NewComputedEvaluator(c.computedVals, inputVals, contextVals, outputVals)
+
+	// Evaluate all computed fields
+	return eval.ComputeDirty()
 }
 
-// isDependencyResolved checks if a dependency is available
-func (c *Context) isDependencyResolved(dep string, evaluated map[string]bool) bool {
-	// Check if it's an input field
-	if _, ok := c.inputVals[dep]; ok {
-		return true
+// GetComputedEvaluator returns a configured ComputedEvaluator for this context
+func (c *Context) GetComputedEvaluator() *variables.ComputedEvaluator {
+	// Create input/context/output wrappers for evaluation
+	inputVals := variables.NewInputValues(c.input)
+	for k, v := range c.inputVals {
+		inputVals.SetRaw(k, v)
 	}
-	// Check if it's a context field
-	if _, ok := c.contextVals[dep]; ok {
-		return true
+
+	contextVals := variables.NewContextValues(c.contextBlock)
+	for k, v := range c.contextVals {
+		contextVals.SetRaw(k, v)
 	}
-	// Check if it's a computed field that's been evaluated
-	return evaluated[dep]
+
+	outputVals := variables.NewOutputValues(c.output)
+	for k, v := range c.outputVals {
+		outputVals.SetRaw(k, v)
+	}
+
+	return variables.NewComputedEvaluator(c.computedVals, inputVals, contextVals, outputVals)
 }
 
-// buildScope builds the evaluation scope with nested structures
+// buildScope builds the evaluation scope for backward compatibility
+// TODO: Remove this once all code uses GetComputedEvaluator
 func (c *Context) buildScope() map[string]any {
 	scope := make(map[string]any)
 
@@ -219,7 +244,7 @@ func (c *Context) buildScope() map[string]any {
 	}
 
 	contextScope := make(map[string]any)
-	for k, v := range c.outputVals {
+	for k, v := range c.contextVals {
 		contextScope[k] = v
 	}
 	if len(contextScope) > 0 {
@@ -230,13 +255,24 @@ func (c *Context) buildScope() map[string]any {
 }
 
 // SetContextField sets the context variable by name
-// If the variable doesn't exist an error is thrown
-func (c *Context) SetContextField(name string, value string) error {
-	if _, ok := c.contextVals[name]; ok {
-		c.contextVals[name] = value
+// Returns error if the field is not defined in the schema
+func (c *Context) SetContextField(name string, value any) error {
+	// Check if field is defined in schema
+	if c.contextBlock != nil {
+		if _, exists := c.contextVals[name]; !exists {
+			return errors.Errorf("context field '%s' not defined in flow schema", name)
+		}
 	}
+	c.contextVals[name] = value
+	return nil
+}
 
-	return errors.Errorf("context variable %s undefined", name)
+// GetComputedField retrieves a computed field value
+func (c *Context) GetComputedField(name string) (any, error) {
+	if !c.computedVals.Has(name) {
+		return nil, errors.Errorf("computed field '%s' not defined", name)
+	}
+	return c.computedVals.GetValue(name)
 }
 
 // coerceType converts string to appropriate type

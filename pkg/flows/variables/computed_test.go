@@ -11,8 +11,8 @@ import (
 
 func TestComputedValues_Register(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "is_large", Type: "bool", When: "GT(context.x, 10)"},
-		{Name: "doubled", Type: "int", When: "MUL(context.x, 2)"},
+		{Name: "is_large", Type: "bool", Eval: "GT(context.x, 10)"},
+		{Name: "doubled", Type: "int", Eval: "MUL(context.x, 2)"},
 	}
 
 	computed := variables.NewComputedValues(computedFields)
@@ -24,7 +24,7 @@ func TestComputedValues_Register(t *testing.T) {
 
 func TestComputedValues_GetBeforeEvaluate(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "is_large", Type: "bool", When: "GT(context.x, 10)"},
+		{Name: "is_large", Type: "bool", Eval: "GT(context.x, 10)"},
 	}
 
 	computed := variables.NewComputedValues(computedFields)
@@ -44,7 +44,7 @@ func TestComputedValues_GetUnknownField(t *testing.T) {
 
 func TestComputedValues_SetValue(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "is_large", Type: "bool", When: "GT(context.x, 10)"},
+		{Name: "is_large", Type: "bool", Eval: "GT(context.x, 10)"},
 	}
 
 	computed := variables.NewComputedValues(computedFields)
@@ -60,7 +60,7 @@ func TestComputedValues_SetValue(t *testing.T) {
 
 func TestComputedValues_DirtyTracking(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "is_large", Type: "bool", When: "GT(context.x, 10)"},
+		{Name: "is_large", Type: "bool", Eval: "GT(context.x, 10)"},
 	}
 
 	computed := variables.NewComputedValues(computedFields)
@@ -79,9 +79,9 @@ func TestComputedValues_DirtyTracking(t *testing.T) {
 
 func TestComputedValues_GetDependents(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "is_large", Type: "bool", When: "GT(context.x, 10)"},
-		{Name: "is_valid", Type: "bool", When: "AND(context.x, context.y)"},
-		{Name: "unrelated", Type: "bool", When: "EQ(input.status, active)"},
+		{Name: "is_large", Type: "bool", Eval: "GT(context.x, 10)"},
+		{Name: "is_valid", Type: "bool", Eval: "AND(context.x, context.y)"},
+		{Name: "unrelated", Type: "bool", Eval: "EQ(input.status, active)"},
 	}
 
 	computed := variables.NewComputedValues(computedFields)
@@ -101,7 +101,7 @@ func TestComputedValues_GetDependents(t *testing.T) {
 
 func TestComputedValues_GetField(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "is_large", Type: "bool", When: "GT(context.x, 10)"},
+		{Name: "is_large", Type: "bool", Eval: "GT(context.x, 10)"},
 	}
 
 	computed := variables.NewComputedValues(computedFields)
@@ -116,10 +116,10 @@ func TestComputedValues_GetField(t *testing.T) {
 
 func TestComputedValues_MultipleTypes(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "flag", Type: "bool", When: "EQ(context.status, 1)"},
-		{Name: "count", Type: "int", When: "ADD(context.a, context.b)"},
-		{Name: "label", Type: "string", When: "context.name"},
-		{Name: "ratio", Type: "float", When: "DIV(context.total, context.count)"},
+		{Name: "flag", Type: "bool", Eval: "EQ(context.status, 1)"},
+		{Name: "count", Type: "int", Eval: "ADD(context.a, context.b)"},
+		{Name: "label", Type: "string", Eval: "context.name"},
+		{Name: "ratio", Type: "float", Eval: "DIV(context.total, context.count)"},
 	}
 
 	computed := variables.NewComputedValues(computedFields)
@@ -161,8 +161,8 @@ func TestComputedValues_NilInput(t *testing.T) {
 
 func TestComputedValues_GetAll(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "a", Type: "bool", When: "context.x"},
-		{Name: "b", Type: "int", When: "context.y"},
+		{Name: "a", Type: "bool", Eval: "context.x"},
+		{Name: "b", Type: "int", Eval: "context.y"},
 	}
 
 	computed := variables.NewComputedValues(computedFields)
@@ -175,7 +175,7 @@ func TestComputedValues_GetAll(t *testing.T) {
 
 func TestComputedEvaluator_ReactiveUpdate(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "is_large", Type: "bool", When: "GT(context.x, 10)"},
+		{Name: "is_large", Type: "bool", Eval: "GT(context.x, 10)"},
 	}
 	computed := variables.NewComputedValues(computedFields)
 
@@ -188,7 +188,7 @@ func TestComputedEvaluator_ReactiveUpdate(t *testing.T) {
 	context.SetEvaluator(evaluator)
 
 	// Initial evaluation
-	context.SetInt("x", 15)
+	_ = context.SetInt("x", 15)
 	err := evaluator.ComputeDirty()
 	require.NoError(t, err)
 
@@ -197,7 +197,7 @@ func TestComputedEvaluator_ReactiveUpdate(t *testing.T) {
 	assert.True(t, val) // 15 > 10
 
 	// Change dependency
-	context.SetInt("x", 5)
+	_ = context.SetInt("x", 5)
 	err = evaluator.ComputeDirty()
 	require.NoError(t, err)
 
@@ -208,8 +208,8 @@ func TestComputedEvaluator_ReactiveUpdate(t *testing.T) {
 
 func TestComputedEvaluator_CircularDependency(t *testing.T) {
 	computedFields := []flows.ComputedField{
-		{Name: "a", Type: "bool", When: "computed.b"},
-		{Name: "b", Type: "bool", When: "computed.a"},
+		{Name: "a", Type: "bool", Eval: "computed.b"},
+		{Name: "b", Type: "bool", Eval: "computed.a"},
 	}
 	computed := variables.NewComputedValues(computedFields)
 

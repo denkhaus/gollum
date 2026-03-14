@@ -69,7 +69,10 @@ func TestExecutionContext_SetOutputField_SetsValue(t *testing.T) {
 }
 
 func TestExecutionContext_BuildInputScope_ReturnsNestedMap(t *testing.T) {
-	ctx := NewExecutionContext(&flows.InputBlock{})
+	input := &flows.InputBlock{
+		Strings: []flows.FieldDef{{Name: "key"}},
+	}
+	ctx := NewExecutionContext(input)
 	ctx.SetInput(map[string]string{"key": "value"})
 
 	scope := ctx.BuildInputScope()
@@ -79,7 +82,7 @@ func TestExecutionContext_BuildInputScope_ReturnsNestedMap(t *testing.T) {
 
 func TestExecutionContext_BuildContextScope_ReturnsNestedMap(t *testing.T) {
 	ctx := NewExecutionContext(&flows.InputBlock{})
-	ctx.SetContextField("status", "open")
+	_ = ctx.SetContextField("status", "open")
 
 	scope := ctx.BuildContextScope()
 	assert.NotNil(t, scope)
@@ -88,7 +91,7 @@ func TestExecutionContext_BuildContextScope_ReturnsNestedMap(t *testing.T) {
 
 func TestExecutionContext_BuildOutputScope_ReturnsNestedMap(t *testing.T) {
 	ctx := NewExecutionContext(&flows.InputBlock{})
-	ctx.SetOutputField("result", "done")
+	_ = ctx.SetOutputField("result", "done")
 
 	scope := ctx.BuildOutputScope()
 	assert.NotNil(t, scope)
@@ -96,10 +99,13 @@ func TestExecutionContext_BuildOutputScope_ReturnsNestedMap(t *testing.T) {
 }
 
 func TestExecutionContext_BuildFullScope_ReturnsAllScopes(t *testing.T) {
-	ctx := NewExecutionContext(&flows.InputBlock{})
+	input := &flows.InputBlock{
+		Strings: []flows.FieldDef{{Name: "key"}},
+	}
+	ctx := NewExecutionContext(input)
 	ctx.SetInput(map[string]string{"key": "value"})
-	ctx.SetContextField("status", "open")
-	ctx.SetOutputField("result", "done")
+	_ = ctx.SetContextField("status", "open")
+	_ = ctx.SetOutputField("result", "done")
 
 	scope := ctx.BuildFullScope()
 	assert.NotNil(t, scope)

@@ -11,7 +11,9 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/flows/parser"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/samber/do/v2"
+	"go.uber.org/zap"
 )
 
 // FlowRegistry defines the interface for looking up and registering flows
@@ -24,7 +26,8 @@ type FlowRegistry interface {
 
 // flowRegistryServiceImpl is the private implementation
 type flowRegistryServiceImpl struct {
-	flows map[string]*flows.Flow
+	flows  map[string]*flows.Flow
+	logger logger.LoggerService
 }
 
 // Ensure flowRegistryServiceImpl implements FlowRegistry
@@ -35,8 +38,10 @@ var _ FlowRegistry = (*flowRegistryServiceImpl)(nil)
 // 1. ~/.config/gollum/flows
 // 2. <current_workspace>/.gollum/flows
 func NewFlowRegistryService(injector do.Injector) (FlowRegistry, error) {
+	log := do.MustInvoke[logger.LoggerService](injector)
 	svc := &flowRegistryServiceImpl{
-		flows: make(map[string]*flows.Flow),
+		flows:  make(map[string]*flows.Flow),
+		logger: log,
 	}
 
 	// Load flows from ~/.config/gollum/flows
@@ -46,7 +51,7 @@ func NewFlowRegistryService(injector do.Injector) (FlowRegistry, error) {
 			// Directory doesn't exist or isn't accessible - that's ok
 			// Only log if it's an unexpected error
 			if !os.IsNotExist(err) {
-				fmt.Printf("Warning: failed to load flows from %s: %v\n", configFlowDir, err)
+				svc.logger.Warn("failed to load flows", zap.String("dir", configFlowDir), zap.Error(err))
 			}
 		}
 	}
@@ -57,7 +62,7 @@ func NewFlowRegistryService(injector do.Injector) (FlowRegistry, error) {
 		if err := svc.LoadFromDirectory(workspaceFlowDir); err != nil {
 			// Directory doesn't exist or isn't accessible - that's ok
 			if !os.IsNotExist(err) {
-				fmt.Printf("Warning: failed to load flows from %s: %v\n", workspaceFlowDir, err)
+				svc.logger.Warn("failed to load flows", zap.String("dir", workspaceFlowDir), zap.Error(err))
 			}
 		}
 	}
@@ -118,7 +123,7 @@ func (s *flowRegistryServiceImpl) LoadFromDirectory(dir string) error {
 		flow, err := parser.Parse(path)
 		if err != nil {
 			// Log the error but continue loading other flows
-			fmt.Printf("Warning: failed to parse flow file %s: %v\n", path, err)
+			s.logger.Warn("failed to parse flow file", zap.String("path", path), zap.Error(err))
 			return nil
 		}
 

@@ -26,7 +26,7 @@ func NewExecutor(flow *flows.Flow) *flowExecutorImpl {
 
 	return &flowExecutorImpl{
 		flow:              flow,
-		ctx:               NewContext(flow.Input, nil),
+		ctx:               NewContext(flow.Input, flow.Output, flow.Context, nil),
 		history:           NewExecutionHistory(),
 		currentState:      currentState,
 		bashToolProvider:  &testBashToolProvider{},
@@ -41,7 +41,7 @@ func NewExecutor(flow *flows.Flow) *flowExecutorImpl {
 func NewExecutorWithRegistry(flow *flows.Flow, registry flowregistry.FlowRegistry) *flowExecutorImpl {
 	return &flowExecutorImpl{
 		flow:              flow,
-		ctx:               NewContext(flow.Input, nil),
+		ctx:               NewContext(flow.Input, flow.Output, flow.Context, nil),
 		history:           NewExecutionHistory(),
 		bashToolProvider:  &testBashToolProvider{},
 		extService:        &testExtensionService{},
@@ -55,7 +55,7 @@ func NewExecutorWithRegistry(flow *flows.Flow, registry flowregistry.FlowRegistr
 func NewExecutorWithProvider(flow *flows.Flow, provider tools.BashToolProvider) *flowExecutorImpl {
 	return &flowExecutorImpl{
 		flow:              flow,
-		ctx:               NewContext(flow.Input, nil),
+		ctx:               NewContext(flow.Input, flow.Output, flow.Context, nil),
 		history:           NewExecutionHistory(),
 		bashToolProvider:  provider,
 		extService:        &testExtensionService{},
@@ -132,14 +132,20 @@ func (m *testFuncRunner) ListFuncs() []string {
 	return []string{}
 }
 
-type testFlowRegistry struct{}
+type testFlowRegistry struct {
+	flows map[string]*flows.Flow
+}
 
 func (m *testFlowRegistry) Register(name string, flow *flows.Flow) {
-	// No-op for test registry
+	m.flows[name] = flow
 }
 
 func (m *testFlowRegistry) GetFlow(name string) (*flows.Flow, error) {
-	return nil, flowregistry.ErrFlowNotFound
+	flow, ok := m.flows[name]
+	if !ok {
+		return nil, flowregistry.ErrFlowNotFound
+	}
+	return flow, nil
 }
 
 type testFlowToolsProvider struct{}

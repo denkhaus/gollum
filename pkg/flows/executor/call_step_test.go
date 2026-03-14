@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/flows"
-	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -56,11 +55,21 @@ func TestExecuteCall_SimpleFlowCall(t *testing.T) {
 				Calls: []flows.Call{
 					{
 						Ref: "subflow",
-						Input: []flows.CallField{
-							{Name: "text", Value: "${input.message}"},
+						Input: &flows.CallInputBlock{
+							Strings: []flows.CallTypedField{
+								{
+									Name:  "text",
+									Value: "${input.message}",
+								},
+							},
 						},
-						Output: []flows.CallField{
-							{Name: "output", Value: "${output.result}"},
+						Output: &flows.CallOutputBlock{
+							Strings: []flows.CallTypedField{
+								{
+									Name:  "output",
+									Value: "${output.result}",
+								},
+							},
 						},
 					},
 				},
@@ -70,8 +79,11 @@ func TestExecuteCall_SimpleFlowCall(t *testing.T) {
 		},
 	}
 
-	// Create registry and register sub-flow
-	registry, _ := flowregistry.NewFlowRegistryService(nil)
+	// Create a simple test registry and register sub-flow
+	registry := &testFlowRegistry{
+		flows: make(map[string]*flows.Flow),
+	}
+	registry.Register("subflow", subFlow)
 	registry.Register("subflow", subFlow)
 
 	// Create executor with registry using DI
@@ -145,12 +157,25 @@ func TestExecuteCall_MultipleInputFields(t *testing.T) {
 				Calls: []flows.Call{
 					{
 						Ref: "concat",
-						Input: []flows.CallField{
-							{Name: "first", Value: "${input.greeting}"},
-							{Name: "second", Value: "${input.name}"},
+						Input: &flows.CallInputBlock{
+							Strings: []flows.CallTypedField{
+								{
+									Name:  "first",
+									Value: "${input.greeting}",
+								},
+								{
+									Name:  "second",
+									Value: "${input.name}",
+								},
+							},
 						},
-						Output: []flows.CallField{
-							{Name: "message", Value: "${output.result}"},
+						Output: &flows.CallOutputBlock{
+							Strings: []flows.CallTypedField{
+								{
+									Name:  "message",
+									Value: "${output.result}",
+								},
+							},
 						},
 					},
 				},
@@ -160,7 +185,10 @@ func TestExecuteCall_MultipleInputFields(t *testing.T) {
 		},
 	}
 
-	registry, _ := flowregistry.NewFlowRegistryService(nil)
+	// Create a simple test registry and register sub-flow
+	registry := &testFlowRegistry{
+		flows: make(map[string]*flows.Flow),
+	}
 	registry.Register("concat", subFlow)
 
 	// Create executor with registry using DI

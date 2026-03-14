@@ -9,19 +9,24 @@ import (
 	"github.com/denkhaus/gollum/pkg/flows/ast"
 )
 
-// varRefRegex matches ${variable.reference} patterns
 var varRefRegex = regexp.MustCompile(`\$\{([^}]+)\}`)
 
 // validPrefixes are the allowed variable reference prefixes
 var validPrefixes = map[string]bool{
-	"input":   true,
-	"output":  true,
-	"context": true,
-	"error":   true,
+	"input":    true,
+	"output":   true,
+	"context":  true,
+	"error":    true,
+	"computed": true,
 }
 
-// ExpressionChecker validates expressions
+// ExpressionChecker validates expressions in flows
 type ExpressionChecker struct{}
+
+// NewExpressionChecker creates a new expression checker
+func NewExpressionChecker() *ExpressionChecker {
+	return &ExpressionChecker{}
+}
 
 // Check runs expression validation
 func (e *ExpressionChecker) Check(flow *flows.Flow, result *flows.LinterResult) {
@@ -29,14 +34,14 @@ func (e *ExpressionChecker) Check(flow *flows.Flow, result *flows.LinterResult) 
 	availableFields := e.buildFieldMap(flow)
 
 	// Validate computed field expressions
-	if flow.Context != nil {
-		for _, computed := range flow.Context.Computeds {
-			expr, err := ast.ParseExpression(computed.When)
+	if flow.Computed != nil {
+		for _, computed := range flow.Computed.GetAllFields() {
+			expr, err := ast.ParseExpression(computed.Eval)
 			if err != nil {
 				result.Errors = append(result.Errors, flows.LinterError{
 					Code:    flows.ErrInvalidExpr,
 					Message: err.Error(),
-					Context: computed.When,
+					Context: computed.Eval,
 				})
 				continue
 			}
@@ -46,7 +51,6 @@ func (e *ExpressionChecker) Check(flow *flows.Flow, result *flows.LinterResult) 
 				result.Errors = append(result.Errors, flows.LinterError{
 					Code:    flows.ErrFieldNotFound,
 					Message: err.Error(),
-					Context: computed.When,
 				})
 			}
 		}
@@ -56,6 +60,7 @@ func (e *ExpressionChecker) Check(flow *flows.Flow, result *flows.LinterResult) 
 	for _, state := range flow.States {
 		for _, trans := range state.Transitions {
 			if trans.When != "" {
+				e.checkVarRefs(trans.When, "transition", result)
 				expr, err := ast.ParseExpression(trans.When)
 				if err != nil {
 					result.Errors = append(result.Errors, flows.LinterError{
@@ -63,30 +68,60 @@ func (e *ExpressionChecker) Check(flow *flows.Flow, result *flows.LinterResult) 
 						Message: err.Error(),
 						Context: trans.When,
 					})
-					continue
-				}
-
-				if err := e.validateFields(expr, availableFields); err != nil {
+				} else if err := e.validateFields(expr, availableFields); err != nil {
 					result.Errors = append(result.Errors, flows.LinterError{
 						Code:    flows.ErrFieldNotFound,
 						Message: err.Error(),
-						Context: trans.When,
 					})
 				}
 			}
 		}
+	}
 
-		// Validate call input/output field references
+	// Validate call conditions
+	for _, state := range flow.States {
 		for _, call := range state.Calls {
-			for _, field := range call.Input {
-				e.checkVarRefs(field.Value, "call input", result)
-			}
-			for _, field := range call.Output {
-				e.checkVarRefs(field.Value, "call output", result)
+			if call.When != "" {
+				e.checkVarRefs(call.When, "call condition", result)
+				expr, err := ast.ParseExpression(call.When)
+				if err != nil {
+					result.Errors = append(result.Errors, flows.LinterError{
+						Code:    flows.ErrInvalidExpr,
+						Message: err.Error(),
+						Context: call.When,
+					})
+				} else if err := e.validateFields(expr, availableFields); err != nil {
+					result.Errors = append(result.Errors, flows.LinterError{
+						Code:    flows.ErrFieldNotFound,
+						Message: err.Error(),
+					})
+				}
 			}
 		}
+	}
 
-		// Validate step parameters and prompts
+	// Validate call input/output field references
+	for _, state := range flow.States {
+		for _, call := range state.Calls {
+			if call.Input != nil {
+				for _, field := range call.Input.GetFields() {
+					if typed := field.GetTypedField(); typed != nil {
+						e.checkVarRefs(typed.Value, "call input", result)
+					}
+				}
+			}
+			if call.Output != nil {
+				for _, field := range call.Output.GetFields() {
+					if typed := field.GetTypedField(); typed != nil {
+						e.checkVarRefs(typed.Value, "call output", result)
+					}
+				}
+			}
+		}
+	}
+
+	// Validate step parameters and prompts
+	for _, state := range flow.States {
 		for _, step := range state.Steps {
 			for _, param := range step.Params {
 				e.checkVarRefs(param.Value, "step param", result)
@@ -158,6 +193,13 @@ func (e *ExpressionChecker) buildFieldMap(flow *flows.Flow) map[string][]string 
 		}
 	}
 
+	// Computed fields
+	if flow.Computed != nil {
+		for _, f := range flow.Computed.GetAllFields() {
+			fields["computed"] = append(fields["computed"], f.Name)
+		}
+	}
+
 	return fields
 }
 
@@ -181,18 +223,20 @@ func checkFieldRefs(expr ast.Expr, available map[string][]string) error {
 		if !ok || e.Prefix == "" {
 			return nil // Skip bare identifiers or missing prefixes for now
 		}
-		// For now, just check first level path exists
-		// Full nested checking would require more complex logic
+
+		// For nested references (e.g., context.obj.field), only check the first level
+		// Full path validation would require understanding object structure
 		if len(e.Path) > 0 {
+			fieldName := e.Path[0]
 			found := false
-			for _, f := range fields {
-				if f == e.Path[0] {
+			for _, availableField := range fields {
+				if availableField == fieldName {
 					found = true
 					break
 				}
 			}
 			if !found {
-				return fmt.Errorf("field '%s' not found in %s", e.Path[0], e.Prefix)
+				return fmt.Errorf("field '%s.%s' not found in %s scope", e.Prefix, fieldName, e.Prefix)
 			}
 		}
 	}

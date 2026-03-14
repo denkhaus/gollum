@@ -27,3 +27,18 @@ func Parse(path string) (*flows.Flow, error) {
 
 	return &flow, nil
 }
+
+// ParseBytes parses a flow from XML bytes
+func ParseBytes(data []byte) (*flows.Flow, error) {
+	// Validate common XML syntax issues first for better error messages
+	if err := validateCommonXMLErrors(data); err != nil {
+		return nil, fmt.Errorf("XML syntax error: %w", err)
+	}
+
+	var flow flows.Flow
+	if err := xml.Unmarshal(data, &flow); err != nil {
+		return nil, err
+	}
+
+	return &flow, nil
+}

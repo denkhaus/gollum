@@ -21,10 +21,11 @@ const (
 	ErrOutputAsParam    ErrorCode = "S006"
 
 	// Expression errors (Exxx)
-	ErrInvalidExpr      ErrorCode = "E001"
-	ErrCircularDeps     ErrorCode = "E002"
-	ErrFieldNotFound    ErrorCode = "E003"
-	ErrRelativePath     ErrorCode = "E004"
+	ErrInvalidExpr         ErrorCode = "E001"
+	ErrCircularDeps        ErrorCode = "E002"
+	ErrFieldNotFound       ErrorCode = "E003"
+	ErrRelativePath        ErrorCode = "E004"
+	ErrComputedInContainer ErrorCode = "E005" // computed fields in context/output blocks
 
 	// Graph errors (Gxxx)
 	ErrNoInitialState    ErrorCode = "G001"
@@ -35,13 +36,13 @@ const (
 	ErrTimeoutExceeded ErrorCode = "T001"
 
 	// Call errors (Cxxx)
-	ErrCallRefNotFound    ErrorCode = "C001"
-	ErrCallInputMissing   ErrorCode = "C002"
-	ErrCallOutputMissing  ErrorCode = "C003"
-	ErrCallInputType      ErrorCode = "C004"
-	ErrCallOutputType     ErrorCode = "C005"
-	ErrCallExtraInput     ErrorCode = "C006"
-	ErrCallExtraOutput    ErrorCode = "C007"
+	ErrCallRefNotFound     ErrorCode = "C001"
+	ErrCallInputMissing    ErrorCode = "C002"
+	ErrCallOutputMissing   ErrorCode = "C003"
+	ErrCallInputType       ErrorCode = "C004"
+	ErrCallOutputType      ErrorCode = "C005"
+	ErrCallExtraInput      ErrorCode = "C006"
+	ErrCallExtraOutput     ErrorCode = "C007"
 	ErrCallMissingRequired ErrorCode = "C008"
 )
 

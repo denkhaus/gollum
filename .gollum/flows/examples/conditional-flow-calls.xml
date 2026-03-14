@@ -28,11 +28,12 @@ Demonstrates: Conditional execution, module calls (main.xml entry point), sub-fl
         </object>
 
         <int name="complexity_score" />
-
-        <!-- Computed conditions -->
-        <computed name="is_deep_scan" type="bool" when="EQ(scan_type, 'deep')" />
-        <computed name="is_quick_scan" type="bool" when="EQ(scan_type, 'quick')" />
     </context>
+
+    <computed>
+        <bool name="is_deep_scan" eval="EQ(input.scan_type, 'deep')" />
+        <bool name="is_quick_scan" eval="EQ(input.scan_type, 'quick')" />
+    </computed>
 
     <agents>
         <agent name="coordinator" model="anthropic/claude-opus-4-6">
@@ -46,9 +47,9 @@ Demonstrates: Conditional execution, module calls (main.xml entry point), sub-fl
             <steps>
                 <step type="llm" agent="coordinator">
                     <prompt><![CDATA[
-                        Scan type: ${scan_type}
-                        Target: ${target_dir}
-                        Run security: ${run_security_scan}
+                        Scan type: ${input.scan_type}
+                        Target: ${input.target_dir}
+                        Run security: ${input.run_security_scan}
 
                         Plan the execution based on scan type.
                         Use emit_log to report your plan.
@@ -58,36 +59,36 @@ Demonstrates: Conditional execution, module calls (main.xml entry point), sub-fl
                 </step>
 
                 <!-- Conditional flow call: Only execute for deep scans -->
-                <call ref="code-analysis/security-scan" timeout="300s" when="is_deep_scan">
+                <call ref="code-analysis/security-scan" timeout="300s" when="computed.is_deep_scan">
                     <input>
-                        <field name="target_dir" value="${target_dir}" />
-                        <field name="scan_type" value="${scan_type}" />
+                        <string name="target_dir" value="${input.target_dir}" />
+                        <string name="scan_type" value="${input.scan_type}" />
                     </input>
                     <output>
-                        <field name="issues" value="${results.status}" />
+                        <int name="issues" value="${context.results.status}" />
                     </output>
                     <on-error state="error" />
                 </call>
 
                 <!-- Conditional flow call: Full analysis using module entry point -->
-                <call ref="code-analysis" timeout="300s" when="run_security_scan">
+                <call ref="code-analysis" timeout="300s" when="input.run_security_scan">
                     <input>
-                        <field name="target_dir" value="${target_dir}" />
-                        <field name="scan_type" value="${scan_type}" />
+                        <string name="target_dir" value="${input.target_dir}" />
+                        <string name="scan_type" value="${input.scan_type}" />
                     </input>
                     <output>
-                        <field name="complexity_score" value="${complexity_score}" />
+                        <int name="complexity_score" value="${context.complexity_score}" />
                     </output>
                     <on-error state="error" />
                 </call>
 
                 <!-- Otherwise fallback: complexity check only -->
-                <call ref="code-analysis/complexity-check" timeout="120s" when="is_quick_scan">
+                <call ref="code-analysis/complexity-check" timeout="120s" when="computed.is_quick_scan">
                     <input>
-                        <field name="target_dir" value="${target_dir}" />
+                        <string name="target_dir" value="${input.target_dir}" />
                     </input>
                     <output>
-                        <field name="score" value="${complexity_score}" />
+                        <int name="score" value="${context.complexity_score}" />
                     </output>
                     <on-error state="error" />
                 </call>

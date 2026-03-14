@@ -44,6 +44,8 @@ func setupTestDI(t *testing.T) do.Injector {
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	// Allow any Warn calls (used by registry)
+	mockLogger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
 	// Register HookManager
@@ -81,6 +83,8 @@ func setupTestDIWithRegistry(t *testing.T, registry flowregistry.FlowRegistry) d
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	// Allow any Warn calls (used by registry)
+	mockLogger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
 	// Register HookManager

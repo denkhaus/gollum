@@ -229,6 +229,39 @@ func (iv *InputValues) Has(name string) bool {
 	return ok
 }
 
+// SetRaw sets a value without type validation (for computed field evaluation)
+func (iv *InputValues) SetRaw(name string, value any) {
+	iv.fields[name] = FieldValue{value: value}
+}
+
+// GetRaw gets a value without type checking
+func (iv *InputValues) GetRaw(name string) (any, bool) {
+	fv, ok := iv.fields[name]
+	if !ok {
+		return nil, false
+	}
+	// If valueType is not set, return the raw value
+	if fv.valueType == "" {
+		return fv.value, true
+	}
+	// Otherwise try to get the typed value
+	switch fv.valueType {
+	case TypeString:
+		val, err := fv.String()
+		return val, err == nil
+	case TypeInt:
+		val, err := fv.Int()
+		return val, err == nil
+	case TypeBool:
+		val, err := fv.Bool()
+		return val, err == nil
+	case TypeFloat:
+		val, err := fv.Float()
+		return val, err == nil
+	}
+	return nil, false
+}
+
 // ContextValues stores context field values (mutable by tools)
 type ContextValues struct {
 	fields    map[string]FieldValue
@@ -518,6 +551,39 @@ func (cv *ContextValues) Has(name string) bool {
 	return ok
 }
 
+// SetRaw sets a value without type validation (for computed field evaluation)
+func (cv *ContextValues) SetRaw(name string, value any) {
+	cv.fields[name] = FieldValue{value: value}
+}
+
+// GetRaw gets a value without type checking
+func (cv *ContextValues) GetRaw(name string) (any, bool) {
+	fv, ok := cv.fields[name]
+	if !ok {
+		return nil, false
+	}
+	// If valueType is not set, return the raw value
+	if fv.valueType == "" {
+		return fv.value, true
+	}
+	// Otherwise try to get the typed value
+	switch fv.valueType {
+	case TypeString:
+		val, err := fv.String()
+		return val, err == nil
+	case TypeInt:
+		val, err := fv.Int()
+		return val, err == nil
+	case TypeBool:
+		val, err := fv.Bool()
+		return val, err == nil
+	case TypeFloat:
+		val, err := fv.Float()
+		return val, err == nil
+	}
+	return nil, false
+}
+
 // SetEvaluator sets the computed evaluator for reactive updates
 func (cv *ContextValues) SetEvaluator(eval *ComputedEvaluator) {
 	cv.evaluator = eval
@@ -781,4 +847,37 @@ func (ov *OutputValues) GetFloat(name string) (float64, error) {
 func (ov *OutputValues) Has(name string) bool {
 	_, ok := ov.fields[name]
 	return ok
+}
+
+// SetRaw sets a value without type validation (for computed field evaluation)
+func (ov *OutputValues) SetRaw(name string, value any) {
+	ov.fields[name] = FieldValue{value: value}
+}
+
+// GetRaw gets a value without type checking
+func (ov *OutputValues) GetRaw(name string) (any, bool) {
+	fv, ok := ov.fields[name]
+	if !ok {
+		return nil, false
+	}
+	// If valueType is not set, return the raw value
+	if fv.valueType == "" {
+		return fv.value, true
+	}
+	// Otherwise try to get the typed value
+	switch fv.valueType {
+	case TypeString:
+		val, err := fv.String()
+		return val, err == nil
+	case TypeInt:
+		val, err := fv.Int()
+		return val, err == nil
+	case TypeBool:
+		val, err := fv.Bool()
+		return val, err == nil
+	case TypeFloat:
+		val, err := fv.Float()
+		return val, err == nil
+	}
+	return nil, false
 }

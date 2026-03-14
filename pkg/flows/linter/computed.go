@@ -21,8 +21,8 @@ func NewComputedChecker() *ComputedChecker {
 
 // Check runs computed field validation
 func (c *ComputedChecker) Check(flow *flows.Flow, result *flows.LinterResult) {
-	// Skip if no computed fields
-	if flow.Computed == nil || len(flow.Computed.Fields) == 0 {
+	// Skip validation of top-level computed block if empty
+	if flow.Computed == nil || len(flow.Computed.GetAllFields()) == 0 {
 		return
 	}
 
@@ -30,12 +30,12 @@ func (c *ComputedChecker) Check(flow *flows.Flow, result *flows.LinterResult) {
 	registry := c.buildFieldRegistry(flow)
 
 	// Check each computed field
-	for _, field := range flow.Computed.Fields {
+	for _, field := range flow.Computed.GetAllFields() {
 		c.checkField(field, registry, result)
 	}
 
 	// Check for circular dependencies
-	c.checkCircularDependencies(flow.Computed.Fields, registry, result)
+	c.checkCircularDependencies(flow.Computed.GetAllFields(), registry, result)
 }
 
 // checkField validates a single computed field
@@ -220,7 +220,7 @@ func (c *ComputedChecker) buildFieldRegistry(flow *flows.Flow) map[string]bool {
 
 	// Computed fields
 	if flow.Computed != nil {
-		for _, f := range flow.Computed.Fields {
+		for _, f := range flow.Computed.GetAllFields() {
 			registry["computed."+f.Name] = true
 		}
 	}

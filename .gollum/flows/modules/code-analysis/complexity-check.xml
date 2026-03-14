@@ -21,7 +21,7 @@
         <state name="calculate" initial="true">
             <steps>
                 <step type="shell" name="run-gocyclo">
-                    <cmd><![CDATA[gocyclo -avg ${target_dir}]]></cmd>
+                    <cmd><![CDATA[gocyclo -avg ${input.target_dir}]]></cmd>
                     <output>
                         <string name="stdout" assign="cyclomatic_output" />
                         <int name="exit_code" assign="exit_code" />
@@ -32,7 +32,7 @@
 
                 <step type="func" function="strconv.Atoi">
                     <params>
-                        <param name="s" value="${cyclomatic_output}" />
+                        <param name="s" value="${context.cyclomatic_output}" />
                     </params>
                     <output assign="score" />
                 </step>
@@ -48,7 +48,7 @@
                 <step type="func" function="fmt.Sprintf">
                     <params>
                         <param name="format" value="Complexity check failed: %s" />
-                        <param name="a" value="${last_error}" />
+                        <param name="a" value="${error.last_error}" />
                     </params>
                 </step>
             </steps>

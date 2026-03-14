@@ -42,7 +42,7 @@ func NewComputedValues(computedFields []flows.ComputedField) *ComputedValues {
 	parser := NewExpressionParser()
 
 	for _, field := range computedFields {
-		deps := parser.ExtractDependencies(field.When)
+		deps := parser.ExtractDependencies(field.Eval)
 
 		var valueType ValueType
 		switch field.Type {
@@ -61,7 +61,7 @@ func NewComputedValues(computedFields []flows.ComputedField) *ComputedValues {
 		cv.fields[field.Name] = &ComputedField{
 			Name:         field.Name,
 			Type:         valueType,
-			Expression:   field.When,
+			Expression:   field.Eval,
 			Dependencies: deps,
 			dirty:        true, // Needs initial evaluation
 		}
@@ -166,6 +166,29 @@ func (cv *ComputedValues) GetFloat(name string) (float64, error) {
 // GetAll returns all computed field definitions
 func (cv *ComputedValues) GetAll() map[string]*ComputedField {
 	return cv.fields
+}
+
+// GetValue returns a computed value as any (evaluates if dirty)
+func (cv *ComputedValues) GetValue(name string) (any, error) {
+	field, err := cv.GetField(name)
+	if err != nil {
+		return nil, err
+	}
+	if field.lastValue == nil || field.dirty {
+		return nil, fmt.Errorf("computed field not evaluated: %s", name)
+	}
+	switch field.Type {
+	case TypeBool:
+		return field.lastValue.Bool()
+	case TypeInt:
+		return field.lastValue.Int()
+	case TypeString:
+		return field.lastValue.String()
+	case TypeFloat:
+		return field.lastValue.Float()
+	default:
+		return nil, fmt.Errorf("unknown type: %s", field.Type)
+	}
 }
 
 // GetDependents returns all computed fields that depend on the given field
@@ -403,6 +426,9 @@ func (ce *ComputedEvaluator) buildScope() *EvaluationScope {
 				scope.Input[name] = val
 			} else if val, err := ce.input.GetFloat(name); err == nil {
 				scope.Input[name] = val
+			} else if val, ok := ce.input.GetRaw(name); ok {
+				// Fallback for raw values (set without type)
+				scope.Input[name] = val
 			}
 		}
 	}
@@ -418,6 +444,9 @@ func (ce *ComputedEvaluator) buildScope() *EvaluationScope {
 				scope.Context[name] = val
 			} else if val, err := ce.context.GetFloat(name); err == nil {
 				scope.Context[name] = val
+			} else if val, ok := ce.context.GetRaw(name); ok {
+				// Fallback for raw values (set without type)
+				scope.Context[name] = val
 			}
 		}
 	}
@@ -432,6 +461,9 @@ func (ce *ComputedEvaluator) buildScope() *EvaluationScope {
 			} else if val, err := ce.output.GetBool(name); err == nil {
 				scope.Output[name] = val
 			} else if val, err := ce.output.GetFloat(name); err == nil {
+				scope.Output[name] = val
+			} else if val, ok := ce.output.GetRaw(name); ok {
+				// Fallback for raw values (set without type)
 				scope.Output[name] = val
 			}
 		}
