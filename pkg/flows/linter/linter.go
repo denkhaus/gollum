@@ -33,6 +33,10 @@ func LintPath(flowPath string, flow *flows.Flow) *flows.LinterResult {
 	phase5 := NewTimeoutChecker()
 	phase5.Check(flowPath, flow, result)
 
+	// Phase 6: Computed field validation
+	phase6 := NewComputedChecker()
+	phase6.Check(flow, result)
+
 	// Determine validity
 	result.Valid = len(result.Errors) == 0
 

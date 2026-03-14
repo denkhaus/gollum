@@ -30,7 +30,7 @@ func (m *mockMCPTool) Run(ctx context.Context, args map[string]any) (map[string]
 	if m.runFunc != nil {
 		return m.runFunc(ctx, args)
 	}
-	return map[string]string{}, nil
+	return map[string]any, nil
 }
 
 // mockMCPToolSet is a mock ToolSet for testing
@@ -76,7 +76,7 @@ func TestExecuteMCPStep_ToolCall(t *testing.T) {
 		runFunc: func(ctx context.Context, args map[string]any) (map[string]any, error) {
 			// Verify parameters
 			query, ok := args["query"].(string)
-			require.NoError(t, err)
+			require.True(t, ok)
 			assert.Equal(t, "test search query", query)
 
 			// Return mock search results
