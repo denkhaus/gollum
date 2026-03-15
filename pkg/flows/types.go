@@ -219,12 +219,42 @@ type FieldDef struct {
 	Default  string `xml:"default,attr"`
 }
 
+// GetName returns the field name (implements variables.FieldDefinition interface)
+func (f FieldDef) GetName() string {
+	return f.Name
+}
+
+// GetType returns the field type (implements variables.FieldDefinition interface)
+func (f FieldDef) GetType() string {
+	return f.Type
+}
+
+// GetDefault returns the default value (implements variables.FieldDefinition interface)
+func (f FieldDef) GetDefault() string {
+	return f.Default
+}
+
 // ContextField represents a regular context field
 type ContextField struct {
 	XMLName xml.Name
 	Name    string `xml:"name,attr"`
 	Type    string `xml:"type,attr"`
 	Default string `xml:"default,attr"`
+}
+
+// GetName returns the field name (implements variables.FieldDefinition interface)
+func (c ContextField) GetName() string {
+	return c.Name
+}
+
+// GetType returns the field type (implements variables.FieldDefinition interface)
+func (c ContextField) GetType() string {
+	return c.Type
+}
+
+// GetDefault returns the default value (implements variables.FieldDefinition interface)
+func (c ContextField) GetDefault() string {
+	return c.Default
 }
 
 // ComputedField represents a computed context field (deprecated - use ComputedBlock)
