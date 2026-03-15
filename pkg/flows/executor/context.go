@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/denkhaus/gollum/pkg/flows"
@@ -60,11 +61,11 @@ func extractDeps(expr ast.Expr, deps *[]string) {
 // Context manages execution context with input, output, and computed fields
 type Context struct {
 	inputBlock    *flows.InputBlock
-	inputVals     *variables.InputValues
+	inputVals     *variables.FieldValues[flows.FieldDef]
 	outputBlock   *flows.OutputBlock
-	outputValues  *variables.OutputValues
+	outputValues  *variables.FieldValues[flows.FieldDef]
 	contextBlock  *flows.ContextBlock
-	contextValues *variables.ContextValues
+	contextValues *variables.FieldValues[flows.ContextField]
 	computedBlock *flows.ComputedBlock
 	computedVals  *variables.ComputedValues
 	eval          *Evaluator
@@ -80,11 +81,11 @@ func NewContext(
 ) *Context {
 	ctx := &Context{
 		inputBlock:    inputBlock,
-		inputVals:     variables.NewInputValues(inputBlock), // Use typed wrapper
+		inputVals:     variables.NewFieldValues(getAllFieldsSafe(inputBlock)),
 		outputBlock:   outputBlock,
-		outputValues:  variables.NewOutputValues(outputBlock),
+		outputValues:  variables.NewFieldValues(getAllFieldsSafe(outputBlock)),
 		contextBlock:  contextBlock,
-		contextValues: variables.NewContextValues(contextBlock),
+		contextValues: variables.NewFieldValues(getAllContextFieldsSafe(contextBlock)),
 		computedBlock: nil,                              // Will be set from flow.Computed if available
 		computedVals:  variables.NewComputedValues(nil), // Empty initially, will be populated from flow
 		eval:          NewEvaluator(),
@@ -112,11 +113,30 @@ func NewContext(
 					}
 				}
 			}
-			// Defaults are already handled by NewInputValues
+			// Defaults are already handled by NewFieldValues
 		}
 	}
 
 	return ctx
+}
+
+// getAllFieldsSafe safely gets all fields from an InputBlock or OutputBlock
+func getAllFieldsSafe(block interface{}) []flows.FieldDef {
+	if b, ok := block.(*flows.InputBlock); ok && b != nil {
+		return b.GetAllFields()
+	}
+	if b, ok := block.(*flows.OutputBlock); ok && b != nil {
+		return b.GetAllFields()
+	}
+	return []flows.FieldDef{}
+}
+
+// getAllContextFieldsSafe safely gets all fields from a ContextBlock
+func getAllContextFieldsSafe(block *flows.ContextBlock) []flows.ContextField {
+	if block != nil {
+		return block.GetAllFields()
+	}
+	return []flows.ContextField{}
 }
 
 // SetComputedBlock sets the computed field definitions and initializes the evaluator
@@ -246,16 +266,32 @@ func (c *Context) SetContextField(name string, value any) error {
 		}
 	}
 
-	// Convert value to string for type conversion
-	valueStr, ok := value.(string)
-	if !ok {
-		// Fallback to raw set for non-string values (should not happen from LLM)
-		c.contextValues.SetRaw(name, value)
-		return nil
+	// Check if field exists
+	if !c.contextValues.Has(name) {
+		return &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "field not defined",
+				Field:   name,
+			},
+			Scope: "context",
+		}
 	}
 
-	// Use SetFromString for automatic type conversion
-	return c.contextValues.SetFromString(name, valueStr)
+	// Convert value based on its actual type
+	switch v := value.(type) {
+	case string:
+		return c.contextValues.SetFromString(name, v)
+	case int:
+		return c.contextValues.SetInt(name, v)
+	case bool:
+		return c.contextValues.SetBool(name, v)
+	case float64:
+		return c.contextValues.SetFloat(name, v)
+	default:
+		// Try to convert to string as fallback
+		return c.contextValues.SetFromString(name, fmt.Sprintf("%v", v))
+	}
 }
 
 // SetOutputField sets the output variable by name
@@ -271,9 +307,32 @@ func (c *Context) SetOutputField(name string, value any) error {
 		}
 	}
 
-	// Use SetRaw to set the value (type coercion handled by caller)
-	c.outputValues.SetRaw(name, value)
-	return nil
+	// Check if field exists
+	if !c.outputValues.Has(name) {
+		return &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "field not defined",
+				Field:   name,
+			},
+			Scope: "output",
+		}
+	}
+
+	// Convert value based on its actual type
+	switch v := value.(type) {
+	case string:
+		return c.outputValues.SetFromString(name, v)
+	case int:
+		return c.outputValues.SetInt(name, v)
+	case bool:
+		return c.outputValues.SetBool(name, v)
+	case float64:
+		return c.outputValues.SetFloat(name, v)
+	default:
+		// Try to convert to string as fallback
+		return c.outputValues.SetFromString(name, fmt.Sprintf("%v", v))
+	}
 }
 
 // GetOutputField retrieves an output field value

@@ -179,9 +179,9 @@ type ContextBlock struct {
 	Objects []ObjectDef    `xml:"object"`
 }
 
-// GetAllFields returns all context field definitions as a slice
+// GetAllFields returns all context fields as a slice
 func (c *ContextBlock) GetAllFields() []ContextField {
-	var fields []ContextField
+	fields := make([]ContextField, 0)
 	for _, f := range c.Strings {
 		f.Type = TypeString
 		fields = append(fields, f)

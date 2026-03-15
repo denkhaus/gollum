@@ -210,17 +210,17 @@ func (cv *ComputedValues) GetDependents(fieldRef FieldReference) []string {
 // ComputedEvaluator manages reactive computed field evaluation
 type ComputedEvaluator struct {
 	computed   *ComputedValues
-	input      *InputValues
-	context    *ContextValues
-	output     *OutputValues
+	input      *FieldValues[flows.FieldDef]
+	context    *FieldValues[flows.ContextField]
+	output     *FieldValues[flows.FieldDef]
 	exprEval   *ExpressionEvaluator
 	dependents map[string][]string // fieldRef -> computed fields that depend on it
 	evaluating map[string]bool     // for cycle detection
 }
 
 // NewComputedEvaluator creates a new computed evaluator
-func NewComputedEvaluator(computed *ComputedValues, input *InputValues,
-	context *ContextValues, output *OutputValues) *ComputedEvaluator {
+func NewComputedEvaluator(computed *ComputedValues, input *FieldValues[flows.FieldDef],
+	context *FieldValues[flows.ContextField], output *FieldValues[flows.FieldDef]) *ComputedEvaluator {
 
 	evaluator := &ComputedEvaluator{
 		computed:   computed,
@@ -417,7 +417,8 @@ func (ce *ComputedEvaluator) buildScope() *EvaluationScope {
 
 	// Populate from input container
 	if ce.input != nil {
-		for name := range ce.input.defs {
+		// Use Has to iterate over defined fields
+		for name, fieldDef := range ce.input.defs {
 			if val, err := ce.input.GetString(name); err == nil {
 				scope.Input[name] = val
 			} else if val, err := ce.input.GetInt(name); err == nil {
@@ -430,12 +431,14 @@ func (ce *ComputedEvaluator) buildScope() *EvaluationScope {
 				// Fallback for raw values (set without type)
 				scope.Input[name] = val
 			}
+			_ = fieldDef // Use the variable to avoid unused warning
 		}
 	}
 
 	// Populate from context container
 	if ce.context != nil {
-		for name := range ce.context.defs {
+		// Use Has to iterate over defined fields
+		for name, fieldDef := range ce.context.defs {
 			if val, err := ce.context.GetString(name); err == nil {
 				scope.Context[name] = val
 			} else if val, err := ce.context.GetInt(name); err == nil {
@@ -451,12 +454,14 @@ func (ce *ComputedEvaluator) buildScope() *EvaluationScope {
 				// Field is defined but not set - add nil to represent unset state
 				scope.Context[name] = nil
 			}
+			_ = fieldDef // Use the variable to avoid unused warning
 		}
 	}
 
 	// Populate from output container
 	if ce.output != nil {
-		for name := range ce.output.defs {
+		// Use Has to iterate over defined fields
+		for name, fieldDef := range ce.output.defs {
 			if val, err := ce.output.GetString(name); err == nil {
 				scope.Output[name] = val
 			} else if val, err := ce.output.GetInt(name); err == nil {
@@ -472,6 +477,7 @@ func (ce *ComputedEvaluator) buildScope() *EvaluationScope {
 				// Field is defined but not set - add nil to represent unset state
 				scope.Output[name] = nil
 			}
+			_ = fieldDef // Use the variable to avoid unused warning
 		}
 	}
 
