@@ -1,14 +1,17 @@
 // Package diff provides diff generation and formatting services.
 package diff
+
 import (
-	"strings"
 	"github.com/aymanbagabas/go-udiff"
 	"github.com/charmbracelet/lipgloss"
+	"strings"
 )
+
 // getUnifiedDiff generates a unified diff string between two contents.
 func getUnifiedDiff(oldPath, newPath, oldContent, newContent string) string {
 	return udiff.Unified(oldPath, newPath, oldContent, newContent)
 }
+
 // diffStyler handles terminal styling for diff output.
 type diffStyler struct {
 	addedStyle    lipgloss.Style
@@ -17,6 +20,7 @@ type diffStyler struct {
 	metaStyle     lipgloss.Style
 	locationStyle lipgloss.Style
 }
+
 // newDiffStyler creates a new diff styler with predefined styles.
 func newDiffStyler() *diffStyler {
 	return &diffStyler{
@@ -34,6 +38,7 @@ func newDiffStyler() *diffStyler {
 			Bold(true),
 	}
 }
+
 // styleDiff applies terminal styling to a unified diff string.
 func (s *diffStyler) styleDiff(diff string) string {
 	if diff == "" {
@@ -76,6 +81,7 @@ func (s *diffStyler) styleDiff(diff string) string {
 	}
 	return result.String()
 }
+
 // styleCompact returns a compact, styled representation of the diff.
 // This format is optimized for terminal display with limited vertical space.
 func (s *diffStyler) styleCompact(diff string) string {

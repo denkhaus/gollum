@@ -7,8 +7,8 @@ import (
 	"github.com/samber/do/v2"
 )
 
-func setupProfiling(config *profiling.ProfilingConfig, injector do.Injector) func() {
-	profilingService := do.MustInvoke[profiling.ProfilingService](injector)
+func setupProfiling(config *profiling.Config, injector do.Injector) func() {
+	profilingService := do.MustInvoke[profiling.Service](injector)
 	if err := profilingService.Enable(config.ProfileAddr); err != nil {
 		log.Printf("Warning: failed to enable profiling: %v", err)
 		return func() {}

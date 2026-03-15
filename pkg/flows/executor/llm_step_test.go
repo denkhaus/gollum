@@ -112,6 +112,9 @@ func TestExecuteLLMStep_SubstitutesPrompt(t *testing.T) {
 		Input: &flows.InputBlock{
 			Strings: []flows.FieldDef{{Name: "pr_number"}},
 		},
+		Output: &flows.OutputBlock{
+			Strings: []flows.FieldDef{{Name: "text"}},
+		},
 		Agents: []flows.Agent{
 			{Name: "worker", Model: "claude-3.5", Prompt: "You are a helper"},
 		},

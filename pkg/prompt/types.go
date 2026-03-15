@@ -87,6 +87,11 @@ const (
 // VERSIONED PROMPT ID TYPE
 // =============================================================================
 
+const (
+	// versionLatest is the default version string when no version is specified.
+	versionLatest = "latest"
+)
+
 // VersionedPromptID is a strongly-typed versioned identifier for prompts.
 // A versioned ID combines a base ID with a semantic version (e.g., "subagent_system@1.0.0").
 //
@@ -129,7 +134,7 @@ func MustParseVersionedPromptID(s string) VersionedPromptID {
 // If version is empty, it defaults to "latest".
 func FromBaseID(baseID PromptID, version string) VersionedPromptID {
 	if version == "" {
-		version = "latest"
+		version = versionLatest
 	}
 	return VersionedPromptID(fmt.Sprintf("%s@%s", baseID, version))
 }

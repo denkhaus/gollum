@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow name="startup-flow" version="1.0">
+    <description>
+        This is the default flow that is invoked at gollum startup.
+    </description>
+
+    <input>
+        <string name="location" required="true" default="London" />
+    </input>
+
+    <output>
+        <int name="complexity" />
+        <string name="recommendation" />
+        <bool name="needs_refactor" />
+    </output>
+
+    <context>
+        <int name="hour" />
+    </context>
+
+    <computed>
+        <bool name="is_afternoon" eval="GT(context.hour, 12)" />
+    </computed>
+
+    <agents>
+        <agent name="startup" model="anthropic/claude-opus-4-6">
+            <prompt>You are a helpfull agent</prompt>
+            <temperature>0.0</temperature>
+        </agent>
+    </agents>
+
+    <states>
+        <state name="get current time" initial="true">
+            <steps>
+                <step type="llm" agent="startup">
+                    <prompt><![CDATA[
+                        What is the time in ${input.location}?:
+                        Use the `set_context_field` tool to set the hour like so: set_context_field(hour, <hour>).
+                    ]]></prompt>
+                    <tools>set_context_field</tools>
+                    <timeout>60s</timeout>
+                </step>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="done" />
+    </states>
+</flow>

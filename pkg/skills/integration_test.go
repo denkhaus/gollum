@@ -334,11 +334,11 @@ Complete instructions here.
 // TestSkillToolAccess tests tool access methods
 func TestSkillToolAccess(t *testing.T) {
 	tests := []struct {
-		name          string
-		skill         *skills.Skill
-		tool          string
-		expectedHas   bool
-		expectedFilt  bool
+		name         string
+		skill        *skills.Skill
+		tool         string
+		expectedHas  bool
+		expectedFilt bool
 	}{
 		{
 			name: "empty tools allows all",
@@ -467,45 +467,45 @@ func TestSkillsCollection(t *testing.T) {
 // TestSkillValidation_InvalidToolNames tests tool name validation
 func TestSkillValidation_InvalidToolNames(t *testing.T) {
 	tests := []struct {
-		name           string
-		tools          []string
-		toolFilter     []string
+		name            string
+		tools           []string
+		toolFilter      []string
 		expectedInvalid []string
 	}{
 		{
-			name:           "valid tools only",
-			tools:          []string{"read_file", "write_file", "glob"},
-			toolFilter:     []string{},
+			name:            "valid tools only",
+			tools:           []string{"read_file", "write_file", "glob"},
+			toolFilter:      []string{},
 			expectedInvalid: nil,
 		},
 		{
-			name:           "invalid tool in tools list - uppercase",
-			tools:          []string{"Read", "Write"},
-			toolFilter:     []string{},
+			name:            "invalid tool in tools list - uppercase",
+			tools:           []string{"Read", "Write"},
+			toolFilter:      []string{},
 			expectedInvalid: []string{"Read", "Write"},
 		},
 		{
-			name:           "invalid tool in tools list - camelCase",
-			tools:          []string{"readFile", "writeFile"},
-			toolFilter:     []string{},
+			name:            "invalid tool in tools list - camelCase",
+			tools:           []string{"readFile", "writeFile"},
+			toolFilter:      []string{},
 			expectedInvalid: []string{"readFile", "writeFile"},
 		},
 		{
-			name:           "invalid tool in tool_filter",
-			tools:          []string{},
-			toolFilter:     []string{"Bash", "nonexistent"},
+			name:            "invalid tool in tool_filter",
+			tools:           []string{},
+			toolFilter:      []string{"Bash", "nonexistent"},
 			expectedInvalid: []string{"Bash", "nonexistent"},
 		},
 		{
-			name:           "mixed valid and invalid",
-			tools:          []string{"read_file", "Read", "glob"},
-			toolFilter:     []string{"bash", "InvalidTool"},
+			name:            "mixed valid and invalid",
+			tools:           []string{"read_file", "Read", "glob"},
+			toolFilter:      []string{"bash", "InvalidTool"},
 			expectedInvalid: []string{"Read", "InvalidTool"},
 		},
 		{
-			name:           "empty tools - all valid",
-			tools:          []string{},
-			toolFilter:     []string{},
+			name:            "empty tools - all valid",
+			tools:           []string{},
+			toolFilter:      []string{},
 			expectedInvalid: nil,
 		},
 	}

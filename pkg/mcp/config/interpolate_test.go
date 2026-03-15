@@ -62,8 +62,8 @@ func TestInterpolateValue_EnvVars(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-		mockLog := mocks.NewMockLoggerService(ctrl)
-		result := interpolateValueWithTimeout(tt.input, 5*time.Second, mockLog)
+			mockLog := mocks.NewMockLoggerService(ctrl)
+			result := interpolateValueWithTimeout(tt.input, 5*time.Second, mockLog)
 			if result != tt.expected {
 				t.Errorf("interpolateValueWithTimeout(%q) = %q, want %q", tt.input, result, tt.expected)
 			}
@@ -107,8 +107,8 @@ func TestInterpolateValue_ShellCommands(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-		mockLog := mocks.NewMockLoggerService(ctrl)
-		result := interpolateValueWithTimeout(tt.input, 5*time.Second, mockLog)
+			mockLog := mocks.NewMockLoggerService(ctrl)
+			result := interpolateValueWithTimeout(tt.input, 5*time.Second, mockLog)
 			if result != tt.contains && !strings.Contains(result, tt.contains) {
 				t.Errorf("interpolateValueWithTimeout(%q) = %q, want to contain %q", tt.input, result, tt.contains)
 			}
@@ -170,8 +170,8 @@ func TestInterpolateConfig(t *testing.T) {
 		Command: "test-command",
 		Args:    []string{"arg1", "arg2"},
 		Env: map[string]string{
-			"KEY":       "$API_KEY",
-			"STATIC":    "value",
+			"KEY":        "$API_KEY",
+			"STATIC":     "value",
 			"CMD_OUTPUT": "$(echo output)",
 		},
 		Headers: map[string]string{

@@ -94,20 +94,11 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 
 // Run starts the application, performing all initialization and running the interactive loop
 func (p *applicationServiceImpl) Run(ctx context.Context) error {
-	// Check for default flow first
-	defaultFlowPath, err := p.resolveDefaultFlowPath()
-	if err == nil && defaultFlowPath != "" {
-		// Default flow found, execute it
-		p.logService.Infof("Default flow found at: %s", defaultFlowPath)
-		return p.runDefaultFlow(ctx, defaultFlowPath)
+	// Create .gollum directory first (this initializes p.gollumDir)
+	if err := p.ensureGollumDirectory(); err != nil {
+		return fmt.Errorf("failed to create .gollum directory: %w", err)
 	}
 
-	// No default flow, run TUI
-	return p.runTUI(ctx)
-}
-
-// runTUI runs the terminal user interface
-func (p *applicationServiceImpl) runTUI(ctx context.Context) error {
 	// Enable file logging (LoggerService handles logs/ subdir and cleanup)
 	if err := p.logService.EnableFileLogging(p.gollumDir, p.sessionID); err != nil {
 		return fmt.Errorf("failed to enable file logging: %w", err)
@@ -118,15 +109,27 @@ func (p *applicationServiceImpl) runTUI(ctx context.Context) error {
 		}
 	}()
 
-	// Create .gollum directory
-	if err := p.ensureGollumDirectory(); err != nil {
-		return fmt.Errorf("failed to create .gollum directory: %w", err)
-	}
-
 	// Prime FileStateManager
 	if err := p.primeFileStateManager(ctx); err != nil {
 		return err
 	}
+
+	// Check for default flow first
+	defaultFlowPath, err := p.resolveDefaultFlowPath()
+	if err == nil && defaultFlowPath != "" {
+		// Default flow found, execute it
+		p.logService.Infof("Default flow found at: %s", defaultFlowPath)
+		return p.runDefaultFlow(ctx, defaultFlowPath)
+	} else {
+		p.logService.Info("no default flow found -> run tui")
+	}
+
+	// No default flow, run TUI
+	return p.runTUI(ctx)
+}
+
+// runTUI runs the terminal user interface
+func (p *applicationServiceImpl) runTUI(ctx context.Context) error {
 
 	// Create and register Supervisor agent
 	agent, _, err := p.createSupervisorAgent(ctx)
@@ -219,7 +222,7 @@ func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (sha
 
 	toolSet := p.mcpRegistry.GetToolSets()
 	if len(toolSet) == 0 {
-		p.logService.Warn("no mcp servers configured for supervison agent")
+		p.logService.Warn("no mcp servers configured for supervision agent")
 	}
 
 	// Create agent config

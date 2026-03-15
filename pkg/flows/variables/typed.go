@@ -22,31 +22,57 @@ const (
 type FieldValue struct {
 	valueType ValueType
 	value     any
+	isSet     bool // true if value was explicitly set, false if uninitialized
 }
 
 // NewStringValue creates a string FieldValue
 func NewStringValue(v string) FieldValue {
-	return FieldValue{valueType: TypeString, value: v}
+	return FieldValue{valueType: TypeString, value: v, isSet: true}
 }
 
 // NewIntValue creates an int FieldValue
 func NewIntValue(v int) FieldValue {
-	return FieldValue{valueType: TypeInt, value: v}
+	return FieldValue{valueType: TypeInt, value: v, isSet: true}
 }
 
 // NewBoolValue creates a bool FieldValue
 func NewBoolValue(v bool) FieldValue {
-	return FieldValue{valueType: TypeBool, value: v}
+	return FieldValue{valueType: TypeBool, value: v, isSet: true}
 }
 
 // NewFloatValue creates a float FieldValue
 func NewFloatValue(v float64) FieldValue {
-	return FieldValue{valueType: TypeFloat, value: v}
+	return FieldValue{valueType: TypeFloat, value: v, isSet: true}
+}
+
+// NewUnsetStringValue creates an unset string FieldValue (placeholder for uninitialized fields)
+func NewUnsetStringValue() FieldValue {
+	return FieldValue{valueType: TypeString, isSet: false}
+}
+
+// NewUnsetIntValue creates an unset int FieldValue (placeholder for uninitialized fields)
+func NewUnsetIntValue() FieldValue {
+	return FieldValue{valueType: TypeInt, isSet: false}
+}
+
+// NewUnsetBoolValue creates an unset bool FieldValue (placeholder for uninitialized fields)
+func NewUnsetBoolValue() FieldValue {
+	return FieldValue{valueType: TypeBool, isSet: false}
+}
+
+// NewUnsetFloatValue creates an unset float FieldValue (placeholder for uninitialized fields)
+func NewUnsetFloatValue() FieldValue {
+	return FieldValue{valueType: TypeFloat, isSet: false}
 }
 
 // Type returns the value type
 func (fv FieldValue) Type() ValueType {
 	return fv.valueType
+}
+
+// IsSet returns true if the value was explicitly set (not just initialized)
+func (fv FieldValue) IsSet() bool {
+	return fv.isSet
 }
 
 // String returns the string value
@@ -100,6 +126,37 @@ func NewInputValues(block *flows.InputBlock) *InputValues {
 
 	for _, field := range block.GetAllFields() {
 		iv.defs[field.Name] = field
+		// Set default value if available
+		if field.Default != "" {
+			switch ValueType(field.Type) {
+			case TypeString:
+				iv.fields[field.Name] = NewStringValue(field.Default)
+			case TypeInt:
+				if i, err := strconv.Atoi(field.Default); err == nil {
+					iv.fields[field.Name] = NewIntValue(i)
+				}
+			case TypeBool:
+				if b, err := strconv.ParseBool(field.Default); err == nil {
+					iv.fields[field.Name] = NewBoolValue(b)
+				}
+			case TypeFloat:
+				if f, err := strconv.ParseFloat(field.Default, 64); err == nil {
+					iv.fields[field.Name] = NewFloatValue(f)
+				}
+			}
+		} else {
+			// Initialize with unset placeholder
+			switch ValueType(field.Type) {
+			case TypeString:
+				iv.fields[field.Name] = NewUnsetStringValue()
+			case TypeInt:
+				iv.fields[field.Name] = NewUnsetIntValue()
+			case TypeBool:
+				iv.fields[field.Name] = NewUnsetBoolValue()
+			case TypeFloat:
+				iv.fields[field.Name] = NewUnsetFloatValue()
+			}
+		}
 	}
 
 	return iv
@@ -193,6 +250,9 @@ func (iv *InputValues) GetString(name string) (string, error) {
 	if !ok {
 		return "", &errors.UnknownFieldError{FlowError: errors.FlowError{Code: errors.ErrCodeUnknownField, Message: "input field not set", Field: name}, Scope: "input"}
 	}
+	if !fv.IsSet() {
+		return "", &errors.UnknownFieldError{FlowError: errors.FlowError{Code: errors.ErrCodeUnknownField, Message: "input field not set", Field: name}, Scope: "input"}
+	}
 	return fv.String()
 }
 
@@ -200,6 +260,9 @@ func (iv *InputValues) GetString(name string) (string, error) {
 func (iv *InputValues) GetInt(name string) (int, error) {
 	fv, ok := iv.fields[name]
 	if !ok {
+		return 0, &errors.UnknownFieldError{FlowError: errors.FlowError{Code: errors.ErrCodeUnknownField, Message: "input field not set", Field: name}, Scope: "input"}
+	}
+	if !fv.IsSet() {
 		return 0, &errors.UnknownFieldError{FlowError: errors.FlowError{Code: errors.ErrCodeUnknownField, Message: "input field not set", Field: name}, Scope: "input"}
 	}
 	return fv.Int()
@@ -211,6 +274,9 @@ func (iv *InputValues) GetBool(name string) (bool, error) {
 	if !ok {
 		return false, &errors.UnknownFieldError{FlowError: errors.FlowError{Code: errors.ErrCodeUnknownField, Message: "input field not set", Field: name}, Scope: "input"}
 	}
+	if !fv.IsSet() {
+		return false, &errors.UnknownFieldError{FlowError: errors.FlowError{Code: errors.ErrCodeUnknownField, Message: "input field not set", Field: name}, Scope: "input"}
+	}
 	return fv.Bool()
 }
 
@@ -218,6 +284,9 @@ func (iv *InputValues) GetBool(name string) (bool, error) {
 func (iv *InputValues) GetFloat(name string) (float64, error) {
 	fv, ok := iv.fields[name]
 	if !ok {
+		return 0, &errors.UnknownFieldError{FlowError: errors.FlowError{Code: errors.ErrCodeUnknownField, Message: "input field not set", Field: name}, Scope: "input"}
+	}
+	if !fv.IsSet() {
 		return 0, &errors.UnknownFieldError{FlowError: errors.FlowError{Code: errors.ErrCodeUnknownField, Message: "input field not set", Field: name}, Scope: "input"}
 	}
 	return fv.Float()
@@ -237,29 +306,11 @@ func (iv *InputValues) SetRaw(name string, value any) {
 // GetRaw gets a value without type checking
 func (iv *InputValues) GetRaw(name string) (any, bool) {
 	fv, ok := iv.fields[name]
-	if !ok {
+	if !ok || !fv.IsSet() {
 		return nil, false
 	}
-	// If valueType is not set, return the raw value
-	if fv.valueType == "" {
-		return fv.value, true
-	}
-	// Otherwise try to get the typed value
-	switch fv.valueType {
-	case TypeString:
-		val, err := fv.String()
-		return val, err == nil
-	case TypeInt:
-		val, err := fv.Int()
-		return val, err == nil
-	case TypeBool:
-		val, err := fv.Bool()
-		return val, err == nil
-	case TypeFloat:
-		val, err := fv.Float()
-		return val, err == nil
-	}
-	return nil, false
+	// Return the raw value for set fields
+	return fv.value, true
 }
 
 // ContextValues stores context field values (mutable by tools)
@@ -282,39 +333,55 @@ func NewContextValues(block *flows.ContextBlock) *ContextValues {
 
 	// Register string fields
 	for _, field := range block.Strings {
+		field.Type = string(TypeString) // Set type explicitly
 		cv.defs[field.Name] = field
 		if field.Default != "" {
 			cv.fields[field.Name] = NewStringValue(field.Default)
+		} else {
+			// Initialize with unset placeholder
+			cv.fields[field.Name] = NewUnsetStringValue()
 		}
 	}
 
 	// Register int fields
 	for _, field := range block.Ints {
+		field.Type = string(TypeInt) // Set type explicitly
 		cv.defs[field.Name] = field
 		if field.Default != "" {
 			if i, err := strconv.Atoi(field.Default); err == nil {
 				cv.fields[field.Name] = NewIntValue(i)
 			}
+		} else {
+			// Initialize with unset placeholder
+			cv.fields[field.Name] = NewUnsetIntValue()
 		}
 	}
 
 	// Register bool fields
 	for _, field := range block.Bools {
+		field.Type = string(TypeBool) // Set type explicitly
 		cv.defs[field.Name] = field
 		if field.Default != "" {
 			if b, err := strconv.ParseBool(field.Default); err == nil {
 				cv.fields[field.Name] = NewBoolValue(b)
 			}
+		} else {
+			// Initialize with unset placeholder
+			cv.fields[field.Name] = NewUnsetBoolValue()
 		}
 	}
 
 	// Register float fields
 	for _, field := range block.Floats {
+		field.Type = string(TypeFloat) // Set type explicitly
 		cv.defs[field.Name] = field
 		if field.Default != "" {
 			if f, err := strconv.ParseFloat(field.Default, 64); err == nil {
 				cv.fields[field.Name] = NewFloatValue(f)
 			}
+		} else {
+			// Initialize with unset placeholder
+			cv.fields[field.Name] = NewUnsetFloatValue()
 		}
 	}
 
@@ -488,6 +555,16 @@ func (cv *ContextValues) GetString(name string) (string, error) {
 		return "", &errors.UnknownFieldError{
 			FlowError: errors.FlowError{
 				Code:    errors.ErrCodeUnknownField,
+				Message: "context field not defined",
+				Field:   name,
+			},
+			Scope: "context",
+		}
+	}
+	if !fv.IsSet() {
+		return "", &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
 				Message: "context field not set",
 				Field:   name,
 			},
@@ -501,6 +578,16 @@ func (cv *ContextValues) GetString(name string) (string, error) {
 func (cv *ContextValues) GetInt(name string) (int, error) {
 	fv, ok := cv.fields[name]
 	if !ok {
+		return 0, &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "context field not defined",
+				Field:   name,
+			},
+			Scope: "context",
+		}
+	}
+	if !fv.IsSet() {
 		return 0, &errors.UnknownFieldError{
 			FlowError: errors.FlowError{
 				Code:    errors.ErrCodeUnknownField,
@@ -520,6 +607,16 @@ func (cv *ContextValues) GetBool(name string) (bool, error) {
 		return false, &errors.UnknownFieldError{
 			FlowError: errors.FlowError{
 				Code:    errors.ErrCodeUnknownField,
+				Message: "context field not defined",
+				Field:   name,
+			},
+			Scope: "context",
+		}
+	}
+	if !fv.IsSet() {
+		return false, &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
 				Message: "context field not set",
 				Field:   name,
 			},
@@ -536,6 +633,16 @@ func (cv *ContextValues) GetFloat(name string) (float64, error) {
 		return 0, &errors.UnknownFieldError{
 			FlowError: errors.FlowError{
 				Code:    errors.ErrCodeUnknownField,
+				Message: "context field not defined",
+				Field:   name,
+			},
+			Scope: "context",
+		}
+	}
+	if !fv.IsSet() {
+		return 0, &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
 				Message: "context field not set",
 				Field:   name,
 			},
@@ -545,21 +652,28 @@ func (cv *ContextValues) GetFloat(name string) (float64, error) {
 	return fv.Float()
 }
 
-// Has returns true if field has a value
+// Has returns true if field has a value (is defined and set)
 func (cv *ContextValues) Has(name string) bool {
-	_, ok := cv.fields[name]
-	return ok
+	fv, ok := cv.fields[name]
+	return ok && fv.IsSet()
 }
 
 // SetRaw sets a value without type validation (for computed field evaluation)
+// Preserves the valueType from the schema definition
 func (cv *ContextValues) SetRaw(name string, value any) {
-	cv.fields[name] = FieldValue{value: value}
+	// Preserve the valueType from the existing field (schema definition)
+	existing, ok := cv.fields[name]
+	valueType := TypeString // default fallback
+	if ok {
+		valueType = existing.valueType
+	}
+	cv.fields[name] = FieldValue{value: value, valueType: valueType, isSet: true}
 }
 
 // GetRaw gets a value without type checking
 func (cv *ContextValues) GetRaw(name string) (any, bool) {
 	fv, ok := cv.fields[name]
-	if !ok {
+	if !ok || !fv.IsSet() {
 		return nil, false
 	}
 	// If valueType is not set, return the raw value
@@ -589,6 +703,80 @@ func (cv *ContextValues) SetEvaluator(eval *ComputedEvaluator) {
 	cv.evaluator = eval
 }
 
+// SetFromString sets a context field value from a string, automatically converting to the target type.
+// Returns error if the field is not defined or if type conversion fails.
+// This is used by flow tools that receive string values from LLMs.
+func (cv *ContextValues) SetFromString(name string, value string) error {
+	// Get the field definition to determine target type
+	fieldDef, exists := cv.defs[name]
+	if !exists {
+		return &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "context field not defined",
+				Field:   name,
+			},
+			Scope: "context",
+		}
+	}
+
+	// Convert string value to the appropriate type based on field definition
+	switch fieldDef.Type {
+	case "string":
+		return cv.SetString(name, value)
+	case "int":
+		// Try parsing as int
+		i, err := strconv.Atoi(value)
+		if err != nil {
+			return &errors.TypeError{
+				FlowError: errors.FlowError{
+					Code:    errors.ErrCodeTypeMismatch,
+					Message: fmt.Sprintf("cannot convert '%s' to int: %v", value, err),
+					Field:   name,
+				},
+			}
+		}
+		return cv.SetInt(name, i)
+	case "bool":
+		// Try parsing as bool
+		b, err := strconv.ParseBool(value)
+		if err != nil {
+			return &errors.TypeError{
+				FlowError: errors.FlowError{
+					Code:    errors.ErrCodeTypeMismatch,
+					Message: fmt.Sprintf("cannot convert '%s' to bool: %v", value, err),
+					Field:   name,
+				},
+			}
+		}
+		return cv.SetBool(name, b)
+	case "float":
+		// Try parsing as float
+		f, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return &errors.TypeError{
+				FlowError: errors.FlowError{
+					Code:    errors.ErrCodeTypeMismatch,
+					Message: fmt.Sprintf("cannot convert '%s' to float: %v", value, err),
+					Field:   name,
+				},
+			}
+		}
+		return cv.SetFloat(name, f)
+	default:
+		return fmt.Errorf("unknown field type '%s' for field '%s'", fieldDef.Type, name)
+	}
+}
+
+// GetAllFields returns all context field definitions
+func (cv *ContextValues) GetAllFields() []flows.ContextField {
+	fields := make([]flows.ContextField, 0, len(cv.defs))
+	for _, field := range cv.defs {
+		fields = append(fields, field)
+	}
+	return fields
+}
+
 // OutputValues stores output field values (write-once per field)
 type OutputValues struct {
 	fields  map[string]FieldValue
@@ -610,6 +798,20 @@ func NewOutputValues(block *flows.OutputBlock) *OutputValues {
 
 	for _, field := range block.GetAllFields() {
 		ov.defs[field.Name] = field
+		// Initialize with unset placeholder based on type
+		switch ValueType(field.Type) {
+		case TypeString:
+			ov.fields[field.Name] = NewUnsetStringValue()
+		case TypeInt:
+			ov.fields[field.Name] = NewUnsetIntValue()
+		case TypeBool:
+			ov.fields[field.Name] = NewUnsetBoolValue()
+		case TypeFloat:
+			ov.fields[field.Name] = NewUnsetFloatValue()
+		default:
+			// Default to string unset for unknown types
+			ov.fields[field.Name] = NewUnsetStringValue()
+		}
 	}
 
 	return ov
@@ -786,6 +988,16 @@ func (ov *OutputValues) GetString(name string) (string, error) {
 		return "", &errors.UnknownFieldError{
 			FlowError: errors.FlowError{
 				Code:    errors.ErrCodeUnknownField,
+				Message: "output field not defined",
+				Field:   name,
+			},
+			Scope: "output",
+		}
+	}
+	if !fv.IsSet() {
+		return "", &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
 				Message: "output field not set",
 				Field:   name,
 			},
@@ -799,6 +1011,16 @@ func (ov *OutputValues) GetString(name string) (string, error) {
 func (ov *OutputValues) GetInt(name string) (int, error) {
 	fv, ok := ov.fields[name]
 	if !ok {
+		return 0, &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "output field not defined",
+				Field:   name,
+			},
+			Scope: "output",
+		}
+	}
+	if !fv.IsSet() {
 		return 0, &errors.UnknownFieldError{
 			FlowError: errors.FlowError{
 				Code:    errors.ErrCodeUnknownField,
@@ -818,6 +1040,16 @@ func (ov *OutputValues) GetBool(name string) (bool, error) {
 		return false, &errors.UnknownFieldError{
 			FlowError: errors.FlowError{
 				Code:    errors.ErrCodeUnknownField,
+				Message: "output field not defined",
+				Field:   name,
+			},
+			Scope: "output",
+		}
+	}
+	if !fv.IsSet() {
+		return false, &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
 				Message: "output field not set",
 				Field:   name,
 			},
@@ -834,6 +1066,16 @@ func (ov *OutputValues) GetFloat(name string) (float64, error) {
 		return 0, &errors.UnknownFieldError{
 			FlowError: errors.FlowError{
 				Code:    errors.ErrCodeUnknownField,
+				Message: "output field not defined",
+				Field:   name,
+			},
+			Scope: "output",
+		}
+	}
+	if !fv.IsSet() {
+		return 0, &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
 				Message: "output field not set",
 				Field:   name,
 			},
@@ -843,21 +1085,28 @@ func (ov *OutputValues) GetFloat(name string) (float64, error) {
 	return fv.Float()
 }
 
-// Has returns true if field has a value
+// Has returns true if field has a value (is defined and set)
 func (ov *OutputValues) Has(name string) bool {
-	_, ok := ov.fields[name]
-	return ok
+	fv, ok := ov.fields[name]
+	return ok && fv.IsSet()
 }
 
 // SetRaw sets a value without type validation (for computed field evaluation)
+// Preserves the valueType from the schema definition
 func (ov *OutputValues) SetRaw(name string, value any) {
-	ov.fields[name] = FieldValue{value: value}
+	// Preserve the valueType from the existing field (schema definition)
+	existing, ok := ov.fields[name]
+	valueType := TypeString // default fallback
+	if ok {
+		valueType = existing.valueType
+	}
+	ov.fields[name] = FieldValue{value: value, valueType: valueType, isSet: true}
 }
 
 // GetRaw gets a value without type checking
 func (ov *OutputValues) GetRaw(name string) (any, bool) {
 	fv, ok := ov.fields[name]
-	if !ok {
+	if !ok || !fv.IsSet() {
 		return nil, false
 	}
 	// If valueType is not set, return the raw value

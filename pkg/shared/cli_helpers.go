@@ -27,7 +27,7 @@ func ExitCode(err error) int {
 
 // WriteOutput writes formatted output to the command's writer
 func WriteOutput(cmd *cli.Command, format string, args ...any) error {
-	_, err := fmt.Fprint(cmd.Root().Writer, fmt.Sprintf(format, args...))
+	_, err := fmt.Fprintf(cmd.Root().Writer, format, args...)
 	return err
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/flows"
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/logger"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/tools"
@@ -43,6 +44,7 @@ type flowExecutorImpl struct {
 	currentState      string
 	history           *ExecutionHistory
 	startTime         time.Time
+	logService        logger.LoggerService
 	bashToolProvider  tools.BashToolProvider
 	extService        extensions.ExtensionService
 	flowRegistry      flowregistry.FlowRegistry
@@ -58,6 +60,7 @@ var _ tools.FlowContext = (*flowExecutorImpl)(nil)
 
 // flowExecutorServiceImpl is the DI service that creates executor instances
 type flowExecutorServiceImpl struct {
+	logService        logger.LoggerService
 	bashToolProvider  tools.BashToolProvider
 	extService        extensions.ExtensionService
 	flowRegistry      flowregistry.FlowRegistry
@@ -75,6 +78,7 @@ var _ FlowExecutorInstance = (*flowExecutorImpl)(nil)
 
 // NewFlowExecutor creates the flow executor service (DI constructor)
 func NewFlowExecutor(injector do.Injector) (FlowExecutorService, error) {
+	logService := do.MustInvoke[logger.LoggerService](injector)
 	bashToolProvider := do.MustInvoke[tools.BashToolProvider](injector)
 	extService := do.MustInvoke[extensions.ExtensionService](injector)
 	flowRegistry := do.MustInvoke[flowregistry.FlowRegistry](injector)
@@ -84,6 +88,7 @@ func NewFlowExecutor(injector do.Injector) (FlowExecutorService, error) {
 	agentFactory := do.MustInvoke[shared.AgentFactory](injector)
 
 	return &flowExecutorServiceImpl{
+		logService:        logService,
 		bashToolProvider:  bashToolProvider,
 		extService:        extService,
 		flowRegistry:      flowRegistry,
@@ -108,6 +113,7 @@ func (p *flowExecutorServiceImpl) New(flow *flows.Flow) FlowExecutorInstance {
 		ctx:               ctx,
 		history:           NewExecutionHistory(),
 		startTime:         time.Now(),
+		logService:        p.logService,
 		bashToolProvider:  p.bashToolProvider,
 		extService:        p.extService,
 		flowRegistry:      p.flowRegistry,
@@ -633,9 +639,37 @@ func (p *flowExecutorImpl) GetCurrentState() string {
 	return p.currentState
 }
 
-// GetAllContextFields returns all context fields
+// GetAllContextFields returns all context fields that have been set
 func (p *flowExecutorImpl) GetAllContextFields() map[string]any {
-	return p.ctx.contextVals
+	if p.ctx.contextValues == nil {
+		return make(map[string]any)
+	}
+
+	result := make(map[string]any)
+	// Iterate through all defined fields and get their values if set
+	if p.ctx.contextBlock != nil {
+		for _, field := range p.ctx.contextBlock.Strings {
+			if val, err := p.ctx.contextValues.GetString(field.Name); err == nil {
+				result[field.Name] = val
+			}
+		}
+		for _, field := range p.ctx.contextBlock.Ints {
+			if val, err := p.ctx.contextValues.GetInt(field.Name); err == nil {
+				result[field.Name] = val
+			}
+		}
+		for _, field := range p.ctx.contextBlock.Bools {
+			if val, err := p.ctx.contextValues.GetBool(field.Name); err == nil {
+				result[field.Name] = val
+			}
+		}
+		for _, field := range p.ctx.contextBlock.Floats {
+			if val, err := p.ctx.contextValues.GetFloat(field.Name); err == nil {
+				result[field.Name] = val
+			}
+		}
+	}
+	return result
 }
 
 // ValidateTransition checks if a transition is valid
@@ -697,4 +731,3 @@ func anyToString(v any) string {
 		return fmt.Sprintf("%v", val)
 	}
 }
-

@@ -31,27 +31,27 @@ const (
 type mockLogger struct{}
 
 func (m *mockLogger) Debug(_ string, _ ...zap.Field)                       {}
-func (m *mockLogger) Debugf(_ string, _ ...any)                              {}
+func (m *mockLogger) Debugf(_ string, _ ...any)                            {}
 func (m *mockLogger) Info(_ string, _ ...zap.Field)                        {}
-func (m *mockLogger) Infof(_ string, _ ...any)                               {}
-func (m *mockLogger) Warn(_ string, _ ...zap.Field)                         {}
-func (m *mockLogger) Warnf(_ string, _ ...any)                              {}
+func (m *mockLogger) Infof(_ string, _ ...any)                             {}
+func (m *mockLogger) Warn(_ string, _ ...zap.Field)                        {}
+func (m *mockLogger) Warnf(_ string, _ ...any)                             {}
 func (m *mockLogger) Error(_ string, _ ...zap.Field)                       {}
-func (m *mockLogger) Errorf(_ string, _ ...any)                              {}
+func (m *mockLogger) Errorf(_ string, _ ...any)                            {}
 func (m *mockLogger) InfoWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)  {}
 func (m *mockLogger) ErrorWithAgent(_ string, _ uuid.UUID, _ ...zap.Field) {}
 func (m *mockLogger) DebugWithAgent(_ string, _ uuid.UUID, _ ...zap.Field) {}
 func (m *mockLogger) WarnWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)  {}
-func (m *mockLogger) GetLogger() *zap.Logger                            { return nil }
-func (m *mockLogger) SetTUIWriter(_ io.Writer)                      {}
-func (m *mockLogger) ResetToStdout()                                {}
-func (m *mockLogger) GetLogs(_ logger.LogFilter) []logger.LogEntry { return nil }
-func (m *mockLogger) GetLogStats() map[string]interface{}             { return nil }
-func (m *mockLogger) IsTUIMode() bool                             { return false }
-func (m *mockLogger) SetTUIMode(_ bool)                           {}
-func (m *mockLogger) EnableFileLogging(_ string, _ uuid.UUID) error  { return nil }
-func (m *mockLogger) CloseFileLogging() error                                  { return nil }
-func (m *mockLogger) Flush() error                                          { return nil }
+func (m *mockLogger) GetLogger() *zap.Logger                               { return nil }
+func (m *mockLogger) SetTUIWriter(_ io.Writer)                             {}
+func (m *mockLogger) ResetToStdout()                                       {}
+func (m *mockLogger) GetLogs(_ logger.LogFilter) []logger.LogEntry         { return nil }
+func (m *mockLogger) GetLogStats() map[string]interface{}                  { return nil }
+func (m *mockLogger) IsTUIMode() bool                                      { return false }
+func (m *mockLogger) SetTUIMode(_ bool)                                    {}
+func (m *mockLogger) EnableFileLogging(_ string, _ uuid.UUID) error        { return nil }
+func (m *mockLogger) CloseFileLogging() error                              { return nil }
+func (m *mockLogger) Flush() error                                         { return nil }
 
 var _ logger.LoggerService = (*mockLogger)(nil)
 

@@ -15,7 +15,8 @@ import (
 type ExtensionState int
 
 const (
-	StateLoaded       ExtensionState = iota
+	// StateLoaded is the initial state when extension is loaded but not initialized
+	StateLoaded ExtensionState = iota
 	StateInitializing
 	StateReady
 	StateFailed
@@ -131,7 +132,7 @@ func (p *yaegiLoaderImpl) LoadExtension(path string) (*Extension, error) {
 
 	initFn, ok := initFnVal.Interface().(func() error)
 	if !ok {
-		return nil, fmt.Errorf("Init function has wrong signature")
+		return nil, fmt.Errorf("init function has wrong signature")
 	}
 
 	ext := &Extension{

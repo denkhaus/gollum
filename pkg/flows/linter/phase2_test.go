@@ -23,7 +23,7 @@ func TestPhase2_InvalidExpression(t *testing.T) {
 		Input:  &flows.InputBlock{},
 		Output: &flows.OutputBlock{},
 		Computed: &flows.ComputedBlock{
-		Bools: []flows.ComputedFieldDef{
+			Bools: []flows.ComputedFieldDef{
 				{Name: "is_open", Eval: "INVALID(context.pr.state,"},
 			},
 		},
@@ -54,7 +54,7 @@ func TestPhase2_FieldExists(t *testing.T) {
 			},
 		},
 		Computed: &flows.ComputedBlock{
-		Bools: []flows.ComputedFieldDef{
+			Bools: []flows.ComputedFieldDef{
 				{Name: "is_open", Eval: "EQ(context.status, 'open')"},
 			},
 		},
@@ -84,7 +84,7 @@ func TestPhase2_BareVarRefInCallInput(t *testing.T) {
 			{
 				Name:    "init",
 				Initial: true,
-						Calls: []flows.Call{
+				Calls: []flows.Call{
 					{
 						Ref: "sub-flow",
 						Input: &flows.CallInputBlock{
@@ -118,7 +118,7 @@ func TestPhase2_BareVarRefInCallOutput(t *testing.T) {
 			{
 				Name:    "init",
 				Initial: true,
-						Calls: []flows.Call{
+				Calls: []flows.Call{
 					{
 						Ref: "sub-flow",
 						Output: &flows.CallOutputBlock{
@@ -301,7 +301,7 @@ func TestPhase2_ErrorPrefixVarRefIsValid(t *testing.T) {
 					{
 						Type:   "llm",
 						Agent:  "coordinator",
-						Prompt: "Error: ${error.message} in ${error.step_name}", // error prefix is valid
+						Prompt: "Error: ${sys.error.Message} in ${sys.error.StepName}", // error context via sys scope
 					},
 				},
 			},

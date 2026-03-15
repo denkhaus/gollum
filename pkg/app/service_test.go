@@ -284,7 +284,7 @@ func TestCreateSupervisorAgent_ToolSetSuccess(t *testing.T) {
 	ctx := context.Background()
 
 	mockLogger := mocks.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Warn("no mcp servers configured for supervison agent").Times(1)
+	mockLogger.EXPECT().Warn("no mcp servers configured for supervision agent").Times(1)
 	mockLogger.EXPECT().Infof("Supervisor agent %s registered", gomock.Any()).Times(1)
 
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
@@ -381,7 +381,7 @@ func TestCreateSupervisorAgent_AgentFactoryError(t *testing.T) {
 	ctx := context.Background()
 
 	mockLogger := mocks.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Warn("no mcp servers configured for supervison agent").Times(1)
+	mockLogger.EXPECT().Warn("no mcp servers configured for supervision agent").Times(1)
 
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
@@ -428,7 +428,7 @@ func TestCreateSupervisorAgent_RegistryError(t *testing.T) {
 	agentID := uuid.New()
 
 	mockLogger := mocks.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Warn("no mcp servers configured for supervison agent").Times(1)
+	mockLogger.EXPECT().Warn("no mcp servers configured for supervision agent").Times(1)
 
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
 
@@ -654,17 +654,17 @@ func TestRun_NoDefaultFlowRunsTUI(t *testing.T) {
 	mockChannelFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).Times(1)
 
 	p := &applicationServiceImpl{
-		gollumDir:           filepath.Join(tempDir, gollumDirName),
-		logService:          mockLogger,
-		fsm:                 mockFSM,
-		agentRegistry:       mockAgentRegistry,
-		promptMgr:           mockPromptMgr,
-		agentFactory:        mockAgentFactory,
-		workspaceService:    mockWorkspaceService,
-		skillsService:       mockSkillsService,
-		mcpRegistry:         mockMCPRegistry,
-		channelFacade:       mockChannelFacade,
-		markdownRenderer:    &mockMarkdownRenderer{},
+		gollumDir:        filepath.Join(tempDir, gollumDirName),
+		logService:       mockLogger,
+		fsm:              mockFSM,
+		agentRegistry:    mockAgentRegistry,
+		promptMgr:        mockPromptMgr,
+		agentFactory:     mockAgentFactory,
+		workspaceService: mockWorkspaceService,
+		skillsService:    mockSkillsService,
+		mcpRegistry:      mockMCPRegistry,
+		channelFacade:    mockChannelFacade,
+		markdownRenderer: &mockMarkdownRenderer{},
 	}
 
 	// This will fail when trying to run the actual TUI, but we can verify

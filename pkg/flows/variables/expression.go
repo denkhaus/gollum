@@ -153,7 +153,15 @@ func (ee *ExpressionEvaluator) resolveArgs(args []string, scope *EvaluationScope
 			if !ok {
 				return nil, fmt.Errorf("field not found: %s.%s", scopeName, fieldName)
 			}
-			resolved[i] = val
+			// For nil (unset field), use a sensible default for expression evaluation
+			// This allows computed fields to reference unset context/output fields without error
+			if val == nil {
+				// Use zero/default values for unset fields in expressions
+				// This is different from the actual field value - it's just for expression eval
+				resolved[i] = 0 // Default to 0 for numbers (works for comparisons)
+			} else {
+				resolved[i] = val
+			}
 		} else {
 			// It's a literal value (number, bool, or string)
 			// Check for string literal (enclosed in single or double quotes)

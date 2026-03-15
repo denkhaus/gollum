@@ -1,5 +1,6 @@
 package shared
 
+// ToolName is a strongly-typed tool identifier
 type ToolName string
 
 func (p ToolName) String() string {

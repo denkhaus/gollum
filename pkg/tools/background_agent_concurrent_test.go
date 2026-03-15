@@ -70,8 +70,8 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 		}).AnyTimes()
 		mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 			LLMClientConfig: &shared.LLMClientConfig{
-			Model: "anthropic/claude-3-5-sonnet-20241022",
-		},
+				Model: "anthropic/claude-3-5-sonnet-20241022",
+			},
 			Role:         "Concurrent Agent",
 			SystemPrompt: "test",
 		}).AnyTimes()
@@ -169,11 +169,11 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	rootAgent := mocks.NewMockAgent(ctrl)
 	rootAgent.EXPECT().GetID().Return(rootID).AnyTimes()
 	rootAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:          rootID,
+		ID: rootID,
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
-		Role:        "Root",
+		Role: "Root",
 	}).AnyTimes()
 
 	childAgent := mocks.NewMockAgent(ctrl)
@@ -184,7 +184,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
-		Role:        "Child",
+		Role: "Child",
 	}).AnyTimes()
 
 	grandchildAgent := mocks.NewMockAgent(ctrl)
@@ -195,18 +195,18 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
-		Role:        "Grandchild",
+		Role: "Grandchild",
 	}).AnyTimes()
 
 	ctx := context.Background()
 
 	// Register root agent directly (no parent)
 	rootConfig := &shared.AgentConfig{
-		ID:          rootID,
+		ID: rootID,
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
-		Role:        "Root",
+		Role: "Root",
 	}
 	err := agentRegistry.Register(rootAgent, rootConfig)
 	require.NoError(t, err)

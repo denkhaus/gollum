@@ -16,7 +16,7 @@ func TestNewContext_InitializesWithDefaults(t *testing.T) {
 	ctx := NewContext(input, nil, nil, inputVals)
 
 	assert.Equal(t, "gollum", ctx.GetInput("repo"))
-	assert.NotNil(t, ctx.contextVals)
+	assert.NotNil(t, ctx.contextValues)
 	assert.NotNil(t, ctx.computedVals)
 }
 

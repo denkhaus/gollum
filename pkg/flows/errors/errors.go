@@ -62,3 +62,9 @@ type ValidationError struct {
 func (ve *ValidationError) Error() string {
 	return fmt.Sprintf("%s: %d validation errors", ve.Code, len(ve.Errors))
 }
+
+// NoSchemaError indicates that no schema (context/output) was defined for the operation
+type NoSchemaError struct {
+	FlowError
+	Scope string // "context", "output", "input"
+}

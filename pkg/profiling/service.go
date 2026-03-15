@@ -1,8 +1,8 @@
 // Package profiling provides profiling service interface
 package profiling
 
-// ProfilingService defines the interface for runtime profiling operations
-type ProfilingService interface {
+// Service defines the interface for runtime profiling operations
+type Service interface {
 	// Enable activates profiling with optional HTTP server address
 	Enable(addr string) error
 

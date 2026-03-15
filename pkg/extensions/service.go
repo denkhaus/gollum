@@ -28,12 +28,12 @@ type ExtensionService interface {
 
 // extensionServiceImpl is the private implementation
 type extensionServiceImpl struct {
-	logService    logger.LoggerService
-	gateway       DIGateway
-	yaegiLoader   YaegiLoader
+	logService      logger.LoggerService
+	gateway         DIGateway
+	yaegiLoader     YaegiLoader
 	yaegiFuncRunner YaegiFuncRunner
-	workspaceDir  string
-	loadedFuncs   map[string]string // funcName -> sourcePath
+	workspaceDir    string
+	loadedFuncs     map[string]string // funcName -> sourcePath
 }
 
 // Ensure extensionServiceImpl implements ExtensionService

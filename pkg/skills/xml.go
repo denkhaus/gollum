@@ -27,12 +27,12 @@ func (s *Skill) ToPromptXML() string {
 	// Build XML manually for better formatting
 	var sb strings.Builder
 	sb.WriteString("<skill")
-	sb.WriteString(fmt.Sprintf(` name="%s"`, escapeXML(s.Name)))
+	fmt.Fprintf(&sb, ` name="%s"`, escapeXML(s.Name))
 	if s.Description != "" {
-		sb.WriteString(fmt.Sprintf(` description="%s"`, escapeXML(s.Description)))
+		fmt.Fprintf(&sb, ` description="%s"`, escapeXML(s.Description))
 	}
 	if s.Type != "" {
-		sb.WriteString(fmt.Sprintf(` type="%s"`, string(s.Type)))
+		fmt.Fprintf(&sb, ` type="%s"`, string(s.Type))
 	}
 	sb.WriteString(">")
 

@@ -16,7 +16,7 @@ var validPrefixes = map[string]bool{
 	"input":    true,
 	"output":   true,
 	"context":  true,
-	"error":    true,
+	"sys":      true, // System scope (contains error, etc.)
 	"computed": true,
 }
 

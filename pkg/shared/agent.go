@@ -30,6 +30,7 @@ type Agent interface {
 	UpdateHistory(ctx context.Context, modifier func(*gollem.History) (*gollem.History, error)) error
 }
 
+// LLMClientConfig holds configuration for LLM client initialization
 type LLMClientConfig struct {
 	// Model describes a llm-provider/model combination in the format "<provider>/model"
 	Model string

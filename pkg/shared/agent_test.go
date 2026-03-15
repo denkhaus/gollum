@@ -6,10 +6,10 @@ import (
 
 func TestLLMClientConfigProvider(t *testing.T) {
 	tests := []struct {
-		name      string
-		model     string
-		want      LLMProvider
-		wantErr   error
+		name    string
+		model   string
+		want    LLMProvider
+		wantErr error
 	}{
 		{
 			name:    "anthropic provider",
@@ -74,10 +74,10 @@ func TestLLMClientConfigProvider(t *testing.T) {
 
 func TestLLMClientConfigModelName(t *testing.T) {
 	tests := []struct {
-		name      string
-		model     string
-		want      string
-		wantErr   error
+		name    string
+		model   string
+		want    string
+		wantErr error
 	}{
 		{
 			name:    "anthropic model",

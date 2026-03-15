@@ -104,7 +104,7 @@ func TestExecuteFuncStep_StringsContains(t *testing.T) {
 			},
 		},
 		Output: &flows.OutputBlock{
-			Strings: []flows.FieldDef{{Name: "result"}},
+			Bools: []flows.FieldDef{{Name: "result"}},
 		},
 		States: []flows.State{
 			{

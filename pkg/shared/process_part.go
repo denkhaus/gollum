@@ -4,10 +4,15 @@ package shared
 type PartType int
 
 const (
+	// PartTypeText is a text content part
 	PartTypeText PartType = iota
+	// PartTypeToolUse is a tool use content part
 	PartTypeToolUse
+	// PartTypeToolResult is a tool result content part
 	PartTypeToolResult
+	// PartTypeThinking is a thinking/reasoning content part
 	PartTypeThinking
+	// PartTypeError is an error content part
 	PartTypeError
 )
 

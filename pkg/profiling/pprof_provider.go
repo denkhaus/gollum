@@ -4,6 +4,8 @@ package profiling
 import (
 	"fmt"
 	"net/http"
+
+	// Register pprof HTTP handlers with http.DefaultServeMux
 	_ "net/http/pprof"
 	"os"
 	"runtime/pprof"
@@ -54,9 +56,7 @@ func (p *PProfProvider) Enable(addr string) error {
 
 	// Start server in background
 	go func() {
-		if err := p.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			// Log error but don't crash - server might be closed intentionally
-		}
+		_ = p.server.ListenAndServe() // Server closed intentionally via Close()
 	}()
 
 	p.enabled = true
@@ -78,14 +78,10 @@ func (p *PProfProvider) Disable() error {
 
 	// Close profile files
 	if p.cpuProfile != nil {
-		if err := p.cpuProfile.Close(); err != nil {
-			// Log error but don't fail - continue with shutdown
-		}
+		_ = p.cpuProfile.Close() // Ignore errors during shutdown
 	}
 	if p.memProfile != nil {
-		if err := p.memProfile.Close(); err != nil {
-			// Log error but don't fail - continue with shutdown
-		}
+		_ = p.memProfile.Close() // Ignore errors during shutdown
 	}
 
 	p.enabled = false

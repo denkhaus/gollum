@@ -39,9 +39,3 @@ func (m Model) exitMultiLineMode() (tea.Model, tea.Cmd) {
 	m.textInput.SetValue("")
 	return m, nil
 }
-
-// appendToMultiLineBuffer adds current input to the multi-line buffer.
-func (m Model) appendToMultiLineBuffer(input string) Model {
-	m.multiLineBuffer = append(m.multiLineBuffer, input)
-	return m
-}

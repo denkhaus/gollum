@@ -85,19 +85,19 @@ func (t *Trajectory) FormatForLLM() string {
 			switch content.Type {
 			case gollem.MessageContentTypeText:
 				if text, err := content.GetTextContent(); err == nil {
-					sb.WriteString(fmt.Sprintf("%s: %s\n\n", role, text.Text))
+					fmt.Fprintf(&sb, "%s: %s\n\n", role, text.Text)
 				}
 
 			case gollem.MessageContentTypeToolCall:
 				if tc, err := content.GetToolCallContent(); err == nil {
-					sb.WriteString(fmt.Sprintf("%s: Called tool '%s' with args %v\n\n",
-						role, tc.Name, tc.Arguments))
+					fmt.Fprintf(&sb, "%s: Called tool '%s' with args %v\n\n",
+						role, tc.Name, tc.Arguments)
 				}
 
 			case gollem.MessageContentTypeToolResponse:
 				if tr, err := content.GetToolResponseContent(); err == nil {
-					sb.WriteString(fmt.Sprintf("%s: Tool response: %v\n\n",
-						role, tr.Response))
+					fmt.Fprintf(&sb, "%s: Tool response: %v\n\n",
+						role, tr.Response)
 				}
 			}
 		}
@@ -109,25 +109,25 @@ func (t *Trajectory) FormatForLLM() string {
 		case string:
 			sb.WriteString(fb)
 		case *Feedback:
-			sb.WriteString(fmt.Sprintf("Score: %.2f\n", fb.Score))
+			fmt.Fprintf(&sb, "Score: %.2f\n", fb.Score)
 			if fb.Comment != "" {
-				sb.WriteString(fmt.Sprintf("Comment: %s\n", fb.Comment))
+				fmt.Fprintf(&sb, "Comment: %s\n", fb.Comment)
 			}
 			if len(fb.FailureModes) > 0 {
-				sb.WriteString(fmt.Sprintf("Issues: %s\n",
-					strings.Join(fb.FailureModes, ", ")))
+				fmt.Fprintf(&sb, "Issues: %s\n",
+					strings.Join(fb.FailureModes, ", "))
 			}
 			if fb.Outcome != "" {
-				sb.WriteString(fmt.Sprintf("Outcome: %s\n", fb.Outcome))
+				fmt.Fprintf(&sb, "Outcome: %s\n", fb.Outcome)
 			}
 		case *EditFeedback:
-			sb.WriteString(fmt.Sprintf("Revised: %s\n", fb.Revised))
+			fmt.Fprintf(&sb, "Revised: %s\n", fb.Revised)
 			if len(fb.Edits) > 0 {
 				sb.WriteString("\nEdits:\n")
 				for _, edit := range fb.Edits {
-					sb.WriteString(fmt.Sprintf("  - '%s' -> '%s'", edit.OldText, edit.NewText))
+					fmt.Fprintf(&sb, "  - '%s' -> '%s'", edit.OldText, edit.NewText)
 					if edit.Reason != "" {
-						sb.WriteString(fmt.Sprintf(" (Reason: %s)", edit.Reason))
+						fmt.Fprintf(&sb, " (Reason: %s)", edit.Reason)
 					}
 					sb.WriteString("\n")
 				}
@@ -218,7 +218,7 @@ func FormatSessions(trajectories []*Trajectory) string {
 	var sb strings.Builder
 
 	for i, traj := range trajectories {
-		sb.WriteString(fmt.Sprintf("## Session %d\n\n", i+1))
+		fmt.Fprintf(&sb, "## Session %d\n\n", i+1)
 		sb.WriteString(traj.FormatForLLM())
 	}
 

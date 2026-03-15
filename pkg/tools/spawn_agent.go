@@ -199,15 +199,15 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args map[string]
 	// Create subagent configuration
 	taskID := uuid.New()
 	subagentConfig := &shared.AgentConfig{
-		AllowCompaction:  false, // Don't allow compaction in Sub-agents
-		ID:               taskID,
-		ParentID:         &t.senderID,
-		SystemPrompt:     systemPrompt,
-		Role:             role,
-		Description:      description,
-		LLMClientConfig:  llmClientConfig,
-		OutputMode:       shared.OutputModeSummary, // Sub-agents use summary mode
-		History:          history,                  // Include parent message history for context awareness
+		AllowCompaction: false, // Don't allow compaction in Sub-agents
+		ID:              taskID,
+		ParentID:        &t.senderID,
+		SystemPrompt:    systemPrompt,
+		Role:            role,
+		Description:     description,
+		LLMClientConfig: llmClientConfig,
+		OutputMode:      shared.OutputModeSummary, // Sub-agents use summary mode
+		History:         history,                  // Include parent message history for context awareness
 	}
 
 	// Create the subagent using the factory (which now adds default tools)

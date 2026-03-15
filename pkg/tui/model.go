@@ -801,8 +801,8 @@ func (m *Model) formatMessageImpl(_ int, msg channel.Message, selected bool) str
 	}
 
 	// Top border with T-junctions for column separators
-	b.WriteString(fmt.Sprintf("%s%s%s%s%s%s%s\n",
-		topLeft, repeat(horizontal, col1Width), topMid, repeat(horizontal, col2Width), topMid, repeat(horizontal, col3Width), topRight))
+	fmt.Fprintf(&b, "%s%s%s%s%s%s%s\n",
+		topLeft, repeat(horizontal, col1Width), topMid, repeat(horizontal, col2Width), topMid, repeat(horizontal, col3Width), topRight)
 
 	// Pad and truncate columns to fit
 	// Adds 1 space of padding on each side of the text
@@ -835,11 +835,11 @@ func (m *Model) formatMessageImpl(_ int, msg channel.Message, selected bool) str
 	paddedCol3 := padCol(col3, col3Width, false) // LEFT-align timestamp (not right)
 
 	// Write the header row with proper borders
-	b.WriteString(fmt.Sprintf("%s%s%s%s%s%s%s\n", vertical, paddedCol1, vertical, paddedCol2, vertical, paddedCol3, vertical))
+	fmt.Fprintf(&b, "%s%s%s%s%s%s%s\n", vertical, paddedCol1, vertical, paddedCol2, vertical, paddedCol3, vertical)
 
 	// Separator line
-	b.WriteString(fmt.Sprintf("%s%s%s%s%s%s%s\n",
-		midLeft, repeat(horizontal, col1Width), midMid, repeat(horizontal, col2Width), midMid, repeat(horizontal, col3Width), midRight))
+	fmt.Fprintf(&b, "%s%s%s%s%s%s%s\n",
+		midLeft, repeat(horizontal, col1Width), midMid, repeat(horizontal, col2Width), midMid, repeat(horizontal, col3Width), midRight)
 
 	// Content rows with border
 	// Add 1 space of padding on each side for content
@@ -854,17 +854,17 @@ func (m *Model) formatMessageImpl(_ int, msg channel.Message, selected bool) str
 		if lineVisWidth > availableContentWidth {
 			// Truncate long lines by visual width (preserving ANSI codes at start)
 			truncated := truncateVisual(line, availableContentWidth)
-			b.WriteString(fmt.Sprintf("%s %s%s %s\n", vertical, truncated, strings.Repeat(" ", availableContentWidth-visualWidth(truncated)), vertical))
+			fmt.Fprintf(&b, "%s %s%s %s\n", vertical, truncated, strings.Repeat(" ", availableContentWidth-visualWidth(truncated)), vertical)
 		} else {
 			// Pad short lines with spaces on the right
 			padding := availableContentWidth - lineVisWidth
-			b.WriteString(fmt.Sprintf("%s %s%s %s\n", vertical, line, strings.Repeat(" ", padding), vertical))
+			fmt.Fprintf(&b, "%s %s%s %s\n", vertical, line, strings.Repeat(" ", padding), vertical)
 		}
 	}
 
 	// Bottom border - needs to match top border width
 	borderLineWidth := col1Width + col2Width + col3Width + 2
-	b.WriteString(fmt.Sprintf("%s%s%s\n", bottomLeft, repeat(horizontal, borderLineWidth), bottomRight))
+	fmt.Fprintf(&b, "%s%s%s\n", bottomLeft, repeat(horizontal, borderLineWidth), bottomRight)
 
 	return b.String()
 }
@@ -908,17 +908,17 @@ func (m *Model) formatCollapsedToolMessage(msg channel.Message, selected bool) s
 	borderWidth := totalWidth - 2
 
 	// Top border
-	b.WriteString(fmt.Sprintf("%s%s%s\n", topLeft, strings.Repeat(horizontal, borderWidth), topRight))
+	fmt.Fprintf(&b, "%s%s%s\n", topLeft, strings.Repeat(horizontal, borderWidth), topRight)
 
 	// Header content with padding
 	padding := borderWidth - len([]rune(headerContent))
 	if padding < 0 {
 		padding = 0
 	}
-	b.WriteString(fmt.Sprintf("%s %s%s %s\n", vertical, headerContent, strings.Repeat(" ", padding), vertical))
+	fmt.Fprintf(&b, "%s %s%s %s\n", vertical, headerContent, strings.Repeat(" ", padding), vertical)
 
 	// Bottom border (with trailing newline for consistency)
-	b.WriteString(fmt.Sprintf("%s%s%s\n", bottomLeft, strings.Repeat(horizontal, borderWidth), bottomRight))
+	fmt.Fprintf(&b, "%s%s%s\n", bottomLeft, strings.Repeat(horizontal, borderWidth), bottomRight)
 
 	return b.String()
 }

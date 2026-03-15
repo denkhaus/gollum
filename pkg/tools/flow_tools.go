@@ -226,7 +226,7 @@ func (t *setContextFieldTool) runSetContextField(_ context.Context, args map[str
 	if err := t.flowCtx.SetContextField(name, value); err != nil {
 		return nil, err
 	}
-	t.logService.Debugf("Set context field '%s' = %v", name, value)
+	t.logService.Infof("Set context field '%s' = %v", name, value)
 
 	return map[string]any{"success": true}, nil
 }

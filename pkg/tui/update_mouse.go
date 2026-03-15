@@ -244,12 +244,6 @@ func (m Model) scrollLogViewport(direction int, scrollLines int) Model {
 	return m
 }
 
-// incrementDebounceTag increments the debounce tag and returns the new value.
-func (m Model) incrementDebounceTag() (Model, int) {
-	m.mouseDebounceTag++
-	return m, m.mouseDebounceTag
-}
-
 // createDebounceCommand creates a debounce command for mouse scrolling.
 func (m Model) createDebounceCommand(tag int, direction int, viewportName Viewport) tea.Cmd {
 	return tea.Tick(m.mouseDebounceDuration, func(_ time.Time) tea.Msg {

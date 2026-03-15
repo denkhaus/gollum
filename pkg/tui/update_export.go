@@ -51,8 +51,8 @@ func generateExportFilename() string {
 func buildExportContent(messages []channel.Message) string {
 	var content strings.Builder
 	content.WriteString("# Gollum Conversation Export\n")
-	content.WriteString(fmt.Sprintf("# Exported: %s\n", time.Now().Format(time.RFC3339)))
-	content.WriteString(fmt.Sprintf("# Total Messages: %d\n", len(messages)))
+	fmt.Fprintf(&content, "# Exported: %s\n", time.Now().Format(time.RFC3339))
+	fmt.Fprintf(&content, "# Total Messages: %d\n", len(messages))
 	content.WriteString(strings.Repeat("=", 60) + "\n\n")
 
 	for _, msg := range messages {

@@ -91,8 +91,8 @@ type PromptStore interface {
 
 // ListFilter provides filtering options for listing prompts.
 type ListFilter struct {
-	Tags []string                    // Filter by tags (OR logic)
-	IDs  []prompt.VersionedPromptID  // Filter by versioned IDs (OR logic)
+	Tags []string                   // Filter by tags (OR logic)
+	IDs  []prompt.VersionedPromptID // Filter by versioned IDs (OR logic)
 }
 
 // Error definitions

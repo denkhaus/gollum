@@ -102,7 +102,7 @@ func (h *LangfuseHook) getClient() (*langfuse.Langfuse, error) {
 
 	// Validate configuration
 	if h.config.LangfusePublicKey == "" || h.config.LangfuseSecretKey == "" {
-		return nil, fmt.Errorf("Langfuse credentials not configured (set LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY)")
+		return nil, fmt.Errorf("langfuse credentials not configured (set LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY)")
 	}
 
 	// Create client with SDK

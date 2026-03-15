@@ -11,6 +11,8 @@ import (
 const Version = "1.0.0"
 
 // Main runs profiling setup from command-line flags
+//
+//nolint:forbidigo // fmt.Printf/fmt.Println are appropriate for CLI tools
 func Main(ctx context.Context) error {
 	// Parse flags
 	config := ParseFlags()

@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -29,6 +30,12 @@ func (p *flowExecutorImpl) executeLLMStep(step *flows.Step, _ string) error {
 	// Substitute variables in prompt
 	prompt := SubstituteTemplate(p.ctx, step.Prompt)
 
+	// Parse tools from step specification
+	tools, err := p.parseStepTools(step.Tools)
+	if err != nil {
+		return fmt.Errorf("failed to parse tools: %w", err)
+	}
+
 	// Map flow Agent to shared.AgentConfig
 	config := &shared.AgentConfig{
 		ID:              uuid.New(),
@@ -38,7 +45,7 @@ func (p *flowExecutorImpl) executeLLMStep(step *flows.Step, _ string) error {
 		LLMClientConfig: agentConfig.ToClientConfig(),
 		OutputMode:      shared.OutputModeSilent, // Suppress output during flow execution
 		Strategy:        simple.New(),
-		Tools:           nil, // Tools can be added later if needed
+		Tools:           tools,
 		ToolSets:        nil,
 	}
 
@@ -91,4 +98,32 @@ func (p *flowExecutorImpl) executeLLMStep(step *flows.Step, _ string) error {
 	}
 
 	return nil
+}
+
+// parseStepTools parses the comma-separated tools string and creates gollem.Tool instances
+func (p *flowExecutorImpl) parseStepTools(toolsStr string) ([]gollem.Tool, error) {
+	if toolsStr == "" {
+		return nil, nil
+	}
+
+	agentID := uuid.Nil // Flow tools don't have a specific agent ID
+	var tools []gollem.Tool
+
+	toolNames := strings.Split(toolsStr, ",")
+	for _, toolName := range toolNames {
+		toolName = strings.TrimSpace(toolName)
+		if toolName == "" {
+			continue
+		}
+
+		// Create tool using flow tools provider
+		tool, err := p.flowToolsProvider.CreateTool(agentID, p, shared.ToolName(toolName))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create tool '%s': %w", toolName, err)
+		}
+
+		tools = append(tools, tool)
+	}
+
+	return tools, nil
 }

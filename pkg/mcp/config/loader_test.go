@@ -105,9 +105,9 @@ func (m *mockConfigService) GetEventsConfig() *appconfig.EventsConfig {
 }
 
 func (m *mockConfigService) GetMCPConfig() *appconfig.MCPConfig {
-	// Return default MCP config with 5-second timeout for tests
+	// Return default MCP config with 30-second timeout for tests
 	return &appconfig.MCPConfig{
-		CommandTimeoutSeconds: 5,
+		CommandTimeoutSeconds: 30,
 	}
 }
 
@@ -143,11 +143,12 @@ func TestGetCommandTimeout(t *testing.T) {
 		input    int
 		expected time.Duration
 	}{
-		{"default", 5, 5 * time.Second},
-		{"minimum", 0, 1 * time.Second}, // Below min gets clamped
+		{"default", 30, 30 * time.Second}, // New default
+		{"minimum", 0, 1 * time.Second},   // Below min gets clamped
 		{"one second", 1, 1 * time.Second},
 		{"ten seconds", 10, 10 * time.Second},
-		{"maximum", 100, 60 * time.Second}, // Above max gets clamped
+		{"gopass-friendly", 45, 45 * time.Second}, // Enough time for gopass
+		{"maximum", 400, 300 * time.Second},       // Above max (300) gets clamped
 	}
 
 	for _, tt := range tests {

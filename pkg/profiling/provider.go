@@ -4,7 +4,7 @@ package profiling
 import "github.com/samber/do/v2"
 
 // NewProfilingServiceProvider creates a new profiling service for DI
-func NewProfilingServiceProvider(injector do.Injector) (ProfilingService, error) {
+func NewProfilingServiceProvider(_ do.Injector) (Service, error) {
 	// Create pprof provider implementation
 	// In a real implementation, this would read config for address, etc.
 	// For now, we create it with defaults

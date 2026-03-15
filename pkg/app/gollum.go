@@ -7,10 +7,12 @@ import (
 
 // ensureGollumDirectory creates .gollum directory if it doesn't exist
 func (p *applicationServiceImpl) ensureGollumDirectory() error {
-	p.gollumDir = filepath.Join(p.workspaceService.GetCurrentWorkspace(), gollumDirName)
-	if err := os.MkdirAll(p.gollumDir, 0755); err != nil {
+	gollumDir := filepath.Join(p.workspaceService.GetCurrentWorkspace(), gollumDirName)
+	if err := os.MkdirAll(gollumDir, 0755); err != nil {
 		return err
 	}
+
+	p.gollumDir = gollumDir
 	return p.ensureGollumGitignore()
 }
 

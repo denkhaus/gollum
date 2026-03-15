@@ -11,10 +11,10 @@ import (
 // TUIChannel implements the channel.Channel interface for the TUI.
 // It forwards messages to the TUI model via the message channel for display.
 type TUIChannel struct {
-	id           string
-	messageChan  chan<- channel.Message
-	agentID      uuid.UUID
-	agentRole    string
+	id          string
+	messageChan chan<- channel.Message
+	agentID     uuid.UUID
+	agentRole   string
 }
 
 // NewTUIChannel creates a new TUIChannel instance.

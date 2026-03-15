@@ -3,17 +3,24 @@ package registry
 import (
 	"context"
 	"testing"
+	"time"
 
-	"github.com/denkhaus/gollum/pkg/mcp/config"
+	appconfig "github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/mocks"
+	mcpconfig "github.com/denkhaus/gollum/pkg/mcp/config"
 	"github.com/m-mizutani/gollem"
 	"github.com/m-mizutani/gollem/mcp"
+	"go.uber.org/mock/gomock"
 )
 
 func TestMCPRegistry_CreateStdioClient(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	// Test with invalid command to verify graceful failure
 	// (echo is not a valid MCP server)
 	loader := &mockConfigLoader{
-		configs: map[string]config.MCPServerConfig{
+		configs: map[string]mcpconfig.MCPServerConfig{
 			"invalid-server": {
 				Command: "echo",
 				Args:    []string{"not an mcp server"},
@@ -22,7 +29,7 @@ func TestMCPRegistry_CreateStdioClient(t *testing.T) {
 		},
 	}
 
-	registry, err := NewMCPRegistryWithLoader(loader)
+	registry, err := NewMCPRegistryWithLoader(t, ctrl, loader)
 	if err != nil {
 		t.Fatalf("NewMCPRegistryWithLoader() error = %v", err)
 	}
@@ -36,9 +43,12 @@ func TestMCPRegistry_CreateStdioClient(t *testing.T) {
 }
 
 func TestMCPRegistry_CreateSSEClient(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	// Test SSE client creation with invalid URL (graceful failure)
 	loader := &mockConfigLoader{
-		configs: map[string]config.MCPServerConfig{
+		configs: map[string]mcpconfig.MCPServerConfig{
 			"invalid-sse": {
 				Type:    "sse",
 				URL:     "http://invalid-local-url:9999/mcp",
@@ -47,7 +57,7 @@ func TestMCPRegistry_CreateSSEClient(t *testing.T) {
 		},
 	}
 
-	registry, err := NewMCPRegistryWithLoader(loader)
+	registry, err := NewMCPRegistryWithLoader(t, ctrl, loader)
 	if err != nil {
 		t.Fatalf("NewMCPRegistryWithLoader() error = %v", err)
 	}
@@ -60,35 +70,41 @@ func TestMCPRegistry_CreateSSEClient(t *testing.T) {
 	}
 }
 
-func TestMCPRegistry_CreateStreamableHTTPClient(t *testing.T) {
-	// Test streamable HTTP client creation with invalid URL (graceful failure)
+func TestMCPRegistry_CreateHTTPClient(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Test HTTP client creation with invalid URL (graceful failure)
 	loader := &mockConfigLoader{
-		configs: map[string]config.MCPServerConfig{
-			"invalid-streamable": {
-				Type:    "streamable-http",
+		configs: map[string]mcpconfig.MCPServerConfig{
+			"invalid-http": {
+				Type:    "http",
 				URL:     "http://invalid-local-url:9999/mcp",
 				Enabled: true,
 			},
 		},
 	}
 
-	registry, err := NewMCPRegistryWithLoader(loader)
+	registry, err := NewMCPRegistryWithLoader(t, ctrl, loader)
 	if err != nil {
 		t.Fatalf("NewMCPRegistryWithLoader() error = %v", err)
 	}
 	defer func() { _ = registry.Close() }()
 
-	// Invalid streamable HTTP servers should be skipped
+	// Invalid HTTP servers should be skipped
 	toolSets := registry.GetToolSets()
 	if len(toolSets) != 0 {
-		t.Errorf("GetToolSets() returned %d ToolSets, want 0 (invalid streamable HTTP server skipped)", len(toolSets))
+		t.Errorf("GetToolSets() returned %d ToolSets, want 0 (invalid HTTP server skipped)", len(toolSets))
 	}
 }
 
 func TestMCPRegistry_UnsupportedType(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	// Test unsupported MCP type
 	loader := &mockConfigLoader{
-		configs: map[string]config.MCPServerConfig{
+		configs: map[string]mcpconfig.MCPServerConfig{
 			"unsupported-type": {
 				Type:    "unsupported",
 				Enabled: true,
@@ -96,7 +112,7 @@ func TestMCPRegistry_UnsupportedType(t *testing.T) {
 		},
 	}
 
-	registry, err := NewMCPRegistryWithLoader(loader)
+	registry, err := NewMCPRegistryWithLoader(t, ctrl, loader)
 	if err != nil {
 		t.Fatalf("NewMCPRegistryWithLoader() error = %v", err)
 	}
@@ -111,22 +127,48 @@ func TestMCPRegistry_UnsupportedType(t *testing.T) {
 
 // mockConfigLoader is a test double
 type mockConfigLoader struct {
-	configs map[string]config.MCPServerConfig
+	configs map[string]mcpconfig.MCPServerConfig
 }
 
-func (m *mockConfigLoader) Load() (map[string]config.MCPServerConfig, error) {
+func (m *mockConfigLoader) Load() (map[string]mcpconfig.MCPServerConfig, error) {
 	return m.configs, nil
 }
 
-// NewMCPRegistryWithLoader creates registry with custom loader for testing
-func NewMCPRegistryWithLoader(loader config.ConfigLoader) (MCPRegistry, error) {
+func (m *mockConfigLoader) LoadAll() (map[string]mcpconfig.MCPServerConfig, error) {
+	return m.configs, nil
+}
+
+func (m *mockConfigLoader) GetDefaultAllowedSystemEnv() []string {
+	return []string{"PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LC_ALL", "LC_CTYPE", "TERM", "NODE", "NODE_PATH"}
+}
+
+// NewMCPRegistryWithLoader creates registry with custom loader for testing.
+// Accepts *testing.T and *gomock.Controller for proper mock management.
+func NewMCPRegistryWithLoader(t *testing.T, ctrl *gomock.Controller, loader mcpconfig.ConfigLoader) (MCPRegistry, error) {
+	t.Helper()
+
+	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockAppConfig := mocks.NewMockConfigService(ctrl)
+	// Set up expectations for warnings, debug logs, info logs, and config access
+	mockLog.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+	mockAppConfig.EXPECT().GetMCPConfig().Return(&appconfig.MCPConfig{
+		CommandTimeoutSeconds:    30,
+		ClientInitTimeoutSeconds: 60, // 60 second timeout for tests
+	}).AnyTimes()
+
 	p := &mcpRegistryImpl{
-		clients: make(map[string]*mcp.Client),
-		tools:   make([]gollem.ToolSet, 0),
-		loader:  loader,
+		clients:   make(map[string]*mcp.Client),
+		tools:    make([]gollem.ToolSet, 0),
+		loader:    loader,
+		appConfig: mockAppConfig,
+		logger:    mockLog,
 	}
-	// Initialize clients for testing
-	if err := p.initializeClients(context.Background()); err != nil {
+	// Initialize clients for testing with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	if err := p.initializeClients(ctx); err != nil {
 		return nil, err
 	}
 	return p, nil

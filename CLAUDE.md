@@ -21,4 +21,5 @@ Then use `forgejo issue ready --repo denkhaus/gollum` to lern about the next rea
 
 ## Avoid build artifacts in the codebase
 
-- Whenever do you build the app for testing reasons run `go build -o /tmp/gollum ./cmd/gollum`
+- Explore lifecycle functions running `just`
+- Whenever you build the app for testing reasons run `just build`

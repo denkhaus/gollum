@@ -447,6 +447,9 @@ func (ce *ComputedEvaluator) buildScope() *EvaluationScope {
 			} else if val, ok := ce.context.GetRaw(name); ok {
 				// Fallback for raw values (set without type)
 				scope.Context[name] = val
+			} else {
+				// Field is defined but not set - add nil to represent unset state
+				scope.Context[name] = nil
 			}
 		}
 	}
@@ -465,6 +468,9 @@ func (ce *ComputedEvaluator) buildScope() *EvaluationScope {
 			} else if val, ok := ce.output.GetRaw(name); ok {
 				// Fallback for raw values (set without type)
 				scope.Output[name] = val
+			} else {
+				// Field is defined but not set - add nil to represent unset state
+				scope.Output[name] = nil
 			}
 		}
 	}

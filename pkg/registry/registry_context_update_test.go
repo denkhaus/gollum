@@ -23,27 +23,27 @@ func TestGetPromptIDForAgent(t *testing.T) {
 	t.Run("supervisor agent returns supervisor prompt ID", func(t *testing.T) {
 		handle := &agentHandle{
 			config: &shared.AgentConfig{
-					ID:       uuid.New(),
-					ParentID: nil, // No parent = supervisor
-				},
-			}
+				ID:       uuid.New(),
+				ParentID: nil, // No parent = supervisor
+			},
+		}
 
-			promptID := registry.getPromptIDForAgent(handle)
-			assert.Equal(t, prompt.PromptIDSupervisorSystem, promptID)
-		})
+		promptID := registry.getPromptIDForAgent(handle)
+		assert.Equal(t, prompt.PromptIDSupervisorSystem, promptID)
+	})
 
-		t.Run("subagent returns subagent prompt ID", func(t *testing.T) {
+	t.Run("subagent returns subagent prompt ID", func(t *testing.T) {
 		parentID := uuid.New()
 		handle := &agentHandle{
-				config: &shared.AgentConfig{
-					ID:       uuid.New(),
-					ParentID: &parentID, // Has parent = subagent
-				},
-			}
+			config: &shared.AgentConfig{
+				ID:       uuid.New(),
+				ParentID: &parentID, // Has parent = subagent
+			},
+		}
 
-			promptID := registry.getPromptIDForAgent(handle)
-			assert.Equal(t, prompt.PromptIDSubagentSystem, promptID)
-		})
+		promptID := registry.getPromptIDForAgent(handle)
+		assert.Equal(t, prompt.PromptIDSubagentSystem, promptID)
+	})
 }
 
 func TestIsAgentIdle(t *testing.T) {
@@ -187,7 +187,7 @@ func TestCopyWorkspaceContext(t *testing.T) {
 	t.Run("empty skills slice", func(t *testing.T) {
 		src := &shared.WorkspaceContext{
 			CurrentPath: "/test/path",
-			Skills: []shared.SkillInfo{},
+			Skills:      []shared.SkillInfo{},
 		}
 
 		result := registry.copyWorkspaceContext(src)

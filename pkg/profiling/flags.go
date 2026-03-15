@@ -7,14 +7,14 @@ import (
 
 // Flags for enabling different profiling modes
 const (
-	FlagCPUProfile    = "cpuprofile"
+	FlagCPUProfile  = "cpuprofile"
 	FlagMemProfile  = "memprofile"
 	FlagProfilePort = "pprof-port"
-	FlagProfileAddr  = "pprof-addr"
+	FlagProfileAddr = "pprof-addr"
 )
 
-// ProfilingConfig holds profiling configuration
-type ProfilingConfig struct {
+// Config holds profiling configuration
+type Config struct {
 	// Enable indicates whether profiling is enabled
 	Enable bool
 
@@ -32,13 +32,13 @@ type ProfilingConfig struct {
 }
 
 // DefaultConfig returns default configuration
-func DefaultConfig() *ProfilingConfig {
-	return &ProfilingConfig{
+func DefaultConfig() *Config {
+	return &Config{
 		Enable:      false,
 		CPUProfile:  "",
-		MemProfile:   "",
-		ProfilePort:  "6060",
-		ProfileAddr:  "localhost:6060",
+		MemProfile:  "",
+		ProfilePort: "6060",
+		ProfileAddr: "localhost:6060",
 	}
 }
 
@@ -53,13 +53,13 @@ func DefineFlags() {
 // Package-level variables for flag storage
 var (
 	profilingCPUProfile  string
-	profilingMemProfile string
+	profilingMemProfile  string
 	profilingProfilePort string
 	profilingProfileAddr string
 )
 
 // ParseFlags parses command-line flags and returns config
-func ParseFlags() *ProfilingConfig {
+func ParseFlags() *Config {
 	config := DefaultConfig()
 
 	// Check if any profiling flags were set

@@ -24,11 +24,11 @@ type Renderer interface {
 // glamourRenderer implements Renderer using the glamour library.
 type glamourRenderer struct {
 	// cache stores rendered markdown by cache key
-	cache map[string]string
+	cache   map[string]string
 	cacheMu sync.RWMutex
 
 	// renderers stores a glamour renderer per width for reuse
-	renderers map[int]*glamour.TermRenderer
+	renderers   map[int]*glamour.TermRenderer
 	renderersMu sync.RWMutex
 }
 

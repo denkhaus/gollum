@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/denkhaus/gollum/cmd/gollum/cli/flow"
 	"github.com/denkhaus/gollum/pkg/app"
+	"github.com/denkhaus/gollum/pkg/cli/flow"
 	"github.com/denkhaus/gollum/pkg/di"
 	"github.com/denkhaus/gollum/pkg/profiling"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -27,6 +27,7 @@ func RootCommand() *cli.Command {
 		Name:   "gollum",
 		Usage:  "AI agent workflow system",
 		Before: r.before,
+		After:  r.after,
 		Action: r.run,
 		Commands: []*cli.Command{
 			flow.FlowCommandGroup(),
@@ -35,6 +36,8 @@ func RootCommand() *cli.Command {
 }
 
 func (p *rootHandler) before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+	// Define profiling flags before CLI parsing
+	profiling.DefineFlags()
 	// Create cancellable context for shutdown
 	shutdownCtx, cancel := context.WithCancel(ctx)
 

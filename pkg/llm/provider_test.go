@@ -27,21 +27,29 @@ type mockConfigService struct {
 	openaiConfig    *config.OpenAIConfig
 }
 
-func (m *mockConfigService) GetLogLevel() string                                       { return "info" }
-func (m *mockConfigService) IsDevMode() bool                                          { return false }
-func (m *mockConfigService) GetAnthropicConfig() *config.AnthropicConfig              { return m.anthropicConfig }
-func (m *mockConfigService) GetGeminiConfig() *config.GeminiConfig                    { return m.geminiConfig }
-func (m *mockConfigService) GetOpenAIConfig() *config.OpenAIConfig                    { return m.openaiConfig }
-func (m *mockConfigService) GetAgentLimits() *config.AgentLimitsConfig                { return &config.AgentLimitsConfig{} }
-func (m *mockConfigService) GetFilesConfig() *config.FilesConfig                      { return &config.FilesConfig{} }
-func (m *mockConfigService) GetLoggingConfig() *config.LoggingConfig                  { return &config.LoggingConfig{} }
-func (m *mockConfigService) GetBashConfig() *config.BashConfig                        { return &config.BashConfig{} }
-func (m *mockConfigService) GetHooksConfig() *config.HooksConfig                      { return &config.HooksConfig{} }
-func (m *mockConfigService) GetPromptStoreConfig() *config.PromptStoreConfig          { return &config.PromptStoreConfig{} }
-func (m *mockConfigService) GetPromptOptimizerConfig() *config.PromptOptimizerConfig  { return &config.PromptOptimizerConfig{} }
-func (m *mockConfigService) GetLangfuseConfig() *config.LangfuseConfig                { return &config.LangfuseConfig{} }
-func (m *mockConfigService) GetEventsConfig() *config.EventsConfig                    { return &config.EventsConfig{} }
-func (m *mockConfigService) GetMCPConfig() *config.MCPConfig { return &config.MCPConfig{} }
+func (m *mockConfigService) GetLogLevel() string                         { return "info" }
+func (m *mockConfigService) IsDevMode() bool                             { return false }
+func (m *mockConfigService) GetAnthropicConfig() *config.AnthropicConfig { return m.anthropicConfig }
+func (m *mockConfigService) GetGeminiConfig() *config.GeminiConfig       { return m.geminiConfig }
+func (m *mockConfigService) GetOpenAIConfig() *config.OpenAIConfig       { return m.openaiConfig }
+func (m *mockConfigService) GetAgentLimits() *config.AgentLimitsConfig {
+	return &config.AgentLimitsConfig{}
+}
+func (m *mockConfigService) GetFilesConfig() *config.FilesConfig     { return &config.FilesConfig{} }
+func (m *mockConfigService) GetLoggingConfig() *config.LoggingConfig { return &config.LoggingConfig{} }
+func (m *mockConfigService) GetBashConfig() *config.BashConfig       { return &config.BashConfig{} }
+func (m *mockConfigService) GetHooksConfig() *config.HooksConfig     { return &config.HooksConfig{} }
+func (m *mockConfigService) GetPromptStoreConfig() *config.PromptStoreConfig {
+	return &config.PromptStoreConfig{}
+}
+func (m *mockConfigService) GetPromptOptimizerConfig() *config.PromptOptimizerConfig {
+	return &config.PromptOptimizerConfig{}
+}
+func (m *mockConfigService) GetLangfuseConfig() *config.LangfuseConfig {
+	return &config.LangfuseConfig{}
+}
+func (m *mockConfigService) GetEventsConfig() *config.EventsConfig { return &config.EventsConfig{} }
+func (m *mockConfigService) GetMCPConfig() *config.MCPConfig       { return &config.MCPConfig{} }
 
 // mockLoggerService is a minimal implementation of LoggerService for testing.
 //
@@ -54,26 +62,28 @@ func (m *mockConfigService) GetMCPConfig() *config.MCPConfig { return &config.MC
 // This mock only implements the methods needed for provider tests.
 type mockLoggerService struct{}
 
-func (m *mockLoggerService) Info(msg string, fields ...zap.Field)                     {}
-func (m *mockLoggerService) Infof(template string, args ...any)                       {}
-func (m *mockLoggerService) Error(msg string, fields ...zap.Field)                    {}
-func (m *mockLoggerService) Errorf(template string, args ...any)                      {}
-func (m *mockLoggerService) Debug(msg string, fields ...zap.Field)                    {}
-func (m *mockLoggerService) Debugf(template string, args ...any)                      {}
-func (m *mockLoggerService) Warn(msg string, fields ...zap.Field)                     {}
-func (m *mockLoggerService) Warnf(template string, args ...any)                       {}
-func (m *mockLoggerService) GetLogger() *zap.Logger                                   { return zap.NewNop() }
-func (m *mockLoggerService) GetLogs(filter logger.LogFilter) []logger.LogEntry        { return nil }
-func (m *mockLoggerService) GetLogStats() map[string]any                              { return nil }
-func (m *mockLoggerService) SetTUIMode(enabled bool)                                  {}
-func (m *mockLoggerService) IsTUIMode() bool                                          { return false }
-func (m *mockLoggerService) EnableFileLogging(gollumDir string, sessionID uuid.UUID) error { return nil }
-func (m *mockLoggerService) CloseFileLogging() error                                  { return nil }
-func (m *mockLoggerService) Flush() error                                             { return nil }
-func (m *mockLoggerService) InfoWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {}
+func (m *mockLoggerService) Info(msg string, fields ...zap.Field)              {}
+func (m *mockLoggerService) Infof(template string, args ...any)                {}
+func (m *mockLoggerService) Error(msg string, fields ...zap.Field)             {}
+func (m *mockLoggerService) Errorf(template string, args ...any)               {}
+func (m *mockLoggerService) Debug(msg string, fields ...zap.Field)             {}
+func (m *mockLoggerService) Debugf(template string, args ...any)               {}
+func (m *mockLoggerService) Warn(msg string, fields ...zap.Field)              {}
+func (m *mockLoggerService) Warnf(template string, args ...any)                {}
+func (m *mockLoggerService) GetLogger() *zap.Logger                            { return zap.NewNop() }
+func (m *mockLoggerService) GetLogs(filter logger.LogFilter) []logger.LogEntry { return nil }
+func (m *mockLoggerService) GetLogStats() map[string]any                       { return nil }
+func (m *mockLoggerService) SetTUIMode(enabled bool)                           {}
+func (m *mockLoggerService) IsTUIMode() bool                                   { return false }
+func (m *mockLoggerService) EnableFileLogging(gollumDir string, sessionID uuid.UUID) error {
+	return nil
+}
+func (m *mockLoggerService) CloseFileLogging() error                                           { return nil }
+func (m *mockLoggerService) Flush() error                                                      { return nil }
+func (m *mockLoggerService) InfoWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)  {}
 func (m *mockLoggerService) ErrorWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {}
 func (m *mockLoggerService) DebugWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {}
-func (m *mockLoggerService) WarnWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {}
+func (m *mockLoggerService) WarnWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)  {}
 
 // TestGetClient_AnthropicWithConfig tests GetClient with Anthropic provider and full config
 func TestGetClient_AnthropicWithConfig(t *testing.T) {

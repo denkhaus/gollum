@@ -5,8 +5,8 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/flows/ast"
+	"github.com/denkhaus/gollum/pkg/flows/errors"
 	"github.com/denkhaus/gollum/pkg/flows/variables"
-	"github.com/go-ap/errors"
 )
 
 // Evaluator wraps the ast package for expression evaluation
@@ -59,54 +59,60 @@ func extractDeps(expr ast.Expr, deps *[]string) {
 
 // Context manages execution context with input, output, and computed fields
 type Context struct {
-	input        *flows.InputBlock
-	output       *flows.OutputBlock
-	contextBlock *flows.ContextBlock
+	inputBlock    *flows.InputBlock
+	inputVals     *variables.InputValues
+	outputBlock   *flows.OutputBlock
+	outputValues  *variables.OutputValues
+	contextBlock  *flows.ContextBlock
+	contextValues *variables.ContextValues
 	computedBlock *flows.ComputedBlock
-	inputVals     map[string]any
-	contextVals   map[string]any
-	outputVals    map[string]any
 	computedVals  *variables.ComputedValues
 	eval          *Evaluator
+	lastError     *ErrorContext
 }
 
 // NewContext creates a new execution context with optional schema definitions
-func NewContext(input *flows.InputBlock, output *flows.OutputBlock, contextBlock *flows.ContextBlock, inputVals map[string]string) *Context {
+func NewContext(
+	inputBlock *flows.InputBlock,
+	outputBlock *flows.OutputBlock,
+	contextBlock *flows.ContextBlock,
+	inputVals map[string]string,
+) *Context {
 	ctx := &Context{
-		input:         input,
-		output:        output,
+		inputBlock:    inputBlock,
+		inputVals:     variables.NewInputValues(inputBlock), // Use typed wrapper
+		outputBlock:   outputBlock,
+		outputValues:  variables.NewOutputValues(outputBlock),
 		contextBlock:  contextBlock,
-		computedBlock: nil, // Will be set from flow.Computed if available
-		inputVals:     make(map[string]any),
-		contextVals:   make(map[string]any),
-		outputVals:    make(map[string]any),
+		contextValues: variables.NewContextValues(contextBlock),
+		computedBlock: nil,                              // Will be set from flow.Computed if available
 		computedVals:  variables.NewComputedValues(nil), // Empty initially, will be populated from flow
 		eval:          NewEvaluator(),
 	}
 
 	// Initialize input values or defaults
-	if input != nil {
-		for _, field := range input.GetAllFields() {
+	if inputBlock != nil {
+		for _, field := range inputBlock.GetAllFields() {
 			if val, ok := inputVals[field.Name]; ok {
-				ctx.inputVals[field.Name] = val
-			} else if field.Default != "" {
-				ctx.inputVals[field.Name] = coerceType(field.Type, field.Default)
+				// Use typed setters based on field type
+				switch variables.ValueType(field.Type) {
+				case variables.TypeString:
+					_ = ctx.inputVals.SetString(field.Name, val)
+				case variables.TypeInt:
+					if i, err := strconv.Atoi(val); err == nil {
+						_ = ctx.inputVals.SetInt(field.Name, i)
+					}
+				case variables.TypeBool:
+					if b, err := strconv.ParseBool(val); err == nil {
+						_ = ctx.inputVals.SetBool(field.Name, b)
+					}
+				case variables.TypeFloat:
+					if f, err := strconv.ParseFloat(val, 64); err == nil {
+						_ = ctx.inputVals.SetFloat(field.Name, f)
+					}
+				}
 			}
-		}
-	}
-
-	// Pre-initialize output fields with nil (so we can validate against schema)
-	if output != nil {
-		for _, field := range output.GetAllFields() {
-			ctx.outputVals[field.Name] = nil
-		}
-	}
-
-	// Pre-initialize context fields with nil (so we can validate against schema)
-	// NOTE: This is ONLY for regular context fields, NOT computed fields
-	if contextBlock != nil {
-		for _, field := range contextBlock.GetAllFields() {
-			ctx.contextVals[field.Name] = nil
+			// Defaults are already handled by NewInputValues
 		}
 	}
 
@@ -124,11 +130,8 @@ func (c *Context) SetComputedBlock(block *flows.ComputedBlock) {
 	// Convert ComputedFieldDef to ComputedField for the variables package
 	computedFields := make([]flows.ComputedField, 0, len(block.GetAllFields()))
 	for _, cf := range block.GetAllFields() {
-		computedFields = append(computedFields, flows.ComputedField{
-			Name: cf.Name,
-			Type: cf.Type,
-			Eval: cf.Eval,
-		})
+		// Use field directly - ComputedFieldDef has the same structure
+		computedFields = append(computedFields, flows.ComputedField(cf))
 	}
 
 	// Initialize ComputedValues with the fields
@@ -137,38 +140,208 @@ func (c *Context) SetComputedBlock(block *flows.ComputedBlock) {
 
 // GetInput retrieves an input field value
 func (c *Context) GetInput(name string) any {
-	return c.inputVals[name]
+	if c.inputBlock == nil {
+		return nil
+	}
+
+	// Try to get based on type from schema
+	for _, field := range c.inputBlock.GetAllFields() {
+		if field.Name == name {
+			switch variables.ValueType(field.Type) {
+			case variables.TypeString:
+				val, _ := c.inputVals.GetString(name)
+				return val
+			case variables.TypeInt:
+				val, _ := c.inputVals.GetInt(name)
+				return val
+			case variables.TypeBool:
+				val, _ := c.inputVals.GetBool(name)
+				return val
+			case variables.TypeFloat:
+				val, _ := c.inputVals.GetFloat(name)
+				return val
+			}
+		}
+	}
+	return nil
 }
 
 // GetContextField retrieves a context field value
+// Returns error if field is not defined or not set
 func (c *Context) GetContextField(name string) (any, error) {
-	if val, ok := c.contextVals[name]; ok {
-		return val, nil
+	if c.contextValues == nil {
+		return nil, &errors.NoSchemaError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "context schema not defined",
+			},
+			Scope: "context",
+		}
 	}
 
-	return nil, errors.Errorf("context variable %s undefined", name)
+	// Try to get based on type - we need to check the schema to know which type to use
+	if c.contextBlock != nil {
+		// Check string fields
+		for _, field := range c.contextBlock.Strings {
+			if field.Name == name {
+				val, err := c.contextValues.GetString(name)
+				if err != nil {
+					return nil, err
+				}
+				return val, nil
+			}
+		}
+		// Check int fields
+		for _, field := range c.contextBlock.Ints {
+			if field.Name == name {
+				val, err := c.contextValues.GetInt(name)
+				if err != nil {
+					return nil, err
+				}
+				return val, nil
+			}
+		}
+		// Check bool fields
+		for _, field := range c.contextBlock.Bools {
+			if field.Name == name {
+				val, err := c.contextValues.GetBool(name)
+				if err != nil {
+					return nil, err
+				}
+				return val, nil
+			}
+		}
+		// Check float fields
+		for _, field := range c.contextBlock.Floats {
+			if field.Name == name {
+				val, err := c.contextValues.GetFloat(name)
+				if err != nil {
+					return nil, err
+				}
+				return val, nil
+			}
+		}
+	}
+
+	return nil, &errors.UnknownFieldError{
+		FlowError: errors.FlowError{
+			Code:    errors.ErrCodeUnknownField,
+			Message: "context field not defined",
+			Field:   name,
+		},
+		Scope: "context",
+	}
+}
+
+// SetContextField sets a context field value
+// Returns error if the field is not defined in the schema or if type conversion fails
+func (c *Context) SetContextField(name string, value any) error {
+	if c.contextValues == nil {
+		return &errors.NoSchemaError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "context schema not defined",
+			},
+			Scope: "context",
+		}
+	}
+
+	// Convert value to string for type conversion
+	valueStr, ok := value.(string)
+	if !ok {
+		// Fallback to raw set for non-string values (should not happen from LLM)
+		c.contextValues.SetRaw(name, value)
+		return nil
+	}
+
+	// Use SetFromString for automatic type conversion
+	return c.contextValues.SetFromString(name, valueStr)
 }
 
 // SetOutputField sets the output variable by name
 // Returns error if the field is not defined in the output schema
 func (c *Context) SetOutputField(name string, value any) error {
-	if c.output != nil {
-		// Check if field is defined in schema
-		if _, exists := c.outputVals[name]; !exists {
-			return errors.Errorf("output field '%s' not defined in flow schema", name)
+	if c.outputValues == nil {
+		return &errors.NoSchemaError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "output schema not defined",
+			},
+			Scope: "output",
 		}
 	}
-	c.outputVals[name] = value
+
+	// Use SetRaw to set the value (type coercion handled by caller)
+	c.outputValues.SetRaw(name, value)
 	return nil
 }
 
 // GetOutputField retrieves an output field value
+// Returns error if field is not defined or not set
 func (c *Context) GetOutputField(name string) (any, error) {
-	if val, ok := c.outputVals[name]; ok {
-		return val, nil
+	if c.outputValues == nil {
+		return nil, &errors.NoSchemaError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "output schema not defined",
+			},
+			Scope: "output",
+		}
 	}
 
-	return nil, errors.Errorf("output variable %s undefined", name)
+	if c.outputBlock != nil {
+		// Try to get based on type from schema
+		for _, field := range c.outputBlock.GetAllFields() {
+			if field.Name == name {
+				switch variables.ValueType(field.Type) {
+				case variables.TypeString:
+					val, err := c.outputValues.GetString(name)
+					if err != nil {
+						return nil, err
+					}
+					return val, nil
+				case variables.TypeInt:
+					val, err := c.outputValues.GetInt(name)
+					if err != nil {
+						return nil, err
+					}
+					return val, nil
+				case variables.TypeBool:
+					val, err := c.outputValues.GetBool(name)
+					if err != nil {
+						return nil, err
+					}
+					return val, nil
+				case variables.TypeFloat:
+					val, err := c.outputValues.GetFloat(name)
+					if err != nil {
+						return nil, err
+					}
+					return val, nil
+				}
+			}
+		}
+	}
+
+	return nil, &errors.UnknownFieldError{
+		FlowError: errors.FlowError{
+			Code:    errors.ErrCodeUnknownField,
+			Message: "output field not defined",
+			Field:   name,
+		},
+		Scope: "output",
+	}
+}
+
+
+// SetError sets the last error context
+func (c *Context) SetError(err *ErrorContext) {
+	c.lastError = err
+}
+
+// GetError returns the last error context (may be nil)
+func (c *Context) GetError() *ErrorContext {
+	return c.lastError
 }
 
 // EvaluateComputed evaluates all computed fields using the ComputedEvaluator
@@ -177,24 +350,8 @@ func (c *Context) EvaluateComputed() error {
 		return nil
 	}
 
-	// Create input/context/output wrappers for evaluation
-	inputVals := variables.NewInputValues(c.input)
-	for k, v := range c.inputVals {
-		inputVals.SetRaw(k, v)
-	}
-
-	contextVals := variables.NewContextValues(c.contextBlock)
-	for k, v := range c.contextVals {
-		contextVals.SetRaw(k, v)
-	}
-
-	outputVals := variables.NewOutputValues(c.output)
-	for k, v := range c.outputVals {
-		outputVals.SetRaw(k, v)
-	}
-
-	// Create evaluator
-	eval := variables.NewComputedEvaluator(c.computedVals, inputVals, contextVals, outputVals)
+	// Use existing input, context and output wrappers (source of truth)
+	eval := variables.NewComputedEvaluator(c.computedVals, c.inputVals, c.contextValues, c.outputValues)
 
 	// Evaluate all computed fields
 	return eval.ComputeDirty()
@@ -202,23 +359,8 @@ func (c *Context) EvaluateComputed() error {
 
 // GetComputedEvaluator returns a configured ComputedEvaluator for this context
 func (c *Context) GetComputedEvaluator() *variables.ComputedEvaluator {
-	// Create input/context/output wrappers for evaluation
-	inputVals := variables.NewInputValues(c.input)
-	for k, v := range c.inputVals {
-		inputVals.SetRaw(k, v)
-	}
-
-	contextVals := variables.NewContextValues(c.contextBlock)
-	for k, v := range c.contextVals {
-		contextVals.SetRaw(k, v)
-	}
-
-	outputVals := variables.NewOutputValues(c.output)
-	for k, v := range c.outputVals {
-		outputVals.SetRaw(k, v)
-	}
-
-	return variables.NewComputedEvaluator(c.computedVals, inputVals, contextVals, outputVals)
+	// Use existing input, context and output wrappers (source of truth)
+	return variables.NewComputedEvaluator(c.computedVals, c.inputVals, c.contextValues, c.outputValues)
 }
 
 // buildScope builds the evaluation scope for backward compatibility
@@ -226,68 +368,69 @@ func (c *Context) GetComputedEvaluator() *variables.ComputedEvaluator {
 func (c *Context) buildScope() map[string]any {
 	scope := make(map[string]any)
 
-	// Build input scope
-	inputScope := make(map[string]any)
-	for k, v := range c.inputVals {
-		inputScope[k] = v
-	}
-	if len(inputScope) > 0 {
-		scope["input"] = inputScope
-	}
-
-	outputScope := make(map[string]any)
-	for k, v := range c.outputVals {
-		outputScope[k] = v
-	}
-	if len(outputScope) > 0 {
-		scope["output"] = outputScope
+	// Build input scope from typed wrapper
+	if c.inputBlock != nil && c.inputVals != nil {
+		inputScope := make(map[string]any)
+		for _, field := range c.inputBlock.GetAllFields() {
+			if val, ok := c.inputVals.GetRaw(field.Name); ok {
+				inputScope[field.Name] = val
+			}
+			// Unset fields are not added to scope
+		}
+		if len(inputScope) > 0 {
+			scope["input"] = inputScope
+		}
 	}
 
-	contextScope := make(map[string]any)
-	for k, v := range c.contextVals {
-		contextScope[k] = v
+	// Build output scope from typed wrapper
+	if c.outputValues != nil && c.outputBlock != nil {
+		outputScope := make(map[string]any)
+		for _, field := range c.outputBlock.GetAllFields() {
+			if val, ok := c.outputValues.GetRaw(field.Name); ok {
+				outputScope[field.Name] = val
+			}
+			// Unset fields are not added to scope
+		}
+		if len(outputScope) > 0 {
+			scope["output"] = outputScope
+		}
 	}
-	if len(contextScope) > 0 {
-		scope["context"] = contextScope
+
+	// Build context scope from typed wrapper
+	if c.contextValues != nil && c.contextBlock != nil {
+		contextScope := make(map[string]any)
+		for _, field := range c.contextBlock.GetAllFields() {
+			if val, ok := c.contextValues.GetRaw(field.Name); ok {
+				contextScope[field.Name] = val
+			}
+			// Unset fields are not added to scope
+		}
+		if len(contextScope) > 0 {
+			scope["context"] = contextScope
+		}
+	}
+
+	// Add system scope with error context if available
+	if c.lastError != nil {
+		scope["sys"] = map[string]any{
+			"error": c.lastError,
+		}
 	}
 
 	return scope
 }
 
-// SetContextField sets the context variable by name
-// Returns error if the field is not defined in the schema
-func (c *Context) SetContextField(name string, value any) error {
-	// Check if field is defined in schema
-	if c.contextBlock != nil {
-		if _, exists := c.contextVals[name]; !exists {
-			return errors.Errorf("context field '%s' not defined in flow schema", name)
-		}
-	}
-	c.contextVals[name] = value
-	return nil
-}
-
 // GetComputedField retrieves a computed field value
 func (c *Context) GetComputedField(name string) (any, error) {
 	if !c.computedVals.Has(name) {
-		return nil, errors.Errorf("computed field '%s' not defined", name)
+		return nil, &errors.UnknownFieldError{
+			FlowError: errors.FlowError{
+				Code:    errors.ErrCodeUnknownField,
+				Message: "computed field not defined",
+				Field:   name,
+			},
+			Scope: "computed",
+		}
 	}
 	return c.computedVals.GetValue(name)
-}
-
-// coerceType converts string to appropriate type
-func coerceType(typ, val string) any {
-	switch typ {
-	case "int":
-		i, _ := strconv.Atoi(val)
-		return i
-	case "bool":
-		b, _ := strconv.ParseBool(val)
-		return b
-	case "float":
-		f, _ := strconv.ParseFloat(val, 64)
-		return f
-	default:
-		return val
-	}
 }

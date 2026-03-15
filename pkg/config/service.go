@@ -206,19 +206,39 @@ type EventsConfig struct {
 type MCPConfig struct {
 	// CommandTimeoutSeconds is the timeout in seconds for shell command execution
 	// during interpolation of $(command) patterns in mcp.json config files.
-	// Default: 5 seconds. Min: 1, Max: 60.
-	CommandTimeoutSeconds int `envconfig:"COMMAND_TIMEOUT_SECONDS" default:"5"`
+	// Default: 30 seconds. Min: 1, Max: 300 (5 minutes).
+	// This timeout applies to commands like gopass that may need time for decryption.
+	CommandTimeoutSeconds int `envconfig:"COMMAND_TIMEOUT_SECONDS" default:"30"`
+
+	// ClientInitTimeoutSeconds is the timeout in seconds for MCP client initialization.
+	// This is the maximum time to wait for an MCP server to start and respond to initialize.
+	// Default: 60 seconds. Min: 10, Max: 300 (5 minutes).
+	// Some MCP servers (like chrome-devtools, tavily) may take time to start.
+	ClientInitTimeoutSeconds int `envconfig:"CLIENT_INIT_TIMEOUT_SECONDS" default:"60"`
 }
 
 // GetCommandTimeout returns the command timeout as time.Duration with validation.
-// Ensures timeout is between 1 and 60 seconds.
+// Ensures timeout is between 1 and 300 seconds (5 minutes).
 func (c *MCPConfig) GetCommandTimeout() time.Duration {
 	timeout := c.CommandTimeoutSeconds
 	if timeout < 1 {
 		timeout = 1
 	}
-	if timeout > 60 {
-		timeout = 60
+	if timeout > 300 {
+		timeout = 300
+	}
+	return time.Duration(timeout) * time.Second
+}
+
+// GetClientInitTimeout returns the client initialization timeout as time.Duration with validation.
+// Ensures timeout is between 10 and 300 seconds (5 minutes).
+func (c *MCPConfig) GetClientInitTimeout() time.Duration {
+	timeout := c.ClientInitTimeoutSeconds
+	if timeout < 10 {
+		timeout = 10
+	}
+	if timeout > 300 {
+		timeout = 300
 	}
 	return time.Duration(timeout) * time.Second
 }

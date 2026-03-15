@@ -20,8 +20,8 @@
 //
 // Config files are loaded from two locations (in order of precedence):
 //
-//   1. Project: .gollum/mcp.json (higher priority)
-//   2. Global: ~/.config/gollum/mcp.json (lower priority)
+//  1. Project: .gollum/mcp.json (higher priority)
+//  2. Global: ~/.config/gollum/mcp.json (lower priority)
 //
 // When a server name exists in both files, the project configuration
 // completely replaces the global configuration for that server.
