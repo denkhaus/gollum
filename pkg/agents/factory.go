@@ -2,12 +2,15 @@ package agents
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/errs"
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
+	mcp "github.com/denkhaus/gollum/pkg/mcp"
 	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
@@ -18,6 +21,7 @@ import (
 	"github.com/m-mizutani/gollem/middleware/compacter"
 	"github.com/m-mizutani/gollem/strategy/simple"
 	"github.com/samber/do/v2"
+	"go.uber.org/zap"
 )
 
 // defaultAgentFactory implements the AgentFactory interface
@@ -44,6 +48,7 @@ type defaultAgentFactory struct {
 	sessionLogsToolProv     tools.SessionLogsToolProvider
 	changeDirectoryToolProv tools.ChangeDirectoryToolProvider
 	invokeSkillToolProv     tools.InvokeSkillToolProvider
+	mcpToolProvider         mcp.MCPToolProvider
 }
 
 // NewAgentFactory creates a new AgentFactory
@@ -54,6 +59,7 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 	registry := do.MustInvoke[registry.AgentRegistry](injector)
 	promptManager := do.MustInvoke[manager.PromptManager](injector)
 	channelProvider := do.MustInvoke[channel.ChannelMiddlewareProvider](injector)
+	mcpToolProvider := do.MustInvoke[mcp.MCPToolProvider](injector)
 
 	// Get tool providers
 	spawnAgentToolProv := do.MustInvoke[tools.SpawnAgentToolProvider](injector)
@@ -94,6 +100,7 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 		sessionLogsToolProv:     sessionLogsToolProv,
 		changeDirectoryToolProv: changeDirectoryToolProv,
 		invokeSkillToolProv:     invokeSkillToolProv,
+		mcpToolProvider:         mcpToolProvider,
 	}, nil
 }
 
@@ -180,4 +187,78 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 	defAgent.tools = nil
 
 	return defAgent, nil
+}
+
+func (f *defaultAgentFactory) resolveTools(ctx context.Context, agentID uuid.UUID, allowedTools []string) ([]gollem.Tool, error) {
+	if allowedTools == nil {
+		return nil, nil
+	}
+
+	var tools []gollem.Tool
+	var warnings []string
+
+	for _, toolName := range allowedTools {
+		// Check if MCP tool (format: "server_name/tool_name")
+		if strings.Contains(toolName, "/") {
+			tool, err := f.mcpToolProvider.CreateTool(agentID, toolName)
+			if err != nil {
+				// MCP tool not found - warn, don't fail
+				warnings = append(warnings, fmt.Sprintf("MCP tool '%s': %v", toolName, err))
+				continue
+			}
+			tools = append(tools, tool)
+		} else {
+			// Built-in tool
+			tool, err := f.resolveBuiltinTool(agentID, toolName)
+			if err != nil {
+				return nil, err
+			}
+			tools = append(tools, tool)
+		}
+	}
+
+	// Log warnings for missing MCP tools
+	if len(warnings) > 0 {
+		f.logService.Warn("Some MCP tools were not found",
+			zap.Strings("missing_tools", warnings))
+	}
+
+	return tools, nil
+}
+
+func (f *defaultAgentFactory) resolveBuiltinTool(agentID uuid.UUID, name string) (gollem.Tool, error) {
+	switch shared.ToolName(name) {
+	case shared.ToolNameBash:
+		return f.bashToolProv.CreateTool(agentID), nil
+	case shared.ToolNameCurrentTime:
+		return f.currentTimeToolProv.CreateTool(agentID), nil
+	case shared.ToolNameWriteFile:
+		return f.writeFileToolProv.CreateTool(agentID), nil
+	case shared.ToolNameReadFile:
+		return f.readFileToolProv.CreateTool(agentID), nil
+	case shared.ToolNameGlob:
+		return f.globToolProv.CreateTool(agentID), nil
+	case shared.ToolNameGrep:
+		return f.grepToolProv.CreateTool(agentID), nil
+	case shared.ToolNameEdit:
+		return f.editToolProv.CreateTool(agentID), nil
+	case shared.ToolNameSpawnAgent:
+		return f.spawnAgentToolProv.CreateTool(agentID, f), nil
+	case shared.ToolNameAgentOutput:
+		return f.agentOutputToolProv.CreateTool(agentID), nil
+	case shared.ToolNameRemoveAgent:
+		return f.removeAgentToolProv.CreateTool(agentID), nil
+	case shared.ToolNameResumeAgent:
+		return f.resumeAgentToolProv.CreateTool(agentID), nil
+	case shared.ToolNameListAgents:
+		return f.listAgentsToolProv.CreateTool(agentID), nil
+	case shared.ToolNameSessionLogs:
+		return f.sessionLogsToolProv.CreateTool(agentID), nil
+	case shared.ToolNameChangeDirectory:
+		return f.changeDirectoryToolProv.CreateTool(agentID), nil
+	case shared.ToolNameInvokeSkill:
+		return f.invokeSkillToolProv.CreateTool(agentID, f), nil
+	default:
+		return nil, fmt.Errorf("unknown built-in tool: %s", name)
+	}
 }
