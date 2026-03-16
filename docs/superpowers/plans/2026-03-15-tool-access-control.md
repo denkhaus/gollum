@@ -27,7 +27,7 @@
 - `.gollum/flows/default/main.xml` - Add explicit tools tag
 
 **DI updates:**
-- `pkg/di/wire.go` or equivalent - Register MCPToolProvider
+- `pkg/di/container.go` or equivalent - Register MCPToolProvider
 
 ---
 

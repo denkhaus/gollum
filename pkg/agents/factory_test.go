@@ -199,3 +199,7 @@ func (m *mockBashToolWithSpec) Spec() gollem.ToolSpec {
 func (m *mockBashToolWithSpec) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return map[string]any{}, nil
 }
+
+// Note: CreateAgent integration tests require extensive mocking of multiple dependencies.
+// The core resolveTools functionality is well-tested above. Full CreateAgent tests
+// would require integration-level setup or a more sophisticated mocking framework.

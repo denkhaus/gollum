@@ -131,8 +131,12 @@ func (p *defaultAgent) UpdateHistory(ctx context.Context, modifier func(*gollem.
 func (p *defaultAgent) buildOptionsWithHistory(history *gollem.History) []gollem.Option {
 	options := []gollem.Option{
 		gollem.WithStrategy(p.config.Strategy),
-		gollem.WithTools(p.tools...),
 		gollem.WithSystemPrompt(p.config.SystemPrompt),
+	}
+
+	// Add tools if they exist
+	if len(p.tools) > 0 {
+		options = append(options, gollem.WithTools(p.tools...))
 	}
 
 	// Add history if present

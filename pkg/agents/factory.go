@@ -111,6 +111,13 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 		config.ID = uuid.New()
 	}
 
+	// Resolve tools from AllowedTools
+	tools, err := f.resolveTools(ctx, config.ID, config.AllowedTools)
+	if err != nil {
+		return nil, errs.Wrap(err, errs.TypeInternal, "failed to resolve tools").
+			WithContext("agent_id", config.ID)
+	}
+
 	// Create the base agent
 	defAgent := &defaultAgent{
 		clientProvider: f.clientProvider,
@@ -120,6 +127,7 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 		id:             config.ID,
 		config:         config,
 		promptManager:  f.promptManager,
+		tools:          tools, // Store resolved tools for recreation
 	}
 
 	// Get LLM client
@@ -143,9 +151,9 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 	}
 
 	// Build base gollem options (common to all modes)
-	// TODO: Resolve tools from AllowedTools in Task 3
 	baseOptions := []gollem.Option{
 		gollem.WithStrategy(config.Strategy),
+		gollem.WithTools(tools...), // Use resolved tools
 		gollem.WithSystemPrompt(config.SystemPrompt),
 	}
 
@@ -182,9 +190,6 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 
 	// Create gollem agent with configured options
 	defAgent.base = gollem.New(client, baseOptions...)
-
-	// TODO: Resolve and set tools from AllowedTools in Task 3
-	defAgent.tools = nil
 
 	return defAgent, nil
 }
