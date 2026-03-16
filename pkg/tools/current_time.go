@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/hooks"
@@ -62,7 +63,7 @@ func (t *currentTimeToolImpl) Run(ctx context.Context, args map[string]any) (map
 }
 
 // runCurrentTime implements the core CurrentTime logic
-func (t *currentTimeToolImpl) runCurrentTime(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *currentTimeToolImpl) runCurrentTime(ctx context.Context, args map[string]any) (map[string]any, error) {
 	// Get timezone from args, default to UTC
 	timezone := defaultTimezone
 	if tz, exists := args["timezone"].(string); exists && tz != "" {
@@ -72,7 +73,14 @@ func (t *currentTimeToolImpl) runCurrentTime(_ context.Context, args map[string]
 	// Load location
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
-		t.logService.Warnf("Invalid timezone '%s', using UTC: %v", timezone, err)
+		// Use enriched logging if flow/step context is available
+		if fc := hooks.GetFlowStepContext(ctx); fc != nil {
+			t.logService.WarnWithFlowStep(
+				fmt.Sprintf("Invalid timezone '%s', using UTC: %v", timezone, err),
+				fc.FlowName, fc.StateName, fc.StepType)
+		} else {
+			t.logService.Warnf("Invalid timezone '%s', using UTC: %v", timezone, err)
+		}
 		loc = time.UTC
 	}
 
@@ -87,7 +95,13 @@ func (t *currentTimeToolImpl) runCurrentTime(_ context.Context, args map[string]
 		"rfc3339":        now.Format(time.RFC3339),
 	}
 
-	t.logService.Debugf("Current time (%s): %s", timezone, result["time"])
+	// Use enriched logging if flow/step context is available
+	logMsg := fmt.Sprintf("current_time('%s') -> %s", timezone, result["time"])
+	if fc := hooks.GetFlowStepContext(ctx); fc != nil {
+		t.logService.DebugWithFlowStep(logMsg, fc.FlowName, fc.StateName, fc.StepType)
+	} else {
+		t.logService.Debugf(logMsg)
+	}
 
 	return result, nil
 }

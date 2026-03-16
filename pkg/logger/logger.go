@@ -33,6 +33,14 @@ type LoggerService interface {
 	DebugWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)
 	// WarnWithAgent logs a warning message with agent ID
 	WarnWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)
+	// InfoWithFlowStep logs an info message with flow and step context
+	InfoWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field)
+	// ErrorWithFlowStep logs an error message with flow and step context
+	ErrorWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field)
+	// DebugWithFlowStep logs a debug message with flow and step context
+	DebugWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field)
+	// WarnWithFlowStep logs a warning message with flow and step context
+	WarnWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field)
 	GetLogger() *zap.Logger
 	// GetLogs retrieves log entries from the session buffer
 	GetLogs(filter LogFilter) []LogEntry
@@ -226,6 +234,46 @@ func (s *service) DebugWithAgent(msg string, agentID uuid.UUID, fields ...zap.Fi
 // WarnWithAgent logs a warning message with agent ID included as a structured field.
 func (s *service) WarnWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
 	allFields := append([]zap.Field{zap.String("agent_id", agentID.String())}, fields...)
+	s.Warn(msg, allFields...)
+}
+
+// InfoWithFlowStep logs an info message with flow and step context included as structured fields.
+func (s *service) InfoWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {
+	allFields := append([]zap.Field{
+		zap.String("flow", flowName),
+		zap.String("state", stateName),
+		zap.String("step", stepType),
+	}, fields...)
+	s.Info(msg, allFields...)
+}
+
+// ErrorWithFlowStep logs an error message with flow and step context included as structured fields.
+func (s *service) ErrorWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {
+	allFields := append([]zap.Field{
+		zap.String("flow", flowName),
+		zap.String("state", stateName),
+		zap.String("step", stepType),
+	}, fields...)
+	s.Error(msg, allFields...)
+}
+
+// DebugWithFlowStep logs a debug message with flow and step context included as structured fields.
+func (s *service) DebugWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {
+	allFields := append([]zap.Field{
+		zap.String("flow", flowName),
+		zap.String("state", stateName),
+		zap.String("step", stepType),
+	}, fields...)
+	s.Debug(msg, allFields...)
+}
+
+// WarnWithFlowStep logs a warning message with flow and step context included as structured fields.
+func (s *service) WarnWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {
+	allFields := append([]zap.Field{
+		zap.String("flow", flowName),
+		zap.String("state", stateName),
+		zap.String("step", stepType),
+	}, fields...)
 	s.Warn(msg, allFields...)
 }
 

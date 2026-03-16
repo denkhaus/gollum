@@ -167,7 +167,7 @@ func (t *setOutputFieldTool) Run(ctx context.Context, args map[string]any) (map[
 		})
 }
 
-func (t *setOutputFieldTool) runSetOutputField(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *setOutputFieldTool) runSetOutputField(ctx context.Context, args map[string]any) (map[string]any, error) {
 	name, ok := args["name"].(string)
 	if !ok || name == "" {
 		return nil, fmt.Errorf("field name is required")
@@ -181,7 +181,14 @@ func (t *setOutputFieldTool) runSetOutputField(_ context.Context, args map[strin
 	if err := t.flowCtx.SetOutputField(name, value); err != nil {
 		return nil, err
 	}
-	t.logService.Debugf("Set output field '%s' = %v", name, value)
+
+	// Use enriched logging if flow/step context is available
+	if fc := hooks.GetFlowStepContext(ctx); fc != nil {
+		t.logService.DebugWithFlowStep(fmt.Sprintf("set_output_field('%s', %v)", name, value),
+			fc.FlowName, fc.StateName, fc.StepType)
+	} else {
+		t.logService.Debugf("set_output_field('%s', %v)", name, value)
+	}
 
 	return map[string]any{"success": true}, nil
 }
@@ -212,7 +219,7 @@ func (t *setContextFieldTool) Run(ctx context.Context, args map[string]any) (map
 		})
 }
 
-func (t *setContextFieldTool) runSetContextField(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *setContextFieldTool) runSetContextField(ctx context.Context, args map[string]any) (map[string]any, error) {
 	name, ok := args["name"].(string)
 	if !ok || name == "" {
 		return nil, fmt.Errorf("field name is required")
@@ -226,7 +233,14 @@ func (t *setContextFieldTool) runSetContextField(_ context.Context, args map[str
 	if err := t.flowCtx.SetContextField(name, value); err != nil {
 		return nil, err
 	}
-	t.logService.Infof("Set context field '%s' = %v", name, value)
+
+	// Use enriched logging if flow/step context is available
+	if fc := hooks.GetFlowStepContext(ctx); fc != nil {
+		t.logService.InfoWithFlowStep(fmt.Sprintf("set_context_field('%s', %v)", name, value),
+			fc.FlowName, fc.StateName, fc.StepType)
+	} else {
+		t.logService.Infof("set_context_field('%s', %v)", name, value)
+	}
 
 	return map[string]any{"success": true}, nil
 }
@@ -253,7 +267,7 @@ func (t *getContextTool) Run(ctx context.Context, args map[string]any) (map[stri
 		})
 }
 
-func (t *getContextTool) runGetContext(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *getContextTool) runGetContext(ctx context.Context, args map[string]any) (map[string]any, error) {
 	fields, _ := args["fields"].([]any)
 
 	result := make(map[string]any)
@@ -270,7 +284,13 @@ func (t *getContextTool) runGetContext(_ context.Context, args map[string]any) (
 		}
 	}
 
-	t.logService.Debugf("Retrieved %d context fields", len(result))
+	// Use enriched logging if flow/step context is available
+	if fc := hooks.GetFlowStepContext(ctx); fc != nil {
+		t.logService.DebugWithFlowStep("get_context_field()", fc.FlowName, fc.StateName, fc.StepType)
+	} else {
+		t.logService.Debugf("get_context_field()")
+	}
+
 	return result, nil
 }
 
@@ -300,7 +320,7 @@ func (t *emitLogTool) Run(ctx context.Context, args map[string]any) (map[string]
 		})
 }
 
-func (t *emitLogTool) runEmitLog(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *emitLogTool) runEmitLog(ctx context.Context, args map[string]any) (map[string]any, error) {
 	level, _ := args["level"].(string)
 	message, _ := args["message"].(string)
 
@@ -308,17 +328,36 @@ func (t *emitLogTool) runEmitLog(_ context.Context, args map[string]any) (map[st
 		level = "info"
 	}
 
-	switch level {
-	case "debug":
-		t.logService.Debugf(message)
-	case "info":
-		t.logService.Infof(message)
-	case "warn":
-		t.logService.Warnf(message)
-	case "error":
-		t.logService.Errorf(message)
-	default:
-		t.logService.Infof(message)
+	// Use enriched logging if flow/step context is available
+	logMsg := fmt.Sprintf("emit_log('%s', '%s')", level, message)
+	fc := hooks.GetFlowStepContext(ctx)
+	if fc != nil {
+		switch level {
+		case "debug":
+			t.logService.DebugWithFlowStep(logMsg, fc.FlowName, fc.StateName, fc.StepType)
+		case "info":
+			t.logService.InfoWithFlowStep(logMsg, fc.FlowName, fc.StateName, fc.StepType)
+		case "warn":
+			t.logService.WarnWithFlowStep(logMsg, fc.FlowName, fc.StateName, fc.StepType)
+		case "error":
+			t.logService.ErrorWithFlowStep(logMsg, fc.FlowName, fc.StateName, fc.StepType)
+		default:
+			t.logService.InfoWithFlowStep(logMsg, fc.FlowName, fc.StateName, fc.StepType)
+		}
+	} else {
+		// Fall back to regular logging
+		switch level {
+		case "debug":
+			t.logService.Debugf(logMsg)
+		case "info":
+			t.logService.Infof(logMsg)
+		case "warn":
+			t.logService.Warnf(logMsg)
+		case "error":
+			t.logService.Errorf(logMsg)
+		default:
+			t.logService.Infof(logMsg)
+		}
 	}
 
 	return map[string]any{"success": true}, nil
@@ -346,7 +385,7 @@ func (t *transitionToTool) Run(ctx context.Context, args map[string]any) (map[st
 		})
 }
 
-func (t *transitionToTool) runTransitionTo(_ context.Context, args map[string]any) (map[string]any, error) {
+func (t *transitionToTool) runTransitionTo(ctx context.Context, args map[string]any) (map[string]any, error) {
 	toState, ok := args["to"].(string)
 	if !ok || toState == "" {
 		return nil, fmt.Errorf("target state is required")
@@ -364,7 +403,13 @@ func (t *transitionToTool) runTransitionTo(_ context.Context, args map[string]an
 		return nil, fmt.Errorf("failed to request transition to '%s': %w", toState, err)
 	}
 
-	t.logService.Debugf("Requested transition from '%s' to '%s'", fromState, toState)
+	// Use enriched logging if flow/step context is available
+	msg := fmt.Sprintf("transition_to('%s', '%s')", fromState, toState)
+	if fc := hooks.GetFlowStepContext(ctx); fc != nil {
+		t.logService.DebugWithFlowStep(msg, fc.FlowName, fc.StateName, fc.StepType)
+	} else {
+		t.logService.Debugf(msg)
+	}
 
 	return map[string]any{
 		"success": true,

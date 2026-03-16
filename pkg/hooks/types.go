@@ -232,3 +232,29 @@ func (n *NoOpHookManager) WithLLMHooks(_ context.Context, _, _ uuid.UUID, _, _ s
 func (n *NoOpHookManager) WithFlowStepHooks(_ context.Context, _, _ uuid.UUID, _, _, _ string, work func() (map[string]any, error)) (map[string]any, error) {
 	return work()
 }
+
+// FlowStepContext holds metadata about the current flow and step execution.
+// This is stored in context.Context to provide logging context for tool calls.
+type FlowStepContext struct {
+	FlowName  string // Name of the flow being executed
+	StateName string // Name of the current state
+	StepType  string // Type of step (llm, shell, func, mcp)
+}
+
+// flowStepContextKey is the key type used for storing FlowStepContext in context.
+// Using a private struct type prevents key collisions.
+type flowStepContextKey struct{}
+
+// GetFlowStepContext retrieves FlowStepContext from the context.
+// Returns nil if no flow/step context is set in the context.
+func GetFlowStepContext(ctx context.Context) *FlowStepContext {
+	if fc, ok := ctx.Value(flowStepContextKey{}).(*FlowStepContext); ok {
+		return fc
+	}
+	return nil
+}
+
+// WithFlowStepContext stores FlowStepContext in a new context derived from the parent.
+func WithFlowStepContext(ctx context.Context, fc *FlowStepContext) context.Context {
+	return context.WithValue(ctx, flowStepContextKey{}, fc)
+}
