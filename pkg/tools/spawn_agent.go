@@ -180,7 +180,7 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args map[string]
 		t.logService.DebugWithAgent("Inheriting LLM config from parent", t.senderID,
 			zap.String("parent_agent_id", t.senderID.String()))
 	} else {
-		// Default fallback
+		// TODO : define the default Subagent Model in the ConfigService
 		llmClientConfig = &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		}

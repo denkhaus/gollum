@@ -2,6 +2,7 @@
 <flow name="startup-flow" version="1.0">
     <description>
         This is the default flow that is invoked at gollum startup.
+        For the time being this flow is solely for testing purposes.
     </description>
 
     <input>
@@ -15,6 +16,7 @@
     </output>
 
     <context>
+        <string name="the_current_time" />
         <int name="hour" />
     </context>
 
@@ -35,7 +37,9 @@
                 <step type="llm" agent="startup">
                     <prompt><![CDATA[
                         What is the time in ${input.location}?:
-                        Use the `set_context_field` tool to set the hour like so: set_context_field(hour, <hour>).
+                        Use the `set_context_field` tool to set:
+                        1. The current time as string to the context like so: set_context_field("the_current_time", <DD.MM.YY HH:mm:ss>).
+                        2. The hour to the context like so: set_context_field("hour", <hour>).
                     ]]></prompt>
                     <tools>set_context_field</tools>
                     <timeout>60s</timeout>
