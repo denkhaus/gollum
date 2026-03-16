@@ -7,7 +7,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
-	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,7 +20,7 @@ func TestNewLoggingHook(t *testing.T) {
 	defer ctrl.Finish()
 
 	t.Run("creates LoggingHook with valid config", func(t *testing.T) {
-		mockLogger := mocks.NewMockLoggerService(ctrl)
+		mockLogger := logger.NewMockLoggerService(ctrl)
 		cfg := &config.HooksConfig{LoggingEnabled: true, LoggingLevel: "info"}
 
 		hook := &LoggingHook{
@@ -40,13 +40,13 @@ func TestRegisterLoggingHooks(t *testing.T) {
 	defer ctrl.Finish()
 
 	t.Run("registers hooks when logging is enabled", func(t *testing.T) {
-		mockLogger := mocks.NewMockLoggerService(ctrl)
+		mockLogger := logger.NewMockLoggerService(ctrl)
 		mockLogger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
 
 		cfg := &config.HooksConfig{LoggingEnabled: true, LoggingLevel: "info"}
 		hook := &LoggingHook{log: mockLogger, config: cfg}
 
-		mockHM := mocks.NewMockHookManager(ctrl)
+		mockHM := hooks.NewMockHookManager(ctrl)
 		// Expect typed registration methods to be called for all hook points
 		mockHM.EXPECT().RegisterToolHook(gomock.Any(), gomock.Any()).MinTimes(3)
 		mockHM.EXPECT().RegisterAgentHook(gomock.Any(), gomock.Any()).MinTimes(4)
@@ -58,12 +58,12 @@ func TestRegisterLoggingHooks(t *testing.T) {
 	})
 
 	t.Run("skips registration when logging is disabled", func(t *testing.T) {
-		mockLogger := mocks.NewMockLoggerService(ctrl)
+		mockLogger := logger.NewMockLoggerService(ctrl)
 
 		cfg := &config.HooksConfig{LoggingEnabled: false}
 		hook := &LoggingHook{log: mockLogger, config: cfg}
 
-		mockHM := mocks.NewMockHookManager(ctrl)
+		mockHM := hooks.NewMockHookManager(ctrl)
 		// Should not call any registration methods when disabled
 		mockHM.EXPECT().RegisterToolHook(gomock.Any(), gomock.Any()).MaxTimes(0)
 		mockHM.EXPECT().RegisterAgentHook(gomock.Any(), gomock.Any()).MaxTimes(0)
@@ -81,7 +81,7 @@ func TestLoggingHook_typedHooks(t *testing.T) {
 	defer ctrl.Finish()
 
 	t.Run("logs tool execution", func(t *testing.T) {
-		mockLogger := mocks.NewMockLoggerService(ctrl)
+		mockLogger := logger.NewMockLoggerService(ctrl)
 		mockLogger.EXPECT().Info("Tool hook event", gomock.Any()).AnyTimes()
 
 		cfg := &config.HooksConfig{LoggingEnabled: true, LoggingLevel: "info"}
@@ -107,7 +107,7 @@ func TestLoggingHook_typedHooks(t *testing.T) {
 	})
 
 	t.Run("logs file operations", func(t *testing.T) {
-		mockLogger := mocks.NewMockLoggerService(ctrl)
+		mockLogger := logger.NewMockLoggerService(ctrl)
 		mockLogger.EXPECT().Info("File hook event", gomock.Any()).AnyTimes()
 
 		cfg := &config.HooksConfig{LoggingEnabled: true, LoggingLevel: "info"}
@@ -132,7 +132,7 @@ func TestLoggingHook_typedHooks(t *testing.T) {
 	})
 
 	t.Run("logs LLM operations", func(t *testing.T) {
-		mockLogger := mocks.NewMockLoggerService(ctrl)
+		mockLogger := logger.NewMockLoggerService(ctrl)
 		mockLogger.EXPECT().Info("LLM hook event", gomock.Any()).AnyTimes()
 
 		cfg := &config.HooksConfig{LoggingEnabled: true, LoggingLevel: "info"}
@@ -158,7 +158,7 @@ func TestLoggingHook_typedHooks(t *testing.T) {
 	})
 
 	t.Run("logs errors", func(t *testing.T) {
-		mockLogger := mocks.NewMockLoggerService(ctrl)
+		mockLogger := logger.NewMockLoggerService(ctrl)
 		mockLogger.EXPECT().Error("Tool hook event", gomock.Any()).AnyTimes()
 
 		cfg := &config.HooksConfig{LoggingEnabled: true, LoggingLevel: "info"}
@@ -191,7 +191,7 @@ func TestNewSecurityHook(t *testing.T) {
 	defer ctrl.Finish()
 
 	t.Run("creates SecurityHook with valid config", func(t *testing.T) {
-		mockLogger := mocks.NewMockLoggerService(ctrl)
+		mockLogger := logger.NewMockLoggerService(ctrl)
 		cfg := &config.HooksConfig{SecurityMode: "strict"}
 
 		hook := &SecurityHook{
@@ -211,13 +211,13 @@ func TestRegisterSecurityHooks(t *testing.T) {
 	defer ctrl.Finish()
 
 	t.Run("registers hooks in strict mode", func(t *testing.T) {
-		mockLogger := mocks.NewMockLoggerService(ctrl)
+		mockLogger := logger.NewMockLoggerService(ctrl)
 		mockLogger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
 
 		cfg := &config.HooksConfig{SecurityMode: "strict"}
 		hook := &SecurityHook{log: mockLogger, config: cfg}
 
-		mockHM := mocks.NewMockHookManager(ctrl)
+		mockHM := hooks.NewMockHookManager(ctrl)
 		// Expect typed registration methods to be called for security hook points
 		mockHM.EXPECT().RegisterToolHook(gomock.Any(), gomock.Any()).MinTimes(1)
 		mockHM.EXPECT().RegisterFileHook(gomock.Any(), gomock.Any()).MinTimes(4)
@@ -227,13 +227,13 @@ func TestRegisterSecurityHooks(t *testing.T) {
 	})
 
 	t.Run("skips registration in lenient mode", func(t *testing.T) {
-		mockLogger := mocks.NewMockLoggerService(ctrl)
+		mockLogger := logger.NewMockLoggerService(ctrl)
 		mockLogger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
 
 		cfg := &config.HooksConfig{SecurityMode: "lenient"}
 		hook := &SecurityHook{log: mockLogger, config: cfg}
 
-		mockHM := mocks.NewMockHookManager(ctrl)
+		mockHM := hooks.NewMockHookManager(ctrl)
 		// Should not call any registration methods when disabled
 		mockHM.EXPECT().RegisterToolHook(gomock.Any(), gomock.Any()).MaxTimes(0)
 		mockHM.EXPECT().RegisterFileHook(gomock.Any(), gomock.Any()).MaxTimes(0)
@@ -247,7 +247,7 @@ func TestRegisterSecurityHooks(t *testing.T) {
 func TestSecurityHook_validateFilePath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	cfg := &config.HooksConfig{SecurityMode: "strict"}
 	hook := &SecurityHook{log: mockLogger, config: cfg}
 
@@ -303,7 +303,7 @@ func TestSecurityHook_validateFilePath(t *testing.T) {
 func TestSecurityHook_validateBashCommand(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	cfg := &config.HooksConfig{SecurityMode: "strict"}
 	hook := &SecurityHook{log: mockLogger, config: cfg}
 
@@ -345,7 +345,7 @@ func TestSecurityHook_validateBashCommand(t *testing.T) {
 func TestSecurityHook_validateLLMInput(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	cfg := &config.HooksConfig{SecurityMode: "strict"}
 	hook := &SecurityHook{log: mockLogger, config: cfg}
 
@@ -385,7 +385,7 @@ func TestSecurityHook_validateLLMInput(t *testing.T) {
 func TestSecurityHook_typedHooks(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	cfg := &config.HooksConfig{SecurityMode: "strict"}
 	hook := &SecurityHook{log: mockLogger, config: cfg}
 
