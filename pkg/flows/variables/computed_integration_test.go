@@ -150,22 +150,22 @@ func TestComputedField_TypeMapping(t *testing.T) {
 	// Check bool type
 	field1, ok := cv.fields["bool_field"]
 	assert.True(t, ok)
-	assert.Equal(t, TypeBool, field1.Type)
+	assert.Equal(t, flows.TypeBool, field1.Type)
 
 	// Check int type
 	field2, ok := cv.fields["int_field"]
 	assert.True(t, ok)
-	assert.Equal(t, TypeInt, field2.Type)
+	assert.Equal(t, flows.TypeInt, field2.Type)
 
 	// Check string type
 	field3, ok := cv.fields["string_field"]
 	assert.True(t, ok)
-	assert.Equal(t, TypeString, field3.Type)
+	assert.Equal(t, flows.TypeString, field3.Type)
 
 	// Check float type
 	field4, ok := cv.fields["float_field"]
 	assert.True(t, ok)
-	assert.Equal(t, TypeFloat, field4.Type)
+	assert.Equal(t, flows.TypeFloat, field4.Type)
 }
 
 // TestComputedField_UnknownField tests error handling for unknown fields

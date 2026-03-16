@@ -42,7 +42,7 @@ Note: Fragments removed - use sub-flows for reusable step groups
             <steps>
                 <step type="llm" agent="analyzer">
                     <prompt><![CDATA[
-                        Analyze ${target} and provide:
+                        Analyze ${input.target} and provide:
                         1. Complexity score (1-20) - use set_context_field("complexity", <score>)
                         2. Brief recommendation - use set_context_field("recommendation", "<text>")
                         3. needs_refactor flag - use set_context_field("needs_refactor", true/false)

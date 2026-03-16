@@ -127,11 +127,12 @@ func TestExecuteMCPStep_ToolCall(t *testing.T) {
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.SetInput(map[string]string{"query": "test search query"})
+	err := exec.SetInput(map[string]string{"query": "test search query"})
+	require.NoError(t, err)
 
 	// Execute the MCP step
 	step := &flow.States[0].Steps[0]
-	err := exec.(*flowExecutorImpl).executeMCPStep(context.Background(), step, "init")
+	err = exec.(*flowExecutorImpl).executeMCPStep(context.Background(), step, "init")
 
 	require.NoError(t, err)
 
@@ -285,10 +286,11 @@ func TestExecuteMCPStep_TemplateSubstitution(t *testing.T) {
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.SetInput(map[string]string{"name": "Alice"})
+	err := exec.SetInput(map[string]string{"name": "Alice"})
+	require.NoError(t, err)
 
 	step := &flow.States[0].Steps[0]
-	err := exec.(*flowExecutorImpl).executeMCPStep(context.Background(), step, "init")
+	err = exec.(*flowExecutorImpl).executeMCPStep(context.Background(), step, "init")
 
 	require.NoError(t, err)
 

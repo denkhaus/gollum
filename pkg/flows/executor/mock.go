@@ -69,9 +69,11 @@ func (mr *MockFlowExecutorInstanceMockRecorder) Run() *gomock.Call {
 }
 
 // SetInput mocks base method.
-func (m *MockFlowExecutorInstance) SetInput(vals map[string]string) {
+func (m *MockFlowExecutorInstance) SetInput(vals map[string]string) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetInput", vals)
+	ret := m.ctrl.Call(m, "SetInput", vals)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // SetInput indicates an expected call of SetInput.
@@ -92,6 +94,20 @@ func (m *MockFlowExecutorInstance) Validate() error {
 func (mr *MockFlowExecutorInstanceMockRecorder) Validate() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockFlowExecutorInstance)(nil).Validate))
+}
+
+// Close mocks base method.
+func (m *MockFlowExecutorInstance) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockFlowExecutorInstanceMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockFlowExecutorInstance)(nil).Close))
 }
 
 // MockFlowExecutorService is a mock of FlowExecutorService interface.

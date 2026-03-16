@@ -10,7 +10,7 @@ import "github.com/denkhaus/gollum/pkg/flows"
 // via methods defined in pkg/flows/types.go.
 type FieldDefinition interface {
 	GetName() string
-	GetType() string
+	GetType() flows.ValueType
 	GetDefault() string
 }
 

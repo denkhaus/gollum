@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/flows/errors"
 )
 
@@ -35,27 +36,27 @@ func NewFieldValues[T FieldDefinition](defs []T) *FieldValues[T] {
 
 // initializeField initializes a single field with its default value or unset placeholder
 func (fv *FieldValues[T]) initializeField(name string, def T) {
-	fieldType := ValueType(def.GetType())
+	fieldType := def.GetType()
 	defaultValue := def.GetDefault()
 
 	// If default value is provided, try to parse and set it
 	if defaultValue != "" {
 		switch fieldType {
-		case TypeString:
+		case flows.TypeString:
 			fv.fields[name] = NewStringValue(defaultValue)
-		case TypeInt:
+		case flows.TypeInt:
 			if i, err := strconv.Atoi(defaultValue); err == nil {
 				fv.fields[name] = NewIntValue(i)
 			} else {
 				fv.fields[name] = NewUnsetIntValue()
 			}
-		case TypeBool:
+		case flows.TypeBool:
 			if b, err := strconv.ParseBool(defaultValue); err == nil {
 				fv.fields[name] = NewBoolValue(b)
 			} else {
 				fv.fields[name] = NewUnsetBoolValue()
 			}
-		case TypeFloat:
+		case flows.TypeFloat:
 			if f, err := strconv.ParseFloat(defaultValue, 64); err == nil {
 				fv.fields[name] = NewFloatValue(f)
 			} else {
@@ -67,13 +68,13 @@ func (fv *FieldValues[T]) initializeField(name string, def T) {
 
 	// No default value, initialize with unset placeholder
 	switch fieldType {
-	case TypeString:
+	case flows.TypeString:
 		fv.fields[name] = NewUnsetStringValue()
-	case TypeInt:
+	case flows.TypeInt:
 		fv.fields[name] = NewUnsetIntValue()
-	case TypeBool:
+	case flows.TypeBool:
 		fv.fields[name] = NewUnsetBoolValue()
-	case TypeFloat:
+	case flows.TypeFloat:
 		fv.fields[name] = NewUnsetFloatValue()
 	}
 }
@@ -85,7 +86,7 @@ func (fv *FieldValues[T]) Has(name string) bool {
 }
 
 // validateField checks if a field exists and matches the expected type
-func (fv *FieldValues[T]) validateField(name string, expectedType ValueType) error {
+func (fv *FieldValues[T]) validateField(name string, expectedType flows.ValueType) error {
 	if _, ok := fv.defs[name]; !ok {
 		return &errors.UnknownFieldError{
 			FlowError: errors.FlowError{
@@ -96,14 +97,14 @@ func (fv *FieldValues[T]) validateField(name string, expectedType ValueType) err
 			Scope: "values",
 		}
 	}
-	if fv.defs[name].GetType() != string(expectedType) {
+	if string(fv.defs[name].GetType()) != string(expectedType) {
 		return &errors.TypeError{
 			FlowError: errors.FlowError{
 				Code:    errors.ErrCodeTypeMismatch,
 				Message: fmt.Sprintf("field '%s' is not of type %s", name, expectedType),
 				Field:   name,
 			},
-			ExpectedType: string(expectedType),
+			ExpectedType: expectedType,
 			ActualType:   fv.defs[name].GetType(),
 		}
 	}
@@ -112,7 +113,7 @@ func (fv *FieldValues[T]) validateField(name string, expectedType ValueType) err
 
 // SetString sets a string field value
 func (fv *FieldValues[T]) SetString(name string, value string) error {
-	if err := fv.validateField(name, TypeString); err != nil {
+	if err := fv.validateField(name, flows.TypeString); err != nil {
 		return err
 	}
 	fv.fields[name] = NewStringValue(value)
@@ -145,7 +146,7 @@ func (fv *FieldValues[T]) GetString(name string) (string, error) {
 
 // SetInt sets an int field value
 func (fv *FieldValues[T]) SetInt(name string, value int) error {
-	if err := fv.validateField(name, TypeInt); err != nil {
+	if err := fv.validateField(name, flows.TypeInt); err != nil {
 		return err
 	}
 	fv.fields[name] = NewIntValue(value)
@@ -178,7 +179,7 @@ func (fv *FieldValues[T]) GetInt(name string) (int, error) {
 
 // SetBool sets a bool field value
 func (fv *FieldValues[T]) SetBool(name string, value bool) error {
-	if err := fv.validateField(name, TypeBool); err != nil {
+	if err := fv.validateField(name, flows.TypeBool); err != nil {
 		return err
 	}
 	fv.fields[name] = NewBoolValue(value)
@@ -211,7 +212,7 @@ func (fv *FieldValues[T]) GetBool(name string) (bool, error) {
 
 // SetFloat sets a float field value
 func (fv *FieldValues[T]) SetFloat(name string, value float64) error {
-	if err := fv.validateField(name, TypeFloat); err != nil {
+	if err := fv.validateField(name, flows.TypeFloat); err != nil {
 		return err
 	}
 	fv.fields[name] = NewFloatValue(value)
@@ -258,9 +259,9 @@ func (fv *FieldValues[T]) SetFromString(name string, value string) error {
 
 	// Convert string value to the appropriate type based on field definition
 	switch fieldDef.GetType() {
-	case "string":
+	case flows.TypeString:
 		return fv.SetString(name, value)
-	case "int":
+	case flows.TypeInt:
 		i, err := strconv.Atoi(value)
 		if err != nil {
 			return &errors.TypeError{
@@ -272,7 +273,7 @@ func (fv *FieldValues[T]) SetFromString(name string, value string) error {
 			}
 		}
 		return fv.SetInt(name, i)
-	case "bool":
+	case flows.TypeBool:
 		b, err := strconv.ParseBool(value)
 		if err != nil {
 			return &errors.TypeError{
@@ -284,7 +285,7 @@ func (fv *FieldValues[T]) SetFromString(name string, value string) error {
 			}
 		}
 		return fv.SetBool(name, b)
-	case "float":
+	case flows.TypeFloat:
 		f, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return &errors.TypeError{
@@ -311,16 +312,16 @@ func (fv *FieldValues[T]) GetRaw(name string) (any, bool) {
 
 	// Try to get the typed value
 	switch fieldValue.Type() {
-	case TypeString:
+	case flows.TypeString:
 		val, err := fieldValue.String()
 		return val, err == nil
-	case TypeInt:
+	case flows.TypeInt:
 		val, err := fieldValue.Int()
 		return val, err == nil
-	case TypeBool:
+	case flows.TypeBool:
 		val, err := fieldValue.Bool()
 		return val, err == nil
-	case TypeFloat:
+	case flows.TypeFloat:
 		val, err := fieldValue.Float()
 		return val, err == nil
 	}

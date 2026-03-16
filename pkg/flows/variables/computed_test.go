@@ -109,7 +109,7 @@ func TestComputedValues_GetField(t *testing.T) {
 	field, err := computed.GetField("is_large")
 	require.NoError(t, err)
 	assert.Equal(t, "is_large", field.Name)
-	assert.Equal(t, variables.TypeBool, field.Type)
+	assert.Equal(t, flows.TypeBool, field.Type)
 	assert.Equal(t, "GT(context.x, 10)", field.Expression)
 	assert.Len(t, field.Dependencies, 1) // context.x only (literal 10 is not a field reference)
 }

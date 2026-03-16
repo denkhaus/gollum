@@ -14,6 +14,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
 )
@@ -119,12 +120,13 @@ func TestFlowExecutor_ExecuteStepWithHooks(t *testing.T) {
 	}
 
 	instance := execService.New(flow)
-	instance.SetInput(map[string]string{"name": "test"})
+	err := instance.SetInput(map[string]string{"name": "test"})
+	require.NoError(t, err)
 
 	// Mock the func step to return successfully
 	// (For now, we'll test that the wrapper works even if step fails)
 
-	err := instance.Run()
+	err = instance.Run()
 
 	// We expect this to fail (func not found), but hooks should still be called
 	assert.Error(t, err)

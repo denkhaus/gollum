@@ -53,7 +53,7 @@ func (c *ComputedChecker) checkField(field flows.ComputedFieldDef, registry map[
 	validTypes := map[string]bool{
 		"bool": true, "int": true, "string": true, "float": true,
 	}
-	if !validTypes[field.Type] {
+	if !validTypes[string(field.Type)] {
 		result.Errors = append(result.Errors, flows.LinterError{
 			Code:    flows.ErrInvalidExpr,
 			Message: fmt.Sprintf("computed field '%s' has invalid type '%s'", field.Name, field.Type),

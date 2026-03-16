@@ -59,6 +59,14 @@ func evaluateCall(call *CallExpr, ctx map[string]any) (any, error) {
 		return logicalOr(args)
 	case "NOT", "not":
 		return logicalNot(args)
+	case "ADD", "add":
+		return arithmetic(args, func(a, b float64) float64 { return a + b })
+	case "SUB", "sub":
+		return arithmetic(args, func(a, b float64) float64 { return a - b })
+	case "MUL", "mul":
+		return arithmetic(args, func(a, b float64) float64 { return a * b })
+	case "DIV", "div":
+		return divide(args)
 	default:
 		return nil, fmt.Errorf("unknown function: %s", call.Func)
 	}
@@ -213,4 +221,94 @@ func coerceToString(v any) string {
 		return ""
 	}
 	return fmt.Sprintf("%v", v)
+}
+
+// arithmetic performs arithmetic operations on two arguments
+func arithmetic(args []any, op func(a, b float64) float64) (any, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("arithmetic operation requires 2 arguments, got %d", len(args))
+	}
+
+	a, err := toFloat64(args[0])
+	if err != nil {
+		return nil, fmt.Errorf("first argument: %w", err)
+	}
+
+	b, err := toFloat64(args[1])
+	if err != nil {
+		return nil, fmt.Errorf("second argument: %w", err)
+	}
+
+	result := op(a, b)
+
+	// Return int64 if result is a whole number and both inputs were integers
+	if isWholeNumber(result) && isInt(args[0]) && isInt(args[1]) {
+		return int64(result), nil
+	}
+
+	return result, nil
+}
+
+// divide performs division with zero-check
+func divide(args []any) (any, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("DIV requires 2 arguments, got %d", len(args))
+	}
+
+	a, err := toFloat64(args[0])
+	if err != nil {
+		return nil, fmt.Errorf("first argument: %w", err)
+	}
+
+	b, err := toFloat64(args[1])
+	if err != nil {
+		return nil, fmt.Errorf("second argument: %w", err)
+	}
+
+	if b == 0 {
+		return nil, fmt.Errorf("division by zero")
+	}
+
+	// Integer division truncates - return int64 when both inputs are actual integer types
+	if isActualIntType(args[0]) && isActualIntType(args[1]) {
+		return int64(a / b), nil
+	}
+
+	result := a / b
+
+	// Return int64 if result is a whole number
+	if isWholeNumber(result) {
+		return int64(result), nil
+	}
+
+	return result, nil
+}
+
+// isWholeNumber checks if a float64 is a whole number
+func isWholeNumber(f float64) bool {
+	return f == float64(int64(f))
+}
+
+// isInt checks if a value is an integer type (int, int64) or a float representing a whole number
+func isInt(v any) bool {
+	switch val := v.(type) {
+	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8:
+		return true
+	case float64:
+		return isWholeNumber(val)
+	case float32:
+		return isWholeNumber(float64(val))
+	default:
+		return false
+	}
+}
+
+// isActualIntType checks if the value's actual type is an integer (not a float that happens to be whole)
+func isActualIntType(v any) bool {
+	switch v.(type) {
+	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8:
+		return true
+	default:
+		return false
+	}
 }

@@ -47,7 +47,7 @@ func TestComputedBlock_HasComputedFields(t *testing.T) {
 
 	assert.Len(t, computed.GetAllFields(), 2)
 	assert.Equal(t, "is_open", computed.GetAllFields()[0].Name)
-	assert.Equal(t, "bool", computed.GetAllFields()[0].Type)
+	assert.Equal(t, TypeBool, computed.GetAllFields()[0].Type)
 	assert.Equal(t, "EQ(context.status, 'open')", computed.GetAllFields()[0].Eval)
 }
 

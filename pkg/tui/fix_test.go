@@ -9,13 +9,21 @@ import (
 	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
+	"go.uber.org/mock/gomock"
 )
 
 // TestFixFirstUserMessageHasTopBorder verifies the fix for the bug where
 // the first user message had no top border.
 func TestFixFirstUserMessageHasTopBorder(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	ctx := context.Background()
-	agent := &mockAgentExecutor{}
+	agent := NewMockAgentExecutor(ctrl)
+	agent.EXPECT().Execute(gomock.Any(), gomock.Any()).Return(&gollem.ExecuteResponse{
+		Texts: []string{"test response"},
+	}, nil).AnyTimes()
+
 	m := NewModel(ctx, agent)
 
 	// Set realistic terminal size (like a typical user terminal)
@@ -84,8 +92,15 @@ func TestFixFirstUserMessageHasTopBorder(t *testing.T) {
 // TestFixPreservesScrolling verifies that users can still scroll down
 // to see more content when it exceeds viewport height.
 func TestFixPreservesScrolling(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	ctx := context.Background()
-	agent := &mockAgentExecutor{}
+	agent := NewMockAgentExecutor(ctrl)
+	agent.EXPECT().Execute(gomock.Any(), gomock.Any()).Return(&gollem.ExecuteResponse{
+		Texts: []string{"test response"},
+	}, nil).AnyTimes()
+
 	m := NewModel(ctx, agent)
 
 	m.width = 80
@@ -140,15 +155,6 @@ func TestFixPreservesScrolling(t *testing.T) {
 	} else {
 		t.Log("SUCCESS: Scrolling down changes the view")
 	}
-}
-
-// mockAgentExecutor is a minimal mock for testing.
-type mockAgentExecutor struct{}
-
-func (m *mockAgentExecutor) Execute(ctx context.Context, input string) (*gollem.ExecuteResponse, error) {
-	return &gollem.ExecuteResponse{
-		Texts: []string{"test response"},
-	}, nil
 }
 
 // contains checks if a string contains a substring.

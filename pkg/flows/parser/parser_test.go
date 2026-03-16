@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -73,7 +74,7 @@ func TestParseSimpleFlow_InputFieldTypes(t *testing.T) {
 	fields := flow.Input.GetAllFields()
 	assert.Len(t, fields, 1, "should have 1 input field")
 	assert.Equal(t, "target", fields[0].Name)
-	assert.Equal(t, "string", fields[0].Type)
+	assert.Equal(t, flows.TypeString, fields[0].Type)
 	assert.True(t, fields[0].Required)
 }
 

@@ -17,7 +17,7 @@ type Evaluator interface {
 // ComputedField represents a single computed field with its definition and cached value
 type ComputedField struct {
 	Name         string
-	Type         ValueType
+	Type         flows.ValueType
 	Expression   string
 	Dependencies []FieldReference
 	lastValue    *FieldValue
@@ -44,18 +44,18 @@ func NewComputedValues(computedFields []flows.ComputedField) *ComputedValues {
 	for _, field := range computedFields {
 		deps := parser.ExtractDependencies(field.Eval)
 
-		var valueType ValueType
-		switch field.Type {
-		case "bool":
-			valueType = TypeBool
-		case "int":
-			valueType = TypeInt
-		case "string":
-			valueType = TypeString
-		case "float":
-			valueType = TypeFloat
+		var valueType flows.ValueType
+		switch string(field.Type) {
+		case string(flows.TypeBool):
+			valueType = flows.TypeBool
+		case string(flows.TypeInt):
+			valueType = flows.TypeInt
+		case string(flows.TypeString):
+			valueType = flows.TypeString
+		case string(flows.TypeFloat):
+			valueType = flows.TypeFloat
 		default:
-			valueType = TypeString // default fallback
+			valueType = flows.TypeString // default fallback
 		}
 
 		cv.fields[field.Name] = &ComputedField{
@@ -178,13 +178,13 @@ func (cv *ComputedValues) GetValue(name string) (any, error) {
 		return nil, fmt.Errorf("computed field not evaluated: %s", name)
 	}
 	switch field.Type {
-	case TypeBool:
+	case flows.TypeBool:
 		return field.lastValue.Bool()
-	case TypeInt:
+	case flows.TypeInt:
 		return field.lastValue.Int()
-	case TypeString:
+	case flows.TypeString:
 		return field.lastValue.String()
-	case TypeFloat:
+	case flows.TypeFloat:
 		return field.lastValue.Float()
 	default:
 		return nil, fmt.Errorf("unknown type: %s", field.Type)
@@ -336,7 +336,7 @@ func (ce *ComputedEvaluator) evaluateField(name string, evaluated map[string]boo
 	// Store the result
 	var fv FieldValue
 	switch field.Type {
-	case TypeBool:
+	case flows.TypeBool:
 		boolVal, ok := result.(bool)
 		if !ok {
 			return &errors.TypeError{
@@ -345,12 +345,12 @@ func (ce *ComputedEvaluator) evaluateField(name string, evaluated map[string]boo
 					Message: "type mismatch",
 					Field:   name,
 				},
-				ExpectedType: string(TypeBool),
-				ActualType:   fmt.Sprintf("%T", result),
+				ExpectedType: flows.TypeBool,
+				ActualType:   flows.ValueType(fmt.Sprintf("%T", result)),
 			}
 		}
 		fv = NewBoolValue(boolVal)
-	case TypeInt:
+	case flows.TypeInt:
 		intVal, ok := result.(int)
 		if !ok {
 			if floatVal, ok := result.(float64); ok {
@@ -362,13 +362,13 @@ func (ce *ComputedEvaluator) evaluateField(name string, evaluated map[string]boo
 						Message: "type mismatch",
 						Field:   name,
 					},
-					ExpectedType: string(TypeInt),
-					ActualType:   fmt.Sprintf("%T", result),
+					ExpectedType: flows.TypeInt,
+					ActualType:   flows.ValueType(fmt.Sprintf("%T", result)),
 				}
 			}
 		}
 		fv = NewIntValue(intVal)
-	case TypeString:
+	case flows.TypeString:
 		strVal, ok := result.(string)
 		if !ok {
 			return &errors.TypeError{
@@ -377,12 +377,12 @@ func (ce *ComputedEvaluator) evaluateField(name string, evaluated map[string]boo
 					Message: "type mismatch",
 					Field:   name,
 				},
-				ExpectedType: string(TypeString),
-				ActualType:   fmt.Sprintf("%T", result),
+				ExpectedType: flows.TypeString,
+				ActualType:   flows.ValueType(fmt.Sprintf("%T", result)),
 			}
 		}
 		fv = NewStringValue(strVal)
-	case TypeFloat:
+	case flows.TypeFloat:
 		floatVal, ok := result.(float64)
 		if !ok {
 			return &errors.TypeError{
@@ -391,8 +391,8 @@ func (ce *ComputedEvaluator) evaluateField(name string, evaluated map[string]boo
 					Message: "type mismatch",
 					Field:   name,
 				},
-				ExpectedType: string(TypeFloat),
-				ActualType:   fmt.Sprintf("%T", result),
+				ExpectedType: flows.TypeFloat,
+				ActualType:   flows.ValueType(fmt.Sprintf("%T", result)),
 			}
 		}
 		fv = NewFloatValue(floatVal)
@@ -526,13 +526,13 @@ func (ce *ComputedEvaluator) GetValue(name string) (any, error) {
 	}
 
 	switch field.Type {
-	case TypeBool:
+	case flows.TypeBool:
 		return ce.computed.GetBool(name)
-	case TypeInt:
+	case flows.TypeInt:
 		return ce.computed.GetInt(name)
-	case TypeString:
+	case flows.TypeString:
 		return ce.computed.GetString(name)
-	case TypeFloat:
+	case flows.TypeFloat:
 		return ce.computed.GetFloat(name)
 	default:
 		return nil, fmt.Errorf("unknown type: %s", field.Type)

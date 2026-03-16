@@ -48,7 +48,7 @@
                 <step type="func" function="fmt.Sprintf">
                     <params>
                         <param name="format" value="Complexity check failed: %s" />
-                        <param name="a" value="${error.last_error}" />
+                        <param name="a" value="${sys.error.message}" />
                     </params>
                 </step>
             </steps>

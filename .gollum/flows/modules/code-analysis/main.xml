@@ -58,8 +58,8 @@
                 <step type="llm" agent="coordinator">
                     <prompt><![CDATA[
                         Analysis failed:
-                        Step: ${error.step_name}
-                        Error: ${error.message}
+                        Step: ${sys.error.step_name}
+                        Error: ${sys.error.message}
 
                         Use emit_log to report the failure.
                     ]]></prompt>

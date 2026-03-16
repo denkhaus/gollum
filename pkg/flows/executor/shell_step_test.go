@@ -149,10 +149,11 @@ func TestExecuteShellStep_WithInputVariable(t *testing.T) {
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.SetInput(map[string]string{"name": "Claude"})
+	err := exec.SetInput(map[string]string{"name": "Claude"})
+	require.NoError(t, err)
 
 	step := &flow.States[0].Steps[0]
-	err := exec.(*flowExecutorImpl).executeShellStep(context.Background(), step, "init")
+	err = exec.(*flowExecutorImpl).executeShellStep(context.Background(), step, "init")
 
 	require.NoError(t, err)
 	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("greeting")
@@ -217,7 +218,8 @@ func TestSubstituteTemplate_InputVariables(t *testing.T) {
 	injector := setupTestDI(t)
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.SetInput(map[string]string{"name": "Claude"})
+	err := exec.SetInput(map[string]string{"name": "Claude"})
+	require.NoError(t, err)
 
 	result := exec.(*flowExecutorImpl).substituteTemplate("echo 'Hello ${input.name}'")
 
@@ -280,7 +282,8 @@ func TestSubstituteTemplate_MultipleVariables(t *testing.T) {
 	injector := setupTestDI(t)
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.SetInput(map[string]string{"name": "app", "action": "deploy"})
+	err := exec.SetInput(map[string]string{"name": "app", "action": "deploy"})
+	require.NoError(t, err)
 	// Initialize context with default values manually for this test
 	if flow.Context != nil {
 		for _, field := range flow.Context.Strings {

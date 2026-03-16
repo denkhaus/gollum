@@ -59,7 +59,7 @@ Demonstrates: Conditional execution, module calls (main.xml entry point), sub-fl
                 </step>
 
                 <!-- Conditional flow call: Only execute for deep scans -->
-                <call ref="code-analysis/security-scan" timeout="300s" when="computed.is_deep_scan">
+                <call ref="code-analysis/security-scan" timeout="300s" when="EQ(computed.is_deep_scan, true)">
                     <input>
                         <string name="target_dir" value="${input.target_dir}" />
                         <string name="scan_type" value="${input.scan_type}" />
@@ -71,7 +71,7 @@ Demonstrates: Conditional execution, module calls (main.xml entry point), sub-fl
                 </call>
 
                 <!-- Conditional flow call: Full analysis using module entry point -->
-                <call ref="code-analysis" timeout="300s" when="input.run_security_scan">
+                <call ref="code-analysis" timeout="300s" when="EQ(input.run_security_scan, true)">
                     <input>
                         <string name="target_dir" value="${input.target_dir}" />
                         <string name="scan_type" value="${input.scan_type}" />
@@ -83,7 +83,7 @@ Demonstrates: Conditional execution, module calls (main.xml entry point), sub-fl
                 </call>
 
                 <!-- Otherwise fallback: complexity check only -->
-                <call ref="code-analysis/complexity-check" timeout="120s" when="computed.is_quick_scan">
+                <call ref="code-analysis/complexity-check" timeout="120s" when="EQ(computed.is_quick_scan, true)">
                     <input>
                         <string name="target_dir" value="${input.target_dir}" />
                     </input>
@@ -104,8 +104,8 @@ Demonstrates: Conditional execution, module calls (main.xml entry point), sub-fl
                 <step type="llm" agent="coordinator">
                     <prompt><![CDATA[
                         Conditional flow failed:
-                        Step: ${error.step_name}
-                        Error: ${error.message}
+                        Step: ${sys.error.step_name}
+                        Error: ${sys.error.message}
 
                         Use emit_log to report.
                     ]]></prompt>

@@ -104,7 +104,7 @@ func (c *CallChecker) checkCall(flowPath string, call flows.Call, result *flows.
 
 		// Check type compatibility
 		callType := callInput.GetType()
-		if callType != "" && callType != inputField.Type {
+		if callType != "" && callType != string(inputField.Type) {
 			result.Errors = append(result.Errors, flows.LinterError{
 				FlowPath: flowPath,
 				Code:     flows.ErrCallInputType,
@@ -133,7 +133,7 @@ func (c *CallChecker) checkCall(flowPath string, call flows.Call, result *flows.
 
 		// Check type compatibility
 		callType := callOutput.GetType()
-		if callType != "" && callType != outputField.Type {
+		if callType != "" && callType != string(outputField.Type) {
 			result.Errors = append(result.Errors, flows.LinterError{
 				FlowPath: flowPath,
 				Code:     flows.ErrCallOutputType,

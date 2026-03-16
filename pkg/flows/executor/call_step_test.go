@@ -91,11 +91,12 @@ func TestExecuteCall_SimpleFlowCall(t *testing.T) {
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(mainFlow)
-	exec.SetInput(map[string]string{"message": "hello"})
+	err := exec.SetInput(map[string]string{"message": "hello"})
+	require.NoError(t, err)
 
 	// Execute the call
 	call := &mainFlow.States[0].Calls[0]
-	err := exec.(*flowExecutorImpl).executeCall(call, "init")
+	err = exec.(*flowExecutorImpl).executeCall(call, "init")
 
 	require.NoError(t, err)
 	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("output")
@@ -196,10 +197,11 @@ func TestExecuteCall_MultipleInputFields(t *testing.T) {
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(mainFlow)
-	exec.SetInput(map[string]string{"greeting": "Hello", "name": "World"})
+	err := exec.SetInput(map[string]string{"greeting": "Hello", "name": "World"})
+	require.NoError(t, err)
 
 	call := &mainFlow.States[0].Calls[0]
-	err := exec.(*flowExecutorImpl).executeCall(call, "init")
+	err = exec.(*flowExecutorImpl).executeCall(call, "init")
 
 	require.NoError(t, err)
 	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("message")

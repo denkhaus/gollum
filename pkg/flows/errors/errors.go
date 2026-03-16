@@ -1,6 +1,10 @@
 package errors
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/denkhaus/gollum/pkg/flows"
+)
 
 // FlowError is the base error type for all flow-related errors
 type FlowError struct {
@@ -30,8 +34,8 @@ type UnknownFieldError struct {
 // TypeError indicates a type mismatch in value assignment or expression
 type TypeError struct {
 	FlowError
-	ExpectedType string
-	ActualType   string
+	ExpectedType flows.ValueType
+	ActualType   flows.ValueType
 }
 
 // CircularDependencyError indicates computed fields depend on each other

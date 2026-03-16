@@ -6,6 +6,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExecutor_SimpleFlow_ExecutesSuccessfully(t *testing.T) {
@@ -47,10 +48,11 @@ func TestExecutor_SimpleFlow_ExecutesSuccessfully(t *testing.T) {
 	injector := setupTestDI(t)
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.SetInput(map[string]string{"message": "hello"})
+	err := exec.SetInput(map[string]string{"message": "hello"})
+	require.NoError(t, err)
 
 	// LLM step will fail but we can test state transitions
-	err := exec.Validate()
+	err = exec.Validate()
 	assert.NoError(t, err)
 	assert.Equal(t, "init", exec.(*flowExecutorImpl).currentState)
 

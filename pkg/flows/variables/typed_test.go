@@ -12,7 +12,7 @@ import (
 func TestNewStringValue(t *testing.T) {
 	fv := variables.NewStringValue("test")
 
-	assert.Equal(t, variables.TypeString, fv.Type())
+	assert.Equal(t, flows.TypeString, fv.Type())
 
 	val, err := fv.String()
 	require.NoError(t, err)
@@ -22,7 +22,7 @@ func TestNewStringValue(t *testing.T) {
 func TestNewIntValue(t *testing.T) {
 	fv := variables.NewIntValue(42)
 
-	assert.Equal(t, variables.TypeInt, fv.Type())
+	assert.Equal(t, flows.TypeInt, fv.Type())
 
 	val, err := fv.Int()
 	require.NoError(t, err)
@@ -32,7 +32,7 @@ func TestNewIntValue(t *testing.T) {
 func TestNewBoolValue(t *testing.T) {
 	fv := variables.NewBoolValue(true)
 
-	assert.Equal(t, variables.TypeBool, fv.Type())
+	assert.Equal(t, flows.TypeBool, fv.Type())
 
 	val, err := fv.Bool()
 	require.NoError(t, err)
@@ -42,7 +42,7 @@ func TestNewBoolValue(t *testing.T) {
 func TestNewFloatValue(t *testing.T) {
 	fv := variables.NewFloatValue(3.14)
 
-	assert.Equal(t, variables.TypeFloat, fv.Type())
+	assert.Equal(t, flows.TypeFloat, fv.Type())
 
 	val, err := fv.Float()
 	require.NoError(t, err)

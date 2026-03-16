@@ -28,19 +28,26 @@ type FlowContext interface {
 
 type VarContainerTarget string
 
+// ValueType represents the type of a field
+type ValueType string
+
+func (p ValueType) IsEmpty() bool {
+	return p == ""
+}
+
 const (
 	VarContainerTargetInput   VarContainerTarget = "input"
 	VarContainerTargetContext VarContainerTarget = "context"
 	VarContainerTargetOutput  VarContainerTarget = "output"
 
 	// Field type constants
-	TypeString = "string"
-	TypeInt    = "int"
-	TypeBool   = "bool"
-	TypeFloat  = "float"
-	TypeArray  = "array"
-	TypeMap    = "map"
-	TypeObject = "object"
+	TypeString ValueType = "string"
+	TypeInt    ValueType = "int"
+	TypeBool   ValueType = "bool"
+	TypeFloat  ValueType = "float"
+	TypeArray  ValueType = "array"
+	TypeMap    ValueType = "map"
+	TypeObject ValueType = "object"
 )
 
 // Flow represents a complete workflow definition
@@ -225,7 +232,7 @@ func (c *ContextBlock) GetAllFields() []ContextField {
 type ObjectDef struct {
 	XMLName xml.Name
 	Name    string     `xml:"name,attr"`
-	Type    string     `xml:"type,attr"`
+	Type    ValueType  `xml:"type,attr"`
 	Default string     `xml:"default,attr"`
 	Fields  []FieldDef `xml:",any"`
 }
@@ -233,10 +240,10 @@ type ObjectDef struct {
 // FieldDef is a base type for field definitions
 type FieldDef struct {
 	XMLName  xml.Name
-	Name     string `xml:"name,attr"`
-	Type     string `xml:"type,attr"`
-	Required bool   `xml:"required,attr"`
-	Default  string `xml:"default,attr"`
+	Name     string    `xml:"name,attr"`
+	Type     ValueType `xml:"type,attr"`
+	Required bool      `xml:"required,attr"`
+	Default  string    `xml:"default,attr"`
 }
 
 // GetName returns the field name (implements variables.FieldDefinition interface)
@@ -245,7 +252,7 @@ func (f FieldDef) GetName() string {
 }
 
 // GetType returns the field type (implements variables.FieldDefinition interface)
-func (f FieldDef) GetType() string {
+func (f FieldDef) GetType() ValueType {
 	return f.Type
 }
 
@@ -257,9 +264,9 @@ func (f FieldDef) GetDefault() string {
 // ContextField represents a regular context field
 type ContextField struct {
 	XMLName xml.Name
-	Name    string `xml:"name,attr"`
-	Type    string `xml:"type,attr"`
-	Default string `xml:"default,attr"`
+	Name    string    `xml:"name,attr"`
+	Type    ValueType // Set programmatically, not from XML (element name defines type)
+	Default string    `xml:"default,attr"`
 }
 
 // GetName returns the field name (implements variables.FieldDefinition interface)
@@ -268,7 +275,7 @@ func (c ContextField) GetName() string {
 }
 
 // GetType returns the field type (implements variables.FieldDefinition interface)
-func (c ContextField) GetType() string {
+func (c ContextField) GetType() ValueType {
 	return c.Type
 }
 
@@ -297,28 +304,28 @@ func (c *ComputedBlock) GetAllFields() []ComputedFieldDef {
 	var fields []ComputedFieldDef
 	for _, f := range c.Strings {
 		field := f
-		if field.Type == "" {
+		if field.Type.IsEmpty() {
 			field.Type = TypeString
 		}
 		fields = append(fields, field)
 	}
 	for _, f := range c.Ints {
 		field := f
-		if field.Type == "" {
+		if field.Type.IsEmpty() {
 			field.Type = TypeInt
 		}
 		fields = append(fields, field)
 	}
 	for _, f := range c.Bools {
 		field := f
-		if field.Type == "" {
+		if field.Type.IsEmpty() {
 			field.Type = TypeBool
 		}
 		fields = append(fields, field)
 	}
 	for _, f := range c.Floats {
 		field := f
-		if field.Type == "" {
+		if field.Type.IsEmpty() {
 			field.Type = TypeFloat
 		}
 		fields = append(fields, field)
@@ -328,9 +335,9 @@ func (c *ComputedBlock) GetAllFields() []ComputedFieldDef {
 
 // ComputedFieldDef defines a computed field with name, type, and evaluation expression
 type ComputedFieldDef struct {
-	Name string `xml:"name,attr"`
-	Type string `xml:"type,attr"`
-	Eval string `xml:"eval,attr"` // Expression to evaluate
+	Name string    `xml:"name,attr"`
+	Type ValueType // Set programmatically, not from XML (element name defines type)
+	Eval string    `xml:"eval,attr"` // Expression to evaluate
 }
 
 // Agent defines an LLM agent
@@ -513,16 +520,16 @@ func (c *CallInputField) GetTypedField() *CallTypedField {
 // GetType returns the type name of this field
 func (c *CallInputField) GetType() string {
 	if c.String != nil {
-		return TypeString
+		return string(TypeString)
 	}
 	if c.Int != nil {
-		return TypeInt
+		return string(TypeInt)
 	}
 	if c.Bool != nil {
-		return TypeBool
+		return string(TypeBool)
 	}
 	if c.Float != nil {
-		return TypeFloat
+		return string(TypeFloat)
 	}
 	return ""
 }
@@ -556,16 +563,16 @@ func (c *CallOutputField) GetTypedField() *CallTypedField {
 // GetType returns the type name of this field
 func (c *CallOutputField) GetType() string {
 	if c.String != nil {
-		return TypeString
+		return string(TypeString)
 	}
 	if c.Int != nil {
-		return TypeInt
+		return string(TypeInt)
 	}
 	if c.Bool != nil {
-		return TypeBool
+		return string(TypeBool)
 	}
 	if c.Float != nil {
-		return TypeFloat
+		return string(TypeFloat)
 	}
 	return ""
 }

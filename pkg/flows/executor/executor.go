@@ -21,14 +21,16 @@ import (
 
 // FlowExecutorInstance defines the interface for a flow executor instance
 type FlowExecutorInstance interface {
-	// SetInput sets input field values
-	SetInput(vals map[string]string)
+	// SetInput sets input field values with validation
+	SetInput(vals map[string]string) error
 	// Validate validates the flow before execution
 	Validate() error
 	// Run executes the flow from the initial state
 	Run() error
 	// GetContext returns the execution context (for testing)
 	GetContext() ExecutionContext
+	// Close releases resources held by the executor
+	Close() error
 }
 
 // FlowExecutorService defines the DI service that creates executor instances
@@ -132,9 +134,48 @@ func (p *flowExecutorServiceImpl) New(flow *flows.Flow) FlowExecutorInstance {
 	}
 }
 
-// SetInput sets input field values
-func (p *flowExecutorImpl) SetInput(vals map[string]string) {
-	ctx := newContext(p.flow.Input, p.flow.Output, p.flow.Context, vals)
+// SetInput sets input field values with validation
+func (p *flowExecutorImpl) SetInput(vals map[string]string) error {
+	// Build a map with defaults and provided values
+	processedVals := make(map[string]string)
+
+	// First, apply defaults for all fields
+	if p.flow.Input != nil {
+		for _, field := range p.flow.Input.GetAllFields() {
+			if field.Default != "" {
+				processedVals[field.Name] = field.Default
+			}
+		}
+	}
+
+	// Then, apply provided values and validate
+	if p.flow.Input != nil {
+		for fieldName, value := range vals {
+			// Check if field exists in input definition
+			fieldDef := p.findInputField(fieldName)
+			if fieldDef == nil {
+				return fmt.Errorf("unknown input field: '%s'", fieldName)
+			}
+
+			// Validate type
+			if err := validateInputType(value, string(fieldDef.Type)); err != nil {
+				return fmt.Errorf("invalid input for '%s': %w", fieldName, err)
+			}
+
+			processedVals[fieldName] = value
+		}
+
+		// Check for missing required fields
+		for _, field := range p.flow.Input.GetAllFields() {
+			if field.Required && field.Default == "" {
+				if _, exists := processedVals[field.Name]; !exists {
+					return fmt.Errorf("missing required input: '%s'", field.Name)
+				}
+			}
+		}
+	}
+
+	ctx := newContext(p.flow.Input, p.flow.Output, p.flow.Context, processedVals)
 
 	// Initialize computed fields from ComputedBlock
 	if p.flow.Computed != nil {
@@ -142,6 +183,7 @@ func (p *flowExecutorImpl) SetInput(vals map[string]string) {
 	}
 
 	p.ctx = ctx
+	return nil
 }
 
 // Validate validates the flow before execution
@@ -190,6 +232,26 @@ func (p *flowExecutorImpl) Run() error {
 // GetContext returns the execution context (for testing)
 func (p *flowExecutorImpl) GetContext() ExecutionContext {
 	return p.ctx
+}
+
+// Close releases resources held by the executor
+// This method is idempotent - it can be called multiple times safely
+func (p *flowExecutorImpl) Close() error {
+	// Clear context to release references
+	p.ctx = nil
+
+	// Clear history to release references
+	if p.history != nil {
+		p.history = nil
+	}
+
+	// Clear flow reference
+	p.flow = nil
+
+	// Reset current state
+	p.currentState = ""
+
+	return nil
 }
 
 // executeState executes a single state
@@ -441,7 +503,12 @@ func extractFieldName(assign string) string {
 }
 
 func (p *flowExecutorImpl) executeFuncStep(_ context.Context, step *flows.Step, stateName string) error {
-	// Use Scriggo runner from extension service
+	// Check for built-in "assign" function
+	if step.Function == "assign" {
+		return p.executeAssignStep(step, stateName)
+	}
+
+	// Use Yaegi runner from extension service for other functions
 	funcRunner := p.extService.GetFuncRunner()
 
 	// Build args with template substitution
@@ -451,7 +518,7 @@ func (p *flowExecutorImpl) executeFuncStep(_ context.Context, step *flows.Step, 
 		args[param.Name] = value
 	}
 
-	// Execute via Scriggo runner
+	// Execute via Yaegi runner
 	result, err := funcRunner.ExecuteFunc(step.Function, args)
 	if err != nil {
 		return &FuncError{
@@ -466,6 +533,105 @@ func (p *flowExecutorImpl) executeFuncStep(_ context.Context, step *flows.Step, 
 		fieldName := extractFieldName(step.Output.Assign)
 		if err := p.ctx.SetOutputField(fieldName, result); err != nil {
 			return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
+		}
+	}
+
+	return nil
+}
+
+// executeAssignStep handles the built-in assign function
+func (p *flowExecutorImpl) executeAssignStep(step *flows.Step, stateName string) error {
+	// Parse parameters
+	var (
+		from  string
+		to    string
+		value any
+	)
+
+	for _, param := range step.Params {
+		switch param.Name {
+		case "from":
+			from = p.substituteTemplate(param.Value)
+		case "to":
+			to = p.substituteTemplate(param.Value)
+		case "value":
+			valueStr := p.substituteTemplate(param.Value)
+			// Try to parse as int, float, bool
+			var intVal int64
+			var floatVal float64
+			var boolVal bool
+			_, intErr := fmt.Sscanf(valueStr, "%d", &intVal)
+			_, floatErr := fmt.Sscanf(valueStr, "%f", &floatVal)
+			_, boolErr := strconv.ParseBool(valueStr)
+
+			if intErr == nil && len(valueStr) > 0 && valueStr[0] >= '0' && valueStr[0] <= '9' {
+				value = intVal
+			} else if floatErr == nil && strings.Contains(valueStr, ".") {
+				value = floatVal
+			} else if boolErr == nil {
+				value = boolVal
+			} else {
+				value = valueStr
+			}
+		}
+	}
+
+	if to == "" {
+		return fmt.Errorf("assign: missing 'to' parameter")
+	}
+
+	// Determine value to assign
+	var valueToAssign any
+	if value != nil {
+		valueToAssign = value
+	} else if from != "" {
+		// Parse source: prefix.field
+		parts := strings.SplitN(from, ".", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("assign: invalid 'from' format: %s (expected prefix.field)", from)
+		}
+
+		prefix := parts[0]
+		field := parts[1]
+
+		// Read from source
+		switch prefix {
+		case "input":
+			valueToAssign = p.ctx.GetInput(field)
+		case "context":
+			var err error
+			valueToAssign, err = p.ctx.GetContextField(field)
+			if err != nil {
+				return fmt.Errorf("assign: failed to read context field '%s': %w", field, err)
+			}
+		case "computed":
+			var err error
+			valueToAssign, err = p.ctx.GetComputedField(field)
+			if err != nil {
+				return fmt.Errorf("assign: failed to read computed field '%s': %w", field, err)
+			}
+		default:
+			return fmt.Errorf("assign: unknown prefix '%s' (expected input, context, or computed)", prefix)
+		}
+	} else {
+		return fmt.Errorf("assign: must provide either 'value' or 'from' parameter")
+	}
+
+	// Determine destination: output or context
+	if strings.HasPrefix(to, "output.") {
+		fieldName := strings.TrimPrefix(to, "output.")
+		if err := p.ctx.SetOutputField(fieldName, valueToAssign); err != nil {
+			return fmt.Errorf("assign: failed to set output field '%s': %w", fieldName, err)
+		}
+	} else if strings.HasPrefix(to, "context.") {
+		fieldName := strings.TrimPrefix(to, "context.")
+		if err := p.ctx.SetContextField(fieldName, valueToAssign); err != nil {
+			return fmt.Errorf("assign: failed to set context field '%s': %w", fieldName, err)
+		}
+	} else {
+		// Default to output
+		if err := p.ctx.SetOutputField(to, valueToAssign); err != nil {
+			return fmt.Errorf("assign: failed to set output field '%s': %w", to, err)
 		}
 	}
 
@@ -766,4 +932,108 @@ func anyToString(v any) string {
 	default:
 		return fmt.Sprintf("%v", val)
 	}
+}
+
+// validateInputType validates that a string value matches the expected type
+func validateInputType(value, typeName string) error {
+	switch typeName {
+	case string(flows.TypeString):
+		// Strings are always valid
+		return nil
+	case string(flows.TypeInt):
+		_, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return fmt.Errorf("invalid integer: %s", value)
+		}
+		return nil
+	case string(flows.TypeBool):
+		_, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("invalid boolean: %s (expected: true, false, 1, or 0)", value)
+		}
+		return nil
+	case string(flows.TypeFloat):
+		_, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return fmt.Errorf("invalid float: %s", value)
+		}
+		return nil
+	case string(flows.TypeArray), string(flows.TypeMap), string(flows.TypeObject):
+		// Complex types are validated as JSON strings
+		// For now, accept any string - JSON validation happens during use
+		return nil
+	default:
+		return fmt.Errorf("unknown type: %s", typeName)
+	}
+}
+
+// findInputField finds a field definition by name in the input block
+func (p *flowExecutorImpl) findInputField(name string) *flows.FieldDef {
+	if p.flow.Input == nil {
+		return nil
+	}
+
+	// Search through all field type arrays
+	for _, field := range p.flow.Input.Strings {
+		if field.Name == name {
+			// Ensure Type is set (for programmatically created flows)
+			if field.Type == "" {
+				field.Type = flows.TypeString
+			}
+			return &field
+		}
+	}
+	for _, field := range p.flow.Input.Ints {
+		if field.Name == name {
+			if field.Type == "" {
+				field.Type = flows.TypeInt
+			}
+			return &field
+		}
+	}
+	for _, field := range p.flow.Input.Bools {
+		if field.Name == name {
+			if field.Type == "" {
+				field.Type = flows.TypeBool
+			}
+			return &field
+		}
+	}
+	for _, field := range p.flow.Input.Floats {
+		if field.Name == name {
+			if field.Type == "" {
+				field.Type = flows.TypeFloat
+			}
+			return &field
+		}
+	}
+	for _, field := range p.flow.Input.Arrays {
+		if field.Name == name {
+			if field.Type == "" {
+				field.Type = flows.TypeArray
+			}
+			return &field
+		}
+	}
+	for _, field := range p.flow.Input.Maps {
+		if field.Name == name {
+			if field.Type == "" {
+				field.Type = flows.TypeMap
+			}
+			return &field
+		}
+	}
+	for _, obj := range p.flow.Input.Objects {
+		if obj.Name == name {
+			return &flows.FieldDef{
+				XMLName:  obj.XMLName,
+				Name:     obj.Name,
+				Type:     flows.TypeObject,
+				Required: false,
+				Default:  obj.Default,
+			}
+		}
+	}
+
+	return nil
 }

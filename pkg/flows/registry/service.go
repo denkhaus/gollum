@@ -123,7 +123,9 @@ func (s *flowRegistryServiceImpl) LoadFromDirectory(dir string) error {
 		flow, err := parser.Parse(path)
 		if err != nil {
 			// Log the error but continue loading other flows
-			s.logger.Warn("failed to parse flow file", zap.String("path", path), zap.Error(err))
+			if s.logger != nil {
+				s.logger.Warn("failed to parse flow file", zap.String("path", path), zap.Error(err))
+			}
 			return nil
 		}
 

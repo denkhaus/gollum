@@ -10,21 +10,21 @@ import (
 // TestFieldDefinition is a test implementation of FieldDefinition
 type TestFieldDefinition struct {
 	name         string
-	typ          string
+	typ          flows.ValueType
 	defaultValue string
 }
 
 func (t TestFieldDefinition) GetName() string         { return t.name }
-func (t TestFieldDefinition) GetType() string          { return t.typ }
+func (t TestFieldDefinition) GetType() flows.ValueType { return t.typ }
 func (t TestFieldDefinition) GetDefault() string       { return t.defaultValue }
 
 // TestNewFieldValues tests constructor and Has method
 func TestNewFieldValues(t *testing.T) {
 	defs := []TestFieldDefinition{
-		{name: "name", typ: "string", defaultValue: ""},
-		{name: "age", typ: "int", defaultValue: "25"},
-		{name: "active", typ: "bool", defaultValue: "true"},
-		{name: "score", typ: "float", defaultValue: "3.14"},
+		{name: "name", typ: flows.TypeString, defaultValue: ""},
+		{name: "age", typ: flows.TypeInt, defaultValue: "25"},
+		{name: "active", typ: flows.TypeBool, defaultValue: "true"},
+		{name: "score", typ: flows.TypeFloat, defaultValue: "3.14"},
 	}
 
 	fv := NewFieldValues(defs)
@@ -79,7 +79,7 @@ func TestNewFieldValues(t *testing.T) {
 // TestFieldValuesSetString tests SetString and GetString methods
 func TestFieldValuesSetString(t *testing.T) {
 	defs := []TestFieldDefinition{
-			{name: "name", typ: "string", defaultValue: ""},
+			{name: "name", typ: flows.TypeString, defaultValue: ""},
 	}
 	fv := NewFieldValues(defs)
 
@@ -109,7 +109,7 @@ func TestFieldValuesSetString(t *testing.T) {
 	}
 
 	// Test SetString with wrong type
-	defs2 := []TestFieldDefinition{{name: "age", typ: "int", defaultValue: ""}}
+	defs2 := []TestFieldDefinition{{name: "age", typ: flows.TypeInt, defaultValue: ""}}
 	fv2 := NewFieldValues(defs2)
 	err = fv2.SetString("age", "not-an-int")
 	if err == nil {
@@ -124,7 +124,7 @@ func TestFieldValuesSetString(t *testing.T) {
 // TestFieldValuesSetInt tests SetInt and GetInt methods
 func TestFieldValuesSetInt(t *testing.T) {
 	defs := []TestFieldDefinition{
-		{name: "age", typ: "int", defaultValue: ""},
+		{name: "age", typ: flows.TypeInt, defaultValue: ""},
 	}
 	fv := NewFieldValues(defs)
 
@@ -150,7 +150,7 @@ func TestFieldValuesSetInt(t *testing.T) {
 	}
 
 	// Test SetInt with wrong type
-	defs2 := []TestFieldDefinition{{name: "name", typ: "string", defaultValue: ""}}
+	defs2 := []TestFieldDefinition{{name: "name", typ: flows.TypeString, defaultValue: ""}}
 	fv2 := NewFieldValues(defs2)
 	err = fv2.SetInt("name", 10)
 	if err == nil {
@@ -161,7 +161,7 @@ func TestFieldValuesSetInt(t *testing.T) {
 // TestFieldValuesSetBool tests SetBool and GetBool methods
 func TestFieldValuesSetBool(t *testing.T) {
 	defs := []TestFieldDefinition{
-		{name: "active", typ: "bool", defaultValue: ""},
+		{name: "active", typ: flows.TypeBool, defaultValue: ""},
 	}
 	fv := NewFieldValues(defs)
 
@@ -187,7 +187,7 @@ func TestFieldValuesSetBool(t *testing.T) {
 	}
 
 	// Test SetBool with wrong type
-	defs2 := []TestFieldDefinition{{name: "name", typ: "string", defaultValue: ""}}
+	defs2 := []TestFieldDefinition{{name: "name", typ: flows.TypeString, defaultValue: ""}}
 	fv2 := NewFieldValues(defs2)
 	err = fv2.SetBool("name", true)
 	if err == nil {
@@ -198,7 +198,7 @@ func TestFieldValuesSetBool(t *testing.T) {
 // TestFieldValuesSetFloat tests SetFloat and GetFloat methods
 func TestFieldValuesSetFloat(t *testing.T) {
 	defs := []TestFieldDefinition{
-		{name: "score", typ: "float", defaultValue: ""},
+		{name: "score", typ: flows.TypeFloat, defaultValue: ""},
 	}
 	fv := NewFieldValues(defs)
 
@@ -224,7 +224,7 @@ func TestFieldValuesSetFloat(t *testing.T) {
 	}
 
 	// Test SetFloat with wrong type
-	defs2 := []TestFieldDefinition{{name: "name", typ: "string", defaultValue: ""}}
+	defs2 := []TestFieldDefinition{{name: "name", typ: flows.TypeString, defaultValue: ""}}
 	fv2 := NewFieldValues(defs2)
 	err = fv2.SetFloat("name", 1.0)
 	if err == nil {
@@ -235,10 +235,10 @@ func TestFieldValuesSetFloat(t *testing.T) {
 // TestFieldValuesSetFromString tests SetFromString method with type conversion
 func TestFieldValuesSetFromString(t *testing.T) {
 	defs := []TestFieldDefinition{
-			{name: "name", typ: "string", defaultValue: ""},
-		{name: "age", typ: "int", defaultValue: ""},
-		{name: "active", typ: "bool", defaultValue: ""},
-		{name: "score", typ: "float", defaultValue: ""},
+			{name: "name", typ: flows.TypeString, defaultValue: ""},
+		{name: "age", typ: flows.TypeInt, defaultValue: ""},
+		{name: "active", typ: flows.TypeBool, defaultValue: ""},
+		{name: "score", typ: flows.TypeFloat, defaultValue: ""},
 	}
 	fv := NewFieldValues(defs)
 
@@ -310,8 +310,8 @@ func TestFieldValuesSetFromString(t *testing.T) {
 // TestFieldValuesGetRaw tests GetRaw method
 func TestFieldValuesGetRaw(t *testing.T) {
 	defs := []TestFieldDefinition{
-			{name: "name", typ: "string", defaultValue: ""},
-		{name: "age", typ: "int", defaultValue: ""},
+			{name: "name", typ: flows.TypeString, defaultValue: ""},
+		{name: "age", typ: flows.TypeInt, defaultValue: ""},
 	}
 	fv := NewFieldValues(defs)
 

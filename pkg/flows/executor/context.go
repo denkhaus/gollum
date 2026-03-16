@@ -116,18 +116,18 @@ func newContext(
 		for _, field := range inputBlock.GetAllFields() {
 			if val, ok := inputVals[field.Name]; ok {
 				// Use typed setters based on field type
-				switch variables.ValueType(field.Type) {
-				case variables.TypeString:
+				switch flows.ValueType(field.Type) {
+				case flows.TypeString:
 					_ = ctx.inputVals.SetString(field.Name, val)
-				case variables.TypeInt:
+				case flows.TypeInt:
 					if i, err := strconv.Atoi(val); err == nil {
 						_ = ctx.inputVals.SetInt(field.Name, i)
 					}
-				case variables.TypeBool:
+				case flows.TypeBool:
 					if b, err := strconv.ParseBool(val); err == nil {
 						_ = ctx.inputVals.SetBool(field.Name, b)
 					}
-				case variables.TypeFloat:
+				case flows.TypeFloat:
 					if f, err := strconv.ParseFloat(val, 64); err == nil {
 						_ = ctx.inputVals.SetFloat(field.Name, f)
 					}
@@ -170,8 +170,12 @@ func (c *contextImpl) SetComputedBlock(block *flows.ComputedBlock) {
 	// Convert ComputedFieldDef to ComputedField for the variables package
 	computedFields := make([]flows.ComputedField, 0, len(block.GetAllFields()))
 	for _, cf := range block.GetAllFields() {
-		// Use field directly - ComputedFieldDef has the same structure
-		computedFields = append(computedFields, flows.ComputedField(cf))
+		// Manually convert since ComputedFieldDef.Type is now ValueType
+		computedFields = append(computedFields, flows.ComputedField{
+			Name: cf.Name,
+			Type: string(cf.Type),
+			Eval: cf.Eval,
+		})
 	}
 
 	// Initialize ComputedValues with the fields
@@ -187,17 +191,17 @@ func (c *contextImpl) GetInput(name string) any {
 	// Try to get based on type from schema
 	for _, field := range c.inputBlock.GetAllFields() {
 		if field.Name == name {
-			switch variables.ValueType(field.Type) {
-			case variables.TypeString:
+			switch flows.ValueType(field.Type) {
+			case flows.TypeString:
 				val, _ := c.inputVals.GetString(name)
 				return val
-			case variables.TypeInt:
+			case flows.TypeInt:
 				val, _ := c.inputVals.GetInt(name)
 				return val
-			case variables.TypeBool:
+			case flows.TypeBool:
 				val, _ := c.inputVals.GetBool(name)
 				return val
-			case variables.TypeFloat:
+			case flows.TypeFloat:
 				val, _ := c.inputVals.GetFloat(name)
 				return val
 			}
@@ -372,26 +376,26 @@ func (c *contextImpl) GetOutputField(name string) (any, error) {
 		// Try to get based on type from schema
 		for _, field := range c.outputBlock.GetAllFields() {
 			if field.Name == name {
-				switch variables.ValueType(field.Type) {
-				case variables.TypeString:
+				switch flows.ValueType(field.Type) {
+				case flows.TypeString:
 					val, err := c.outputValues.GetString(name)
 					if err != nil {
 						return nil, err
 					}
 					return val, nil
-				case variables.TypeInt:
+				case flows.TypeInt:
 					val, err := c.outputValues.GetInt(name)
 					if err != nil {
 						return nil, err
 					}
 					return val, nil
-				case variables.TypeBool:
+				case flows.TypeBool:
 					val, err := c.outputValues.GetBool(name)
 					if err != nil {
 						return nil, err
 					}
 					return val, nil
-				case variables.TypeFloat:
+				case flows.TypeFloat:
 					val, err := c.outputValues.GetFloat(name)
 					if err != nil {
 						return nil, err

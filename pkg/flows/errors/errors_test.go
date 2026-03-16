@@ -4,6 +4,7 @@ import (
 	stderrors "errors"
 	"testing"
 
+	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/flows/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -50,12 +51,12 @@ func TestTypeError(t *testing.T) {
 			Message: "type mismatch",
 			Field:   "count",
 		},
-		ExpectedType: "int",
-		ActualType:   "string",
+		ExpectedType: flows.TypeInt,
+		ActualType:   flows.TypeString,
 	}
 
-	assert.Equal(t, "int", err.ExpectedType)
-	assert.Equal(t, "string", err.ActualType)
+	assert.Equal(t, flows.TypeInt, err.ExpectedType)
+	assert.Equal(t, flows.TypeString, err.ActualType)
 }
 
 func TestCircularDependencyError(t *testing.T) {

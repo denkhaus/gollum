@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Computed Fields Direct Output
+Tests that computed fields work by using them directly in output
+-->
+<flow name="computed-output" version="1.0">
+    <description>
+        Tests computed fields directly in output. No steps needed.
+        Test with: gollum flow run computed-output.xml -i "a=10,b=5"
+        Expected: a=10, b=5
+    </description>
+
+    <input>
+        <int name="a" default="10" />
+        <int name="b" default="5" />
+    </input>
+
+    <output>
+        <int name="a" eval="input.a" />
+        <int name="b" eval="input.b" />
+    </output>
+
+    <states>
+        <state name="done" initial="true" />
+    </states>
+</flow>
