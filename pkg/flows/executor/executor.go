@@ -493,13 +493,22 @@ func (p *flowExecutorImpl) substituteTemplate(cmd string) string {
 	return result
 }
 
-// extractFieldName extracts the field name from ${output.field_name} or ${context.field_name}
+// extractFieldName extracts the field name from:
+// - ${output.field_name} or ${context.field_name} (legacy format)
+// - output.field_name or context.field_name (preferred format)
 func extractFieldName(assign string) string {
-	// Remove ${output. or ${context. prefix
+	// Handle legacy ${} format
 	assign = strings.TrimPrefix(assign, "${output.")
 	assign = strings.TrimPrefix(assign, "${context.")
-	// Remove trailing }
-	return strings.TrimSuffix(assign, "}")
+	assign = strings.TrimSuffix(assign, "}")
+
+	// Handle plain prefix.field format (preferred)
+	assign = strings.TrimPrefix(assign, "output.")
+	assign = strings.TrimPrefix(assign, "context.")
+	assign = strings.TrimPrefix(assign, "input.")
+	assign = strings.TrimPrefix(assign, "computed.")
+
+	return assign
 }
 
 func (p *flowExecutorImpl) executeFuncStep(_ context.Context, step *flows.Step, stateName string) error {

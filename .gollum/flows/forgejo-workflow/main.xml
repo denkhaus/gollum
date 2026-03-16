@@ -42,16 +42,16 @@
                 <!-- Step 1: Fetch PR details -->
                 <call ref="fetch-pr" timeout="60s">
                     <input>
-                        <field name="pr_number" value="${input.pr_number}" />
-                        <field name="repo_owner" value="${input.repo_owner}" />
-                        <field name="repo_name" value="${input.repo_name}" />
+                        <field name="pr_number" value="input.pr_number" />
+                        <field name="repo_owner" value="input.repo_owner" />
+                        <field name="repo_name" value="input.repo_name" />
                     </input>
                     <output>
-                        <field name="pr_title" value="${context.pr.title}" />
-                        <field name="pr_state" value="${context.pr.state}" />
-                        <field name="changed_files" value="${context.pr.changed_files}" />
-                        <field name="is_open" value="${context.pr.is_open}" />
-                        <field name="is_large" value="${context.pr.is_large}" />
+                        <field name="pr_title" value="context.pr.title" />
+                        <field name="pr_state" value="context.pr.state" />
+                        <field name="changed_files" value="context.pr.changed_files" />
+                        <field name="is_open" value="context.pr.is_open" />
+                        <field name="is_large" value="context.pr.is_large" />
                     </output>
                     <on-error state="error" />
                 </call>
@@ -59,15 +59,15 @@
                 <!-- Step 2: Determine phase -->
                 <call ref="determine-phase" timeout="60s">
                     <input>
-                        <field name="pr_number" value="${input.pr_number}" />
-                        <field name="pr_title" value="${context.pr.title}" />
-                        <field name="pr_state" value="${context.pr.state}" />
-                        <field name="changed_files" value="${context.pr.changed_files}" />
-                        <field name="is_open" value="${context.pr.is_open}" />
-                        <field name="is_large" value="${context.pr.is_large}" />
+                        <field name="pr_number" value="input.pr_number" />
+                        <field name="pr_title" value="context.pr.title" />
+                        <field name="pr_state" value="context.pr.state" />
+                        <field name="changed_files" value="context.pr.changed_files" />
+                        <field name="is_open" value="context.pr.is_open" />
+                        <field name="is_large" value="context.pr.is_large" />
                     </input>
                     <output>
-                        <field name="current_phase" value="${context.current_phase}" />
+                        <field name="current_phase" value="context.current_phase" />
                     </output>
                     <on-error state="error" />
                 </call>
@@ -98,14 +98,14 @@
                 <!-- Call review phase (conditional) -->
                 <call ref="review-phase" timeout="300s" when="EQ(context.current_phase, 'review')">
                     <input>
-                        <field name="pr_number" value="${input.pr_number}" />
-                        <field name="repo_owner" value="${input.repo_owner}" />
-                        <field name="repo_name" value="${input.repo_name}" />
+                        <field name="pr_number" value="input.pr_number" />
+                        <field name="repo_owner" value="input.repo_owner" />
+                        <field name="repo_name" value="input.repo_name" />
                     </input>
                     <output>
-                        <field name="review_status" value="${output.review_status}" />
-                        <field name="issue_count" value="${output.issue_count}" />
-                        <field name="review_summary" value="${output.review_summary}" />
+                        <field name="review_status" value="output.review_status" />
+                        <field name="issue_count" value="output.issue_count" />
+                        <field name="review_summary" value="output.review_summary" />
                     </output>
                     <on-error state="error" />
                 </call>

@@ -51,9 +51,9 @@
                     <!-- Fetch PR diff -->
                     <step type="func" function="GetPRDiff">
                         <params>
-                            <param name="owner" value="${input.repo_owner}" />
-                            <param name="repo" value="${input.repo_name}" />
-                            <param name="index" value="${input.pr_number}" />
+                            <param name="owner" value="input.repo_owner" />
+                            <param name="repo" value="input.repo_name" />
+                            <param name="index" value="input.pr_number" />
                         </params>
                         <output assign="${context.pr_diff}" />
                         <timeout>60s</timeout>
@@ -63,9 +63,9 @@
                     <!-- Fetch comments -->
                     <step type="mcp" tool="forgejo/list_issue_comments">
                         <params>
-                            <param name="owner" value="${input.repo_owner}" />
-                            <param name="repo" value="${input.repo_name}" />
-                            <param name="index" value="${input.pr_number}" />
+                            <param name="owner" value="input.repo_owner" />
+                            <param name="repo" value="input.repo_name" />
+                            <param name="index" value="input.pr_number" />
                         </params>
                         <output assign="${context.pr_comments}" />
                         <timeout>30s</timeout>
@@ -119,10 +119,10 @@
             <steps>
                 <step type="mcp" tool="forgejo/replace_issue_labels">
                     <params>
-                        <param name="owner" value="${input.repo_owner}" />
-                        <param name="repo" value="${input.repo_name}" />
-                        <param name="index" value="${input.pr_number}" />
-                        <param name="labels" value="${output.review_status}" />
+                        <param name="owner" value="input.repo_owner" />
+                        <param name="repo" value="input.repo_name" />
+                        <param name="index" value="input.pr_number" />
+                        <param name="labels" value="output.review_status" />
                     </params>
                     <output assign="label_result" />
                     <timeout>30s</timeout>

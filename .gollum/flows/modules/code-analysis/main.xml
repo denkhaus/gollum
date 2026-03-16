@@ -28,21 +28,21 @@
                 <!-- Call internal flows -->
                 <call ref="complexity-check" timeout="120s">
                     <input>
-                        <field name="target_dir" value="${input.target_dir}" />
+                        <field name="target_dir" value="input.target_dir" />
                     </input>
                     <output>
-                        <field name="score" value="${context.complexity_score}" />
+                        <field name="score" value="context.complexity_score" />
                     </output>
                     <on-error state="error" />
                 </call>
 
                 <call ref="security-scan" timeout="180s">
                     <input>
-                        <field name="target_dir" value="${input.target_dir}" />
-                        <field name="scan_type" value="${input.scan_type}" />
+                        <field name="target_dir" value="input.target_dir" />
+                        <field name="scan_type" value="input.scan_type" />
                     </input>
                     <output>
-                        <field name="issues" value="${context.security_issues}" />
+                        <field name="issues" value="context.security_issues" />
                     </output>
                     <on-error state="error" />
                 </call>

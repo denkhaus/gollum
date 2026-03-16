@@ -64,7 +64,7 @@ Demonstrates: func, shell, llm, mcp with unified output syntax
                 <step type="func" function="strings.ToUpper">
                     <description>Convert to uppercase - built-in Go function</description>
                     <params>
-                        <param name="s" value="${input.input_text}" />
+                        <param name="s" value="input.input_text" />
                     </params>
                     <output assign="upper_text" />
                 </step>
@@ -72,7 +72,7 @@ Demonstrates: func, shell, llm, mcp with unified output syntax
                 <step type="func" function="len">
                     <description>Count items - built-in Go function</description>
                     <params>
-                        <param name="v" value="${input.input_text}" />
+                        <param name="v" value="input.input_text" />
                     </params>
                     <output assign="item_count" />
                 </step>
@@ -80,7 +80,7 @@ Demonstrates: func, shell, llm, mcp with unified output syntax
                 <step type="func" function="strings.Contains">
                     <description>Check substring - built-in Go function</description>
                     <params>
-                        <param name="s" value="${input.input_text}" />
+                        <param name="s" value="input.input_text" />
                         <param name="substr" value="error" />
                     </params>
                     <output assign="has_error" />
@@ -90,7 +90,7 @@ Demonstrates: func, shell, llm, mcp with unified output syntax
                 <step type="func" function="CustomAnalyze">
                     <description>Call custom extension - registered at application startup</description>
                     <params>
-                        <param name="target" value="${input.target_dir}" />
+                        <param name="target" value="input.target_dir" />
                     </params>
                     <output assign="analysis_result" />
                     <timeout>60s</timeout>

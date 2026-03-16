@@ -27,9 +27,9 @@
             <steps>
                 <step type="mcp" tool="forgejo/get_pull_request_by_index" name="get-pr">
                     <params>
-                        <param name="owner" value="${input.repo_owner}" />
-                        <param name="repo" value="${input.repo_name}" />
-                        <param name="index" value="${input.pr_number}" />
+                        <param name="owner" value="input.repo_owner" />
+                        <param name="repo" value="input.repo_name" />
+                        <param name="index" value="input.pr_number" />
                     </params>
                     <output>
                         <string path="title" assign="${output.pr_title}" />

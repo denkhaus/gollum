@@ -492,6 +492,19 @@ func (c *contextImpl) buildScope() map[string]any {
 		}
 	}
 
+	// Build computed scope for expression evaluation
+	if c.computedVals != nil && c.computedBlock != nil {
+		computedScope := make(map[string]any)
+		for _, field := range c.computedBlock.GetAllFields() {
+			if val, err := c.computedVals.GetValue(field.Name); err == nil {
+				computedScope[field.Name] = val
+			}
+		}
+		if len(computedScope) > 0 {
+			scope["computed"] = computedScope
+		}
+	}
+
 	// Add system scope with error context if available
 	if c.lastError != nil {
 		scope["sys"] = map[string]any{

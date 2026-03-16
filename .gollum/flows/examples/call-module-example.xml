@@ -41,10 +41,10 @@
                 <!-- Call module: complexity-check (sub-flow) -->
                 <call ref="code-analysis/complexity-check" timeout="120s">
                     <input>
-                        <string name="target_dir" value="${input.working_dir}" />
+                        <string name="target_dir" value="input.working_dir" />
                     </input>
                     <output>
-                        <int name="score" value="${context.analysis.complexity}" />
+                        <int name="score" value="context.analysis.complexity" />
                     </output>
                     <on-error state="error" />
                 </call>
@@ -53,11 +53,11 @@
                 <call ref="code-analysis/security-scan" timeout="300s"
                     when="EQ(input.scan_type, 'deep')">
                     <input>
-                        <string name="target_dir" value="${input.working_dir}" />
-                        <string name="scan_type" value="${input.scan_type}" />
+                        <string name="target_dir" value="input.working_dir" />
+                        <string name="scan_type" value="input.scan_type" />
                     </input>
                     <output>
-                        <int name="issues" value="${context.analysis.security_issues}" />
+                        <int name="issues" value="context.analysis.security_issues" />
                     </output>
                     <on-error state="error" />
                 </call>

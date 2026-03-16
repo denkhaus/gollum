@@ -40,7 +40,7 @@
 
                 <step type="func" function="JSONCount">
                     <params>
-                        <param name="json" value="${context.scan_output}" />
+                        <param name="json" value="context.scan_output" />
                         <param name="path" value="results" />
                     </params>
                     <output assign="issues" />

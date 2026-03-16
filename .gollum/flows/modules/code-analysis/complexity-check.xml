@@ -32,7 +32,7 @@
 
                 <step type="func" function="strconv.Atoi">
                     <params>
-                        <param name="s" value="${context.cyclomatic_output}" />
+                        <param name="s" value="context.cyclomatic_output" />
                     </params>
                     <output assign="score" />
                 </step>
