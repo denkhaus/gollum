@@ -2,17 +2,18 @@
 package app
 
 import (
-
 	"context"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/denkhaus/gollum/pkg/flows/executor"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/skills"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/denkhaus/gollum/pkg/workspace"
-	"os"
-	"path/filepath"
-	"testing"
 
 	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/mocks"
@@ -23,7 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-
 )
 
 // TestAgentExecutorAdapter_Execute verifies that the adapter correctly
@@ -592,7 +592,7 @@ func TestRun_DefaultFlowSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create mock flow executor
-	mockExecutor := mocks.NewMockFlowExecutorInstance(ctrl)
+	mockExecutor := shared.NewMockFlowExecutorInstance(ctrl)
 	mockExecutor.EXPECT().SetInput(gomock.Any()).Times(1)
 	mockExecutor.EXPECT().Validate().Return(nil).Times(1)
 	mockExecutor.EXPECT().Run().Return(nil).Times(1)
@@ -602,7 +602,7 @@ func TestRun_DefaultFlowSuccess(t *testing.T) {
 	mockLogger.EXPECT().Infof("Running default flow: %s", flowPath).Times(1)
 	mockLogger.EXPECT().Infof("Default flow completed successfully").Times(1)
 
-	mockFlowExecutorService := mocks.NewMockFlowExecutorService(ctrl)
+	mockFlowExecutorService := executor.NewMockFlowExecutorService(ctrl)
 	mockFlowExecutorService.EXPECT().New(gomock.Any()).Return(mockExecutor).Times(1)
 
 	mockWorkspaceService := workspace.NewMockService(ctrl)
@@ -752,14 +752,14 @@ func TestRunDefaultFlow_ValidationError(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create mock flow executor that fails validation
-	mockExecutor := mocks.NewMockFlowExecutorInstance(ctrl)
+	mockExecutor := shared.NewMockFlowExecutorInstance(ctrl)
 	mockExecutor.EXPECT().SetInput(gomock.Any()).Times(1)
 	mockExecutor.EXPECT().Validate().Return(assert.AnError).Times(1)
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().Infof("Running default flow: %s", flowPath).Times(1)
 
-	mockFlowExecutorService := mocks.NewMockFlowExecutorService(ctrl)
+	mockFlowExecutorService := executor.NewMockFlowExecutorService(ctrl)
 	mockFlowExecutorService.EXPECT().New(gomock.Any()).Return(mockExecutor).Times(1)
 
 	p := &applicationServiceImpl{
@@ -808,7 +808,7 @@ func TestRunDefaultFlow_RunError(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create mock flow executor that fails during Run
-	mockExecutor := mocks.NewMockFlowExecutorInstance(ctrl)
+	mockExecutor := shared.NewMockFlowExecutorInstance(ctrl)
 	mockExecutor.EXPECT().SetInput(gomock.Any()).Times(1)
 	mockExecutor.EXPECT().Validate().Return(nil).Times(1)
 	mockExecutor.EXPECT().Run().Return(assert.AnError).Times(1)
@@ -816,7 +816,7 @@ func TestRunDefaultFlow_RunError(t *testing.T) {
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().Infof("Running default flow: %s", flowPath).Times(1)
 
-	mockFlowExecutorService := mocks.NewMockFlowExecutorService(ctrl)
+	mockFlowExecutorService := executor.NewMockFlowExecutorService(ctrl)
 	mockFlowExecutorService.EXPECT().New(gomock.Any()).Return(mockExecutor).Times(1)
 
 	p := &applicationServiceImpl{
@@ -865,7 +865,7 @@ func TestRunDefaultFlow_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create mock flow executor that succeeds
-	mockExecutor := mocks.NewMockFlowExecutorInstance(ctrl)
+	mockExecutor := shared.NewMockFlowExecutorInstance(ctrl)
 	mockExecutor.EXPECT().SetInput(gomock.Any()).Times(1)
 	mockExecutor.EXPECT().Validate().Return(nil).Times(1)
 	mockExecutor.EXPECT().Run().Return(nil).Times(1)
@@ -874,7 +874,7 @@ func TestRunDefaultFlow_Success(t *testing.T) {
 	mockLogger.EXPECT().Infof("Running default flow: %s", flowPath).Times(1)
 	mockLogger.EXPECT().Infof("Default flow completed successfully").Times(1)
 
-	mockFlowExecutorService := mocks.NewMockFlowExecutorService(ctrl)
+	mockFlowExecutorService := executor.NewMockFlowExecutorService(ctrl)
 	mockFlowExecutorService.EXPECT().New(gomock.Any()).Return(mockExecutor).Times(1)
 
 	p := &applicationServiceImpl{

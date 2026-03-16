@@ -9,7 +9,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/diff"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
@@ -41,7 +41,7 @@ func TestEditToolBasicOperation(t *testing.T) {
 	err := os.WriteFile(testFile, []byte(initialContent), 0644)
 	require.NoError(t, err)
 
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &editToolImpl{
 		logService:   logService,
@@ -134,7 +134,7 @@ func TestEditToolStringNotFound(t *testing.T) {
 	err := os.WriteFile(testFile, []byte(initialContent), 0644)
 	require.NoError(t, err)
 
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &editToolImpl{
 		logService:   logService,
@@ -205,7 +205,7 @@ func TestEditToolMultipleOccurrences(t *testing.T) {
 	err := os.WriteFile(testFile, []byte(initialContent), 0644)
 	require.NoError(t, err)
 
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &editToolImpl{
 		logService:   logService,
@@ -278,7 +278,7 @@ func TestEditToolReplaceAll(t *testing.T) {
 	err := os.WriteFile(testFile, []byte(initialContent), 0644)
 	require.NoError(t, err)
 
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &editToolImpl{
 		logService:   logService,

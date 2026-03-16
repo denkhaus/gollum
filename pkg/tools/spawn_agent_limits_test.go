@@ -7,7 +7,6 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -28,7 +27,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_LimitExceeded(t *testing.T) {
 	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockPromptMgr := manager.NewMockPromptManager(ctrl)
-	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockExecHelper := NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
@@ -81,7 +80,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_SubAgentLimitExceeded(t *testing.T
 	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockPromptMgr := manager.NewMockPromptManager(ctrl)
-	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockExecHelper := NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
@@ -134,7 +133,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_GenericError(t *testing.T) {
 	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockPromptMgr := manager.NewMockPromptManager(ctrl)
-	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockExecHelper := NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)

@@ -6,7 +6,6 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/skills"
@@ -340,7 +339,7 @@ func TestInvokeSkillTool_TriggersSkillHooks(t *testing.T) {
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockFactory := shared.NewMockAgentFactory(ctrl)
 	mockAgent := shared.NewMockAgent(ctrl)
-	mockExecutionHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockExecutionHelper := NewMockAgentExecutionHelper(ctrl)
 
 	skill := &skills.Skill{
 		Name:    "test-skill",

@@ -7,7 +7,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/events"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -126,7 +125,7 @@ func setupMockHookManagerPassThrough(mockHookManager *hooks.MockHookManager) {
 // setupMockExecutionHelperWithDefaults configures a mock AgentExecutionHelper with default behavior
 // for response helper methods ( ErrorResponse, SuccessResponseAsync, etc.)
 // This should be called after creating a mock to set up the utility method expectations.
-func setupMockExecutionHelperWithDefaults(mockExecHelper *mocks.MockAgentExecutionHelper) {
+func setupMockExecutionHelperWithDefaults(mockExecHelper *MockAgentExecutionHelper) {
 	// ErrorResponse - simple utility function
 	mockExecHelper.EXPECT().ErrorResponse(gomock.Any()).DoAndReturn(func(errMsg string) map[string]any {
 		return map[string]any{

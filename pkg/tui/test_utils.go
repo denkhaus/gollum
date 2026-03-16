@@ -3,7 +3,6 @@ package tui
 import (
 	"strings"
 
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"go.uber.org/mock/gomock"
 )
 
@@ -14,6 +13,6 @@ func containsSubstring(s, substr string) bool {
 }
 
 // setupMockAgent creates a mock agent executor for testing
-func setupMockAgent(ctrl *gomock.Controller) *mocks.MockAgentExecutor {
-	return mocks.NewMockAgentExecutor(ctrl)
+func setupMockAgent(ctrl *gomock.Controller) *MockAgentExecutor {
+	return NewMockAgentExecutor(ctrl)
 }

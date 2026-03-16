@@ -25,3 +25,13 @@ package pkg
 //go:generate go run go.uber.org/mock/mockgen -source=events/bus.go -destination=events/bus_mock.go -package=events github.com/denkhaus/gollum/pkg/events Bus
 
 //go:generate go run go.uber.org/mock/mockgen -source=markdown/renderer.go -destination=markdown/renderer_mock.go -package=markdown github.com/denkhaus/gollum/pkg/markdown Renderer
+
+//go:generate go run go.uber.org/mock/mockgen -source=diff/provider.go -destination=diff/provider_mock.go -package=diff github.com/denkhaus/gollum/pkg/diff Provider
+
+//go:generate go run go.uber.org/mock/mockgen -source=tools/agent_execution_helper.go -destination=tools/agent_execution_helper_mock.go -package=tools github.com/denkhaus/gollum/pkg/tools AgentExecutionHelper
+
+//go:generate go run go.uber.org/mock/mockgen -source=tui/model.go -destination=tui/model_mock.go -package=tui github.com/denkhaus/gollum/pkg/tui AgentExecutor
+
+//go:generate go run go.uber.org/mock/mockgen -source=flows/executor/executor.go -destination=flows/executor/mock.go -package=executor github.com/denkhaus/gollum/pkg/flows/executor FlowExecutorService
+
+//go:generate go run go.uber.org/mock/mockgen -source=shared/flows.go -destination=shared/flows_mock.go -package=shared github.com/denkhaus/gollum/pkg/shared FlowExecutorInstance

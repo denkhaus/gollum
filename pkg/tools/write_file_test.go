@@ -9,7 +9,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/diff"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/google/uuid"
@@ -31,7 +31,7 @@ func TestWriteFileTool_Spec(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiffForNewFile(gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &writeFileToolImpl{logService: logService, fsm: fsm, hookManager: mockHookManager, diffProvider: mockDiffProvider}
@@ -73,7 +73,7 @@ func TestWriteFileTool_Run_Success(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiffForNewFile(gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &writeFileToolImpl{logService: logService, fsm: fsm, hookManager: mockHookManager, diffProvider: mockDiffProvider}
@@ -136,7 +136,7 @@ func TestWriteFileTool_Run_InvalidInput(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiffForNewFile(gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &writeFileToolImpl{logService: logService, fsm: fsm, hookManager: mockHookManager, diffProvider: mockDiffProvider}
@@ -219,7 +219,7 @@ func TestWriteFileTool_Run_CreateDirectories(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiffForNewFile(gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &writeFileToolImpl{logService: logService, fsm: fsm, hookManager: mockHookManager, diffProvider: mockDiffProvider}
@@ -274,7 +274,7 @@ func TestWriteFileTool_Run_CreateDirectoriesFalse(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiffForNewFile(gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &writeFileToolImpl{logService: logService, fsm: fsm, hookManager: mockHookManager, diffProvider: mockDiffProvider}
@@ -325,7 +325,7 @@ func TestWriteFileTool_Run_OverwriteExisting(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	agentID := uuid.New()
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiffForNewFile(gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &writeFileToolImpl{logService: logService, fsm: fsm, agentID: agentID, hookManager: mockHookManager, diffProvider: mockDiffProvider}
@@ -483,7 +483,7 @@ func TestWriteFileTool_Run_WriteCode(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiffForNewFile(gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &writeFileToolImpl{logService: logService, fsm: fsm, hookManager: mockHookManager, diffProvider: mockDiffProvider}
@@ -540,7 +540,7 @@ func TestWriteFileTool_Run_EmptyContent(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiffForNewFile(gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &writeFileToolImpl{logService: logService, fsm: fsm, hookManager: mockHookManager, diffProvider: mockDiffProvider}
@@ -588,7 +588,7 @@ func TestWriteFileTool_Run_MultiLineContent(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiffForNewFile(gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	tool := &writeFileToolImpl{logService: logService, fsm: fsm, hookManager: mockHookManager, diffProvider: mockDiffProvider}

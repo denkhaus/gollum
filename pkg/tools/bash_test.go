@@ -11,7 +11,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/diff"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"go.uber.org/mock/gomock"
@@ -27,7 +27,7 @@ func createBashToolForTesting(t *testing.T, ctrl *gomock.Controller) *bashToolIm
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	return &bashToolImpl{

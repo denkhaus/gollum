@@ -7,7 +7,6 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -46,7 +45,7 @@ func TestResumeAgentToolValidation(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
-	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockExecHelper := NewMockAgentExecutionHelper(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -125,7 +124,7 @@ func TestResumeAgentToolAgentNotFound(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
-	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockExecHelper := NewMockAgentExecutionHelper(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -171,7 +170,7 @@ func TestResumeAgentToolSynchronousExecution(t *testing.T) {
 	agentID := uuid.New()
 
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
-	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockExecHelper := NewMockAgentExecutionHelper(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -237,7 +236,7 @@ func TestResumeAgentToolAsynchronousExecution(t *testing.T) {
 	agentID := uuid.New()
 
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
-	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockExecHelper := NewMockAgentExecutionHelper(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -331,7 +330,7 @@ func TestResumeAgentTool_PermissionDenied(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockExecHelper := NewMockAgentExecutionHelper(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 

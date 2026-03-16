@@ -10,7 +10,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/diff"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/google/uuid"
@@ -28,7 +28,7 @@ func TestBashTool_Run_WithDiffIntegration_FileModification(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	agentID := uuid.New()
@@ -111,7 +111,7 @@ func TestBashTool_Run_WithDiffIntegration_FileCreation(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	agentID := uuid.New()
@@ -184,7 +184,7 @@ func TestBashTool_Run_WithDiffIntegration_NoFileChanges(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	agentID := uuid.New()
@@ -230,7 +230,7 @@ func TestBashTool_Run_WithDiffIntegration_MultipleFileChanges(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
-	mockDiffProvider := mocks.NewMockProvider(ctrl)
+	mockDiffProvider := diff.NewMockProvider(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	agentID := uuid.New()

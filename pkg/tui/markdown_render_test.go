@@ -7,7 +7,6 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/markdown"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
 )
@@ -18,7 +17,7 @@ func TestMarkdownRendering(t *testing.T) {
 	defer ctrl.Finish()
 
 	ctx := context.Background()
-	mockAgent := mocks.NewMockAgentExecutor(ctrl)
+	mockAgent := NewMockAgentExecutor(ctrl)
 	m := NewModel(ctx, mockAgent)
 
 	// Set up mock markdown renderer
@@ -68,7 +67,7 @@ func TestPlainTextFallback(t *testing.T) {
 	defer ctrl.Finish()
 
 	ctx := context.Background()
-	mockAgent := mocks.NewMockAgentExecutor(ctrl)
+	mockAgent := NewMockAgentExecutor(ctrl)
 	m := NewModel(ctx, mockAgent)
 
 	// DO NOT set markdown renderer - test fallback behavior

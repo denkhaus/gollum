@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/m-mizutani/gollem"
 	"go.uber.org/mock/gomock"
 )
@@ -41,7 +40,7 @@ func TestUpdate_EscapeCancelsExecution(t *testing.T) {
 	ctx := context.Background()
 	cancelCh := make(chan struct{})
 
-	agent := mocks.NewMockAgentExecutor(ctrl)
+	agent := NewMockAgentExecutor(ctrl)
 	agent.EXPECT().Execute(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ context.Context, _ string) (*gollem.ExecuteResponse, error) {
 			<-cancelCh
@@ -96,7 +95,7 @@ func TestUpdate_EnterSubmitsToAgent(t *testing.T) {
 
 	ctx := context.Background()
 
-	agent := mocks.NewMockAgentExecutor(ctrl)
+	agent := NewMockAgentExecutor(ctrl)
 	agent.EXPECT().Execute(gomock.Any(), "test input").
 		Return(&gollem.ExecuteResponse{Texts: []string{"response"}}, nil).
 		AnyTimes() // Use AnyTimes since Execute might not be called in this test
