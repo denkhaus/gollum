@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/samber/do/v2"
 	"go.uber.org/mock/gomock"
 )

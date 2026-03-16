@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -167,7 +168,7 @@ func TestSpawnAgentToolSynchronousExecution(t *testing.T) {
 	mockAgent := mocks.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:           taskID,
+		ID: taskID,
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
@@ -248,11 +249,11 @@ func TestSpawnAgentToolAsynchronousExecution(t *testing.T) {
 	mockAgent := mocks.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:          taskID,
+		ID: taskID,
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
-		Role:        "Tester",
+		Role: "Tester",
 	}).AnyTimes()
 
 	tool := &spawnAgentToolImpl{
@@ -327,7 +328,7 @@ func TestSpawnAgentToolExecutionError(t *testing.T) {
 	mockAgent := mocks.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:          taskID,
+		ID: taskID,
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
@@ -396,11 +397,11 @@ func TestSpawnAgentToolInheritsLLMProvider(t *testing.T) {
 	mockAgent := mocks.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:          taskID,
+		ID: taskID,
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "openai/gpt-4o-mini",
 		}, // Should inherit from parent
-		Role:        "Tester",
+		Role: "Tester",
 	}).AnyTimes()
 
 	tool := &spawnAgentToolImpl{
@@ -886,9 +887,9 @@ func TestSpawnAgentTool_AllowedTools_NonStringValue(t *testing.T) {
 	mockExecHelper.EXPECT().ExecuteSynchronously(ctx, mockAgent, "Do something").Return(expectedResponse, nil)
 
 	result, err := tool.Run(ctx, map[string]any{
-		"role":        "Tester",
-		"description": "Test",
-		"prompt":      "Do something",
+		"role":          "Tester",
+		"description":   "Test",
+		"prompt":        "Do something",
 		"allowed_tools": []any{"bash", 123, true}, // Mix of valid and invalid types
 	})
 
