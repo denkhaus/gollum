@@ -16,5 +16,3 @@ package mocks
 //go:generate go run -tags=mock go.uber.org/mock/mockgen -destination=mock_llm_client.go -package=mocks github.com/m-mizutani/gollem LLMClient
 
 //go:generate go run -tags=mock go.uber.org/mock/mockgen -destination=mock_session.go -package=mocks github.com/m-mizutani/gollem Session
-
-//go:generate go run go.uber.org/mock/mockgen -source=../markdown/renderer.go -destination=mock_markdown_renderer.go -package=mocks github.com/denkhaus/gollum/pkg/markdown Renderer

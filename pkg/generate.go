@@ -23,3 +23,5 @@ package pkg
 //go:generate go run go.uber.org/mock/mockgen -source=workspace/service.go -destination=workspace/service_mock.go -package=workspace github.com/denkhaus/gollum/pkg/workspace Service
 
 //go:generate go run go.uber.org/mock/mockgen -source=events/bus.go -destination=events/bus_mock.go -package=events github.com/denkhaus/gollum/pkg/events Bus
+
+//go:generate go run go.uber.org/mock/mockgen -source=markdown/renderer.go -destination=markdown/renderer_mock.go -package=markdown github.com/denkhaus/gollum/pkg/markdown Renderer

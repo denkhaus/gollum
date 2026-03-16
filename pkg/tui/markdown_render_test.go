@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/channel"
+	"github.com/denkhaus/gollum/pkg/markdown"
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
@@ -21,7 +22,7 @@ func TestMarkdownRendering(t *testing.T) {
 	m := NewModel(ctx, mockAgent)
 
 	// Set up mock markdown renderer
-	mockRenderer := mocks.NewMockRenderer(ctrl)
+	mockRenderer := markdown.NewMockRenderer(ctrl)
 	m.SetMarkdownRenderer(mockRenderer)
 
 	// Set viewport dimensions
