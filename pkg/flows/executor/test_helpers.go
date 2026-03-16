@@ -150,7 +150,7 @@ func (m *testFlowRegistry) GetFlow(name string) (*flows.Flow, error) {
 
 type testFlowToolsProvider struct{}
 
-func (m *testFlowToolsProvider) CreateTool(agentID uuid.UUID, flowCtx shared.FlowContext, toolName shared.ToolName) (gollem.Tool, error) {
+func (m *testFlowToolsProvider) CreateTool(agentID uuid.UUID, flowCtx flows.FlowContext, toolName shared.ToolName) (gollem.Tool, error) {
 	// Return a mock tool that does nothing
 	return &testFlowTool{}, nil
 }

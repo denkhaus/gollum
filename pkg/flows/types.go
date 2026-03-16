@@ -6,6 +6,26 @@ import (
 	"github.com/denkhaus/gollum/pkg/shared"
 )
 
+// FlowContext defines the interface for accessing flow execution state
+type FlowContext interface {
+	// SetOutputField sets an output field value
+	SetOutputField(name string, value any) error
+	// GetOutputField retrieves an output field value
+	GetOutputField(name string) (any, error)
+	// SetContextField sets a context field value
+	SetContextField(name string, value any) error
+	// GetContextField retrieves a context field value
+	GetContextField(name string) (any, error)
+	// GetCurrentState returns the current state name
+	GetCurrentState() string
+	// GetAllContextFields returns all context fields
+	GetAllContextFields() map[string]any
+	// ValidateTransition checks if a transition is allowed
+	ValidateTransition(from, to string) error
+	// RequestTransition signals that the flow should transition to the target state
+	RequestTransition(to string) error
+}
+
 type VarContainerTarget string
 
 const (

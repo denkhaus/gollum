@@ -8,7 +8,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/flows/ast"
 	"github.com/denkhaus/gollum/pkg/flows/errors"
 	"github.com/denkhaus/gollum/pkg/flows/variables"
-	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 // Evaluator wraps the ast package for expression evaluation
@@ -59,6 +58,18 @@ func extractDeps(expr ast.Expr, deps *[]string) {
 	}
 }
 
+type ExecutionContext interface {
+	SetContextField(name string, value any) error
+	GetContextField(name string) (any, error)
+	GetOutputField(name string) (any, error)
+	SetOutputField(name string, value any) error
+	GetComputedField(name string) (any, error)
+	GetInput(name string) any
+	EvaluateComputed() error
+	SetError(ctx *ErrorContext)
+	GetError() *ErrorContext
+}
+
 // Context manages execution contextImpl with input, output, and computed fields
 type contextImpl struct {
 	inputBlock    *flows.InputBlock
@@ -70,14 +81,14 @@ type contextImpl struct {
 	computedBlock *flows.ComputedBlock
 	computedVals  *variables.ComputedValues
 	eval          *Evaluator
-	lastError     *shared.ErrorContext
+	lastError     *ErrorContext
 }
 
 func NewContext(
 	inputBlock *flows.InputBlock,
 	outputBlock *flows.OutputBlock,
 	contextBlock *flows.ContextBlock,
-	inputVals map[string]string) shared.ExecutionContext {
+	inputVals map[string]string) ExecutionContext {
 	return newContext(inputBlock, outputBlock, contextBlock, inputVals)
 }
 
@@ -402,12 +413,12 @@ func (c *contextImpl) GetOutputField(name string) (any, error) {
 }
 
 // SetError sets the last error context
-func (c *contextImpl) SetError(err *shared.ErrorContext) {
+func (c *contextImpl) SetError(err *ErrorContext) {
 	c.lastError = err
 }
 
 // GetError returns the last error context (may be nil)
-func (c *contextImpl) GetError() *shared.ErrorContext {
+func (c *contextImpl) GetError() *ErrorContext {
 	return c.lastError
 }
 

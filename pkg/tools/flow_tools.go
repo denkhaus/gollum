@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -22,7 +23,7 @@ type (
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		agentID     uuid.UUID
-		flowCtx     shared.FlowContext
+		flowCtx     flows.FlowContext
 	}
 
 	// setContextFieldTool sets a context field value during flow execution
@@ -30,7 +31,7 @@ type (
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		agentID     uuid.UUID
-		flowCtx     shared.FlowContext
+		flowCtx     flows.FlowContext
 	}
 
 	// getContextTool retrieves context fields during flow execution
@@ -38,7 +39,7 @@ type (
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		agentID     uuid.UUID
-		flowCtx     shared.FlowContext
+		flowCtx     flows.FlowContext
 	}
 
 	// emitLogTool emits log messages during flow execution
@@ -46,7 +47,7 @@ type (
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		agentID     uuid.UUID
-		flowCtx     shared.FlowContext
+		flowCtx     flows.FlowContext
 	}
 
 	// transitionToTool transitions to a new state during flow execution
@@ -54,7 +55,7 @@ type (
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		agentID     uuid.UUID
-		flowCtx     shared.FlowContext
+		flowCtx     flows.FlowContext
 	}
 
 	flowToolsProvider struct {
@@ -64,7 +65,7 @@ type (
 
 	// FlowToolsProvider creates flow executor tools via DI
 	FlowToolsProvider interface {
-		CreateTool(agentID uuid.UUID, flowCtx shared.FlowContext, toolName shared.ToolName) (gollem.Tool, error)
+		CreateTool(agentID uuid.UUID, flowCtx flows.FlowContext, toolName shared.ToolName) (gollem.Tool, error)
 	}
 )
 
@@ -79,7 +80,7 @@ func NewFlowToolsProvider(injector do.Injector) (FlowToolsProvider, error) {
 }
 
 // CreateTool creates a flow executor tool with the given context
-func (p *flowToolsProvider) CreateTool(agentID uuid.UUID, flowCtx shared.FlowContext, toolName shared.ToolName) (gollem.Tool, error) {
+func (p *flowToolsProvider) CreateTool(agentID uuid.UUID, flowCtx flows.FlowContext, toolName shared.ToolName) (gollem.Tool, error) {
 	switch toolName {
 	case shared.ToolNameSetOutputField:
 		return &setOutputFieldTool{

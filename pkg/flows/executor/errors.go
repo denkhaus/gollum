@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/flows"
-	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 // FuncError represents an error during func step execution
@@ -44,7 +43,7 @@ func (p *flowExecutorImpl) captureError(step *flows.Step, errMsg string) {
 	now := time.Now()
 
 	// Set error context
-	p.ctx.SetError(&shared.ErrorContext{
+	p.ctx.SetError(&ErrorContext{
 		StepName:  step.Name,
 		StepType:  step.Type,
 		Message:   errMsg,

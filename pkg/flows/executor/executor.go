@@ -19,10 +19,30 @@ import (
 	"github.com/samber/do/v2"
 )
 
+// FlowExecutorInstance defines the interface for a flow executor instance
+type FlowExecutorInstance interface {
+	// SetInput sets input field values
+	SetInput(vals map[string]string)
+	// Validate validates the flow before execution
+	Validate() error
+	// Run executes the flow from the initial state
+	Run() error
+	// GetContext returns the execution context (for testing)
+	GetContext() ExecutionContext
+}
+
 // FlowExecutorService defines the DI service that creates executor instances
 type FlowExecutorService interface {
 	// New creates a new executor instance for a flow
-	New(flow *flows.Flow) shared.FlowExecutorInstance
+	New(flow *flows.Flow) FlowExecutorInstance
+}
+
+// ErrorContext holds error lifecycle information
+type ErrorContext struct {
+	StepName  string
+	StepType  string
+	Message   string
+	Timestamp time.Time
 }
 
 // flowExecutorImpl is the private implementation of a flow executor instance
@@ -44,7 +64,7 @@ type flowExecutorImpl struct {
 }
 
 // Ensure flowExecutorImpl implements tools.FlowContext
-var _ shared.FlowContext = (*flowExecutorImpl)(nil)
+var _ flows.FlowContext = (*flowExecutorImpl)(nil)
 
 // flowExecutorServiceImpl is the DI service that creates executor instances
 type flowExecutorServiceImpl struct {
@@ -62,7 +82,7 @@ type flowExecutorServiceImpl struct {
 var _ FlowExecutorService = (*flowExecutorServiceImpl)(nil)
 
 // Ensure flowExecutorImpl implements FlowExecutorInstance
-var _ shared.FlowExecutorInstance = (*flowExecutorImpl)(nil)
+var _ FlowExecutorInstance = (*flowExecutorImpl)(nil)
 
 // NewFlowExecutor creates the flow executor service (DI constructor)
 func NewFlowExecutor(injector do.Injector) (FlowExecutorService, error) {
@@ -88,7 +108,7 @@ func NewFlowExecutor(injector do.Injector) (FlowExecutorService, error) {
 }
 
 // New creates a new executor instance for a specific flow
-func (p *flowExecutorServiceImpl) New(flow *flows.Flow) shared.FlowExecutorInstance {
+func (p *flowExecutorServiceImpl) New(flow *flows.Flow) FlowExecutorInstance {
 	ctx := newContext(flow.Input, flow.Output, flow.Context, nil)
 
 	// Initialize computed fields from ComputedBlock
@@ -168,7 +188,7 @@ func (p *flowExecutorImpl) Run() error {
 }
 
 // GetContext returns the execution context (for testing)
-func (p *flowExecutorImpl) GetContext() shared.ExecutionContext {
+func (p *flowExecutorImpl) GetContext() ExecutionContext {
 	return p.ctx
 }
 
