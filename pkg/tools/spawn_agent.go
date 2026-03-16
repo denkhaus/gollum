@@ -113,6 +113,11 @@ func (t *spawnAgentToolImpl) Spec() gollem.ToolSpec {
 				Type:        gollem.TypeBoolean,
 				Description: "If true, includes parent agent's message history in subagent configuration for context awareness. Default is false.",
 			},
+			"allowed_tools": {
+				Type:        gollem.TypeArray,
+				Items:       &gollem.Parameter{Type: gollem.TypeString},
+				Description: "List of tool names the agent can access. Built-in tools use names like 'bash', 'read_file', 'current_time'. MCP tools use 'server_name/tool_name' format. If omitted, agent has no tools available.",
+			},
 		},
 	}
 }
@@ -156,6 +161,18 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args map[string]
 	if scVal, exists := args["share_context"]; exists {
 		if scBool, ok := scVal.(bool); ok {
 			shareContext = scBool
+		}
+	}
+
+	// Parse allowed_tools parameter (optional)
+	var allowedTools []string
+	if atVal, exists := args["allowed_tools"]; exists {
+		if atSlice, ok := atVal.([]any); ok {
+			for _, item := range atSlice {
+				if toolName, ok := item.(string); ok {
+					allowedTools = append(allowedTools, toolName)
+				}
+			}
 		}
 	}
 
@@ -208,6 +225,7 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args map[string]
 		LLMClientConfig: llmClientConfig,
 		OutputMode:      shared.OutputModeSummary, // Sub-agents use summary mode
 		History:         history,                  // Include parent message history for context awareness
+		AllowedTools:    allowedTools,             // Explicitly allowed tools
 	}
 
 	// Create the subagent using the factory (which now adds default tools)

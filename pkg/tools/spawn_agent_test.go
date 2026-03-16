@@ -554,3 +554,344 @@ func TestSpawnAgentTool_WithShareContext_NoParent(t *testing.T) {
 	assert.True(t, result["success"].(bool))
 	assert.Equal(t, "completed", result["status"].(string))
 }
+
+func TestSpawnAgentTool_AllowedTools_Builtin(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+
+	senderID := uuid.New()
+	taskID := uuid.New()
+
+	mockFactory := mocks.NewMockAgentFactory(ctrl)
+	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockConfigService := setupMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+	setupMockExecutionHelperWithDefaults(mockExecHelper)
+
+	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
+	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
+		ID:              taskID,
+		LLMClientConfig: &shared.LLMClientConfig{Model: "anthropic/claude-3-5-sonnet-20241022"},
+		Role:            "Tester",
+	}).AnyTimes()
+
+	tool := &spawnAgentToolImpl{
+		logService:      logService,
+		agentFactory:    mockFactory,
+		registry:        mockRegistry,
+		promptManager:   mockPromptMgr,
+		executionHelper: mockExecHelper,
+		configService:   mockConfigService,
+		hookManager:     mockHookManager,
+		senderID:        senderID,
+	}
+
+	ctx := context.Background()
+
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
+	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
+	mockRegistry.EXPECT().StoreAgentResult(gomock.Any()).Return(nil)
+	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Do(func(_ context.Context, cfg *shared.AgentConfig) {
+		assert.Equal(t, []string{"bash", "read_file", "write_file"}, cfg.AllowedTools)
+	}).Return(mockAgent, nil)
+	mockRegistry.EXPECT().Register(mockAgent, gomock.Any()).Return(nil)
+
+	expectedResponse := map[string]any{
+		"success":  true,
+		"agent_id": taskID.String(),
+		"response": "Done",
+		"status":   "completed",
+		"message":  "Agent completed successfully",
+	}
+	mockExecHelper.EXPECT().ExecuteSynchronously(ctx, mockAgent, "Do something").Return(expectedResponse, nil)
+
+	result, err := tool.Run(ctx, map[string]any{
+		"role":          "Tester",
+		"description":   "Test",
+		"prompt":        "Do something",
+		"allowed_tools": []any{"bash", "read_file", "write_file"},
+	})
+
+	require.NoError(t, err)
+	assert.True(t, result["success"].(bool))
+}
+
+func TestSpawnAgentTool_AllowedTools_MCP(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+
+	senderID := uuid.New()
+	taskID := uuid.New()
+
+	mockFactory := mocks.NewMockAgentFactory(ctrl)
+	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockConfigService := setupMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+	setupMockExecutionHelperWithDefaults(mockExecHelper)
+
+	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
+	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
+		ID:              taskID,
+		LLMClientConfig: &shared.LLMClientConfig{Model: "anthropic/claude-3-5-sonnet-20241022"},
+		Role:            "Tester",
+	}).AnyTimes()
+
+	tool := &spawnAgentToolImpl{
+		logService:      logService,
+		agentFactory:    mockFactory,
+		registry:        mockRegistry,
+		promptManager:   mockPromptMgr,
+		executionHelper: mockExecHelper,
+		configService:   mockConfigService,
+		hookManager:     mockHookManager,
+		senderID:        senderID,
+	}
+
+	ctx := context.Background()
+
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
+	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
+	mockRegistry.EXPECT().StoreAgentResult(gomock.Any()).Return(nil)
+	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Do(func(_ context.Context, cfg *shared.AgentConfig) {
+		assert.Equal(t, []string{"filesystem/read_file", "filesystem/write_file"}, cfg.AllowedTools)
+	}).Return(mockAgent, nil)
+	mockRegistry.EXPECT().Register(mockAgent, gomock.Any()).Return(nil)
+
+	expectedResponse := map[string]any{
+		"success":  true,
+		"agent_id": taskID.String(),
+		"response": "Done",
+		"status":   "completed",
+		"message":  "Agent completed successfully",
+	}
+	mockExecHelper.EXPECT().ExecuteSynchronously(ctx, mockAgent, "Do something").Return(expectedResponse, nil)
+
+	result, err := tool.Run(ctx, map[string]any{
+		"role":          "Tester",
+		"description":   "Test",
+		"prompt":        "Do something",
+		"allowed_tools": []any{"filesystem/read_file", "filesystem/write_file"},
+	})
+
+	require.NoError(t, err)
+	assert.True(t, result["success"].(bool))
+}
+
+func TestSpawnAgentTool_AllowedTools_Mixed(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+
+	senderID := uuid.New()
+	taskID := uuid.New()
+
+	mockFactory := mocks.NewMockAgentFactory(ctrl)
+	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockConfigService := setupMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+	setupMockExecutionHelperWithDefaults(mockExecHelper)
+
+	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
+	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
+		ID:              taskID,
+		LLMClientConfig: &shared.LLMClientConfig{Model: "anthropic/claude-3-5-sonnet-20241022"},
+		Role:            "Tester",
+	}).AnyTimes()
+
+	tool := &spawnAgentToolImpl{
+		logService:      logService,
+		agentFactory:    mockFactory,
+		registry:        mockRegistry,
+		promptManager:   mockPromptMgr,
+		executionHelper: mockExecHelper,
+		configService:   mockConfigService,
+		hookManager:     mockHookManager,
+		senderID:        senderID,
+	}
+
+	ctx := context.Background()
+
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
+	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
+	mockRegistry.EXPECT().StoreAgentResult(gomock.Any()).Return(nil)
+	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Do(func(_ context.Context, cfg *shared.AgentConfig) {
+		assert.Equal(t, []string{"bash", "filesystem/read_file", "current_time"}, cfg.AllowedTools)
+	}).Return(mockAgent, nil)
+	mockRegistry.EXPECT().Register(mockAgent, gomock.Any()).Return(nil)
+
+	expectedResponse := map[string]any{
+		"success":  true,
+		"agent_id": taskID.String(),
+		"response": "Done",
+		"status":   "completed",
+		"message":  "Agent completed successfully",
+	}
+	mockExecHelper.EXPECT().ExecuteSynchronously(ctx, mockAgent, "Do something").Return(expectedResponse, nil)
+
+	result, err := tool.Run(ctx, map[string]any{
+		"role":          "Tester",
+		"description":   "Test",
+		"prompt":        "Do something",
+		"allowed_tools": []any{"bash", "filesystem/read_file", "current_time"},
+	})
+
+	require.NoError(t, err)
+	assert.True(t, result["success"].(bool))
+}
+
+func TestSpawnAgentTool_AllowedTools_Empty(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+
+	senderID := uuid.New()
+	taskID := uuid.New()
+
+	mockFactory := mocks.NewMockAgentFactory(ctrl)
+	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockConfigService := setupMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+	setupMockExecutionHelperWithDefaults(mockExecHelper)
+
+	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
+	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
+		ID:              taskID,
+		LLMClientConfig: &shared.LLMClientConfig{Model: "anthropic/claude-3-5-sonnet-20241022"},
+		Role:            "Tester",
+	}).AnyTimes()
+
+	tool := &spawnAgentToolImpl{
+		logService:      logService,
+		agentFactory:    mockFactory,
+		registry:        mockRegistry,
+		promptManager:   mockPromptMgr,
+		executionHelper: mockExecHelper,
+		configService:   mockConfigService,
+		hookManager:     mockHookManager,
+		senderID:        senderID,
+	}
+
+	ctx := context.Background()
+
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
+	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
+	mockRegistry.EXPECT().StoreAgentResult(gomock.Any()).Return(nil)
+	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Do(func(_ context.Context, cfg *shared.AgentConfig) {
+		assert.Nil(t, cfg.AllowedTools)
+	}).Return(mockAgent, nil)
+	mockRegistry.EXPECT().Register(mockAgent, gomock.Any()).Return(nil)
+
+	expectedResponse := map[string]any{
+		"success":  true,
+		"agent_id": taskID.String(),
+		"response": "Done",
+		"status":   "completed",
+		"message":  "Agent completed successfully",
+	}
+	mockExecHelper.EXPECT().ExecuteSynchronously(ctx, mockAgent, "Do something").Return(expectedResponse, nil)
+
+	result, err := tool.Run(ctx, map[string]any{
+		"role":        "Tester",
+		"description": "Test",
+		"prompt":      "Do something",
+		// No allowed_tools provided
+	})
+
+	require.NoError(t, err)
+	assert.True(t, result["success"].(bool))
+}
+
+func TestSpawnAgentTool_AllowedTools_NonStringValue(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+	logService := do.MustInvoke[logger.LoggerService](injector)
+
+	senderID := uuid.New()
+	taskID := uuid.New()
+
+	mockFactory := mocks.NewMockAgentFactory(ctrl)
+	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
+	mockConfigService := setupMockConfigService(ctrl)
+	mockHookManager := mocks.NewMockHookManager(ctrl)
+	setupMockHookManagerPassThrough(mockHookManager)
+	setupMockExecutionHelperWithDefaults(mockExecHelper)
+
+	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
+	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
+		ID:              taskID,
+		LLMClientConfig: &shared.LLMClientConfig{Model: "anthropic/claude-3-5-sonnet-20241022"},
+		Role:            "Tester",
+	}).AnyTimes()
+
+	tool := &spawnAgentToolImpl{
+		logService:      logService,
+		agentFactory:    mockFactory,
+		registry:        mockRegistry,
+		promptManager:   mockPromptMgr,
+		executionHelper: mockExecHelper,
+		configService:   mockConfigService,
+		hookManager:     mockHookManager,
+		senderID:        senderID,
+	}
+
+	ctx := context.Background()
+
+	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
+	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
+	mockRegistry.EXPECT().StoreAgentResult(gomock.Any()).Return(nil)
+	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Do(func(_ context.Context, cfg *shared.AgentConfig) {
+		// Non-string values should be filtered out, leaving only "bash"
+		assert.Equal(t, []string{"bash"}, cfg.AllowedTools)
+	}).Return(mockAgent, nil)
+	mockRegistry.EXPECT().Register(mockAgent, gomock.Any()).Return(nil)
+
+	expectedResponse := map[string]any{
+		"success":  true,
+		"agent_id": taskID.String(),
+		"response": "Done",
+		"status":   "completed",
+		"message":  "Agent completed successfully",
+	}
+	mockExecHelper.EXPECT().ExecuteSynchronously(ctx, mockAgent, "Do something").Return(expectedResponse, nil)
+
+	result, err := tool.Run(ctx, map[string]any{
+		"role":        "Tester",
+		"description": "Test",
+		"prompt":      "Do something",
+		"allowed_tools": []any{"bash", 123, true}, // Mix of valid and invalid types
+	})
+
+	require.NoError(t, err)
+	assert.True(t, result["success"].(bool))
+}
