@@ -30,11 +30,10 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 	// Substitute variables in prompt
 	prompt := SubstituteTemplate(p.ctx, step.Prompt)
 
-	// TODO: Parse tools from step specification in Task 5
-	_, _ = p.parseStepTools(step.Tools) // Temporarily ignore result
+	// Parse tools from step.Tools (comma-separated string like "bash,read_file")
+	allowedTools := p.parseToolNames(step.Tools)
 
 	// Map flow Agent to shared.AgentConfig
-	// TODO: Parse step.Tools into AllowedTools in Task 5
 	config := &shared.AgentConfig{
 		ID:              uuid.New(),
 		SystemPrompt:    agentConfig.Prompt,
@@ -43,7 +42,7 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 		LLMClientConfig: agentConfig.ToClientConfig(),
 		OutputMode:      shared.OutputModeSilent, // Suppress output during flow execution
 		Strategy:        simple.New(),
-		AllowedTools:    nil, // TODO: Parse from step.Tools in Task 5
+		AllowedTools:    allowedTools,
 	}
 
 	// Create agent using factory
@@ -97,30 +96,20 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 	return nil
 }
 
-// parseStepTools parses the comma-separated tools string and creates gollem.Tool instances
-func (p *flowExecutorImpl) parseStepTools(toolsStr string) ([]gollem.Tool, error) {
+// parseToolNames parses the comma-separated tools string and returns tool names
+func (p *flowExecutorImpl) parseToolNames(toolsStr string) []string {
 	if toolsStr == "" {
-		return nil, nil
+		return nil
 	}
 
-	agentID := uuid.Nil // Flow tools don't have a specific agent ID
-	var tools []gollem.Tool
-
-	toolNames := strings.Split(toolsStr, ",")
-	for _, toolName := range toolNames {
-		toolName = strings.TrimSpace(toolName)
-		if toolName == "" {
-			continue
+	var toolNames []string
+	names := strings.Split(toolsStr, ",")
+	for _, name := range names {
+		name = strings.TrimSpace(name)
+		if name != "" {
+			toolNames = append(toolNames, name)
 		}
-
-		// Create tool using flow tools provider
-		tool, err := p.flowToolsProvider.CreateTool(agentID, p, shared.ToolName(toolName))
-		if err != nil {
-			return nil, fmt.Errorf("failed to create tool '%s': %w", toolName, err)
-		}
-
-		tools = append(tools, tool)
 	}
 
-	return tools, nil
+	return toolNames
 }

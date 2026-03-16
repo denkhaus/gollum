@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"context"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/extensions"
@@ -300,4 +301,114 @@ func TestInferLLMProvider(t *testing.T) {
 			assert.NotEmpty(t, model, "Model should not be empty")
 		})
 	}
+}
+
+func TestParseToolNames_Empty(t *testing.T) {
+	exec := &flowExecutorImpl{}
+	result := exec.parseToolNames("")
+
+	assert.Nil(t, result)
+}
+
+func TestParseToolNames_Single(t *testing.T) {
+	exec := &flowExecutorImpl{}
+	result := exec.parseToolNames("bash")
+
+	assert.Equal(t, []string{"bash"}, result)
+}
+
+func TestParseToolNames_Multiple(t *testing.T) {
+	exec := &flowExecutorImpl{}
+	result := exec.parseToolNames("bash,read_file,write_file")
+
+	assert.Equal(t, []string{"bash", "read_file", "write_file"}, result)
+}
+
+func TestParseToolNames_WithSpaces(t *testing.T) {
+	exec := &flowExecutorImpl{}
+	result := exec.parseToolNames("bash, read_file , write_file")
+
+	assert.Equal(t, []string{"bash", "read_file", "write_file"}, result)
+}
+
+func TestParseToolNames_EmptyItems(t *testing.T) {
+	exec := &flowExecutorImpl{}
+	result := exec.parseToolNames("bash,,read_file")
+
+	assert.Equal(t, []string{"bash", "read_file"}, result)
+}
+
+func TestParseToolNames_MCPTools(t *testing.T) {
+	exec := &flowExecutorImpl{}
+	result := exec.parseToolNames("filesystem/read_file,filesystem/write_file")
+
+	assert.Equal(t, []string{"filesystem/read_file", "filesystem/write_file"}, result)
+}
+
+func TestParseToolNames_Mixed(t *testing.T) {
+	exec := &flowExecutorImpl{}
+	result := exec.parseToolNames("bash,filesystem/read_file,current_time")
+
+	assert.Equal(t, []string{"bash", "filesystem/read_file", "current_time"}, result)
+}
+
+func TestExecuteLLMStep_PopulatesAllowedTools(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Create mock agent
+	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).
+		Return(&gollem.ExecuteResponse{Texts: []string{"response"}}, nil)
+
+	// Create mock agent factory that captures the config
+	var capturedConfig *shared.AgentConfig
+	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory.EXPECT().CreateAgent(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, config *shared.AgentConfig) (shared.Agent, error) {
+			capturedConfig = config
+			return mockAgent, nil
+		})
+
+	// Create custom injector
+	injector := do.New()
+
+	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+
+	do.Provide(injector, hooks.NewHookManager)
+	do.ProvideValue(injector, shared.AgentFactory(mockAgentFactory))
+	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
+	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
+	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
+	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
+	do.Provide(injector, NewFlowExecutor)
+
+	svc := do.MustInvoke[FlowExecutorService](injector)
+
+	flow := &flows.Flow{
+		Name: "test",
+		Agents: []flows.Agent{
+			{Name: "worker", Model: "claude-3.5", Prompt: "You are a helper"},
+		},
+		States: []flows.State{
+			{Name: "init", Initial: true, Steps: []flows.Step{
+				{Type: "llm", Agent: "worker", Prompt: "test", Tools: "bash,read_file"},
+			}},
+		},
+	}
+
+	exec := svc.New(flow)
+	step := &flows.Step{Type: "llm", Agent: "worker", Prompt: "test", Tools: "bash,read_file"}
+	_ = exec.(*flowExecutorImpl).executeStep(step, "init")
+
+	// Verify AllowedTools was populated
+	require.NotNil(t, capturedConfig)
+	assert.Equal(t, []string{"bash", "read_file"}, capturedConfig.AllowedTools)
 }
