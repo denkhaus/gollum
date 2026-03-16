@@ -38,11 +38,15 @@ func (m *mockLogger) Warn(_ string, _ ...zap.Field)                        {}
 func (m *mockLogger) Warnf(_ string, _ ...any)                             {}
 func (m *mockLogger) Error(_ string, _ ...zap.Field)                       {}
 func (m *mockLogger) Errorf(_ string, _ ...any)                            {}
-func (m *mockLogger) InfoWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)  {}
-func (m *mockLogger) ErrorWithAgent(_ string, _ uuid.UUID, _ ...zap.Field) {}
-func (m *mockLogger) DebugWithAgent(_ string, _ uuid.UUID, _ ...zap.Field) {}
-func (m *mockLogger) WarnWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)  {}
-func (m *mockLogger) GetLogger() *zap.Logger                               { return nil }
+func (m *mockLogger) InfoWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)          {}
+func (m *mockLogger) ErrorWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)         {}
+func (m *mockLogger) DebugWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)         {}
+func (m *mockLogger) WarnWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)          {}
+func (m *mockLogger) InfoWithFlowStep(_ string, _, _, _ string, _ ...zap.Field)    {}
+func (m *mockLogger) ErrorWithFlowStep(_ string, _, _, _ string, _ ...zap.Field)   {}
+func (m *mockLogger) DebugWithFlowStep(_ string, _, _, _ string, _ ...zap.Field)   {}
+func (m *mockLogger) WarnWithFlowStep(_ string, _, _, _ string, _ ...zap.Field)    {}
+func (m *mockLogger) GetLogger() *zap.Logger                                        { return nil }
 func (m *mockLogger) SetTUIWriter(_ io.Writer)                             {}
 func (m *mockLogger) ResetToStdout()                                       {}
 func (m *mockLogger) GetLogs(_ logger.LogFilter) []logger.LogEntry         { return nil }
