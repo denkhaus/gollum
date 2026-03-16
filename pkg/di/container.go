@@ -17,9 +17,10 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/markdown"
+	mcp "github.com/denkhaus/gollum/pkg/mcp"
 	mcpconfig "github.com/denkhaus/gollum/pkg/mcp/config"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
+	"github.com/denkhaus/gollum/pkg/markdown"
 	"github.com/denkhaus/gollum/pkg/profiling"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/prompt/optimizer"
@@ -108,6 +109,7 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	// MCP (Model Context Protocol) services
 	do.Provide(p.injector, mcpconfig.NewConfigLoader)
 	do.Provide(p.injector, mcpregistry.NewMCPRegistry)
+	do.Provide(p.injector, mcp.NewMCPToolProvider)
 
 	// Flows
 	do.Provide(p.injector, flowregistry.NewFlowRegistryService)
