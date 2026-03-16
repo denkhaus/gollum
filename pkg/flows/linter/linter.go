@@ -37,6 +37,10 @@ func LintPath(flowPath string, flow *flows.Flow) *flows.LinterResult {
 	phase6 := NewComputedChecker()
 	phase6.Check(flow, result)
 
+	// Phase 7: Syntax validation ($() rules)
+	phase7 := &SyntaxChecker{}
+	phase7.Check(flow, result)
+
 	// Determine validity
 	result.Valid = len(result.Errors) == 0
 
