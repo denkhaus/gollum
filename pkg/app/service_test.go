@@ -592,7 +592,7 @@ func TestRun_DefaultFlowSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create mock flow executor
-	mockExecutor := shared.NewMockFlowExecutorInstance(ctrl)
+	mockExecutor := executor.NewMockFlowExecutorInstance(ctrl)
 	mockExecutor.EXPECT().SetInput(gomock.Any()).Times(1)
 	mockExecutor.EXPECT().Validate().Return(nil).Times(1)
 	mockExecutor.EXPECT().Run().Return(nil).Times(1)
@@ -752,7 +752,7 @@ func TestRunDefaultFlow_ValidationError(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create mock flow executor that fails validation
-	mockExecutor := shared.NewMockFlowExecutorInstance(ctrl)
+	mockExecutor := executor.NewMockFlowExecutorInstance(ctrl)
 	mockExecutor.EXPECT().SetInput(gomock.Any()).Times(1)
 	mockExecutor.EXPECT().Validate().Return(assert.AnError).Times(1)
 
@@ -808,7 +808,7 @@ func TestRunDefaultFlow_RunError(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create mock flow executor that fails during Run
-	mockExecutor := shared.NewMockFlowExecutorInstance(ctrl)
+	mockExecutor := executor.NewMockFlowExecutorInstance(ctrl)
 	mockExecutor.EXPECT().SetInput(gomock.Any()).Times(1)
 	mockExecutor.EXPECT().Validate().Return(nil).Times(1)
 	mockExecutor.EXPECT().Run().Return(assert.AnError).Times(1)
@@ -865,7 +865,7 @@ func TestRunDefaultFlow_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create mock flow executor that succeeds
-	mockExecutor := shared.NewMockFlowExecutorInstance(ctrl)
+	mockExecutor := executor.NewMockFlowExecutorInstance(ctrl)
 	mockExecutor.EXPECT().SetInput(gomock.Any()).Times(1)
 	mockExecutor.EXPECT().Validate().Return(nil).Times(1)
 	mockExecutor.EXPECT().Run().Return(nil).Times(1)

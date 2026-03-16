@@ -13,9 +13,86 @@ import (
 	reflect "reflect"
 
 	flows "github.com/denkhaus/gollum/pkg/flows"
-	shared "github.com/denkhaus/gollum/pkg/shared"
 	gomock "go.uber.org/mock/gomock"
 )
+
+// MockFlowExecutorInstance is a mock of FlowExecutorInstance interface.
+type MockFlowExecutorInstance struct {
+	ctrl     *gomock.Controller
+	recorder *MockFlowExecutorInstanceMockRecorder
+	isgomock struct{}
+}
+
+// MockFlowExecutorInstanceMockRecorder is the mock recorder for MockFlowExecutorInstance.
+type MockFlowExecutorInstanceMockRecorder struct {
+	mock *MockFlowExecutorInstance
+}
+
+// NewMockFlowExecutorInstance creates a new mock instance.
+func NewMockFlowExecutorInstance(ctrl *gomock.Controller) *MockFlowExecutorInstance {
+	mock := &MockFlowExecutorInstance{ctrl: ctrl}
+	mock.recorder = &MockFlowExecutorInstanceMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockFlowExecutorInstance) EXPECT() *MockFlowExecutorInstanceMockRecorder {
+	return m.recorder
+}
+
+// GetContext mocks base method.
+func (m *MockFlowExecutorInstance) GetContext() ExecutionContext {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetContext")
+	ret0, _ := ret[0].(ExecutionContext)
+	return ret0
+}
+
+// GetContext indicates an expected call of GetContext.
+func (mr *MockFlowExecutorInstanceMockRecorder) GetContext() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContext", reflect.TypeOf((*MockFlowExecutorInstance)(nil).GetContext))
+}
+
+// Run mocks base method.
+func (m *MockFlowExecutorInstance) Run() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Run")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Run indicates an expected call of Run.
+func (mr *MockFlowExecutorInstanceMockRecorder) Run() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockFlowExecutorInstance)(nil).Run))
+}
+
+// SetInput mocks base method.
+func (m *MockFlowExecutorInstance) SetInput(vals map[string]string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetInput", vals)
+}
+
+// SetInput indicates an expected call of SetInput.
+func (mr *MockFlowExecutorInstanceMockRecorder) SetInput(vals any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetInput", reflect.TypeOf((*MockFlowExecutorInstance)(nil).SetInput), vals)
+}
+
+// Validate mocks base method.
+func (m *MockFlowExecutorInstance) Validate() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Validate")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Validate indicates an expected call of Validate.
+func (mr *MockFlowExecutorInstanceMockRecorder) Validate() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockFlowExecutorInstance)(nil).Validate))
+}
 
 // MockFlowExecutorService is a mock of FlowExecutorService interface.
 type MockFlowExecutorService struct {
@@ -42,10 +119,10 @@ func (m *MockFlowExecutorService) EXPECT() *MockFlowExecutorServiceMockRecorder 
 }
 
 // New mocks base method.
-func (m *MockFlowExecutorService) New(flow *flows.Flow) shared.FlowExecutorInstance {
+func (m *MockFlowExecutorService) New(flow *flows.Flow) FlowExecutorInstance {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "New", flow)
-	ret0, _ := ret[0].(shared.FlowExecutorInstance)
+	ret0, _ := ret[0].(FlowExecutorInstance)
 	return ret0
 }
 
