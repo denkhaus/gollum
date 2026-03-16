@@ -8,6 +8,9 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
+	"github.com/denkhaus/gollum/pkg/registry"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
@@ -22,9 +25,9 @@ func TestSpawnAgentTool_Run_AgentFactoryError_LimitExceeded(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
@@ -75,9 +78,9 @@ func TestSpawnAgentTool_Run_AgentFactoryError_SubAgentLimitExceeded(t *testing.T
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
@@ -128,9 +131,9 @@ func TestSpawnAgentTool_Run_AgentFactoryError_GenericError(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)

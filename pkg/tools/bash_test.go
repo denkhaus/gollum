@@ -1,7 +1,9 @@
 package tools
 
 import (
+
 	"context"
+	"github.com/denkhaus/gollum/pkg/state"
 	"strings"
 	"testing"
 	"time"
@@ -13,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"go.uber.org/mock/gomock"
+
 )
 
 // createBashToolForTesting creates a BashTool with mocked dependencies for testing.
@@ -22,7 +25,7 @@ func createBashToolForTesting(t *testing.T, ctrl *gomock.Controller) *bashToolIm
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)

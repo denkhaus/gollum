@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/config"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -26,9 +25,9 @@ func TestAgentRegistry_Register_TotalAgentLimit(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create mock agents
-	agent1 := mocks.NewMockAgent(ctrl)
-	agent2 := mocks.NewMockAgent(ctrl)
-	agent3 := mocks.NewMockAgent(ctrl) // This one should exceed the limit
+	agent1 := shared.NewMockAgent(ctrl)
+	agent2 := shared.NewMockAgent(ctrl)
+	agent3 := shared.NewMockAgent(ctrl) // This one should exceed the limit
 
 	// Create configs
 	config1 := &shared.AgentConfig{
@@ -74,7 +73,7 @@ func TestAgentRegistry_Register_SubAgentLimit(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create parent agent
-	parentAgent := mocks.NewMockAgent(ctrl)
+	parentAgent := shared.NewMockAgent(ctrl)
 	parentID := uuid.New()
 	parentConfig := &shared.AgentConfig{
 		ID:           parentID,
@@ -87,9 +86,9 @@ func TestAgentRegistry_Register_SubAgentLimit(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create subagents
-	subAgent1 := mocks.NewMockAgent(ctrl)
-	subAgent2 := mocks.NewMockAgent(ctrl)
-	subAgent3 := mocks.NewMockAgent(ctrl) // This one should exceed the limit
+	subAgent1 := shared.NewMockAgent(ctrl)
+	subAgent2 := shared.NewMockAgent(ctrl)
+	subAgent3 := shared.NewMockAgent(ctrl) // This one should exceed the limit
 
 	subConfig1 := &shared.AgentConfig{
 		ID:           uuid.New(),
@@ -137,7 +136,7 @@ func TestAgentRegistry_GetSubAgentCount(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create parent agent
-	parentAgent := mocks.NewMockAgent(ctrl)
+	parentAgent := shared.NewMockAgent(ctrl)
 	parentID := uuid.New()
 	parentConfig := &shared.AgentConfig{
 		ID:           parentID,
@@ -146,7 +145,7 @@ func TestAgentRegistry_GetSubAgentCount(t *testing.T) {
 	}
 
 	// Create another parent agent
-	otherParentAgent := mocks.NewMockAgent(ctrl)
+	otherParentAgent := shared.NewMockAgent(ctrl)
 	otherParentID := uuid.New()
 	otherParentConfig := &shared.AgentConfig{
 		ID:           otherParentID,
@@ -167,7 +166,7 @@ func TestAgentRegistry_GetSubAgentCount(t *testing.T) {
 
 	// Create and register some subagents
 	for i := 0; i < 3; i++ {
-		subAgent := mocks.NewMockAgent(ctrl)
+		subAgent := shared.NewMockAgent(ctrl)
 		subConfig := &shared.AgentConfig{
 			ID:           uuid.New(),
 			ParentID:     &parentID,
@@ -183,7 +182,7 @@ func TestAgentRegistry_GetSubAgentCount(t *testing.T) {
 	assert.Equal(t, 0, registry.GetSubAgentCount(otherParentID))
 
 	// Add a subagent to the other parent
-	otherSubAgent := mocks.NewMockAgent(ctrl)
+	otherSubAgent := shared.NewMockAgent(ctrl)
 	otherSubConfig := &shared.AgentConfig{
 		ID:           uuid.New(),
 		ParentID:     &otherParentID,
@@ -216,7 +215,7 @@ func TestAgentRegistry_GetTotalAgentCount(t *testing.T) {
 
 	// Register some agents
 	for i := 0; i < 5; i++ {
-		agent := mocks.NewMockAgent(ctrl)
+		agent := shared.NewMockAgent(ctrl)
 		agentConfig := &shared.AgentConfig{
 			ID:           uuid.New(),
 			SystemPrompt: "Agent",

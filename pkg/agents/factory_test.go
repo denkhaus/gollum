@@ -2,23 +2,25 @@
 package agents
 
 import (
+
 	"context"
 	"fmt"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"testing"
 
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
+
 )
 
 func TestDefaultAgentFactory_ResolveTools_Empty(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 	mockLogger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
 
@@ -40,7 +42,7 @@ func TestDefaultAgentFactory_ResolveTools_BashOnly(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 
 	mockMCPProvider := &mockMCPToolProvider{}
@@ -62,7 +64,7 @@ func TestDefaultAgentFactory_ResolveTools_InvalidBuiltin(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 
 	mockMCPProvider := &mockMCPToolProvider{}
@@ -83,7 +85,7 @@ func TestDefaultAgentFactory_ResolveTools_MCPTool_ValidFormat(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 	mockLogger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
 
@@ -106,7 +108,7 @@ func TestDefaultAgentFactory_ResolveTools_MCPTool_NotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 	// Warn is called with msg + 1 Field (zap.Strings) = 2 args total
 	mockLogger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
@@ -131,7 +133,7 @@ func TestDefaultAgentFactory_ResolveTools_InvalidMCPFormat(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 	// Warn is called with msg + 1 Field (zap.Strings) = 2 args total
 	mockLogger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()

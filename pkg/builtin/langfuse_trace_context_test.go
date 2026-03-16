@@ -1,23 +1,25 @@
 package builtin
 
 import (
+
+	"github.com/denkhaus/gollum/pkg/logger"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+
 )
 
 func TestLangfuseHook_TraceContextOperations(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog := logger.NewMockLoggerService(ctrl)
 	cfg := &config.LangfuseConfig{
 		LangfuseEnabled:   false,
 		LangfusePublicKey: "pk-test",
@@ -137,8 +139,8 @@ func TestRegisterLangfuseHooks(t *testing.T) {
 	t.Run("skips registration when Langfuse disabled", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		mockHM := mocks.NewMockHookManager(ctrl)
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockHM := hooks.NewMockHookManager(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		cfg := &config.LangfuseConfig{
 			LangfuseEnabled: false,
 		}
@@ -160,8 +162,8 @@ func TestRegisterLangfuseHooks(t *testing.T) {
 	t.Run("registers all hooks when Langfuse enabled", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		mockHM := mocks.NewMockHookManager(ctrl)
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockHM := hooks.NewMockHookManager(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		cfg := &config.LangfuseConfig{
 			LangfuseEnabled: true,
 		}
@@ -195,7 +197,7 @@ func TestLangfuseHook_TracingPropagation(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog := logger.NewMockLoggerService(ctrl)
 	cfg := &config.LangfuseConfig{
 		LangfuseEnabled: true,
 	}

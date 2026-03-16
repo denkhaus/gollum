@@ -1,16 +1,18 @@
 package builtin
 
 import (
+
 	"context"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"sync"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+
 )
 
 func TestLangfuseHook_DisabledConfig(t *testing.T) {
@@ -18,7 +20,7 @@ func TestLangfuseHook_DisabledConfig(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 
 		cfg := &config.LangfuseConfig{
 			LangfuseEnabled: false, // Disabled
@@ -57,7 +59,7 @@ func TestLangfuseHook_DisabledConfig(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 		cfg := &config.LangfuseConfig{
@@ -98,7 +100,7 @@ func TestLangfuseHook_DisabledConfig(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 		cfg := &config.LangfuseConfig{
@@ -142,7 +144,7 @@ func TestLangfuseHook_MissingSpanID(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 		cfg := &config.LangfuseConfig{
@@ -185,7 +187,7 @@ func TestLangfuseHook_MissingSpanID(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 		cfg := &config.LangfuseConfig{
@@ -228,7 +230,7 @@ func TestLangfuseHook_MissingSpanID(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 		cfg := &config.LangfuseConfig{
@@ -271,7 +273,7 @@ func TestLangfuseHook_NilContextHandling(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 		cfg := &config.LangfuseConfig{
@@ -313,7 +315,7 @@ func TestLangfuseHook_NilContextHandling(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 
 		cfg := &config.LangfuseConfig{
 			LangfuseEnabled: true,

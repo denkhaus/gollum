@@ -8,7 +8,6 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/events"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/skills"
 	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/samber/do/v2"
@@ -483,9 +482,9 @@ func TestSkill_String(t *testing.T) {
 func setupTestService(t *testing.T) skills.SkillService {
 	ctrl := gomock.NewController(t)
 
-	mockWorkspace := mocks.NewMockService(ctrl)
-	mockBus := mocks.NewMockBus(ctrl)
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockWorkspace := workspace.NewMockService(ctrl)
+	mockBus := events.NewMockBus(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	// Setup default expectations
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()

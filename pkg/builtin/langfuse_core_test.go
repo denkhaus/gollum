@@ -1,17 +1,19 @@
 package builtin
 
 import (
+
 	"context"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"sync"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
 )
 
 func TestNewLangfuseHook(t *testing.T) {
@@ -19,7 +21,7 @@ func TestNewLangfuseHook(t *testing.T) {
 		// Setup mock logger and config
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		mockCfg := &config.LangfuseConfig{
 			LangfuseEnabled: false,
 			LangfuseHost:    "https://cloud.langfuse.com",
@@ -84,7 +86,7 @@ func TestLangfuseHook_GetClient(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			mockLog := mocks.NewMockLoggerService(ctrl)
+			mockLog := logger.NewMockLoggerService(ctrl)
 
 			// Expect Info call for successful init
 			if !tt.wantErr {
@@ -120,7 +122,7 @@ func TestLangfuseHook_Shutdown(t *testing.T) {
 	t.Run("shutdown with nil client", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 
 		// Expect Info calls for shutdown and flush success
 		mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).Times(2)
@@ -141,7 +143,7 @@ func TestLangfuseHook_Shutdown(t *testing.T) {
 	t.Run("shutdown with valid client", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 
 		// Expect Info calls for client init, shutdown, and flush success
 		mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).Times(3)
@@ -176,7 +178,7 @@ func TestNewLangfuseHookProvider(t *testing.T) {
 	t.Run("returns valid TypedHookFunc", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		cfg := &config.LangfuseConfig{
 			LangfuseEnabled: false,
 		}
@@ -213,7 +215,7 @@ func TestNewLangfuseHooksProvider(t *testing.T) {
 	t.Run("creates LangfuseHook successfully", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		mockCfg := &config.LangfuseConfig{
 			LangfuseEnabled: false,
 			LangfuseHost:    "https://cloud.langfuse.com",
@@ -238,7 +240,7 @@ func TestNewLangfuseHooksProvider(t *testing.T) {
 	t.Run("provider returns correct type", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		mockCfg := &config.LangfuseConfig{
 			LangfuseEnabled: true,
 			LangfuseHost:    "https://cloud.langfuse.com",
@@ -269,7 +271,7 @@ func TestNewLangfuseHooksProvider(t *testing.T) {
 	t.Run("handles dependencies correctly", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 
 		// Test with different config states
 		testConfigs := []*config.LangfuseConfig{

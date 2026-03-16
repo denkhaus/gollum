@@ -1,13 +1,14 @@
 package tools
 
 import (
+
 	"context"
 	"errors"
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -16,6 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
 )
 
 // TestBackgroundAgent_SyncExecution tests the complete synchronous execution flow
@@ -30,8 +32,8 @@ func TestBackgroundAgent_SyncExecution(t *testing.T) {
 	agentRegistry := do.MustInvoke[registry.AgentRegistry](injector)
 
 	// Setup mocks
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	mockConfigService := setupMockConfigService(ctrl)
@@ -43,7 +45,7 @@ func TestBackgroundAgent_SyncExecution(t *testing.T) {
 	var spawnedAgentID uuid.UUID
 
 	// Create mock agent - ID will be determined at spawn time
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().DoAndReturn(func() uuid.UUID {
 		return spawnedAgentID
 	}).AnyTimes()
@@ -131,8 +133,8 @@ func TestBackgroundAgent_SyncExecutionError(t *testing.T) {
 	agentRegistry := do.MustInvoke[registry.AgentRegistry](injector)
 
 	// Setup mocks
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	mockConfigService := setupMockConfigService(ctrl)
@@ -144,7 +146,7 @@ func TestBackgroundAgent_SyncExecutionError(t *testing.T) {
 	var spawnedAgentID uuid.UUID
 
 	// Create mock agent - ID will be determined at spawn time
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().DoAndReturn(func() uuid.UUID {
 		return spawnedAgentID
 	}).AnyTimes()

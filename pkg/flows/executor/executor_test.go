@@ -9,7 +9,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/m-mizutani/gollem"
@@ -63,7 +62,7 @@ func setupTestDI(t *testing.T) do.Injector {
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 
 	// Create mock AgentFactory for LLM step testing
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
 
 	// Register the flow executor service
@@ -106,7 +105,7 @@ func setupTestDIWithRegistry(t *testing.T, registry flowregistry.FlowRegistry) d
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 
 	// Create mock AgentFactory for LLM step testing
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
 
 	do.Provide(injector, NewFlowExecutor)
@@ -146,7 +145,7 @@ func setupTestDIWithBashProvider(t *testing.T, provider tools.BashToolProvider) 
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 
 	// Create mock AgentFactory for LLM step testing
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
 
 	do.Provide(injector, NewFlowExecutor)
@@ -186,7 +185,7 @@ func setupTestDIWithBashProviderAndMCPRegistry(t *testing.T, provider tools.Bash
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 
 	// Create mock AgentFactory for LLM step testing
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
 
 	do.Provide(injector, NewFlowExecutor)

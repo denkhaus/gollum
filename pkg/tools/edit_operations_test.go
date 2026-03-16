@@ -25,7 +25,7 @@ func TestEditToolBasicOperation(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -119,7 +119,7 @@ func TestEditToolStringNotFound(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -190,7 +190,7 @@ func TestEditToolMultipleOccurrences(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -263,7 +263,7 @@ func TestEditToolReplaceAll(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 

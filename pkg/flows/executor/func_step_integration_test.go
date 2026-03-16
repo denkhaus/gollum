@@ -12,7 +12,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/denkhaus/gollum/pkg/workspace"
@@ -50,7 +49,7 @@ func Double(x int) int {
 	injector := do.New()
 
 	// Create mock logger
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 	// Allow any logging calls
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -70,7 +69,7 @@ func Double(x int) int {
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
 	// Create mock workspace service that returns our temp dir
-	mockWorkspace := mocks.NewMockService(ctrl)
+	mockWorkspace := workspace.NewMockService(ctrl)
 	mockWorkspace.EXPECT().GetCurrentWorkspace().Return(tempDir).AnyTimes()
 	mockWorkspace.EXPECT().GetWorkspaceHistory().Return([]string{}).AnyTimes()
 	do.ProvideValue[workspace.Service](injector, mockWorkspace)
@@ -90,7 +89,7 @@ func Double(x int) int {
 	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 	// Create mock AgentFactory for tests that don't need LLM functionality
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
 	do.Provide(injector, NewFlowExecutor)
 

@@ -1,18 +1,20 @@
 package tools
 
 import (
+
 	"context"
+	"github.com/denkhaus/gollum/pkg/registry"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
 )
 
 func TestListAgentsTool_Spec(t *testing.T) {
@@ -21,7 +23,7 @@ func TestListAgentsTool_Spec(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	registry := mocks.NewMockAgentRegistry(ctrl)
+	registry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -57,7 +59,7 @@ func TestListAgentsTool_Run_SuccessNoRelatedAgents(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	senderID := uuid.New()
-	registry := mocks.NewMockAgentRegistry(ctrl)
+	registry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	registry.EXPECT().GetChildren(senderID).Return([]shared.Agent{})
@@ -91,13 +93,13 @@ func TestListAgentsTool_Run_SuccessWithSubagentsOnly(t *testing.T) {
 	childID1 := uuid.New()
 	childID2 := uuid.New()
 
-	registry := mocks.NewMockAgentRegistry(ctrl)
+	registry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock child agents
-	child1 := mocks.NewMockAgent(ctrl)
-	child2 := mocks.NewMockAgent(ctrl)
+	child1 := shared.NewMockAgent(ctrl)
+	child2 := shared.NewMockAgent(ctrl)
 
 	child1Config := &shared.AgentConfig{
 		ID:   childID1,
@@ -151,12 +153,12 @@ func TestListAgentsTool_Run_SuccessWithParentOnly(t *testing.T) {
 	senderID := uuid.New()
 	parentID := uuid.New()
 
-	registry := mocks.NewMockAgentRegistry(ctrl)
+	registry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock parent agent
-	parent := mocks.NewMockAgent(ctrl)
+	parent := shared.NewMockAgent(ctrl)
 
 	parentConfig := &shared.AgentConfig{
 		ID:   parentID,
@@ -202,12 +204,12 @@ func TestListAgentsTool_Run_SuccessWithParentAndSubagents(t *testing.T) {
 	childID1 := uuid.New()
 	childID2 := uuid.New()
 
-	registry := mocks.NewMockAgentRegistry(ctrl)
+	registry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock parent agent
-	parent := mocks.NewMockAgent(ctrl)
+	parent := shared.NewMockAgent(ctrl)
 	parentConfig := &shared.AgentConfig{
 		ID:   parentID,
 		Role: "Main Coordinator",
@@ -215,8 +217,8 @@ func TestListAgentsTool_Run_SuccessWithParentAndSubagents(t *testing.T) {
 	parent.EXPECT().GetConfig().Return(parentConfig)
 
 	// Create mock child agents
-	child1 := mocks.NewMockAgent(ctrl)
-	child2 := mocks.NewMockAgent(ctrl)
+	child1 := shared.NewMockAgent(ctrl)
+	child2 := shared.NewMockAgent(ctrl)
 
 	child1Config := &shared.AgentConfig{
 		ID:   childID1,
@@ -272,7 +274,7 @@ func TestListAgentsToolProvider(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	registry := mocks.NewMockAgentRegistry(ctrl)
+	registry := registry.NewMockAgentRegistry(ctrl)
 	senderID := uuid.New()
 
 	provider := &listAgentsToolProvider{
@@ -297,7 +299,7 @@ func TestNewListAgentsToolProvider(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	registry := mocks.NewMockAgentRegistry(ctrl)
+	registry := registry.NewMockAgentRegistry(ctrl)
 
 	// Note: In a real test, you would set up a DI container
 	// and inject the mock registry, then call NewListAgentsToolProvider
@@ -322,13 +324,13 @@ func TestListAgentsTool_Run_RecursiveFlag(t *testing.T) {
 	childID1 := uuid.New()
 	grandchildID := uuid.New()
 
-	registry := mocks.NewMockAgentRegistry(ctrl)
+	registry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock agents
-	child1 := mocks.NewMockAgent(ctrl)
-	grandchild := mocks.NewMockAgent(ctrl)
+	child1 := shared.NewMockAgent(ctrl)
+	grandchild := shared.NewMockAgent(ctrl)
 
 	child1Config := &shared.AgentConfig{
 		ID:   childID1,
@@ -391,13 +393,13 @@ func TestListAgentsTool_Run_TreeFlag(t *testing.T) {
 	childID1 := uuid.New()
 	childID2 := uuid.New()
 
-	registry := mocks.NewMockAgentRegistry(ctrl)
+	registry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock child agents
-	child1 := mocks.NewMockAgent(ctrl)
-	child2 := mocks.NewMockAgent(ctrl)
+	child1 := shared.NewMockAgent(ctrl)
+	child2 := shared.NewMockAgent(ctrl)
 
 	child1Config := &shared.AgentConfig{
 		ID:          childID1,
@@ -449,13 +451,13 @@ func TestListAgentsTool_Run_TreeFlagWithRecursive(t *testing.T) {
 	childID := uuid.New()
 	grandchildID := uuid.New()
 
-	registry := mocks.NewMockAgentRegistry(ctrl)
+	registry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock agents
-	child := mocks.NewMockAgent(ctrl)
-	grandchild := mocks.NewMockAgent(ctrl)
+	child := shared.NewMockAgent(ctrl)
+	grandchild := shared.NewMockAgent(ctrl)
 
 	childConfig := &shared.AgentConfig{
 		ID:   childID,

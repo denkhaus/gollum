@@ -1,18 +1,20 @@
 package builtin
 
 import (
+
 	"context"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"sync"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/git-hulk/langfuse-go/pkg/traces"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
 )
 
 func TestLangfuseHook_AgentSpanLifecycle_Integration(t *testing.T) {
@@ -36,7 +38,7 @@ func TestLangfuseHook_AgentSpanLifecycle_Integration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			mockLog := mocks.NewMockLoggerService(ctrl)
+			mockLog := logger.NewMockLoggerService(ctrl)
 			cfg := &config.LangfuseConfig{
 				LangfuseEnabled:   true,
 				LangfuseHost:      "https://cloud.langfuse.com",
@@ -133,7 +135,7 @@ func TestLangfuseHook_SessionTraceLifecycle(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			mockLog := mocks.NewMockLoggerService(ctrl)
+			mockLog := logger.NewMockLoggerService(ctrl)
 			cfg := &config.LangfuseConfig{
 				LangfuseEnabled:   tt.langfuseEnabled,
 				LangfuseHost:      "https://cloud.langfuse.com",
@@ -199,7 +201,7 @@ func TestLangfuseHook_SessionTraceFlush(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog := logger.NewMockLoggerService(ctrl)
 	cfg := &config.LangfuseConfig{
 		LangfuseEnabled:   true,
 		LangfuseHost:      "https://cloud.langfuse.com",
@@ -247,7 +249,7 @@ func TestLangfuseHook_PropagateTracing(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog := logger.NewMockLoggerService(ctrl)
 	cfg := &config.LangfuseConfig{
 		LangfuseEnabled: true,
 	}
@@ -283,7 +285,7 @@ func TestLangfuseHook_FullTraceLifecycle(t *testing.T) {
 
 	sessionID := uuid.New()
 
-	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog := logger.NewMockLoggerService(ctrl)
 	mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
 	mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockLog.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()

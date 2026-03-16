@@ -4,9 +4,11 @@ import (
 	"context"
 	"testing"
 
+	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
+
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -27,9 +29,9 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	agentRegistry := do.MustInvoke[registry.AgentRegistry](injector)
 
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
-	mockConfigService := mocks.NewMockConfigService(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
+	mockConfigService := config.NewMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	execHelper := do.MustInvoke[AgentExecutionHelper](injector)
 
@@ -40,7 +42,7 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 	var spawnedAgentID uuid.UUID
 
 	// Create mock agent - ID will be determined at spawn time
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().DoAndReturn(func() uuid.UUID {
 		return spawnedAgentID
 	}).AnyTimes()

@@ -1,23 +1,25 @@
 package mcp
 
 import (
+
 	"context"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"testing"
 
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
+
 )
 
 func TestMCPToolProvider_CreateTool_ValidFormat(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 
 	// Create a mock tool set with a tool spec
@@ -46,7 +48,7 @@ func TestMCPToolProvider_CreateTool_InvalidFormat_NoSlash(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 
 	provider := &mcpToolProviderImpl{
@@ -65,7 +67,7 @@ func TestMCPToolProvider_CreateTool_ToolNotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 
 	provider := &mcpToolProviderImpl{
@@ -84,7 +86,7 @@ func TestMCPToolProvider_CreateTool_MultipleToolSets(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 
 	// Create multiple tool sets

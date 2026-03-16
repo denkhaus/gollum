@@ -2,8 +2,10 @@
 package agents
 
 import (
+
 	"context"
 	"errors"
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/mocks"
@@ -14,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
 )
 
 func TestDefaultAgent_GetMessageHistory(t *testing.T) {
@@ -258,7 +261,7 @@ func TestBuildOptionsWithHistory_BaseOptions(t *testing.T) {
 	agentID := uuid.New()
 
 	mockLLMClient := mocks.NewMockLLMClient(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 
 	t.Run("with nil history and silent mode", func(t *testing.T) {
 		mockPromptMgr.EXPECT().GetPromptByID(gomock.Any(), gomock.Any()).Return(&prompt.Prompt{Content: "compacter prompt"}, nil).AnyTimes()

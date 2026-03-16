@@ -2,6 +2,8 @@
 package optimizer_test
 
 import (
+
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/mocks"
@@ -11,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
 )
 
 // TestNewOptimizer_ValidConfig tests creating optimizers with valid config.
@@ -19,7 +22,7 @@ func TestNewOptimizer_ValidConfig(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockClient := mocks.NewMockLLMClient(ctrl)
-	mockPM := mocks.NewMockPromptManager(ctrl)
+	mockPM := manager.NewMockPromptManager(ctrl)
 
 	tests := []struct {
 		name     string
@@ -50,7 +53,7 @@ func TestNewOptimizer_NilConfig(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockClient := mocks.NewMockLLMClient(ctrl)
-	mockPM := mocks.NewMockPromptManager(ctrl)
+	mockPM := manager.NewMockPromptManager(ctrl)
 
 	opt, err := optimizer.NewOptimizer(mockClient, mockPM, nil)
 	assert.Error(t, err)
@@ -63,7 +66,7 @@ func TestNewOptimizer_NilClient(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockPM := mocks.NewMockPromptManager(ctrl)
+	mockPM := manager.NewMockPromptManager(ctrl)
 	config := &optimizer.OptimizerConfig{
 		Kind: shared.StrategyGradient,
 	}
@@ -96,7 +99,7 @@ func TestNewOptimizer_InvalidReflectionBounds(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockClient := mocks.NewMockLLMClient(ctrl)
-	mockPM := mocks.NewMockPromptManager(ctrl)
+	mockPM := manager.NewMockPromptManager(ctrl)
 	config := &optimizer.OptimizerConfig{
 		Kind:               shared.StrategyGradient,
 		MinReflectionSteps: 5,
@@ -115,7 +118,7 @@ func TestNewOptimizer_DefaultReflectionBounds(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockClient := mocks.NewMockLLMClient(ctrl)
-	mockPM := mocks.NewMockPromptManager(ctrl)
+	mockPM := manager.NewMockPromptManager(ctrl)
 
 	config := &optimizer.OptimizerConfig{
 		Kind: shared.StrategyGradient,
@@ -134,7 +137,7 @@ func TestNewOptimizer_UnknownStrategy(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockClient := mocks.NewMockLLMClient(ctrl)
-	mockPM := mocks.NewMockPromptManager(ctrl)
+	mockPM := manager.NewMockPromptManager(ctrl)
 	config := &optimizer.OptimizerConfig{
 		Kind: shared.OptimizerStrategy("unknown"),
 	}

@@ -2,7 +2,14 @@
 package app
 
 import (
+
 	"context"
+	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
+	"github.com/denkhaus/gollum/pkg/registry"
+	"github.com/denkhaus/gollum/pkg/skills"
+	"github.com/denkhaus/gollum/pkg/state"
+	"github.com/denkhaus/gollum/pkg/workspace"
 	"os"
 	"path/filepath"
 	"testing"
@@ -16,6 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
 )
 
 // TestAgentExecutorAdapter_Execute verifies that the adapter correctly
@@ -26,7 +34,7 @@ func TestAgentExecutorAdapter_Execute(t *testing.T) {
 
 	ctx := context.Background()
 
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ ...gollem.Input) (*gollem.ExecuteResponse, error) {
 		return &gollem.ExecuteResponse{Texts: []string{"response"}}, nil
 	}).Times(1)
@@ -60,7 +68,7 @@ func TestAgentExecutorAdapter_MultipleExecutions(t *testing.T) {
 	ctx := context.Background()
 
 	executionCount := 0
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ ...gollem.Input) (*gollem.ExecuteResponse, error) {
 		executionCount++
 		return &gollem.ExecuteResponse{Texts: []string{"response"}}, nil
@@ -94,7 +102,7 @@ func TestAgentExecutorAdapter_PropagatesAgentError(t *testing.T) {
 	ctx := context.Background()
 	expectedErr := assert.AnError
 
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).Return(nil, expectedErr).Times(1)
 
 	adapter := &agentExecutorAdapter{agent: mockAgent}
@@ -113,7 +121,7 @@ func TestEnsureGollumDirectory_CreatesDirectory(t *testing.T) {
 	// Create temp directory for testing
 	tempDir := t.TempDir()
 
-	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService := workspace.NewMockService(ctrl)
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return(tempDir).Times(1)
 
 	p := &applicationServiceImpl{
@@ -136,7 +144,7 @@ func TestEnsureGollumDirectory_CreatesGitignore(t *testing.T) {
 
 	tempDir := t.TempDir()
 
-	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService := workspace.NewMockService(ctrl)
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return(tempDir).Times(1)
 
 	p := &applicationServiceImpl{
@@ -159,7 +167,7 @@ func TestEnsureGollumDirectory_DoesNotOverwriteGitignore(t *testing.T) {
 
 	tempDir := t.TempDir()
 
-	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService := workspace.NewMockService(ctrl)
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return(tempDir).Times(2) // Called twice by ensureGollumDirectory
 
 	p := &applicationServiceImpl{
@@ -192,7 +200,7 @@ func TestEnsureGollumDirectory_MkdirAllError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService := workspace.NewMockService(ctrl)
 	// Use an invalid path that will fail
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/dev/null/invalid/path/that/cannot/be/created").Times(1)
 
@@ -211,10 +219,10 @@ func TestPrimeFileStateManager_Success(t *testing.T) {
 
 	ctx := context.Background()
 
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockFSM.EXPECT().Prime(ctx).Return(nil).Times(1)
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().Infof("Priming FileStateManager - scanning working directory...").Times(1)
 	mockLogger.EXPECT().Infof("FileStateManager primed successfully").Times(1)
 
@@ -235,10 +243,10 @@ func TestPrimeFileStateManager_PrimeError(t *testing.T) {
 	ctx := context.Background()
 	expectedErr := assert.AnError
 
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockFSM.EXPECT().Prime(ctx).Return(expectedErr).Times(1)
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().Infof("Priming FileStateManager - scanning working directory...").Times(1)
 
 	p := &applicationServiceImpl{
@@ -283,29 +291,29 @@ func TestCreateSupervisorAgent_ToolSetSuccess(t *testing.T) {
 
 	ctx := context.Background()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().Warn("no mcp servers configured for supervision agent").Times(1)
 	mockLogger.EXPECT().Infof("Supervisor agent %s registered", gomock.Any()).Times(1)
 
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).Return(nil)
 
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockPromptMgr.EXPECT().GetPromptWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("system prompt", nil)
 
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	mockAgent.EXPECT().GetID().Return(testUUID).AnyTimes()
 
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	mockAgentFactory.EXPECT().CreateAgent(gomock.Any(), gomock.Any()).Return(mockAgent, nil)
 
-	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService := workspace.NewMockService(ctrl)
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/workspace")
 
-	mockSkillsService := mocks.NewMockSkillService(ctrl)
+	mockSkillsService := skills.NewMockSkillService(ctrl)
 	mockSkillsService.EXPECT().GetSkillsXML().Return("<skills/>")
 	mockSkillsService.EXPECT().GetSkillInfos().Return([]shared.SkillInfo{})
 
@@ -338,18 +346,18 @@ func TestCreateSupervisorAgent_PromptError(t *testing.T) {
 
 	ctx := context.Background()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockPromptMgr.EXPECT().GetPromptWithContext(ctx, prompt.PromptIDSupervisorSystem, gomock.Any()).
 		Return("", assert.AnError).Times(1)
 
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
-	mockWorkspaceService := mocks.NewMockService(ctrl)
-	mockSkillsService := mocks.NewMockSkillService(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
+	mockWorkspaceService := workspace.NewMockService(ctrl)
+	mockSkillsService := skills.NewMockSkillService(ctrl)
 	mockSkillsService.EXPECT().GetSkillsXML().Return("<skills></skills>").Times(1)
 	mockSkillsService.EXPECT().GetSkillInfos().Return([]shared.SkillInfo{}).Times(1)
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/test/workspace").Times(1)
@@ -380,23 +388,23 @@ func TestCreateSupervisorAgent_AgentFactoryError(t *testing.T) {
 
 	ctx := context.Background()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().Warn("no mcp servers configured for supervision agent").Times(1)
 
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockPromptMgr.EXPECT().GetPromptWithContext(ctx, prompt.PromptIDSupervisorSystem, gomock.Any()).
 		Return("test prompt", nil).Times(1)
 
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	mockAgentFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Return(nil, assert.AnError).Times(1)
 
-	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService := workspace.NewMockService(ctrl)
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/test/workspace").Times(1)
 
-	mockSkillsService := mocks.NewMockSkillService(ctrl)
+	mockSkillsService := skills.NewMockSkillService(ctrl)
 	mockSkillsService.EXPECT().GetSkillsXML().Return("<skills></skills>").Times(1)
 	mockSkillsService.EXPECT().GetSkillInfos().Return([]shared.SkillInfo{}).Times(1)
 
@@ -427,30 +435,30 @@ func TestCreateSupervisorAgent_RegistryError(t *testing.T) {
 	ctx := context.Background()
 	agentID := uuid.New()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().Warn("no mcp servers configured for supervision agent").Times(1)
 
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).Return(assert.AnError).Times(1)
 
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockPromptMgr.EXPECT().GetPromptWithContext(ctx, prompt.PromptIDSupervisorSystem, gomock.Any()).
 		Return("test prompt", nil).Times(1)
 
 	mockSession := mocks.NewMockSession(ctrl)
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
 	mockAgent.EXPECT().Session().Return(mockSession).AnyTimes()
 
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	mockAgentFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Return(mockAgent, nil).Times(1)
 
-	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService := workspace.NewMockService(ctrl)
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/test/workspace").Times(1)
 
-	mockSkillsService := mocks.NewMockSkillService(ctrl)
+	mockSkillsService := skills.NewMockSkillService(ctrl)
 	mockSkillsService.EXPECT().GetSkillsXML().Return("<skills></skills>").Times(1)
 	mockSkillsService.EXPECT().GetSkillInfos().Return([]shared.SkillInfo{}).Times(1)
 
@@ -516,7 +524,7 @@ func TestResolveDefaultFlowPath_WorkspaceDefaultFound(t *testing.T) {
 	err = os.WriteFile(flowPath, []byte(flowContent), 0644)
 	require.NoError(t, err)
 
-	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService := workspace.NewMockService(ctrl)
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return(tempDir).Times(1)
 
 	p := &applicationServiceImpl{
@@ -536,7 +544,7 @@ func TestResolveDefaultFlowPath_NoDefaultFlow(t *testing.T) {
 	// Create temp directory without default flow
 	tempDir := t.TempDir()
 
-	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService := workspace.NewMockService(ctrl)
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return(tempDir).Times(1)
 
 	p := &applicationServiceImpl{
@@ -589,7 +597,7 @@ func TestRun_DefaultFlowSuccess(t *testing.T) {
 	mockExecutor.EXPECT().Validate().Return(nil).Times(1)
 	mockExecutor.EXPECT().Run().Return(nil).Times(1)
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().Infof("Default flow found at: %s", flowPath).Times(1)
 	mockLogger.EXPECT().Infof("Running default flow: %s", flowPath).Times(1)
 	mockLogger.EXPECT().Infof("Default flow completed successfully").Times(1)
@@ -597,7 +605,7 @@ func TestRun_DefaultFlowSuccess(t *testing.T) {
 	mockFlowExecutorService := mocks.NewMockFlowExecutorService(ctrl)
 	mockFlowExecutorService.EXPECT().New(gomock.Any()).Return(mockExecutor).Times(1)
 
-	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService := workspace.NewMockService(ctrl)
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return(tempDir).Times(1)
 
 	p := &applicationServiceImpl{
@@ -620,30 +628,30 @@ func TestRun_NoDefaultFlowRunsTUI(t *testing.T) {
 	// Create temp directory without default flow
 	tempDir := t.TempDir()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().EnableFileLogging(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mockLogger.EXPECT().CloseFileLogging().Return(nil).Times(1)
 
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockFSM.EXPECT().Prime(ctx).Return(nil).Times(1)
 
-	mockAgentRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockAgentRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockAgentRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockPromptMgr.EXPECT().GetPromptWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("prompt", nil).Times(1)
 
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	mockAgent.EXPECT().GetID().Return(testUUID).AnyTimes()
 
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	mockAgentFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Return(mockAgent, nil).Times(1)
 
-	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService := workspace.NewMockService(ctrl)
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return(tempDir).AnyTimes()
 
-	mockSkillsService := mocks.NewMockSkillService(ctrl)
+	mockSkillsService := skills.NewMockSkillService(ctrl)
 	mockSkillsService.EXPECT().GetSkillsXML().Return("<skills/>").AnyTimes()
 	mockSkillsService.EXPECT().GetSkillInfos().Return([]shared.SkillInfo{}).AnyTimes()
 
@@ -692,10 +700,10 @@ func TestRunDefaultFlow_ParseError(t *testing.T) {
 	err = os.WriteFile(invalidFlowPath, []byte("invalid xml"), 0644)
 	require.NoError(t, err)
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().Infof("Running default flow: %s", invalidFlowPath).Times(1)
 
-	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService := workspace.NewMockService(ctrl)
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return(tempDir).Times(1)
 
 	p := &applicationServiceImpl{
@@ -748,7 +756,7 @@ func TestRunDefaultFlow_ValidationError(t *testing.T) {
 	mockExecutor.EXPECT().SetInput(gomock.Any()).Times(1)
 	mockExecutor.EXPECT().Validate().Return(assert.AnError).Times(1)
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().Infof("Running default flow: %s", flowPath).Times(1)
 
 	mockFlowExecutorService := mocks.NewMockFlowExecutorService(ctrl)
@@ -805,7 +813,7 @@ func TestRunDefaultFlow_RunError(t *testing.T) {
 	mockExecutor.EXPECT().Validate().Return(nil).Times(1)
 	mockExecutor.EXPECT().Run().Return(assert.AnError).Times(1)
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().Infof("Running default flow: %s", flowPath).Times(1)
 
 	mockFlowExecutorService := mocks.NewMockFlowExecutorService(ctrl)
@@ -862,7 +870,7 @@ func TestRunDefaultFlow_Success(t *testing.T) {
 	mockExecutor.EXPECT().Validate().Return(nil).Times(1)
 	mockExecutor.EXPECT().Run().Return(nil).Times(1)
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().Infof("Running default flow: %s", flowPath).Times(1)
 	mockLogger.EXPECT().Infof("Default flow completed successfully").Times(1)
 

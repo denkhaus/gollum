@@ -1,13 +1,15 @@
 package config
 
 import (
+
+	"github.com/denkhaus/gollum/pkg/logger"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"go.uber.org/mock/gomock"
+
 )
 
 func TestInterpolateValue_EnvVars(t *testing.T) {
@@ -62,7 +64,7 @@ func TestInterpolateValue_EnvVars(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			mockLog := mocks.NewMockLoggerService(ctrl)
+			mockLog := logger.NewMockLoggerService(ctrl)
 			result := interpolateValueWithTimeout(tt.input, 5*time.Second, mockLog)
 			if result != tt.expected {
 				t.Errorf("interpolateValueWithTimeout(%q) = %q, want %q", tt.input, result, tt.expected)
@@ -107,7 +109,7 @@ func TestInterpolateValue_ShellCommands(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			mockLog := mocks.NewMockLoggerService(ctrl)
+			mockLog := logger.NewMockLoggerService(ctrl)
 			result := interpolateValueWithTimeout(tt.input, 5*time.Second, mockLog)
 			if result != tt.contains && !strings.Contains(result, tt.contains) {
 				t.Errorf("interpolateValueWithTimeout(%q) = %q, want to contain %q", tt.input, result, tt.contains)
@@ -121,7 +123,7 @@ func TestInterpolateValue_Combined(t *testing.T) {
 	defer func() { _ = os.Unsetenv("PREFIX") }()
 
 	ctrl := gomock.NewController(t)
-	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog := logger.NewMockLoggerService(ctrl)
 	result := interpolateValueWithTimeout("$PREFIX-$(echo hello)", 5*time.Second, mockLog)
 	expected := "pre-hello"
 	if result != expected {
@@ -144,7 +146,7 @@ func TestInterpolateEnvMap(t *testing.T) {
 	}
 
 	ctrl := gomock.NewController(t)
-	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog := logger.NewMockLoggerService(ctrl)
 	result := interpolateEnvMapWithTimeout(input, 5*time.Second, mockLog)
 
 	expected := map[string]string{
@@ -181,7 +183,7 @@ func TestInterpolateConfig(t *testing.T) {
 	}
 
 	ctrl := gomock.NewController(t)
-	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog := logger.NewMockLoggerService(ctrl)
 	result := interpolateConfigWithTimeout(cfg, 5*time.Second, mockLog)
 
 	if result.Env["KEY"] != "secret-key" {
@@ -289,7 +291,7 @@ func TestInterpolateValue_Timeout(t *testing.T) {
 	// instead of blocking indefinitely or crashing
 	input := "$(sleep 10)"
 	ctrl := gomock.NewController(t)
-	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog := logger.NewMockLoggerService(ctrl)
 	// Expect a warning call for the timeout
 	mockLog.EXPECT().Warn("shell command interpolation failed",
 		gomock.Any(), // command field

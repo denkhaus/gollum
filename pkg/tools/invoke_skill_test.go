@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/skills"
 	"github.com/google/uuid"
@@ -71,7 +73,7 @@ func TestInvokeSkillTool_MissingRequiredParameters(t *testing.T) {
 			defer ctrl.Finish()
 
 			senderID := uuid.New()
-			mockLogger := mocks.NewMockLoggerService(ctrl)
+			mockLogger := logger.NewMockLoggerService(ctrl)
 			mockHookManager := hooks.NewMockHookManager(ctrl)
 
 			// Allow any logger calls
@@ -102,9 +104,9 @@ func TestInvokeSkillTool_SkillNotFound(t *testing.T) {
 	defer ctrl.Finish()
 
 	senderID := uuid.New()
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
-	mockSkillService := mocks.NewMockSkillService(ctrl)
+	mockSkillService := skills.NewMockSkillService(ctrl)
 
 	// Set up hook manager to pass through
 	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -138,9 +140,9 @@ func TestInvokeSkillTool_InvalidContextMode(t *testing.T) {
 	defer ctrl.Finish()
 
 	senderID := uuid.New()
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
-	mockSkillService := mocks.NewMockSkillService(ctrl)
+	mockSkillService := skills.NewMockSkillService(ctrl)
 
 	// Set up hook manager to pass through
 	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -180,10 +182,10 @@ func TestInvokeSkillTool_InvalidModel(t *testing.T) {
 	defer ctrl.Finish()
 
 	senderID := uuid.New()
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
-	mockSkillService := mocks.NewMockSkillService(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockSkillService := skills.NewMockSkillService(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 
 	// Set up hook manager to pass through
 	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -225,10 +227,10 @@ func TestInvokeSkillTool_SkillWithNoContent(t *testing.T) {
 	defer ctrl.Finish()
 
 	senderID := uuid.New()
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
-	mockSkillService := mocks.NewMockSkillService(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockSkillService := skills.NewMockSkillService(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 
 	// Set up hook manager to pass through
 	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -332,12 +334,12 @@ func TestInvokeSkillTool_TriggersSkillHooks(t *testing.T) {
 	defer ctrl.Finish()
 
 	senderID := uuid.New()
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
-	mockSkillService := mocks.NewMockSkillService(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockSkillService := skills.NewMockSkillService(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockExecutionHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 
 	skill := &skills.Skill{

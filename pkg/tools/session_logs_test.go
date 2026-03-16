@@ -9,7 +9,6 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -22,7 +21,7 @@ func TestSessionLogsTool_Run_TailMode(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	agentID := uuid.New()
@@ -69,7 +68,7 @@ func TestSessionLogsTool_Run_HeadMode(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	agentID := uuid.New()
@@ -105,7 +104,7 @@ func TestSessionLogsTool_Run_SinceMode(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	agentID := uuid.New()
@@ -140,7 +139,7 @@ func TestSessionLogsTool_Run_AllMode(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	agentID := uuid.New()
@@ -170,7 +169,7 @@ func TestSessionLogsTool_Run_FilterByLevel(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	agentID := uuid.New()
@@ -205,7 +204,7 @@ func TestSessionLogsTool_Run_FilterByAgentID(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	agent1 := uuid.New()
@@ -240,7 +239,7 @@ func TestSessionLogsTool_Run_InvalidMode(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -262,7 +261,7 @@ func TestSessionLogsTool_Run_SinceModeWithoutSince(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -284,7 +283,7 @@ func TestSessionLogsTool_Run_InvalidDateTime(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -307,7 +306,7 @@ func TestSessionLogsTool_Run_InvalidAgentID(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -330,7 +329,7 @@ func TestSessionLogsTool_Run_EmptyLogBuffer(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -357,7 +356,7 @@ func TestSessionLogsTool_Run_CountLimit(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	agentID := uuid.New()
@@ -394,7 +393,7 @@ func TestSessionLogsTool_Spec(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -446,7 +445,7 @@ func TestSessionLogsTool_CaseInsensitiveLevelFilter(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	agentID := uuid.New()
@@ -476,7 +475,7 @@ func TestSessionLogsTool_Provider(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(nil) // nil ctrl since no expectations
 
 	provider := &sessionLogsToolProvider{
@@ -499,7 +498,7 @@ func TestNewSessionLogsToolProvider(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(nil) // nil ctrl since no expectations
 
 	provider := &sessionLogsToolProvider{
@@ -518,7 +517,7 @@ func TestSessionLogsTool_WithFields(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	agentID := uuid.New()
@@ -560,7 +559,7 @@ func TestSessionLogsTool_InvalidCount(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -583,7 +582,7 @@ func TestSessionLogsTool_ZeroCount(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -606,7 +605,7 @@ func TestSessionLogsTool_NilAgentID(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLoggerService := mocks.NewMockLoggerService(ctrl)
+	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	now := time.Now()

@@ -10,7 +10,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/events"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
@@ -28,7 +27,7 @@ func TestChangeDirectoryTool_Run_ValidDirectory(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Only need eventBus - services react via events
-	mockEventBus := mocks.NewMockBus(ctrl)
+	mockEventBus := events.NewMockBus(ctrl)
 
 	// Save original directory and restore after test
 	originalDir, err := os.Getwd()
@@ -191,7 +190,7 @@ func TestChangeDirectoryTool_Run_RelativePath(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Only need eventBus
-	mockEventBus := mocks.NewMockBus(ctrl)
+	mockEventBus := events.NewMockBus(ctrl)
 
 	// Save original directory and restore after test
 	originalDir, err := os.Getwd()
@@ -272,7 +271,7 @@ func TestChangeDirectoryToolProvider_CreateTool(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockHookManager := hooks.NewMockHookManager(nil)
-	mockEventBus := mocks.NewMockBus(nil)
+	mockEventBus := events.NewMockBus(nil)
 
 	provider := &changeDirectoryToolProvider{
 		logService:  logService,
@@ -317,7 +316,7 @@ func TestNewChangeDirectoryToolProvider(t *testing.T) {
 	do.Provide(injector, hooks.NewHookManager)
 
 	// Use mock for EventBus
-	mockEventBus := mocks.NewMockBus(ctrl)
+	mockEventBus := events.NewMockBus(ctrl)
 	do.ProvideValue[events.Bus](injector, mockEventBus)
 
 	provider, err := NewChangeDirectoryToolProvider(injector)

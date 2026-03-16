@@ -4,7 +4,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/events"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/skills"
@@ -16,7 +15,7 @@ import (
 // setupTestInjectorWithLimits creates an injector with all required services for testing
 func setupTestInjectorWithLimits(ctrl *gomock.Controller, limits *config.AgentLimitsConfig) do.Injector {
 	// Create a mock config service
-	mockConfigService := mocks.NewMockConfigService(ctrl)
+	mockConfigService := config.NewMockConfigService(ctrl)
 	mockConfigService.EXPECT().GetAgentLimits().Return(limits).AnyTimes()
 	mockConfigService.EXPECT().IsDevMode().Return(false).AnyTimes()
 	mockConfigService.EXPECT().GetLogLevel().Return("info").AnyTimes()
@@ -31,7 +30,7 @@ func setupTestInjectorWithLimits(ctrl *gomock.Controller, limits *config.AgentLi
 	}).AnyTimes()
 
 	// Create a mock event bus
-	mockEventBus := mocks.NewMockBus(ctrl)
+	mockEventBus := events.NewMockBus(ctrl)
 	mockEventBus.EXPECT().Subscribe(
 		events.EventSkillsUpdated.String(),
 		gomock.Any(),
@@ -44,14 +43,14 @@ func setupTestInjectorWithLimits(ctrl *gomock.Controller, limits *config.AgentLi
 	).Return("test-subscription-id-2", nil).AnyTimes()
 
 	// Create a mock prompt manager
-	mockPromptManager := mocks.NewMockPromptManager(ctrl)
+	mockPromptManager := manager.NewMockPromptManager(ctrl)
 
 	// Create a mock workspace service
-	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService := workspace.NewMockService(ctrl)
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/test/workspace").AnyTimes()
 
 	// Create a mock skill service
-	mockSkillService := mocks.NewMockSkillService(ctrl)
+	mockSkillService := skills.NewMockSkillService(ctrl)
 	mockSkillService.EXPECT().GetSkillsXML().Return("").AnyTimes()
 	mockSkillService.EXPECT().GetSkillInfos().Return([]shared.SkillInfo{}).AnyTimes()
 

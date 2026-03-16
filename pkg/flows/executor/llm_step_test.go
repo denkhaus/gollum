@@ -10,7 +10,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/google/uuid"
@@ -68,14 +67,14 @@ func TestExecuteLLMStep_SubstitutesPrompt(t *testing.T) {
 	defer ctrl.Finish()
 
 	// Create mock agent
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 
 	// Mock the Execute method to return a successful response
 	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).
 		Return(&gollem.ExecuteResponse{Texts: []string{"Test response for PR 123"}}, nil)
 
 	// Create mock agent factory
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	mockAgentFactory.EXPECT().CreateAgent(gomock.Any(), gomock.Any()).
 		Return(mockAgent, nil)
 
@@ -83,7 +82,7 @@ func TestExecuteLLMStep_SubstitutesPrompt(t *testing.T) {
 	injector := do.New()
 
 	// Create and configure mock logger with all expected Debug calls
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 	// Allow any Debug calls
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -148,7 +147,7 @@ func TestExecuteLLMStep_CreateAgentFails(t *testing.T) {
 	defer ctrl.Finish()
 
 	// Create mock agent factory that returns error
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	mockAgentFactory.EXPECT().CreateAgent(gomock.Any(), gomock.Any()).
 		Return(nil, assert.AnError)
 
@@ -156,7 +155,7 @@ func TestExecuteLLMStep_CreateAgentFails(t *testing.T) {
 	injector := do.New()
 
 	// Create and configure mock logger with all expected Debug calls
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 	// Allow any Debug calls
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -207,10 +206,10 @@ func TestExecuteLLMStep_ExecuteFails(t *testing.T) {
 	defer ctrl.Finish()
 
 	// Create mock agent
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 
 	// Create mock agent factory
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 
 	// Set up expectations - CreateAgent succeeds but Execute fails
 	mockAgentFactory.EXPECT().CreateAgent(gomock.Any(), gomock.Any()).
@@ -223,7 +222,7 @@ func TestExecuteLLMStep_ExecuteFails(t *testing.T) {
 	injector := do.New()
 
 	// Create and configure mock logger with all expected Debug calls
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 	// Allow any Debug calls
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -358,13 +357,13 @@ func TestExecuteLLMStep_PopulatesAllowedTools(t *testing.T) {
 	defer ctrl.Finish()
 
 	// Create mock agent
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).
 		Return(&gollem.ExecuteResponse{Texts: []string{"response"}}, nil)
 
 	// Create mock agent factory that captures the config
 	var capturedConfig *shared.AgentConfig
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	mockAgentFactory.EXPECT().CreateAgent(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, config *shared.AgentConfig) (shared.Agent, error) {
 			capturedConfig = config
@@ -374,7 +373,7 @@ func TestExecuteLLMStep_PopulatesAllowedTools(t *testing.T) {
 	// Create custom injector
 	injector := do.New()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -463,14 +462,14 @@ func TestExecuteLLMStep_SeparatesFlowTools(t *testing.T) {
 	defer ctrl.Finish()
 
 	// Create mock agent
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(uuid.New()).AnyTimes()
 	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).
 		Return(&gollem.ExecuteResponse{Texts: []string{"response"}}, nil)
 
 	// Create mock agent factory that captures the config
 	var capturedConfig *shared.AgentConfig
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	mockAgentFactory.EXPECT().CreateAgent(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, config *shared.AgentConfig) (shared.Agent, error) {
 			capturedConfig = config
@@ -480,7 +479,7 @@ func TestExecuteLLMStep_SeparatesFlowTools(t *testing.T) {
 	// Create custom injector
 	injector := do.New()
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()

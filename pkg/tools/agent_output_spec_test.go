@@ -4,8 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/denkhaus/gollum/pkg/registry"
+
 	"github.com/denkhaus/gollum/pkg/hooks"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
@@ -18,7 +19,7 @@ func TestAgentOutputTool_Spec(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -53,7 +54,7 @@ func TestAgentOutputTool_Run_MissingAgentID(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -75,7 +76,7 @@ func TestAgentOutputTool_Run_EmptyAgentID(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -98,7 +99,7 @@ func TestAgentOutputTool_Run_InvalidUUID(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -121,7 +122,7 @@ func TestAgentOutputTool_Run_AgentNotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 

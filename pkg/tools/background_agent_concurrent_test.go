@@ -5,9 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
+
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -30,8 +32,8 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 	agentRegistry := do.MustInvoke[registry.AgentRegistry](injector)
 
 	// Setup mocks
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	mockConfigService := setupMockConfigService(ctrl)
@@ -65,7 +67,7 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 		spawnedIndex := i
 		var spawnedID uuid.UUID
 
-		mockAgent := mocks.NewMockAgent(ctrl)
+		mockAgent := shared.NewMockAgent(ctrl)
 		mockAgent.EXPECT().GetID().DoAndReturn(func() uuid.UUID {
 			return spawnedID
 		}).AnyTimes()
@@ -153,9 +155,9 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	agentRegistry := do.MustInvoke[registry.AgentRegistry](injector)
 
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
-	mockConfigService := mocks.NewMockConfigService(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
+	mockConfigService := config.NewMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	execHelper := do.MustInvoke[AgentExecutionHelper](injector)
 
@@ -167,7 +169,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	var grandchildID uuid.UUID
 
 	// Create mock agents for each level
-	rootAgent := mocks.NewMockAgent(ctrl)
+	rootAgent := shared.NewMockAgent(ctrl)
 	rootAgent.EXPECT().GetID().Return(rootID).AnyTimes()
 	rootAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID: rootID,
@@ -177,7 +179,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 		Role: "Root",
 	}).AnyTimes()
 
-	childAgent := mocks.NewMockAgent(ctrl)
+	childAgent := shared.NewMockAgent(ctrl)
 	childAgent.EXPECT().GetID().DoAndReturn(func() uuid.UUID {
 		return childID
 	}).AnyTimes()
@@ -188,7 +190,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 		Role: "Child",
 	}).AnyTimes()
 
-	grandchildAgent := mocks.NewMockAgent(ctrl)
+	grandchildAgent := shared.NewMockAgent(ctrl)
 	grandchildAgent.EXPECT().GetID().DoAndReturn(func() uuid.UUID {
 		return grandchildID
 	}).AnyTimes()

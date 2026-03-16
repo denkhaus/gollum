@@ -32,22 +32,22 @@ func setupTestInjector() do.Injector {
 	do.Provide(injector, logger.NewService)
 
 	// Register mock event bus (required by registry)
-	mockEventBus := mocks.NewMockBus(ctrl)
+	mockEventBus := events.NewMockBus(ctrl)
 	mockEventBus.EXPECT().Subscribe(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return("test-subscription-id", nil).AnyTimes()
 	do.ProvideValue[events.Bus](injector, mockEventBus)
 
 	// Register mock prompt manager (required by registry)
-	mockPromptManager := mocks.NewMockPromptManager(ctrl)
+	mockPromptManager := manager.NewMockPromptManager(ctrl)
 	do.ProvideValue[manager.PromptManager](injector, mockPromptManager)
 
 	// Register mock workspace service (required by registry)
-	mockWorkspaceService := mocks.NewMockService(ctrl)
+	mockWorkspaceService := workspace.NewMockService(ctrl)
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return("/test/workspace").AnyTimes()
 	do.ProvideValue[workspace.Service](injector, mockWorkspaceService)
 
 	// Register mock skill service (required by registry)
-	mockSkillService := mocks.NewMockSkillService(ctrl)
+	mockSkillService := skills.NewMockSkillService(ctrl)
 	mockSkillService.EXPECT().GetSkillsXML().Return("").AnyTimes()
 	mockSkillService.EXPECT().GetSkillInfos().Return([]shared.SkillInfo{}).AnyTimes()
 	do.ProvideValue[skills.SkillService](injector, mockSkillService)

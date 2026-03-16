@@ -1,16 +1,18 @@
 package tools
 
 import (
+
+	"github.com/denkhaus/gollum/pkg/state"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
 )
 
 // TestEditToolSpec verifies the tool specification
@@ -18,7 +20,7 @@ func TestEditToolSpec(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	tool := &editToolImpl{
 		fsm:         mockFSM,
@@ -50,7 +52,7 @@ func TestEditToolSpecIsConstant(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	tool := &editToolImpl{
 		fsm:         mockFSM,
@@ -72,7 +74,7 @@ func TestEditToolProvider(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 
 	provider := &editToolProvider{
 		logService: logService,

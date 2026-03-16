@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/config"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -303,9 +302,9 @@ func TestAgentResultThreadSafety(t *testing.T) {
 		now := time.Now().Unix()
 
 		// Create mock agents using centralized mocks
-		parentAgent := mocks.NewMockAgent(ctrl)
-		childAgent := mocks.NewMockAgent(ctrl)
-		grandchildAgent := mocks.NewMockAgent(ctrl)
+		parentAgent := shared.NewMockAgent(ctrl)
+		childAgent := shared.NewMockAgent(ctrl)
+		grandchildAgent := shared.NewMockAgent(ctrl)
 
 		// Setup mock expectations for GetID and GetConfig
 		parentAgent.EXPECT().GetID().Return(parentID).AnyTimes()
@@ -389,7 +388,7 @@ func TestAgentResultThreadSafety(t *testing.T) {
 		}
 
 		// Create mock agent
-		mockAgent := mocks.NewMockAgent(ctrl)
+		mockAgent := shared.NewMockAgent(ctrl)
 		mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
 		mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 			ID:   agentID,

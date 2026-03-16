@@ -1,15 +1,17 @@
 package tui
 
 import (
+
 	"context"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"testing"
 	"time"
 	"github.com/denkhaus/gollum/pkg/channel"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
+
 )
 
 func TestHandleNewMessageMsg(t *testing.T) {
@@ -47,7 +49,7 @@ func TestWithLoggerService(t *testing.T) {
 	ctx := context.Background()
 	agent := setupMockAgent(ctrl)
 
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	opt := WithLoggerService(mockLogger)
 
 	m := NewModel(ctx, agent)

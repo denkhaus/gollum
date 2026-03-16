@@ -1,15 +1,17 @@
 package builtin
 
 import (
+
+	"github.com/denkhaus/gollum/pkg/logger"
 	"sync"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/config"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
 )
 
 func TestLangfuseHook_Shutdown_UnitTests(t *testing.T) {
@@ -39,7 +41,7 @@ func TestLangfuseHook_Shutdown_UnitTests(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			mockLog := mocks.NewMockLoggerService(ctrl)
+			mockLog := logger.NewMockLoggerService(ctrl)
 			mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
 			mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 			mockLog.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
@@ -84,7 +86,7 @@ func TestLangfuseHook_CleanupAllTraceContexts(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog := logger.NewMockLoggerService(ctrl)
 	mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 	cfg := &config.LangfuseConfig{
@@ -130,7 +132,7 @@ func TestLangfuseHook_FlushTraces(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog := logger.NewMockLoggerService(ctrl)
 	cfg := &config.LangfuseConfig{
 		LangfuseEnabled: true,
 		LangfuseHost:    "https://cloud.langfuse.com",
@@ -155,7 +157,7 @@ func TestLangfuseHook_ShutdownWithOrphanedTraces(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog := logger.NewMockLoggerService(ctrl)
 	mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
 	mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockLog.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()

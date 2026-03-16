@@ -1,15 +1,17 @@
 package builtin
 
 import (
+
+	"github.com/denkhaus/gollum/pkg/logger"
 	"sync"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+
 )
 
 func TestNewBuiltinHooksProvider_WithLangfuse(t *testing.T) {
@@ -20,8 +22,8 @@ func TestNewBuiltinHooksProvider_WithLangfuse(t *testing.T) {
 	t.Run("registers Langfuse hooks successfully", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		mockHM := mocks.NewMockHookManager(ctrl)
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockHM := hooks.NewMockHookManager(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		cfg := &config.LangfuseConfig{
 			LangfuseEnabled: true,
 		}
@@ -49,8 +51,8 @@ func TestNewBuiltinHooksProvider_WithLangfuse(t *testing.T) {
 	t.Run("skips registration when Langfuse disabled", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		mockHM := mocks.NewMockHookManager(ctrl)
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockHM := hooks.NewMockHookManager(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		cfg := &config.LangfuseConfig{
 			LangfuseEnabled: false,
 		}
@@ -77,8 +79,8 @@ func TestNewBuiltinHooksProvider_WithLangfuse(t *testing.T) {
 		// Track captured metadata
 		var capturedMetadata []hooks.TypedHookMetadata
 
-		mockHM := mocks.NewMockHookManager(ctrl)
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockHM := hooks.NewMockHookManager(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		cfg := &config.LangfuseConfig{
 			LangfuseEnabled: true,
 		}

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/config"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
@@ -26,14 +25,14 @@ func TestAgentRegistry_GetAgent(t *testing.T) {
 	childID := uuid.New()
 
 	// Create mock agents
-	mockParent := mocks.NewMockAgent(ctrl)
+	mockParent := shared.NewMockAgent(ctrl)
 	mockParent.EXPECT().GetID().Return(parentID).AnyTimes()
 	mockParent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   parentID,
 		Role: "Parent",
 	}).AnyTimes()
 
-	mockChild := mocks.NewMockAgent(ctrl)
+	mockChild := shared.NewMockAgent(ctrl)
 	mockChild.EXPECT().GetID().Return(childID).AnyTimes()
 	mockChild.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   childID,
@@ -100,14 +99,14 @@ func TestAgentRegistry_GetChildren(t *testing.T) {
 	unrelatedID := uuid.New()
 
 	// Create mock agents
-	mockParent := mocks.NewMockAgent(ctrl)
+	mockParent := shared.NewMockAgent(ctrl)
 	mockParent.EXPECT().GetID().Return(parentID).AnyTimes()
 	mockParent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   parentID,
 		Role: "Parent",
 	}).AnyTimes()
 
-	mockChild1 := mocks.NewMockAgent(ctrl)
+	mockChild1 := shared.NewMockAgent(ctrl)
 	mockChild1.EXPECT().GetID().Return(childID1).AnyTimes()
 	mockChild1.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   childID1,
@@ -117,7 +116,7 @@ func TestAgentRegistry_GetChildren(t *testing.T) {
 		},
 	}).AnyTimes()
 
-	mockChild2 := mocks.NewMockAgent(ctrl)
+	mockChild2 := shared.NewMockAgent(ctrl)
 	mockChild2.EXPECT().GetID().Return(childID2).AnyTimes()
 	mockChild2.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   childID2,
@@ -127,7 +126,7 @@ func TestAgentRegistry_GetChildren(t *testing.T) {
 		},
 	}).AnyTimes()
 
-	mockUnrelated := mocks.NewMockAgent(ctrl)
+	mockUnrelated := shared.NewMockAgent(ctrl)
 	mockUnrelated.EXPECT().GetID().Return(unrelatedID).AnyTimes()
 	mockUnrelated.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   unrelatedID,
@@ -194,14 +193,14 @@ func TestAgentRegistry_GetParent(t *testing.T) {
 	childID := uuid.New()
 
 	// Create mock agents
-	mockParent := mocks.NewMockAgent(ctrl)
+	mockParent := shared.NewMockAgent(ctrl)
 	mockParent.EXPECT().GetID().Return(parentID).AnyTimes()
 	mockParent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   parentID,
 		Role: "Parent",
 	}).AnyTimes()
 
-	mockChild := mocks.NewMockAgent(ctrl)
+	mockChild := shared.NewMockAgent(ctrl)
 	mockChild.EXPECT().GetID().Return(childID).AnyTimes()
 	mockChild.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   childID,
@@ -257,14 +256,14 @@ func TestAgentRegistry_ListAll(t *testing.T) {
 	childID2 := uuid.New()
 
 	// Create mock agents
-	mockParent := mocks.NewMockAgent(ctrl)
+	mockParent := shared.NewMockAgent(ctrl)
 	mockParent.EXPECT().GetID().Return(parentID).AnyTimes()
 	mockParent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   parentID,
 		Role: "Parent",
 	}).AnyTimes()
 
-	mockChild1 := mocks.NewMockAgent(ctrl)
+	mockChild1 := shared.NewMockAgent(ctrl)
 	mockChild1.EXPECT().GetID().Return(childID1).AnyTimes()
 	mockChild1.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   childID1,
@@ -274,7 +273,7 @@ func TestAgentRegistry_ListAll(t *testing.T) {
 		},
 	}).AnyTimes()
 
-	mockChild2 := mocks.NewMockAgent(ctrl)
+	mockChild2 := shared.NewMockAgent(ctrl)
 	mockChild2.EXPECT().GetID().Return(childID2).AnyTimes()
 	mockChild2.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   childID2,
@@ -335,14 +334,14 @@ func TestAgentRegistry_Unregister_LeafAgent(t *testing.T) {
 	childID := uuid.New()
 
 	// Create mock agents
-	mockParent := mocks.NewMockAgent(ctrl)
+	mockParent := shared.NewMockAgent(ctrl)
 	mockParent.EXPECT().GetID().Return(parentID).AnyTimes()
 	mockParent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   parentID,
 		Role: "Parent",
 	}).AnyTimes()
 
-	mockChild := mocks.NewMockAgent(ctrl)
+	mockChild := shared.NewMockAgent(ctrl)
 	mockChild.EXPECT().GetID().Return(childID).AnyTimes()
 	mockChild.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   childID,
@@ -394,14 +393,14 @@ func TestAgentRegistry_Unregister_WithChildren(t *testing.T) {
 	grandchildID := uuid.New()
 
 	// Create mock agents
-	mockParent := mocks.NewMockAgent(ctrl)
+	mockParent := shared.NewMockAgent(ctrl)
 	mockParent.EXPECT().GetID().Return(parentID).AnyTimes()
 	mockParent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   parentID,
 		Role: "Parent",
 	}).AnyTimes()
 
-	mockChild := mocks.NewMockAgent(ctrl)
+	mockChild := shared.NewMockAgent(ctrl)
 	mockChild.EXPECT().GetID().Return(childID).AnyTimes()
 	mockChild.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   childID,
@@ -411,7 +410,7 @@ func TestAgentRegistry_Unregister_WithChildren(t *testing.T) {
 		},
 	}).AnyTimes()
 
-	mockGrandchild := mocks.NewMockAgent(ctrl)
+	mockGrandchild := shared.NewMockAgent(ctrl)
 	mockGrandchild.EXPECT().GetID().Return(grandchildID).AnyTimes()
 	mockGrandchild.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   grandchildID,
@@ -473,7 +472,7 @@ func TestAgentRegistry_Unregister_NonExistentAgent(t *testing.T) {
 	agentID := uuid.New()
 
 	// Create mock agent
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   agentID,
@@ -510,14 +509,14 @@ func TestAgentRegistry_Cleanup(t *testing.T) {
 	grandchildID := uuid.New()
 
 	// Create mock agents
-	mockParent := mocks.NewMockAgent(ctrl)
+	mockParent := shared.NewMockAgent(ctrl)
 	mockParent.EXPECT().GetID().Return(parentID).AnyTimes()
 	mockParent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   parentID,
 		Role: "Parent",
 	}).AnyTimes()
 
-	mockChild1 := mocks.NewMockAgent(ctrl)
+	mockChild1 := shared.NewMockAgent(ctrl)
 	mockChild1.EXPECT().GetID().Return(childID1).AnyTimes()
 	mockChild1.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   childID1,
@@ -527,7 +526,7 @@ func TestAgentRegistry_Cleanup(t *testing.T) {
 		},
 	}).AnyTimes()
 
-	mockChild2 := mocks.NewMockAgent(ctrl)
+	mockChild2 := shared.NewMockAgent(ctrl)
 	mockChild2.EXPECT().GetID().Return(childID2).AnyTimes()
 	mockChild2.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   childID2,
@@ -537,7 +536,7 @@ func TestAgentRegistry_Cleanup(t *testing.T) {
 		},
 	}).AnyTimes()
 
-	mockGrandchild := mocks.NewMockAgent(ctrl)
+	mockGrandchild := shared.NewMockAgent(ctrl)
 	mockGrandchild.EXPECT().GetID().Return(grandchildID).AnyTimes()
 	mockGrandchild.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   grandchildID,

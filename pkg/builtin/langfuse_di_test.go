@@ -1,16 +1,18 @@
 package builtin
 
 import (
+
 	"context"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"sync"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+
 )
 
 func TestNewLangfuseHook_DI(t *testing.T) {
@@ -18,7 +20,7 @@ func TestNewLangfuseHook_DI(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 
 		expectedCfg := &config.LangfuseConfig{
 			LangfuseEnabled:       true,
@@ -51,7 +53,7 @@ func TestNewLangfuseHook_DI(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 
 		testConfigs := []*config.LangfuseConfig{
 			{LangfuseEnabled: false},
@@ -133,7 +135,7 @@ func TestNewLangfuseHooksProvider_ReturnsHookInstance(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 
 		expectedCfg := &config.LangfuseConfig{
 			LangfuseEnabled: true,
@@ -159,7 +161,7 @@ func TestNewLangfuseHooksProvider_ReturnsHookInstance(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 
 		// Test hook initialization
 		hook := &LangfuseHook{
@@ -189,7 +191,7 @@ func TestLangfuseHook_GetClient_EdgeCases(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
 
 		cfg := &config.LangfuseConfig{
@@ -219,7 +221,7 @@ func TestLangfuseHook_GetClient_EdgeCases(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
 
 		cfg := &config.LangfuseConfig{

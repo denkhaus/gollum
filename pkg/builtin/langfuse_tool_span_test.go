@@ -1,21 +1,23 @@
 package builtin
 
 import (
+
 	"context"
 	"fmt"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/git-hulk/langfuse-go/pkg/traces"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
 )
 
 func TestLangfuseHook_ToolSpanCreation(t *testing.T) {
@@ -59,7 +61,7 @@ func TestLangfuseHook_ToolSpanCreation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			mockLog := mocks.NewMockLoggerService(ctrl)
+			mockLog := logger.NewMockLoggerService(ctrl)
 			cfg := &config.LangfuseConfig{
 				LangfuseEnabled:   tt.langfuseEnabled,
 				LangfuseHost:      "https://cloud.langfuse.com",
@@ -120,7 +122,7 @@ func TestLangfuseHook_ToolSpanUpdate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog := logger.NewMockLoggerService(ctrl)
 	cfg := &config.LangfuseConfig{
 		LangfuseEnabled: true,
 		LangfuseHost:    "https://cloud.langfuse.com",
@@ -193,7 +195,7 @@ func TestLangfuseHook_OnToolError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			mockLog := mocks.NewMockLoggerService(ctrl)
+			mockLog := logger.NewMockLoggerService(ctrl)
 			cfg := &config.LangfuseConfig{
 				LangfuseEnabled: true,
 				LangfuseHost:    "https://cloud.langfuse.com",
@@ -279,7 +281,7 @@ func TestLangfuseHook_ToolSpanLifecycle_Integration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			mockLog := mocks.NewMockLoggerService(ctrl)
+			mockLog := logger.NewMockLoggerService(ctrl)
 			cfg := &config.LangfuseConfig{
 				LangfuseEnabled:   true,
 				LangfuseHost:      "https://cloud.langfuse.com",

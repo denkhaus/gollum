@@ -3,7 +3,6 @@ package registry
 import (
 	"testing"
 
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -34,35 +33,35 @@ func TestAgentRegistry_IsDirectParent(t *testing.T) {
 	unrelatedID := uuid.New()
 
 	// Create mock agents
-	mockGrandparent := mocks.NewMockAgent(ctrl)
+	mockGrandparent := shared.NewMockAgent(ctrl)
 	mockGrandparent.EXPECT().GetID().Return(grandparentID).AnyTimes()
 	mockGrandparent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   grandparentID,
 		Role: "Grandparent",
 	}).AnyTimes()
 
-	mockParent := mocks.NewMockAgent(ctrl)
+	mockParent := shared.NewMockAgent(ctrl)
 	mockParent.EXPECT().GetID().Return(parentID).AnyTimes()
 	mockParent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   parentID,
 		Role: "Parent",
 	}).AnyTimes()
 
-	mockChild := mocks.NewMockAgent(ctrl)
+	mockChild := shared.NewMockAgent(ctrl)
 	mockChild.EXPECT().GetID().Return(childID).AnyTimes()
 	mockChild.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   childID,
 		Role: "Child",
 	}).AnyTimes()
 
-	mockUncle := mocks.NewMockAgent(ctrl)
+	mockUncle := shared.NewMockAgent(ctrl)
 	mockUncle.EXPECT().GetID().Return(uncleID).AnyTimes()
 	mockUncle.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   uncleID,
 		Role: "Uncle",
 	}).AnyTimes()
 
-	mockUnrelated := mocks.NewMockAgent(ctrl)
+	mockUnrelated := shared.NewMockAgent(ctrl)
 	mockUnrelated.EXPECT().GetID().Return(unrelatedID).AnyTimes()
 	mockUnrelated.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   unrelatedID,
@@ -163,7 +162,7 @@ func TestAgentRegistry_IsDirectParent_SameAgent(t *testing.T) {
 
 	agentID := uuid.New()
 
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:   agentID,

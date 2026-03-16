@@ -1,18 +1,20 @@
 package builtin
 
 import (
+
 	"context"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/git-hulk/langfuse-go/pkg/traces"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+
 )
 
 func TestLangfuseHook_NilSessionID(t *testing.T) {
@@ -20,7 +22,7 @@ func TestLangfuseHook_NilSessionID(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 		cfg := &config.LangfuseConfig{
@@ -59,7 +61,7 @@ func TestLangfuseHook_NilSessionID(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 
 		cfg := &config.LangfuseConfig{
 			LangfuseEnabled: true,
@@ -99,7 +101,7 @@ func TestLangfuseHook_onToolErrorHook_NilError(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 		cfg := &config.LangfuseConfig{
@@ -161,7 +163,7 @@ func TestLangfuseHook_onLLMErrorHook_NilError(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 		cfg := &config.LangfuseConfig{
@@ -230,7 +232,7 @@ func TestLangfuseHook_FileOperationHooks_AreStubs(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockLog := mocks.NewMockLoggerService(ctrl)
+		mockLog := logger.NewMockLoggerService(ctrl)
 		mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
 
 		cfg := &config.LangfuseConfig{

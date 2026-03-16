@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/registry"
+
 	"github.com/denkhaus/gollum/pkg/hooks"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ func TestAgentOutputTool_Run_TimeoutClamping_Int(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -82,7 +83,7 @@ func TestAgentOutputTool_Run_TimeoutClamping_Float(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -143,7 +144,7 @@ func TestAgentOutputTool_Run_DefaultBlockValue(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -190,7 +191,7 @@ func TestAgentOutputToolProvider(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	senderID := uuid.New()
 
@@ -213,7 +214,7 @@ func TestAgentOutputTool_Run_PermissionDenied(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 

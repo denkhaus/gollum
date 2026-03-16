@@ -26,7 +26,7 @@ func TestBashTool_Run_WithDiffIntegration_FileModification(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
@@ -109,7 +109,7 @@ func TestBashTool_Run_WithDiffIntegration_FileCreation(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
@@ -182,7 +182,7 @@ func TestBashTool_Run_WithDiffIntegration_NoFileChanges(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
@@ -228,7 +228,7 @@ func TestBashTool_Run_WithDiffIntegration_MultipleFileChanges(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockFSM := mocks.NewMockFileStateManager(ctrl)
+	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)

@@ -1,25 +1,27 @@
 package tools
 
 import (
+
 	"context"
 	"errors"
+	"github.com/denkhaus/gollum/pkg/registry"
 	"testing"
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/hooks"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
 )
 
 func TestAgentOutputTool_Run_NonBlockingMode_Running(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -67,7 +69,7 @@ func TestAgentOutputTool_Run_NonBlockingMode_Completed(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -122,7 +124,7 @@ func TestAgentOutputTool_Run_NonBlockingMode_Failed(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -172,7 +174,7 @@ func TestAgentOutputTool_Run_BlockingMode_Completed(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -230,7 +232,7 @@ func TestAgentOutputTool_Run_BlockingMode_Timeout(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -280,7 +282,7 @@ func TestAgentOutputTool_Run_BlockingMode_Failed(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
@@ -334,7 +336,7 @@ func TestAgentOutputTool_Run_CustomTimeout(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 

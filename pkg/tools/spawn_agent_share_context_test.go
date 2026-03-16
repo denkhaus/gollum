@@ -7,6 +7,8 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
+	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
@@ -28,16 +30,16 @@ func TestSpawnAgentTool_WithShareContext(t *testing.T) {
 	taskID := uuid.New()
 
 	// Setup mocks
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock parent agent with message history
-	mockParentAgent := mocks.NewMockAgent(ctrl)
+	mockParentAgent := shared.NewMockAgent(ctrl)
 	expectedHistory := &gollem.History{
 		Messages: []gollem.Message{
 			{Role: gollem.RoleUser},

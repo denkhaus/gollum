@@ -9,7 +9,6 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	promptstore "github.com/denkhaus/gollum/pkg/prompt/store"
@@ -27,7 +26,7 @@ func setupMockConfigService(t *testing.T, storeConfig *config.PromptStoreConfig)
 	injector := do.New()
 
 	// Register mocked config service - setup expectations here
-	mockConfig := mocks.NewMockConfigService(ctrl)
+	mockConfig := config.NewMockConfigService(ctrl)
 	mockConfig.EXPECT().GetPromptStoreConfig().Return(storeConfig).AnyTimes()
 	mockConfig.EXPECT().GetLogLevel().Return("info").AnyTimes()
 	mockConfig.EXPECT().IsDevMode().Return(false).AnyTimes()

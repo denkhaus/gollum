@@ -1,14 +1,16 @@
 package config
 
 import (
+
+	"github.com/denkhaus/gollum/pkg/logger"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	appconfig "github.com/denkhaus/gollum/pkg/config"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"go.uber.org/mock/gomock"
+
 )
 
 func TestConfigLoader_Load_ValidConfig(t *testing.T) {
@@ -125,7 +127,7 @@ func NewConfigLoaderForTest(projectDir, globalDir string) ConfigLoader {
 	}
 
 	ctrl := gomock.NewController(&testing.T{})
-	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog := logger.NewMockLoggerService(ctrl)
 
 	loader := &configLoaderImpl{
 		projectPath: projectPath,
@@ -167,7 +169,7 @@ func TestConfigLoader_Load_MissingFiles(t *testing.T) {
 
 	// Use paths that definitely don't exist
 	ctrl := gomock.NewController(t)
-	mockLog := mocks.NewMockLoggerService(ctrl)
+	mockLog := logger.NewMockLoggerService(ctrl)
 	loader := &configLoaderImpl{
 		projectPath: filepath.Join(tmpDir, "nonexistent-project-mcp.json"),
 		globalPath:  filepath.Join(tmpDir, "nonexistent-global-mcp.json"),

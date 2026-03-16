@@ -9,6 +9,8 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/prompt/manager"
+	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
@@ -75,9 +77,9 @@ func TestSpawnAgentToolValidation(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
@@ -156,16 +158,16 @@ func TestSpawnAgentToolSynchronousExecution(t *testing.T) {
 	taskID := uuid.New()
 
 	// Setup mocks
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Mock agent
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID: taskID,
@@ -235,9 +237,9 @@ func TestSpawnAgentToolAsynchronousExecution(t *testing.T) {
 	senderID := uuid.New()
 	taskID := uuid.New()
 
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
@@ -246,7 +248,7 @@ func TestSpawnAgentToolAsynchronousExecution(t *testing.T) {
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID: taskID,
@@ -314,9 +316,9 @@ func TestSpawnAgentToolExecutionError(t *testing.T) {
 	senderID := uuid.New()
 	taskID := uuid.New()
 
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
@@ -325,7 +327,7 @@ func TestSpawnAgentToolExecutionError(t *testing.T) {
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID: taskID,
@@ -379,22 +381,22 @@ func TestSpawnAgentToolInheritsLLMProvider(t *testing.T) {
 	senderID := uuid.New()
 	taskID := uuid.New()
 
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	mockParentAgent := mocks.NewMockAgent(ctrl)
+	mockParentAgent := shared.NewMockAgent(ctrl)
 	mockParentAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "openai/gpt-4o-mini",
 		},
 	}).AnyTimes()
 
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID: taskID,
@@ -456,9 +458,9 @@ func TestSpawnAgentToolProvider_CreateTool(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
@@ -497,9 +499,9 @@ func TestSpawnAgentTool_WithShareContext_NoParent(t *testing.T) {
 	senderID := uuid.New()
 
 	// Setup mocks - no parent agent
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
@@ -523,7 +525,7 @@ func TestSpawnAgentTool_WithShareContext_NoParent(t *testing.T) {
 	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
 
 	// Create the mock agent that will be returned by CreateAgent
-	mockSubagent := mocks.NewMockAgent(ctrl)
+	mockSubagent := shared.NewMockAgent(ctrl)
 	mockSubagent.EXPECT().GetID().Return(uuid.New()).Times(4) // GetID is called at lines 211, 215, 251, 258
 
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Do(func(_ context.Context, cfg *shared.AgentConfig) {
@@ -566,16 +568,16 @@ func TestSpawnAgentTool_AllowedTools_Builtin(t *testing.T) {
 	senderID := uuid.New()
 	taskID := uuid.New()
 
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:              taskID,
@@ -634,16 +636,16 @@ func TestSpawnAgentTool_AllowedTools_MCP(t *testing.T) {
 	senderID := uuid.New()
 	taskID := uuid.New()
 
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:              taskID,
@@ -702,16 +704,16 @@ func TestSpawnAgentTool_AllowedTools_Mixed(t *testing.T) {
 	senderID := uuid.New()
 	taskID := uuid.New()
 
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:              taskID,
@@ -770,16 +772,16 @@ func TestSpawnAgentTool_AllowedTools_Empty(t *testing.T) {
 	senderID := uuid.New()
 	taskID := uuid.New()
 
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:              taskID,
@@ -838,16 +840,16 @@ func TestSpawnAgentTool_AllowedTools_NonStringValue(t *testing.T) {
 	senderID := uuid.New()
 	taskID := uuid.New()
 
-	mockFactory := mocks.NewMockAgentFactory(ctrl)
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
+	mockFactory := shared.NewMockAgentFactory(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockPromptMgr := manager.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID:              taskID,

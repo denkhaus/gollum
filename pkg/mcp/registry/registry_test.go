@@ -1,16 +1,18 @@
 package registry
 
 import (
+
 	"context"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"testing"
 	"time"
 
 	appconfig "github.com/denkhaus/gollum/pkg/config"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	mcpconfig "github.com/denkhaus/gollum/pkg/mcp/config"
 	"github.com/m-mizutani/gollem"
 	"github.com/m-mizutani/gollem/mcp"
 	"go.uber.org/mock/gomock"
+
 )
 
 func TestMCPRegistry_CreateStdioClient(t *testing.T) {
@@ -147,8 +149,8 @@ func (m *mockConfigLoader) GetDefaultAllowedSystemEnv() []string {
 func NewMCPRegistryWithLoader(t *testing.T, ctrl *gomock.Controller, loader mcpconfig.ConfigLoader) (MCPRegistry, error) {
 	t.Helper()
 
-	mockLog := mocks.NewMockLoggerService(ctrl)
-	mockAppConfig := mocks.NewMockConfigService(ctrl)
+	mockLog := logger.NewMockLoggerService(ctrl)
+	mockAppConfig := appconfig.NewMockConfigService(ctrl)
 	// Set up expectations for warnings, debug logs, info logs, and config access
 	mockLog.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
 	mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()

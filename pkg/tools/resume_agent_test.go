@@ -8,6 +8,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/mocks"
+	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
@@ -44,7 +45,7 @@ func TestResumeAgentToolValidation(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
@@ -123,7 +124,7 @@ func TestResumeAgentToolAgentNotFound(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
@@ -169,12 +170,12 @@ func TestResumeAgentToolSynchronousExecution(t *testing.T) {
 	senderID := uuid.New()
 	agentID := uuid.New()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 
 	// Permission check: sender is direct parent
 	mockRegistry.EXPECT().IsDirectParent(senderID, agentID).Return(true)
@@ -235,7 +236,7 @@ func TestResumeAgentToolAsynchronousExecution(t *testing.T) {
 	senderID := uuid.New()
 	agentID := uuid.New()
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
@@ -243,7 +244,7 @@ func TestResumeAgentToolAsynchronousExecution(t *testing.T) {
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
-	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent := shared.NewMockAgent(ctrl)
 
 	// Permission check: sender is direct parent
 	mockRegistry.EXPECT().IsDirectParent(senderID, agentID).Return(true)
@@ -303,7 +304,7 @@ func TestResumeAgentToolProvider_CreateTool(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 
 	provider := &resumeAgentToolProvider{
@@ -337,7 +338,7 @@ func TestResumeAgentTool_PermissionDenied(t *testing.T) {
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
-	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	senderID := uuid.New()
 	agentID := uuid.New()
 

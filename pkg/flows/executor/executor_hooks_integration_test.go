@@ -10,7 +10,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
-	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/samber/do/v2"
@@ -26,7 +25,7 @@ func TestFlowExecutor_WithHookManagerIntegration(t *testing.T) {
 	injector := do.New()
 
 	// Create mock logger
-	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().InfoWithFlowStep(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -43,7 +42,7 @@ func TestFlowExecutor_WithHookManagerIntegration(t *testing.T) {
 	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 	// Create mock AgentFactory for tests that don't need LLM functionality
-	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
 	do.Provide(injector, NewFlowExecutor)
 
