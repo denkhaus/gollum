@@ -119,7 +119,7 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 	}
 
 	// Create the base agent
-	defAgent := &defaultAgent{
+	defAgent := &DefaultAgent{
 		clientProvider: f.clientProvider,
 		configService:  f.configService,
 		logService:     f.logService,

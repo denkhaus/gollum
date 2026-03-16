@@ -19,7 +19,9 @@ import (
 )
 
 type (
-	defaultAgent struct {
+	// DefaultAgent is the default implementation of shared.Agent
+	// It can be type-asserted from shared.Agent to access additional methods like AddTools
+	DefaultAgent struct {
 		base           *gollem.Agent
 		logService     logger.LoggerService
 		configService  config.ConfigService
@@ -35,24 +37,24 @@ type (
 	}
 )
 
-func (p *defaultAgent) Execute(ctx context.Context, input ...gollem.Input) (*gollem.ExecuteResponse, error) {
+func (p *DefaultAgent) Execute(ctx context.Context, input ...gollem.Input) (*gollem.ExecuteResponse, error) {
 	return p.base.Execute(ctx, input...)
 }
 
-func (p *defaultAgent) Session() gollem.Session {
+func (p *DefaultAgent) Session() gollem.Session {
 	return p.base.Session()
 }
 
-func (p *defaultAgent) GetID() uuid.UUID {
+func (p *DefaultAgent) GetID() uuid.UUID {
 	return p.id
 }
 
-func (p *defaultAgent) GetConfig() *shared.AgentConfig {
+func (p *DefaultAgent) GetConfig() *shared.AgentConfig {
 	return p.config
 }
 
 // GetMessageHistory retrieves the agent's message history from its session
-func (p *defaultAgent) GetMessageHistory(ctx context.Context) (*gollem.History, error) {
+func (p *DefaultAgent) GetMessageHistory(ctx context.Context) (*gollem.History, error) {
 	// Handle nil base agent
 	if p.base == nil {
 		return nil, nil
@@ -73,7 +75,7 @@ func (p *defaultAgent) GetMessageHistory(ctx context.Context) (*gollem.History, 
 
 // UpdateSystemPrompt replaces the system prompt immediately (blocking).
 // It preserves the existing message history while updating the system prompt.
-func (p *defaultAgent) UpdateSystemPrompt(ctx context.Context, newPrompt string) error {
+func (p *DefaultAgent) UpdateSystemPrompt(ctx context.Context, newPrompt string) error {
 	// 1. Preserve existing history
 	history, err := p.GetMessageHistory(ctx)
 	if err != nil {
@@ -99,7 +101,7 @@ func (p *defaultAgent) UpdateSystemPrompt(ctx context.Context, newPrompt string)
 
 // UpdateHistory modifies the history using a modifier function.
 // This allows flexible transformations like summarization, filtering, or replacement.
-func (p *defaultAgent) UpdateHistory(ctx context.Context, modifier func(*gollem.History) (*gollem.History, error)) error {
+func (p *DefaultAgent) UpdateHistory(ctx context.Context, modifier func(*gollem.History) (*gollem.History, error)) error {
 	// 1. Get current history
 	currentHistory, err := p.GetMessageHistory(ctx)
 	if err != nil {
@@ -128,7 +130,7 @@ func (p *defaultAgent) UpdateHistory(ctx context.Context, modifier func(*gollem.
 
 // buildOptionsWithHistory consolidates options for agent recreation.
 // It rebuilds all gollem options including middlewares based on current config.
-func (p *defaultAgent) buildOptionsWithHistory(history *gollem.History) []gollem.Option {
+func (p *DefaultAgent) buildOptionsWithHistory(history *gollem.History) []gollem.Option {
 	options := []gollem.Option{
 		gollem.WithStrategy(p.config.Strategy),
 		gollem.WithSystemPrompt(p.config.SystemPrompt),
@@ -158,4 +160,14 @@ func (p *defaultAgent) buildOptionsWithHistory(history *gollem.History) []gollem
 	}
 
 	return options
+}
+
+// AddTools adds additional tools to the agent's tool set.
+// This is useful for adding flow-specific tools after agent creation.
+func (p *DefaultAgent) AddTools(additionalTools []gollem.Tool) {
+	p.tools = append(p.tools, additionalTools...)
+
+	// Recreate agent with updated tools
+	newOptions := p.buildOptionsWithHistory(nil)
+	p.base = gollem.New(p.llmClient, newOptions...)
 }

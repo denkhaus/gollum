@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/denkhaus/gollum/pkg/agents"
 	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -30,8 +31,10 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 	// Substitute variables in prompt
 	prompt := SubstituteTemplate(p.ctx, step.Prompt)
 
-	// Parse tools from step.Tools (comma-separated string like "bash,read_file")
-	allowedTools := p.parseToolNames(step.Tools)
+	// Parse tools from step.Tools
+	// Separate flow tools from built-in/MCP tools
+	toolNames := p.parseToolNames(step.Tools)
+	flowToolNames, allowedTools := p.separateFlowTools(toolNames)
 
 	// Map flow Agent to shared.AgentConfig
 	config := &shared.AgentConfig{
@@ -49,6 +52,13 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 	agent, err := p.agentFactory.CreateAgent(ctx, config)
 	if err != nil {
 		return fmt.Errorf("failed to create agent: %w", err)
+	}
+
+	// Create and add flow tools (these are always available in flow execution)
+	if len(flowToolNames) > 0 {
+		if err := p.addFlowToolsToAgent(ctx, agent, flowToolNames); err != nil {
+			return fmt.Errorf("failed to add flow tools: %w", err)
+		}
 	}
 
 	// Execute with user prompt (pass ctx for enriched logging in tools)
@@ -112,4 +122,49 @@ func (p *flowExecutorImpl) parseToolNames(toolsStr string) []string {
 	}
 
 	return toolNames
+}
+
+// separateFlowTools separates flow tools from built-in/MCP tools
+// Flow tools are: set_context_field, set_output_field, get_context, emit_log, transition_to
+func (p *flowExecutorImpl) separateFlowTools(toolNames []string) (flowTools []string, allowedTools []string) {
+	flowToolSet := map[string]bool{
+		"set_context_field": true,
+		"set_output_field":  true,
+		"get_context":       true,
+		"emit_log":          true,
+		"transition_to":     true,
+	}
+
+	for _, name := range toolNames {
+		if flowToolSet[name] {
+			flowTools = append(flowTools, name)
+		} else {
+			allowedTools = append(allowedTools, name)
+		}
+	}
+
+	return flowTools, allowedTools
+}
+
+// addFlowToolsToAgent creates flow tools and adds them to the agent
+// This is a workaround because flow tools require special handling (FlowContext)
+func (p *flowExecutorImpl) addFlowToolsToAgent(ctx context.Context, agent shared.Agent, toolNames []string) error {
+	agentID := agent.GetID()
+
+	var flowTools []gollem.Tool
+	for _, toolName := range toolNames {
+		tool, err := p.flowToolsProvider.CreateTool(agentID, p, shared.ToolName(toolName))
+		if err != nil {
+			return fmt.Errorf("failed to create flow tool '%s': %w", toolName, err)
+		}
+		flowTools = append(flowTools, tool)
+	}
+
+	// Type assert to access internal tools field
+	// This is necessary because flow tools need special handling
+	if defAgent, ok := agent.(*agents.DefaultAgent); ok {
+		defAgent.AddTools(flowTools)
+	}
+
+	return nil
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/tools"
+	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
@@ -409,6 +410,112 @@ func TestExecuteLLMStep_PopulatesAllowedTools(t *testing.T) {
 	_ = exec.(*flowExecutorImpl).executeStep(step, "init")
 
 	// Verify AllowedTools was populated
+	require.NotNil(t, capturedConfig)
+	assert.Equal(t, []string{"bash", "read_file"}, capturedConfig.AllowedTools)
+}
+
+func TestSeparateFlowTools_FlowToolsOnly(t *testing.T) {
+	exec := &flowExecutorImpl{}
+	flowTools, allowedTools := exec.separateFlowTools([]string{"set_context_field", "set_output_field"})
+
+	assert.Equal(t, []string{"set_context_field", "set_output_field"}, flowTools)
+	assert.Nil(t, allowedTools)
+}
+
+func TestSeparateFlowTools_BuiltinToolsOnly(t *testing.T) {
+	exec := &flowExecutorImpl{}
+	flowTools, allowedTools := exec.separateFlowTools([]string{"bash", "read_file"})
+
+	assert.Nil(t, flowTools)
+	assert.Equal(t, []string{"bash", "read_file"}, allowedTools)
+}
+
+func TestSeparateFlowTools_Mixed(t *testing.T) {
+	exec := &flowExecutorImpl{}
+	flowTools, allowedTools := exec.separateFlowTools([]string{
+		"bash",
+		"set_context_field",
+		"read_file",
+		"get_context",
+		"filesystem/read_file",
+	})
+
+	assert.Equal(t, []string{"set_context_field", "get_context"}, flowTools)
+	assert.Equal(t, []string{"bash", "read_file", "filesystem/read_file"}, allowedTools)
+}
+
+func TestSeparateFlowTools_AllFlowTools(t *testing.T) {
+	exec := &flowExecutorImpl{}
+	flowTools, allowedTools := exec.separateFlowTools([]string{
+		"set_context_field",
+		"set_output_field",
+		"get_context",
+		"emit_log",
+		"transition_to",
+	})
+
+	assert.Equal(t, []string{"set_context_field", "set_output_field", "get_context", "emit_log", "transition_to"}, flowTools)
+	assert.Nil(t, allowedTools)
+}
+
+func TestExecuteLLMStep_SeparatesFlowTools(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Create mock agent
+	mockAgent := mocks.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(uuid.New()).AnyTimes()
+	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).
+		Return(&gollem.ExecuteResponse{Texts: []string{"response"}}, nil)
+
+	// Create mock agent factory that captures the config
+	var capturedConfig *shared.AgentConfig
+	mockAgentFactory := mocks.NewMockAgentFactory(ctrl)
+	mockAgentFactory.EXPECT().CreateAgent(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, config *shared.AgentConfig) (shared.Agent, error) {
+			capturedConfig = config
+			return mockAgent, nil
+		})
+
+	// Create custom injector
+	injector := do.New()
+
+	mockLogger := mocks.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+
+	do.Provide(injector, hooks.NewHookManager)
+	do.ProvideValue(injector, shared.AgentFactory(mockAgentFactory))
+	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
+	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
+	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
+	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
+	do.Provide(injector, NewFlowExecutor)
+
+	svc := do.MustInvoke[FlowExecutorService](injector)
+
+	flow := &flows.Flow{
+		Name: "test",
+		Agents: []flows.Agent{
+			{Name: "worker", Model: "claude-3.5", Prompt: "You are a helper"},
+		},
+		States: []flows.State{
+			{Name: "init", Initial: true, Steps: []flows.Step{
+				{Type: "llm", Agent: "worker", Prompt: "test", Tools: "bash,set_context_field,read_file"},
+			}},
+		},
+	}
+
+	exec := svc.New(flow)
+	step := &flows.Step{Type: "llm", Agent: "worker", Prompt: "test", Tools: "bash,set_context_field,read_file"}
+	_ = exec.(*flowExecutorImpl).executeStep(step, "init")
+
+	// Verify flow tools were separated from built-in tools
 	require.NotNil(t, capturedConfig)
 	assert.Equal(t, []string{"bash", "read_file"}, capturedConfig.AllowedTools)
 }
