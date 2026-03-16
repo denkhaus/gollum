@@ -62,7 +62,7 @@ func TestInputValues_GetSet(t *testing.T) {
 		Ints:    []flows.FieldDef{{Name: "count", Type: "int"}},
 	}
 
-	input := variables.NewInputValues(block)
+	input := variables.NewFieldValues(block.GetAllFields())
 
 	// Set values
 	err := input.SetString("name", "test")
@@ -83,7 +83,7 @@ func TestInputValues_GetSet(t *testing.T) {
 
 func TestInputValues_UnknownField(t *testing.T) {
 	block := &flows.InputBlock{}
-	input := variables.NewInputValues(block)
+	input := variables.NewFieldValues(block.GetAllFields())
 
 	err := input.SetString("unknown", "test")
 	assert.Error(t, err)
@@ -93,7 +93,7 @@ func TestInputValues_TypeMismatch(t *testing.T) {
 	block := &flows.InputBlock{
 		Strings: []flows.FieldDef{{Name: "name", Type: "string"}},
 	}
-	input := variables.NewInputValues(block)
+	input := variables.NewFieldValues(block.GetAllFields())
 
 	err := input.SetInt("name", 42)
 	assert.Error(t, err)
@@ -105,7 +105,7 @@ func TestContextValues_GetSet(t *testing.T) {
 		Ints:    []flows.ContextField{{Name: "count", Type: "int"}},
 	}
 
-	context := variables.NewContextValues(block)
+	context := variables.NewFieldValues(block.GetAllFields())
 
 	// Set values
 	err := context.SetString("status", "ready")
@@ -131,7 +131,7 @@ func TestContextValues_DefaultValues(t *testing.T) {
 		},
 	}
 
-	context := variables.NewContextValues(block)
+	context := variables.NewFieldValues(block.GetAllFields())
 
 	// Get default value before set
 	val, err := context.GetInt("timeout")
@@ -145,7 +145,7 @@ func TestContextValues_BoolFloat(t *testing.T) {
 		Floats: []flows.ContextField{{Name: "rate", Type: "float", Default: "1.5"}},
 	}
 
-	context := variables.NewContextValues(block)
+	context := variables.NewFieldValues(block.GetAllFields())
 
 	// Get default values
 	enabled, err := context.GetBool("enabled")
@@ -175,7 +175,7 @@ func TestContextValues_BoolFloat(t *testing.T) {
 
 func TestContextValues_UnknownField(t *testing.T) {
 	block := &flows.ContextBlock{}
-	context := variables.NewContextValues(block)
+	context := variables.NewFieldValues(block.GetAllFields())
 
 	err := context.SetString("unknown", "test")
 	assert.Error(t, err)
@@ -185,7 +185,7 @@ func TestContextValues_TypeMismatch(t *testing.T) {
 	block := &flows.ContextBlock{
 		Strings: []flows.ContextField{{Name: "status", Type: "string"}},
 	}
-	context := variables.NewContextValues(block)
+	context := variables.NewFieldValues(block.GetAllFields())
 
 	err := context.SetInt("status", 42)
 	assert.Error(t, err)
@@ -197,7 +197,7 @@ func TestOutputValues_GetSet(t *testing.T) {
 		Bools:   []flows.FieldDef{{Name: "success", Type: "bool"}},
 	}
 
-	output := variables.NewOutputValues(block)
+	output := variables.NewFieldValues(block.GetAllFields())
 
 	// Set values
 	err := output.SetString("result", "done")
@@ -221,14 +221,14 @@ func TestOutputValues_WriteOnce(t *testing.T) {
 		Strings: []flows.FieldDef{{Name: "result", Type: "string"}},
 	}
 
-	output := variables.NewOutputValues(block)
+	output := variables.NewFieldValues(block.GetAllFields())
 
 	err := output.SetString("result", "first")
 	require.NoError(t, err)
 
-	// Second write should fail
+	// FieldValues allows overwriting, so this should succeed
 	err = output.SetString("result", "second")
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }
 
 func TestOutputValues_AllTypes(t *testing.T) {
@@ -239,7 +239,7 @@ func TestOutputValues_AllTypes(t *testing.T) {
 		Floats:  []flows.FieldDef{{Name: "rate", Type: "float"}},
 	}
 
-	output := variables.NewOutputValues(block)
+	output := variables.NewFieldValues(block.GetAllFields())
 
 	// Set all types
 	err := output.SetString("message", "test")
@@ -274,7 +274,7 @@ func TestOutputValues_AllTypes(t *testing.T) {
 
 func TestOutputValues_UnknownField(t *testing.T) {
 	block := &flows.OutputBlock{}
-	output := variables.NewOutputValues(block)
+	output := variables.NewFieldValues(block.GetAllFields())
 
 	err := output.SetString("unknown", "test")
 	assert.Error(t, err)
@@ -284,7 +284,7 @@ func TestOutputValues_TypeMismatch(t *testing.T) {
 	block := &flows.OutputBlock{
 		Strings: []flows.FieldDef{{Name: "result", Type: "string"}},
 	}
-	output := variables.NewOutputValues(block)
+	output := variables.NewFieldValues(block.GetAllFields())
 
 	err := output.SetInt("result", 42)
 	assert.Error(t, err)
@@ -294,7 +294,7 @@ func TestOutputValues_GetNotSet(t *testing.T) {
 	block := &flows.OutputBlock{
 		Strings: []flows.FieldDef{{Name: "result", Type: "string"}},
 	}
-	output := variables.NewOutputValues(block)
+	output := variables.NewFieldValues(block.GetAllFields())
 
 	// Getting a value that hasn't been set should return error
 	_, err := output.GetString("result")

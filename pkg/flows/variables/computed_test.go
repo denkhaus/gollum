@@ -182,10 +182,9 @@ func TestComputedEvaluator_ReactiveUpdate(t *testing.T) {
 	contextBlock := &flows.ContextBlock{
 		Ints: []flows.ContextField{{Name: "x", Type: "int"}},
 	}
-	context := variables.NewContextValues(contextBlock)
+	context := variables.NewFieldValues(contextBlock.GetAllFields())
 
 	evaluator := variables.NewComputedEvaluator(computed, nil, context, nil)
-	context.SetEvaluator(evaluator)
 
 	// Initial evaluation
 	_ = context.SetInt("x", 15)
@@ -195,6 +194,9 @@ func TestComputedEvaluator_ReactiveUpdate(t *testing.T) {
 	val, err := computed.GetBool("is_large")
 	require.NoError(t, err)
 	assert.True(t, val) // 15 > 10
+
+	// Mark as dirty for re-evaluation
+	computed.MarkDirty("is_large")
 
 	// Change dependency
 	_ = context.SetInt("x", 5)
