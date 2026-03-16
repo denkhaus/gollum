@@ -55,6 +55,39 @@ In template contexts, **wrap field references** in `${}`:
 </step>
 ```
 
+### Field References: NO `${}` Syntax
+
+**Field reference contexts** (pointing to fields, not values):
+- `from` and `to` parameters in `assign` function
+- `value` attributes in call input/output
+
+These reference **where** to read/write, not the value itself:
+
+```xml
+<!-- Correct: Assign function -->
+<step type="func" function="assign">
+    <params>
+        <param name="from" value="computed.sum" />  <!-- Plain prefix.field -->
+        <param name="to" value="output.result" />
+    </params>
+</step>
+
+<!-- Correct: Call input/output -->
+<call ref="sub-flow">
+    <input>
+        <string name="source" value="input.target" />  <!-- Plain prefix.field -->
+    </input>
+    <output>
+        <int name="score" value="context.analysis" />  <!-- Plain prefix.field -->
+    </output>
+</call>
+```
+
+❌ **Wrong** - Using `${}` in field references:
+```xml
+<param name="from" value="${computed.sum}" />  <!-- Wrong: not a template -->
+```
+
 ## Field Scopes
 
 When referencing fields, always use the absolute path syntax:
