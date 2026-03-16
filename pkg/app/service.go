@@ -220,6 +220,7 @@ func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (sha
 		return nil, nil, fmt.Errorf("failed to get supervisor prompt: %w", err)
 	}
 
+	// TODO: Convert MCP tool sets to AllowedTools in Task 3
 	toolSet := p.mcpRegistry.GetToolSets()
 	if len(toolSet) == 0 {
 		p.logService.Warn("no mcp servers configured for supervision agent")
@@ -229,7 +230,7 @@ func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (sha
 	agentConfig := &shared.AgentConfig{
 		AllowCompaction: true,
 		SystemPrompt:    systemPrompt,
-		ToolSets:        toolSet,
+		AllowedTools:    nil, // TODO: Configure supervisor tools explicitly
 		Role:            "Supervisor Agent",
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/glm-4.7",

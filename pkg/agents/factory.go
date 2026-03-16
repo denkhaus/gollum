@@ -104,27 +104,6 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 		config.ID = uuid.New()
 	}
 
-	// Add default tools to all agents (both root and sub-agents)
-	// This ensures subagents created by SpawnAgentTool have access to tools
-	defaultTools := []gollem.Tool{
-		f.spawnAgentToolProv.CreateTool(config.ID, f),
-		f.agentOutputToolProv.CreateTool(config.ID),
-		f.removeAgentToolProv.CreateTool(config.ID),
-		f.resumeAgentToolProv.CreateTool(config.ID),
-		f.listAgentsToolProv.CreateTool(config.ID),
-		f.currentTimeToolProv.CreateTool(config.ID),
-		f.bashToolProv.CreateTool(config.ID),
-		f.writeFileToolProv.CreateTool(config.ID),
-		f.readFileToolProv.CreateTool(config.ID),
-		f.globToolProv.CreateTool(config.ID),
-		f.grepToolProv.CreateTool(config.ID),
-		f.editToolProv.CreateTool(config.ID),
-		f.sessionLogsToolProv.CreateTool(config.ID),
-		f.changeDirectoryToolProv.CreateTool(config.ID),
-		f.invokeSkillToolProv.CreateTool(config.ID, f),
-	}
-	config.Tools = append(config.Tools, defaultTools...)
-
 	// Create the base agent
 	defAgent := &defaultAgent{
 		clientProvider: f.clientProvider,
@@ -157,10 +136,9 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 	}
 
 	// Build base gollem options (common to all modes)
+	// TODO: Resolve tools from AllowedTools in Task 3
 	baseOptions := []gollem.Option{
 		gollem.WithStrategy(config.Strategy),
-		gollem.WithTools(config.Tools...),
-		gollem.WithToolSets(config.ToolSets...),
 		gollem.WithSystemPrompt(config.SystemPrompt),
 	}
 
@@ -197,6 +175,9 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 
 	// Create gollem agent with configured options
 	defAgent.base = gollem.New(client, baseOptions...)
+
+	// TODO: Resolve and set tools from AllowedTools in Task 3
+	defAgent.tools = nil
 
 	return defAgent, nil
 }

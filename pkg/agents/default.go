@@ -31,6 +31,7 @@ type (
 		// Required for session recreation
 		llmClient     gollem.LLMClient
 		promptManager manager.PromptManager
+		tools         []gollem.Tool // Resolved tools for agent recreation
 	}
 )
 
@@ -130,8 +131,7 @@ func (p *defaultAgent) UpdateHistory(ctx context.Context, modifier func(*gollem.
 func (p *defaultAgent) buildOptionsWithHistory(history *gollem.History) []gollem.Option {
 	options := []gollem.Option{
 		gollem.WithStrategy(p.config.Strategy),
-		gollem.WithTools(p.config.Tools...),
-		gollem.WithToolSets(p.config.ToolSets...),
+		gollem.WithTools(p.tools...),
 		gollem.WithSystemPrompt(p.config.SystemPrompt),
 	}
 

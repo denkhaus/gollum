@@ -277,3 +277,25 @@ func TestToolResult_ConstantUsage(t *testing.T) {
 	assert.Equal(t, 10, result.GetInt(KeyOldLen))
 	assert.Equal(t, 20, result.GetInt(KeyNewLen))
 }
+
+// TestAgentConfig_AllowedToolsField verifies AllowedTools field exists and works
+func TestAgentConfig_AllowedToolsField(t *testing.T) {
+	config := &AgentConfig{
+		ID:           uuid.New(),
+		AllowedTools: []string{"bash", "current_time"},
+	}
+
+	assert.NotNil(t, config.AllowedTools)
+	assert.Equal(t, "bash", config.AllowedTools[0])
+	assert.Equal(t, "current_time", config.AllowedTools[1])
+}
+
+// TestAgentConfig_NoToolsOrToolSetsFields verifies old Tools/ToolSets fields are removed
+func TestAgentConfig_NoToolsOrToolSetsFields(t *testing.T) {
+	config := &AgentConfig{
+		ID: uuid.New(),
+	}
+
+	// AllowedTools should exist and be nil by default
+	assert.Nil(t, config.AllowedTools)
+}

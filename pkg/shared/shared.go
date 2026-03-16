@@ -152,12 +152,16 @@ type AgentConfig struct {
 	Role            string           `json:"role"`
 	Description     string           `json:"description"`
 	Strategy        gollem.Strategy  `json:"-"`
-	Tools           []gollem.Tool    `json:"-"`
-	ToolSets        []gollem.ToolSet `json:"-"`
 	LLMClientConfig *LLMClientConfig `json:"llm_client_config"`
 	OutputMode      OutputMode       `json:"output_mode"`
 	AllowCompaction bool             `json:"allow_compaction"`
 	History         *gollem.History  `json:"history,omitempty"` // Optional parent message history for context awareness
+
+	// AllowedTools specifies which tools the agent can access.
+	// Built-in tools use ToolName constants (e.g., "bash", "current_time").
+	// MCP tools use "server_name/tool_name" format (e.g., "filesystem/read_file").
+	// Empty or nil means no tools available.
+	AllowedTools []string `json:"allowed_tools"`
 }
 
 // AgentStatus represents the execution status of a background agent.

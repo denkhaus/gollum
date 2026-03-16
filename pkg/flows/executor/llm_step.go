@@ -30,13 +30,11 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 	// Substitute variables in prompt
 	prompt := SubstituteTemplate(p.ctx, step.Prompt)
 
-	// Parse tools from step specification
-	tools, err := p.parseStepTools(step.Tools)
-	if err != nil {
-		return fmt.Errorf("failed to parse tools: %w", err)
-	}
+	// TODO: Parse tools from step specification in Task 5
+	_, _ = p.parseStepTools(step.Tools) // Temporarily ignore result
 
 	// Map flow Agent to shared.AgentConfig
+	// TODO: Parse step.Tools into AllowedTools in Task 5
 	config := &shared.AgentConfig{
 		ID:              uuid.New(),
 		SystemPrompt:    agentConfig.Prompt,
@@ -45,8 +43,7 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 		LLMClientConfig: agentConfig.ToClientConfig(),
 		OutputMode:      shared.OutputModeSilent, // Suppress output during flow execution
 		Strategy:        simple.New(),
-		Tools:           tools,
-		ToolSets:        nil,
+		AllowedTools:    nil, // TODO: Parse from step.Tools in Task 5
 	}
 
 	// Create agent using factory
