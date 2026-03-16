@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/flows"
+	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 // FuncError represents an error during func step execution
@@ -38,20 +39,12 @@ func (e *MCPError) Unwrap() error {
 	return e.Err
 }
 
-// ErrorContext holds error lifecycle information
-type ErrorContext struct {
-	StepName  string
-	StepType  string
-	Message   string
-	Timestamp time.Time
-}
-
 // captureError captures error information and sets error context
 func (p *flowExecutorImpl) captureError(step *flows.Step, errMsg string) {
 	now := time.Now()
 
 	// Set error context
-	p.ctx.SetError(&ErrorContext{
+	p.ctx.SetError(&shared.ErrorContext{
 		StepName:  step.Name,
 		StepType:  step.Type,
 		Message:   errMsg,

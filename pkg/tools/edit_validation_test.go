@@ -22,7 +22,7 @@ func TestEditToolValidation(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
 
 	agentID := uuid.New()
@@ -140,7 +140,7 @@ func TestEditToolFileNotRead(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	agentID := uuid.New()
@@ -179,7 +179,7 @@ func TestEditToolStaleFile(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	agentID := uuid.New()

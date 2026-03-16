@@ -72,7 +72,7 @@ func TestInvokeSkillTool_MissingRequiredParameters(t *testing.T) {
 
 			senderID := uuid.New()
 			mockLogger := mocks.NewMockLoggerService(ctrl)
-			mockHookManager := mocks.NewMockHookManager(ctrl)
+			mockHookManager := hooks.NewMockHookManager(ctrl)
 
 			// Allow any logger calls
 			mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -103,7 +103,7 @@ func TestInvokeSkillTool_SkillNotFound(t *testing.T) {
 
 	senderID := uuid.New()
 	mockLogger := mocks.NewMockLoggerService(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockSkillService := mocks.NewMockSkillService(ctrl)
 
 	// Set up hook manager to pass through
@@ -139,7 +139,7 @@ func TestInvokeSkillTool_InvalidContextMode(t *testing.T) {
 
 	senderID := uuid.New()
 	mockLogger := mocks.NewMockLoggerService(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockSkillService := mocks.NewMockSkillService(ctrl)
 
 	// Set up hook manager to pass through
@@ -181,7 +181,7 @@ func TestInvokeSkillTool_InvalidModel(t *testing.T) {
 
 	senderID := uuid.New()
 	mockLogger := mocks.NewMockLoggerService(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockSkillService := mocks.NewMockSkillService(ctrl)
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
 
@@ -226,7 +226,7 @@ func TestInvokeSkillTool_SkillWithNoContent(t *testing.T) {
 
 	senderID := uuid.New()
 	mockLogger := mocks.NewMockLoggerService(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockSkillService := mocks.NewMockSkillService(ctrl)
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
 
@@ -333,7 +333,7 @@ func TestInvokeSkillTool_TriggersSkillHooks(t *testing.T) {
 
 	senderID := uuid.New()
 	mockLogger := mocks.NewMockLoggerService(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockSkillService := mocks.NewMockSkillService(ctrl)
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
 	mockFactory := mocks.NewMockAgentFactory(ctrl)

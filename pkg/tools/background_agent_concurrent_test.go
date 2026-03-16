@@ -31,7 +31,7 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 	// Setup mocks
 	mockFactory := mocks.NewMockAgentFactory(ctrl)
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	mockConfigService := setupMockConfigService(ctrl)
 
@@ -155,7 +155,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	mockFactory := mocks.NewMockAgentFactory(ctrl)
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
 	mockConfigService := mocks.NewMockConfigService(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	execHelper := do.MustInvoke[AgentExecutionHelper](injector)
 
 	// Setup mock hook manager to pass-through hooks

@@ -26,7 +26,7 @@ func NewExecutor(flow *flows.Flow) *flowExecutorImpl {
 
 	return &flowExecutorImpl{
 		flow:              flow,
-		ctx:               NewContext(flow.Input, flow.Output, flow.Context, nil),
+		ctx:               newContext(flow.Input, flow.Output, flow.Context, nil),
 		history:           NewExecutionHistory(),
 		currentState:      currentState,
 		bashToolProvider:  &testBashToolProvider{},
@@ -41,7 +41,7 @@ func NewExecutor(flow *flows.Flow) *flowExecutorImpl {
 func NewExecutorWithRegistry(flow *flows.Flow, registry flowregistry.FlowRegistry) *flowExecutorImpl {
 	return &flowExecutorImpl{
 		flow:              flow,
-		ctx:               NewContext(flow.Input, flow.Output, flow.Context, nil),
+		ctx:               newContext(flow.Input, flow.Output, flow.Context, nil),
 		history:           NewExecutionHistory(),
 		bashToolProvider:  &testBashToolProvider{},
 		extService:        &testExtensionService{},
@@ -55,7 +55,7 @@ func NewExecutorWithRegistry(flow *flows.Flow, registry flowregistry.FlowRegistr
 func NewExecutorWithProvider(flow *flows.Flow, provider tools.BashToolProvider) *flowExecutorImpl {
 	return &flowExecutorImpl{
 		flow:              flow,
-		ctx:               NewContext(flow.Input, flow.Output, flow.Context, nil),
+		ctx:               newContext(flow.Input, flow.Output, flow.Context, nil),
 		history:           NewExecutionHistory(),
 		bashToolProvider:  provider,
 		extService:        &testExtensionService{},
@@ -150,7 +150,7 @@ func (m *testFlowRegistry) GetFlow(name string) (*flows.Flow, error) {
 
 type testFlowToolsProvider struct{}
 
-func (m *testFlowToolsProvider) CreateTool(agentID uuid.UUID, flowCtx tools.FlowContext, toolName shared.ToolName) (gollem.Tool, error) {
+func (m *testFlowToolsProvider) CreateTool(agentID uuid.UUID, flowCtx shared.FlowContext, toolName shared.ToolName) (gollem.Tool, error) {
 	// Return a mock tool that does nothing
 	return &testFlowTool{}, nil
 }

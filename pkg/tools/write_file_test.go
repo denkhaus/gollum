@@ -27,7 +27,7 @@ func TestWriteFileTool_Spec(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
@@ -69,7 +69,7 @@ func TestWriteFileTool_Run_Success(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
@@ -132,7 +132,7 @@ func TestWriteFileTool_Run_InvalidInput(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
@@ -215,7 +215,7 @@ func TestWriteFileTool_Run_CreateDirectories(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
@@ -270,7 +270,7 @@ func TestWriteFileTool_Run_CreateDirectoriesFalse(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
@@ -320,7 +320,7 @@ func TestWriteFileTool_Run_OverwriteExisting(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	agentID := uuid.New()
@@ -402,7 +402,7 @@ func TestWriteFileTool_Run_AutomaticRaceConditionDetection(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create tools for the same agent
@@ -479,7 +479,7 @@ func TestWriteFileTool_Run_WriteCode(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
@@ -536,7 +536,7 @@ func TestWriteFileTool_Run_EmptyContent(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
@@ -584,7 +584,7 @@ func TestWriteFileTool_Run_MultiLineContent(t *testing.T) {
 		t.Fatalf("Failed to create FileStateManager: %v", err)
 	}
 
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	mockDiffProvider := mocks.NewMockProvider(ctrl)

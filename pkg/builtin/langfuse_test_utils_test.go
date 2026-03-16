@@ -38,6 +38,10 @@ func (n *nopLogger) IsTUIMode() bool                                   { return 
 func (n *nopLogger) EnableFileLogging(_ string, _ uuid.UUID) error     { return nil }
 func (n *nopLogger) CloseFileLogging() error                           { return nil }
 func (n *nopLogger) Flush() error                                      { return nil }
+func (n *nopLogger) InfoWithFlowStep(_ string, _, _, _ string, _ ...zap.Field) {}
+func (n *nopLogger) DebugWithFlowStep(_ string, _, _, _ string, _ ...zap.Field) {}
+func (n *nopLogger) ErrorWithFlowStep(_ string, _, _, _ string, _ ...zap.Field) {}
+func (n *nopLogger) WarnWithFlowStep(_ string, _, _, _ string, _ ...zap.Field) {}
 
 // testGetEnvOrDefault gets an environment variable or returns the default value.
 func testGetEnvOrDefault(key, defaultValue string) string {

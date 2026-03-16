@@ -20,7 +20,7 @@ func TestDefaultAgent_GetMessageHistory(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("handles nil session", func(t *testing.T) {
-		agent := &defaultAgent{
+		agent := &DefaultAgent{
 			base:   nil, // No base agent set
 			id:     uuid.New(),
 			config: &shared.AgentConfig{},
@@ -34,7 +34,7 @@ func TestDefaultAgent_GetMessageHistory(t *testing.T) {
 	t.Run("handles base agent with nil session", func(t *testing.T) {
 		// This test verifies that when base exists but Session() returns nil
 		// The method handles it gracefully
-		agent := &defaultAgent{
+		agent := &DefaultAgent{
 			base:   nil, // No base agent means no session
 			id:     uuid.New(),
 			config: &shared.AgentConfig{},
@@ -54,7 +54,7 @@ func TestDefaultAgent_GetConfig(t *testing.T) {
 		Role:         "test role",
 	}
 
-	agent := &defaultAgent{
+	agent := &DefaultAgent{
 		id:     uuid.New(),
 		config: config,
 	}
@@ -65,7 +65,7 @@ func TestDefaultAgent_GetConfig(t *testing.T) {
 // TestDefaultAgent_GetID tests GetID method
 func TestDefaultAgent_GetID(t *testing.T) {
 	id := uuid.New()
-	agent := &defaultAgent{
+	agent := &DefaultAgent{
 		id: id,
 	}
 
@@ -76,7 +76,7 @@ func TestDefaultAgent_GetID(t *testing.T) {
 func TestDefaultAgent_Execute_NilBase(t *testing.T) {
 	ctx := context.Background()
 
-	agent := &defaultAgent{
+	agent := &DefaultAgent{
 		base: nil,
 		id:   uuid.New(),
 		config: &shared.AgentConfig{
@@ -92,7 +92,7 @@ func TestDefaultAgent_Execute_NilBase(t *testing.T) {
 
 // TestDefaultAgent_Session_NilBase tests Session with nil base
 func TestDefaultAgent_Session_NilBase(t *testing.T) {
-	agent := &defaultAgent{
+	agent := &DefaultAgent{
 		base: nil,
 		id:   uuid.New(),
 		config: &shared.AgentConfig{
@@ -111,7 +111,7 @@ func TestDefaultAgent_UpdateSystemPrompt(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("config is updated with new prompt", func(t *testing.T) {
-		agent := &defaultAgent{
+		agent := &DefaultAgent{
 			id: uuid.New(), //nolint:unusedwrite // field is required but not used in this test
 			config: &shared.AgentConfig{
 				SystemPrompt: "original prompt",
@@ -127,7 +127,7 @@ func TestDefaultAgent_UpdateSystemPrompt(t *testing.T) {
 	})
 
 	t.Run("handles nil history gracefully", func(t *testing.T) {
-		agent := &defaultAgent{
+		agent := &DefaultAgent{
 			base: nil,
 			id:   uuid.New(),
 			config: &shared.AgentConfig{
@@ -146,7 +146,7 @@ func TestDefaultAgent_UpdateHistory(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("modifier function is called with history", func(t *testing.T) {
-		agent := &defaultAgent{
+		agent := &DefaultAgent{
 			base: nil, // No session
 			id:   uuid.New(),
 			config: &shared.AgentConfig{
@@ -230,7 +230,7 @@ func TestDefaultAgent_UpdateHistory_NilBase(t *testing.T) {
 	ctx := context.Background()
 	agentID := uuid.New()
 
-	agent := &defaultAgent{
+	agent := &DefaultAgent{
 		base: nil,
 		id:   agentID,
 		config: &shared.AgentConfig{
@@ -263,7 +263,7 @@ func TestBuildOptionsWithHistory_BaseOptions(t *testing.T) {
 	t.Run("with nil history and silent mode", func(t *testing.T) {
 		mockPromptMgr.EXPECT().GetPromptByID(gomock.Any(), gomock.Any()).Return(&prompt.Prompt{Content: "compacter prompt"}, nil).AnyTimes()
 
-		agent := &defaultAgent{
+		agent := &DefaultAgent{
 			id:            agentID,
 			llmClient:     mockLLMClient,
 			promptManager: mockPromptMgr,
@@ -290,7 +290,7 @@ func TestBuildOptionsWithHistory_BaseOptions(t *testing.T) {
 
 		mockPromptMgr.EXPECT().GetPromptByID(gomock.Any(), gomock.Any()).Return(&prompt.Prompt{Content: "compacter prompt"}, nil).AnyTimes()
 
-		agent := &defaultAgent{
+		agent := &DefaultAgent{
 			id:            agentID,
 			llmClient:     mockLLMClient,
 			promptManager: mockPromptMgr,
@@ -317,7 +317,7 @@ func TestBuildOptionsWithHistory_BaseOptions(t *testing.T) {
 
 		mockPromptMgr.EXPECT().GetPromptByID(gomock.Any(), gomock.Any()).Return(&prompt.Prompt{Content: "compacter prompt"}, nil).AnyTimes()
 
-		agent := &defaultAgent{
+		agent := &DefaultAgent{
 			id:            agentID,
 			llmClient:     mockLLMClient,
 			promptManager: mockPromptMgr,
@@ -339,7 +339,7 @@ func TestBuildOptionsWithHistory_BaseOptions(t *testing.T) {
 	t.Run("with AllowCompaction true", func(t *testing.T) {
 		mockPromptMgr.EXPECT().GetPromptByID(gomock.Any(), gomock.Any()).Return(&prompt.Prompt{Content: "compacter prompt"}, nil).AnyTimes()
 
-		agent := &defaultAgent{
+		agent := &DefaultAgent{
 			id:            agentID,
 			llmClient:     mockLLMClient,
 			promptManager: mockPromptMgr,

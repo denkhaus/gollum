@@ -32,7 +32,7 @@ func TestSpawnAgentTool_WithShareContext(t *testing.T) {
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
 	mockConfigService := setupMockConfigService(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock parent agent with message history

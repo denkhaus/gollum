@@ -16,7 +16,7 @@ func TestGlobTool_Run_MissingPattern(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
@@ -45,7 +45,7 @@ func TestGlobTool_Run_EmptyPattern(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
@@ -70,7 +70,7 @@ func TestGlobTool_Run_NonStringPattern(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}

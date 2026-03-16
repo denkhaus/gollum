@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/mocks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -19,7 +20,7 @@ func TestAgentOutputTool_Run_NonBlockingMode_Running(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
@@ -67,7 +68,7 @@ func TestAgentOutputTool_Run_NonBlockingMode_Completed(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
@@ -122,7 +123,7 @@ func TestAgentOutputTool_Run_NonBlockingMode_Failed(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
@@ -172,7 +173,7 @@ func TestAgentOutputTool_Run_BlockingMode_Completed(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
@@ -230,7 +231,7 @@ func TestAgentOutputTool_Run_BlockingMode_Timeout(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
@@ -280,7 +281,7 @@ func TestAgentOutputTool_Run_BlockingMode_Failed(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
@@ -334,7 +335,7 @@ func TestAgentOutputTool_Run_CustomTimeout(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()

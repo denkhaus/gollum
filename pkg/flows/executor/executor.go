@@ -22,25 +22,13 @@ import (
 // FlowExecutorService defines the DI service that creates executor instances
 type FlowExecutorService interface {
 	// New creates a new executor instance for a flow
-	New(flow *flows.Flow) FlowExecutorInstance
-}
-
-// FlowExecutorInstance defines the interface for a flow executor instance
-type FlowExecutorInstance interface {
-	// SetInput sets input field values
-	SetInput(vals map[string]string)
-	// Validate validates the flow before execution
-	Validate() error
-	// Run executes the flow from the initial state
-	Run() error
-	// GetContext returns the execution context (for testing)
-	GetContext() *Context
+	New(flow *flows.Flow) shared.FlowExecutorInstance
 }
 
 // flowExecutorImpl is the private implementation of a flow executor instance
 type flowExecutorImpl struct {
 	flow              *flows.Flow
-	ctx               *Context
+	ctx               *contextImpl
 	currentState      string
 	history           *ExecutionHistory
 	startTime         time.Time
@@ -56,7 +44,7 @@ type flowExecutorImpl struct {
 }
 
 // Ensure flowExecutorImpl implements tools.FlowContext
-var _ tools.FlowContext = (*flowExecutorImpl)(nil)
+var _ shared.FlowContext = (*flowExecutorImpl)(nil)
 
 // flowExecutorServiceImpl is the DI service that creates executor instances
 type flowExecutorServiceImpl struct {
@@ -74,7 +62,7 @@ type flowExecutorServiceImpl struct {
 var _ FlowExecutorService = (*flowExecutorServiceImpl)(nil)
 
 // Ensure flowExecutorImpl implements FlowExecutorInstance
-var _ FlowExecutorInstance = (*flowExecutorImpl)(nil)
+var _ shared.FlowExecutorInstance = (*flowExecutorImpl)(nil)
 
 // NewFlowExecutor creates the flow executor service (DI constructor)
 func NewFlowExecutor(injector do.Injector) (FlowExecutorService, error) {
@@ -100,8 +88,8 @@ func NewFlowExecutor(injector do.Injector) (FlowExecutorService, error) {
 }
 
 // New creates a new executor instance for a specific flow
-func (p *flowExecutorServiceImpl) New(flow *flows.Flow) FlowExecutorInstance {
-	ctx := NewContext(flow.Input, flow.Output, flow.Context, nil)
+func (p *flowExecutorServiceImpl) New(flow *flows.Flow) shared.FlowExecutorInstance {
+	ctx := newContext(flow.Input, flow.Output, flow.Context, nil)
 
 	// Initialize computed fields from ComputedBlock
 	if flow.Computed != nil {
@@ -126,7 +114,7 @@ func (p *flowExecutorServiceImpl) New(flow *flows.Flow) FlowExecutorInstance {
 
 // SetInput sets input field values
 func (p *flowExecutorImpl) SetInput(vals map[string]string) {
-	ctx := NewContext(p.flow.Input, p.flow.Output, p.flow.Context, vals)
+	ctx := newContext(p.flow.Input, p.flow.Output, p.flow.Context, vals)
 
 	// Initialize computed fields from ComputedBlock
 	if p.flow.Computed != nil {
@@ -180,7 +168,7 @@ func (p *flowExecutorImpl) Run() error {
 }
 
 // GetContext returns the execution context (for testing)
-func (p *flowExecutorImpl) GetContext() *Context {
+func (p *flowExecutorImpl) GetContext() shared.ExecutionContext {
 	return p.ctx
 }
 
@@ -569,7 +557,7 @@ func (p *flowExecutorImpl) executeCall(call *flows.Call, _ string) error {
 	}
 
 	// Create executor for sub-flow using the service
-	subCtx := NewContext(subFlow.Input, subFlow.Output, subFlow.Context, subInput)
+	subCtx := newContext(subFlow.Input, subFlow.Output, subFlow.Context, subInput)
 
 	// Initialize computed fields for sub-flow
 	if subFlow.Computed != nil {

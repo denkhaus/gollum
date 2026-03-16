@@ -8,6 +8,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/flows/ast"
 	"github.com/denkhaus/gollum/pkg/flows/errors"
 	"github.com/denkhaus/gollum/pkg/flows/variables"
+	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 // Evaluator wraps the ast package for expression evaluation
@@ -58,8 +59,8 @@ func extractDeps(expr ast.Expr, deps *[]string) {
 	}
 }
 
-// Context manages execution context with input, output, and computed fields
-type Context struct {
+// Context manages execution contextImpl with input, output, and computed fields
+type contextImpl struct {
 	inputBlock    *flows.InputBlock
 	inputVals     *variables.FieldValues[flows.FieldDef]
 	outputBlock   *flows.OutputBlock
@@ -69,17 +70,25 @@ type Context struct {
 	computedBlock *flows.ComputedBlock
 	computedVals  *variables.ComputedValues
 	eval          *Evaluator
-	lastError     *ErrorContext
+	lastError     *shared.ErrorContext
 }
 
-// NewContext creates a new execution context with optional schema definitions
 func NewContext(
 	inputBlock *flows.InputBlock,
 	outputBlock *flows.OutputBlock,
 	contextBlock *flows.ContextBlock,
+	inputVals map[string]string) shared.ExecutionContext {
+	return newContext(inputBlock, outputBlock, contextBlock, inputVals)
+}
+
+// NewContext creates a new execution context with optional schema definitions
+func newContext(
+	inputBlock *flows.InputBlock,
+	outputBlock *flows.OutputBlock,
+	contextBlock *flows.ContextBlock,
 	inputVals map[string]string,
-) *Context {
-	ctx := &Context{
+) *contextImpl {
+	ctx := &contextImpl{
 		inputBlock:    inputBlock,
 		inputVals:     variables.NewFieldValues(getAllFieldsSafe(inputBlock)),
 		outputBlock:   outputBlock,
@@ -140,7 +149,7 @@ func getAllContextFieldsSafe(block *flows.ContextBlock) []flows.ContextField {
 }
 
 // SetComputedBlock sets the computed field definitions and initializes the evaluator
-func (c *Context) SetComputedBlock(block *flows.ComputedBlock) {
+func (c *contextImpl) SetComputedBlock(block *flows.ComputedBlock) {
 	c.computedBlock = block
 
 	if block == nil {
@@ -159,7 +168,7 @@ func (c *Context) SetComputedBlock(block *flows.ComputedBlock) {
 }
 
 // GetInput retrieves an input field value
-func (c *Context) GetInput(name string) any {
+func (c *contextImpl) GetInput(name string) any {
 	if c.inputBlock == nil {
 		return nil
 	}
@@ -188,7 +197,7 @@ func (c *Context) GetInput(name string) any {
 
 // GetContextField retrieves a context field value
 // Returns error if field is not defined or not set
-func (c *Context) GetContextField(name string) (any, error) {
+func (c *contextImpl) GetContextField(name string) (any, error) {
 	if c.contextValues == nil {
 		return nil, &errors.NoSchemaError{
 			FlowError: errors.FlowError{
@@ -255,7 +264,7 @@ func (c *Context) GetContextField(name string) (any, error) {
 
 // SetContextField sets a context field value
 // Returns error if the field is not defined in the schema or if type conversion fails
-func (c *Context) SetContextField(name string, value any) error {
+func (c *contextImpl) SetContextField(name string, value any) error {
 	if c.contextValues == nil {
 		return &errors.NoSchemaError{
 			FlowError: errors.FlowError{
@@ -296,7 +305,7 @@ func (c *Context) SetContextField(name string, value any) error {
 
 // SetOutputField sets the output variable by name
 // Returns error if the field is not defined in the output schema
-func (c *Context) SetOutputField(name string, value any) error {
+func (c *contextImpl) SetOutputField(name string, value any) error {
 	if c.outputValues == nil {
 		return &errors.NoSchemaError{
 			FlowError: errors.FlowError{
@@ -337,7 +346,7 @@ func (c *Context) SetOutputField(name string, value any) error {
 
 // GetOutputField retrieves an output field value
 // Returns error if field is not defined or not set
-func (c *Context) GetOutputField(name string) (any, error) {
+func (c *contextImpl) GetOutputField(name string) (any, error) {
 	if c.outputValues == nil {
 		return nil, &errors.NoSchemaError{
 			FlowError: errors.FlowError{
@@ -392,19 +401,18 @@ func (c *Context) GetOutputField(name string) (any, error) {
 	}
 }
 
-
 // SetError sets the last error context
-func (c *Context) SetError(err *ErrorContext) {
+func (c *contextImpl) SetError(err *shared.ErrorContext) {
 	c.lastError = err
 }
 
 // GetError returns the last error context (may be nil)
-func (c *Context) GetError() *ErrorContext {
+func (c *contextImpl) GetError() *shared.ErrorContext {
 	return c.lastError
 }
 
 // EvaluateComputed evaluates all computed fields using the ComputedEvaluator
-func (c *Context) EvaluateComputed() error {
+func (c *contextImpl) EvaluateComputed() error {
 	if c.computedVals == nil {
 		return nil
 	}
@@ -417,14 +425,14 @@ func (c *Context) EvaluateComputed() error {
 }
 
 // GetComputedEvaluator returns a configured ComputedEvaluator for this context
-func (c *Context) GetComputedEvaluator() *variables.ComputedEvaluator {
+func (c *contextImpl) GetComputedEvaluator() *variables.ComputedEvaluator {
 	// Use existing input, context and output wrappers (source of truth)
 	return variables.NewComputedEvaluator(c.computedVals, c.inputVals, c.contextValues, c.outputValues)
 }
 
 // buildScope builds the evaluation scope for backward compatibility
 // TODO: Remove this once all code uses GetComputedEvaluator
-func (c *Context) buildScope() map[string]any {
+func (c *contextImpl) buildScope() map[string]any {
 	scope := make(map[string]any)
 
 	// Build input scope from typed wrapper
@@ -480,7 +488,7 @@ func (c *Context) buildScope() map[string]any {
 }
 
 // GetComputedField retrieves a computed field value
-func (c *Context) GetComputedField(name string) (any, error) {
+func (c *contextImpl) GetComputedField(name string) (any, error) {
 	if !c.computedVals.Has(name) {
 		return nil, &errors.UnknownFieldError{
 			FlowError: errors.FlowError{

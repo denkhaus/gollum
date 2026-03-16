@@ -21,7 +21,7 @@ func TestListAgentsTool_Spec(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	registry := mocks.NewMockAgentRegistry(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	tool := &listAgentsToolImpl{
@@ -57,7 +57,7 @@ func TestListAgentsTool_Run_SuccessNoRelatedAgents(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	senderID := uuid.New()
 	registry := mocks.NewMockAgentRegistry(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	registry.EXPECT().GetChildren(senderID).Return([]shared.Agent{})
 	registry.EXPECT().GetParent(senderID).Return(nil, false)
@@ -91,7 +91,7 @@ func TestListAgentsTool_Run_SuccessWithSubagentsOnly(t *testing.T) {
 	childID2 := uuid.New()
 
 	registry := mocks.NewMockAgentRegistry(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock child agents
@@ -151,7 +151,7 @@ func TestListAgentsTool_Run_SuccessWithParentOnly(t *testing.T) {
 	parentID := uuid.New()
 
 	registry := mocks.NewMockAgentRegistry(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock parent agent
@@ -202,7 +202,7 @@ func TestListAgentsTool_Run_SuccessWithParentAndSubagents(t *testing.T) {
 	childID2 := uuid.New()
 
 	registry := mocks.NewMockAgentRegistry(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock parent agent
@@ -322,7 +322,7 @@ func TestListAgentsTool_Run_RecursiveFlag(t *testing.T) {
 	grandchildID := uuid.New()
 
 	registry := mocks.NewMockAgentRegistry(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock agents
@@ -391,7 +391,7 @@ func TestListAgentsTool_Run_TreeFlag(t *testing.T) {
 	childID2 := uuid.New()
 
 	registry := mocks.NewMockAgentRegistry(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock child agents
@@ -449,7 +449,7 @@ func TestListAgentsTool_Run_TreeFlagWithRecursive(t *testing.T) {
 	grandchildID := uuid.New()
 
 	registry := mocks.NewMockAgentRegistry(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Create mock agents

@@ -18,7 +18,7 @@ func TestEditToolSpec(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	tool := &editToolImpl{
 		fsm:         mockFSM,
 		hookManager: mockHookManager,
@@ -50,7 +50,7 @@ func TestEditToolSpecIsConstant(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	tool := &editToolImpl{
 		fsm:         mockFSM,
 		hookManager: mockHookManager,

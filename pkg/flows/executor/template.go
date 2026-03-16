@@ -5,13 +5,14 @@ import (
 	"regexp"
 
 	"github.com/denkhaus/gollum/pkg/flows"
+	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 // Substitution matches ${input.field}, ${context.field}, ${output.field}
 var subRegex = regexp.MustCompile(`\$\{(input|context|output)\.([^}]+)\}`)
 
 // SubstituteTemplate replaces variables in template strings
-func SubstituteTemplate(ctx *Context, tmpl string) string {
+func SubstituteTemplate(ctx shared.ExecutionContext, tmpl string) string {
 	return subRegex.ReplaceAllStringFunc(tmpl, func(match string) string {
 		// Extract input.field from ${input.field}
 		parts := subRegex.FindStringSubmatch(match)

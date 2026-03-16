@@ -45,7 +45,7 @@ func TestResumeAgentToolValidation(t *testing.T) {
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Set up default behavior for response helper methods
@@ -124,7 +124,7 @@ func TestResumeAgentToolAgentNotFound(t *testing.T) {
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Set up default behavior for response helper methods
@@ -170,7 +170,7 @@ func TestResumeAgentToolSynchronousExecution(t *testing.T) {
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	mockAgent := mocks.NewMockAgent(ctrl)
@@ -236,7 +236,7 @@ func TestResumeAgentToolAsynchronousExecution(t *testing.T) {
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Set up default behavior for response helper methods
@@ -303,7 +303,7 @@ func TestResumeAgentToolProvider_CreateTool(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
 	mockRegistry := mocks.NewMockAgentRegistry(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 
 	provider := &resumeAgentToolProvider{
 		logService:  logService,
@@ -330,7 +330,7 @@ func TestResumeAgentTool_PermissionDenied(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockExecHelper := mocks.NewMockAgentExecutionHelper(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Set up default behavior for response helper methods

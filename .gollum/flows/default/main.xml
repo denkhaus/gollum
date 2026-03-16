@@ -41,7 +41,7 @@
                         1. The current time as string to the context like so: set_context_field("the_current_time", <DD.MM.YY HH:mm:ss>).
                         2. The hour to the context like so: set_context_field("hour", <hour>).
                     ]]></prompt>
-                    <tools>set_context_field</tools>
+                    <tools>set_context_field,current_time</tools>
                     <timeout>60s</timeout>
                 </step>
             </steps>

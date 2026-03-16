@@ -17,32 +17,12 @@ import (
 
 type (
 
-	// FlowContext defines the interface for accessing flow execution state
-	FlowContext interface {
-		// SetOutputField sets an output field value
-		SetOutputField(name string, value any) error
-		// GetOutputField retrieves an output field value
-		GetOutputField(name string) (any, error)
-		// SetContextField sets a context field value
-		SetContextField(name string, value any) error
-		// GetContextField retrieves a context field value
-		GetContextField(name string) (any, error)
-		// GetCurrentState returns the current state name
-		GetCurrentState() string
-		// GetAllContextFields returns all context fields
-		GetAllContextFields() map[string]any
-		// ValidateTransition checks if a transition is allowed
-		ValidateTransition(from, to string) error
-		// RequestTransition signals that the flow should transition to the target state
-		RequestTransition(to string) error
-	}
-
 	// setOutputFieldTool sets an output field value during flow execution
 	setOutputFieldTool struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		agentID     uuid.UUID
-		flowCtx     FlowContext
+		flowCtx     shared.FlowContext
 	}
 
 	// setContextFieldTool sets a context field value during flow execution
@@ -50,7 +30,7 @@ type (
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		agentID     uuid.UUID
-		flowCtx     FlowContext
+		flowCtx     shared.FlowContext
 	}
 
 	// getContextTool retrieves context fields during flow execution
@@ -58,7 +38,7 @@ type (
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		agentID     uuid.UUID
-		flowCtx     FlowContext
+		flowCtx     shared.FlowContext
 	}
 
 	// emitLogTool emits log messages during flow execution
@@ -66,7 +46,7 @@ type (
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		agentID     uuid.UUID
-		flowCtx     FlowContext
+		flowCtx     shared.FlowContext
 	}
 
 	// transitionToTool transitions to a new state during flow execution
@@ -74,7 +54,7 @@ type (
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		agentID     uuid.UUID
-		flowCtx     FlowContext
+		flowCtx     shared.FlowContext
 	}
 
 	flowToolsProvider struct {
@@ -84,7 +64,7 @@ type (
 
 	// FlowToolsProvider creates flow executor tools via DI
 	FlowToolsProvider interface {
-		CreateTool(agentID uuid.UUID, flowCtx FlowContext, toolName shared.ToolName) (gollem.Tool, error)
+		CreateTool(agentID uuid.UUID, flowCtx shared.FlowContext, toolName shared.ToolName) (gollem.Tool, error)
 	}
 )
 
@@ -99,7 +79,7 @@ func NewFlowToolsProvider(injector do.Injector) (FlowToolsProvider, error) {
 }
 
 // CreateTool creates a flow executor tool with the given context
-func (p *flowToolsProvider) CreateTool(agentID uuid.UUID, flowCtx FlowContext, toolName shared.ToolName) (gollem.Tool, error) {
+func (p *flowToolsProvider) CreateTool(agentID uuid.UUID, flowCtx shared.FlowContext, toolName shared.ToolName) (gollem.Tool, error) {
 	switch toolName {
 	case shared.ToolNameSetOutputField:
 		return &setOutputFieldTool{

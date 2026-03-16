@@ -12,8 +12,6 @@ package mocks
 //go:generate go run go.uber.org/mock/mockgen -source=../prompt/store/store.go -destination=mock_store.go -package=mocks github.com/denkhaus/gollum/pkg/prompt/store PromptStore
 //go:generate go run go.uber.org/mock/mockgen -source=../prompt/optimizer/optimizer.go -destination=mock_optimizer.go -package=mocks github.com/denkhaus/gollum/pkg/prompt/optimizer PromptOptimizer
 //go:generate go run go.uber.org/mock/mockgen -source=../llm/provider.go -destination=mock_llm_client_provider.go -package=mocks github.com/denkhaus/gollum/pkg/llm ClientProvider
-// TODO: Fix missing ui/agent_messenger.go file
-// //go:generate go run go.uber.org/mock/mockgen -source=../ui/agent_messenger.go -destination=mock_agent_messenger.go -package=mocks github.com/denkhaus/gollum/pkg/ui AgentMessenger
 //go:generate go run -tags=mock go.uber.org/mock/mockgen -destination=mock_llm_client.go -package=mocks github.com/m-mizutani/gollem LLMClient
 //go:generate go run -tags=mock go.uber.org/mock/mockgen -destination=mock_session.go -package=mocks github.com/m-mizutani/gollem Session
 //go:generate go run go.uber.org/mock/mockgen -source=../tools/agent_execution_helper.go -destination=mock_agent_execution_helper.go -package=mocks github.com/denkhaus/gollum/pkg/tools AgentExecutionHelper
@@ -24,4 +22,4 @@ package mocks
 //go:generate go run go.uber.org/mock/mockgen -source=../workspace/service.go -destination=mock_workspace_service.go -package=mocks github.com/denkhaus/gollum/pkg/workspace Service
 //go:generate go run go.uber.org/mock/mockgen -source=../events/bus.go -destination=mock_event_bus.go -package=mocks github.com/denkhaus/gollum/pkg/events Bus
 //go:generate go run go.uber.org/mock/mockgen -source=../diff/provider.go -destination=mock_diff_provider.go -package=mocks github.com/denkhaus/gollum/pkg/diff Provider
-// NOTE: FlowExecutorService mock generates in pkg/app to avoid import cycle
+//go:generate go run go.uber.org/mock/mockgen -source=../flows/executor/executor.go -destination=mock_flow_executor.go -package=mocks github.com/denkhaus/gollum/pkg/flows/executor FlowExecutorService,FlowExecutorInstance

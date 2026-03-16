@@ -22,7 +22,7 @@ func createBashToolForTesting(t *testing.T, ctrl *gomock.Controller) *bashToolIm
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockFSM := mocks.NewMockFileStateManager(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockDiffProvider := mocks.NewMockProvider(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 

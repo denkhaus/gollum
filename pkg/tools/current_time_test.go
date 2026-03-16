@@ -20,7 +20,7 @@ func TestCurrentTimeTool_Run_DefaultTimezone(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
@@ -62,7 +62,7 @@ func TestCurrentTimeTool_Run_UTC(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
@@ -97,7 +97,7 @@ func TestCurrentTimeTool_Run_AmericaNewYork(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
@@ -139,7 +139,7 @@ func TestCurrentTimeTool_Run_EuropeBerlin(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
@@ -174,7 +174,7 @@ func TestCurrentTimeTool_Run_InvalidTimezone(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
@@ -210,7 +210,7 @@ func TestCurrentTimeTool_Run_EmptyTimezone(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
@@ -236,7 +236,7 @@ func TestCurrentTimeTool_Run_NonStringTimezone(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
@@ -263,7 +263,7 @@ func TestCurrentTimeTool_Run_AsiaTokyo(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
@@ -326,7 +326,7 @@ func TestCurrentTimeTool_Spec(t *testing.T) {
 func TestCurrentTimeToolProvider_CreateTool(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(nil) // nil ctrl since we're not setting expectations
+	mockHookManager := hooks.NewMockHookManager(nil) // nil ctrl since we're not setting expectations
 
 	provider := &currentTimeToolProvider{logService: logService, hookManager: mockHookManager}
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")

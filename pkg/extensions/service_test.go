@@ -75,6 +75,10 @@ func (m *mockLogger) IsTUIMode() bool                                           
 func (m *mockLogger) EnableFileLogging(gollumDir string, sessionID uuid.UUID) error     { return nil }
 func (m *mockLogger) CloseFileLogging() error                                           { return nil }
 func (m *mockLogger) Flush() error                                                      { return nil }
+func (m *mockLogger) InfoWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {}
+func (m *mockLogger) DebugWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {}
+func (m *mockLogger) ErrorWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {}
+func (m *mockLogger) WarnWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {}
 
 type mockWorkspace struct{}
 

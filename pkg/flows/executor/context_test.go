@@ -13,7 +13,7 @@ func TestNewContext_InitializesWithDefaults(t *testing.T) {
 	}
 	inputVals := map[string]string{"repo": "gollum"}
 
-	ctx := NewContext(input, nil, nil, inputVals)
+	ctx := newContext(input, nil, nil, inputVals)
 
 	assert.Equal(t, "gollum", ctx.GetInput("repo"))
 	assert.NotNil(t, ctx.contextValues)
@@ -40,7 +40,7 @@ func TestContext_EvaluateComputedFields(t *testing.T) {
 		Strings: []flows.ContextField{{Name: "status"}},
 	}
 
-	ctx := NewContext(&flows.InputBlock{}, nil, contextBlock, nil)
+	ctx := newContext(&flows.InputBlock{}, nil, contextBlock, nil)
 	ctx.SetComputedBlock(computedBlock)
 
 	// Set the context field that the computed field depends on
@@ -64,7 +64,7 @@ func TestContext_ComputedFieldsAreImmutable(t *testing.T) {
 		Ints: []flows.ContextField{{Name: "count"}},
 	}
 
-	ctx := NewContext(&flows.InputBlock{}, nil, contextBlock, nil)
+	ctx := newContext(&flows.InputBlock{}, nil, contextBlock, nil)
 	ctx.SetComputedBlock(computedBlock)
 	_ = ctx.SetContextField("count", 5)
 

@@ -13,7 +13,7 @@ import (
 	reflect "reflect"
 
 	flows "github.com/denkhaus/gollum/pkg/flows"
-	executor "github.com/denkhaus/gollum/pkg/flows/executor"
+	"github.com/denkhaus/gollum/pkg/shared"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -42,10 +42,10 @@ func (m *MockFlowExecutorService) EXPECT() *MockFlowExecutorServiceMockRecorder 
 }
 
 // New mocks base method.
-func (m *MockFlowExecutorService) New(flow *flows.Flow) executor.FlowExecutorInstance {
+func (m *MockFlowExecutorService) New(flow *flows.Flow) shared.FlowExecutorInstance {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "New", flow)
-	ret0, _ := ret[0].(executor.FlowExecutorInstance)
+	ret0, _ := ret[0].(shared.FlowExecutorInstance)
 	return ret0
 }
 
@@ -80,10 +80,10 @@ func (m *MockFlowExecutorInstance) EXPECT() *MockFlowExecutorInstanceMockRecorde
 }
 
 // GetContext mocks base method.
-func (m *MockFlowExecutorInstance) GetContext() *executor.Context {
+func (m *MockFlowExecutorInstance) GetContext() shared.ExecutionContext {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetContext")
-	ret0, _ := ret[0].(*executor.Context)
+	ret0, _ := ret[0].(shared.ExecutionContext)
 	return ret0
 }
 

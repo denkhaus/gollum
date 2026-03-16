@@ -73,7 +73,7 @@ func setupTestInjector() do.Injector {
 
 // setupMockHookManagerPassThrough configures a mock HookManager to pass through all calls
 // This is useful for tests that don't need to verify hook behavior
-func setupMockHookManagerPassThrough(mockHookManager *mocks.MockHookManager) {
+func setupMockHookManagerPassThrough(mockHookManager *hooks.MockHookManager) {
 	// WithToolHooks - pass through to work function
 	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {

@@ -236,7 +236,7 @@ func TestSubstituteTemplate_ContextVariables(t *testing.T) {
 	injector := setupTestDI(t)
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	exec.(*flowExecutorImpl).ctx = NewContext(flow.Input, flow.Output, flow.Context, nil)
+	exec.(*flowExecutorImpl).ctx = newContext(flow.Input, flow.Output, flow.Context, nil)
 	// Initialize context with default values manually for this test
 	if flow.Context != nil {
 		for _, field := range flow.Context.Strings {
@@ -260,7 +260,7 @@ func TestSubstituteTemplate_OutputVariables(t *testing.T) {
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
 	// Set output value before substitution
-	exec.(*flowExecutorImpl).ctx = NewContext(flow.Input, flow.Output, flow.Context, nil)
+	exec.(*flowExecutorImpl).ctx = newContext(flow.Input, flow.Output, flow.Context, nil)
 	_ = exec.(*flowExecutorImpl).ctx.SetOutputField("result", "success")
 
 	result := exec.(*flowExecutorImpl).substituteTemplate("echo 'Status: ${output.result}'")

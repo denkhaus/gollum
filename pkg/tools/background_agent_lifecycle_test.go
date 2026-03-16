@@ -29,7 +29,7 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 	mockFactory := mocks.NewMockAgentFactory(ctrl)
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
 	mockConfigService := mocks.NewMockConfigService(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	execHelper := do.MustInvoke[AgentExecutionHelper](injector)
 
 	// Setup mock hook manager to pass-through hooks

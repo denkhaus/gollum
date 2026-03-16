@@ -170,7 +170,7 @@ func TestGlobToolProvider_CreateTool(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 
 	provider := &globToolProvider{logService: logService, hookManager: mockHookManager}
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")

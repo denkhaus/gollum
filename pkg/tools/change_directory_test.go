@@ -24,7 +24,7 @@ func TestChangeDirectoryTool_Run_ValidDirectory(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Only need eventBus - services react via events
@@ -83,7 +83,7 @@ func TestChangeDirectoryTool_Run_MissingPath(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	tool := &changeDirectoryToolImpl{
@@ -106,7 +106,7 @@ func TestChangeDirectoryTool_Run_EmptyPath(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	tool := &changeDirectoryToolImpl{
@@ -131,7 +131,7 @@ func TestChangeDirectoryTool_Run_NonexistentDirectory(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	tool := &changeDirectoryToolImpl{
@@ -156,7 +156,7 @@ func TestChangeDirectoryTool_Run_FileNotDirectory(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	tool := &changeDirectoryToolImpl{
@@ -187,7 +187,7 @@ func TestChangeDirectoryTool_Run_RelativePath(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	// Only need eventBus
@@ -271,7 +271,7 @@ func TestChangeDirectoryTool_Spec(t *testing.T) {
 func TestChangeDirectoryToolProvider_CreateTool(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := mocks.NewMockHookManager(nil)
+	mockHookManager := hooks.NewMockHookManager(nil)
 	mockEventBus := mocks.NewMockBus(nil)
 
 	provider := &changeDirectoryToolProvider{

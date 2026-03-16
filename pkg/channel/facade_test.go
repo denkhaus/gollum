@@ -267,7 +267,7 @@ func TestNewChannelFacade(t *testing.T) {
 	injector := do.New()
 
 	// Register mock dependencies
-	do.ProvideValue[CommandManager](injector, &mockCommandManager{})
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
@@ -284,7 +284,7 @@ func TestNewChannelFacade(t *testing.T) {
 // TestChannelFacade_RegisterChannel_Success tests successful channel registration
 func TestChannelFacade_RegisterChannel_Success(t *testing.T) {
 	injector := do.New()
-	do.ProvideValue[CommandManager](injector, &mockCommandManager{})
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
@@ -300,7 +300,7 @@ func TestChannelFacade_RegisterChannel_Success(t *testing.T) {
 // TestChannelFacade_RegisterChannel_Duplicate tests that registering a duplicate channel returns an error
 func TestChannelFacade_RegisterChannel_Duplicate(t *testing.T) {
 	injector := do.New()
-	do.ProvideValue[CommandManager](injector, &mockCommandManager{})
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
@@ -323,7 +323,7 @@ func TestChannelFacade_RegisterChannel_Duplicate(t *testing.T) {
 // TestChannelFacade_UnregisterChannel_Success tests successful channel unregistration
 func TestChannelFacade_UnregisterChannel_Success(t *testing.T) {
 	injector := do.New()
-	do.ProvideValue[CommandManager](injector, &mockCommandManager{})
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
@@ -342,7 +342,7 @@ func TestChannelFacade_UnregisterChannel_Success(t *testing.T) {
 // TestChannelFacade_UnregisterChannel_NonExistent tests that unregistering a non-existent channel doesn't error
 func TestChannelFacade_UnregisterChannel_NonExistent(t *testing.T) {
 	injector := do.New()
-	do.ProvideValue[CommandManager](injector, &mockCommandManager{})
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
@@ -357,7 +357,7 @@ func TestChannelFacade_UnregisterChannel_NonExistent(t *testing.T) {
 // TestChannelFacade_DisplayMessage_BroadcastsToAllChannels tests that DisplayMessage broadcasts to all registered channels
 func TestChannelFacade_DisplayMessage_BroadcastsToAllChannels(t *testing.T) {
 	injector := do.New()
-	do.ProvideValue[CommandManager](injector, &mockCommandManager{})
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
@@ -397,7 +397,7 @@ func TestChannelFacade_DisplayMessage_BroadcastsToAllChannels(t *testing.T) {
 // TestChannelFacade_DisplayLog_StoresAndBroadcasts tests that DisplayLog stores entry and broadcasts to all channels
 func TestChannelFacade_DisplayLog_StoresAndBroadcasts(t *testing.T) {
 	injector := do.New()
-	do.ProvideValue[CommandManager](injector, &mockCommandManager{})
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
@@ -441,7 +441,7 @@ func TestChannelFacade_DisplayLog_StoresAndBroadcasts(t *testing.T) {
 // TestChannelFacade_DisplayLog_RingBufferBehavior tests that DisplayLog implements ring buffer behavior
 func TestChannelFacade_DisplayLog_RingBufferBehavior(t *testing.T) {
 	injector := do.New()
-	do.ProvideValue[CommandManager](injector, &mockCommandManager{})
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 5})
 
@@ -480,7 +480,7 @@ func TestChannelFacade_SubmitInput_SlashCommand(t *testing.T) {
 			return false, "", nil
 		},
 	}
-	do.ProvideValue[CommandManager](injector, cmdMgr)
+	do.ProvideValue[CommandManagerService](injector, cmdMgr)
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
@@ -508,7 +508,7 @@ func TestChannelFacade_SubmitInput_NonCommand_NoAgentRouting(t *testing.T) {
 		},
 	}
 
-	do.ProvideValue[CommandManager](injector, cmdMgr)
+	do.ProvideValue[CommandManagerService](injector, cmdMgr)
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
@@ -535,7 +535,7 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 		},
 	}
 
-	do.ProvideValue[CommandManager](injector, cmdMgr)
+	do.ProvideValue[CommandManagerService](injector, cmdMgr)
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
@@ -555,7 +555,7 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 // TestChannelFacade_GetLogs_ReturnsEntriesAfterSpecifiedTime tests that GetLogs returns entries after specified time
 func TestChannelFacade_GetLogs_ReturnsEntriesAfterSpecifiedTime(t *testing.T) {
 	injector := do.New()
-	do.ProvideValue[CommandManager](injector, &mockCommandManager{})
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
@@ -591,7 +591,7 @@ func TestChannelFacade_GetLogs_ReturnsEntriesAfterSpecifiedTime(t *testing.T) {
 // TestChannelFacade_GetLogs_RespectsLimitParameter tests that GetLogs respects limit parameter
 func TestChannelFacade_GetLogs_RespectsLimitParameter(t *testing.T) {
 	injector := do.New()
-	do.ProvideValue[CommandManager](injector, &mockCommandManager{})
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
@@ -621,7 +621,7 @@ func TestChannelFacade_GetLogs_RespectsLimitParameter(t *testing.T) {
 // TestChannelFacade_NotifyAgentLifecycle_BroadcastsToAllChannels tests that NotifyAgentLifecycle broadcasts event to all channels
 func TestChannelFacade_NotifyAgentLifecycle_BroadcastsToAllChannels(t *testing.T) {
 	injector := do.New()
-	do.ProvideValue[CommandManager](injector, &mockCommandManager{})
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
@@ -658,7 +658,7 @@ func TestChannelFacade_NotifyAgentLifecycle_BroadcastsToAllChannels(t *testing.T
 // TestChannelFacade_Concurrency tests that concurrent access is safe
 func TestChannelFacade_Concurrency(t *testing.T) {
 	injector := do.New()
-	do.ProvideValue[CommandManager](injector, &mockCommandManager{})
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 

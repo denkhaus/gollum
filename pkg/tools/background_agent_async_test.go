@@ -32,7 +32,7 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 	// Setup mocks
 	mockFactory := mocks.NewMockAgentFactory(ctrl)
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	mockConfigService := setupMockConfigService(ctrl)
 
@@ -137,7 +137,7 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 	// Setup mocks
 	mockFactory := mocks.NewMockAgentFactory(ctrl)
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	mockConfigService := setupMockConfigService(ctrl)
 
@@ -246,7 +246,7 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 	// Setup mocks
 	mockFactory := mocks.NewMockAgentFactory(ctrl)
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	mockConfigService := setupMockConfigService(ctrl)
 
@@ -343,7 +343,7 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 	// Setup mocks
 	mockFactory := mocks.NewMockAgentFactory(ctrl)
 	mockPromptMgr := mocks.NewMockPromptManager(ctrl)
-	mockHookManager := mocks.NewMockHookManager(ctrl)
+	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	mockConfigService := setupMockConfigService(ctrl)
 
