@@ -131,7 +131,7 @@ func TestExecuteMCPStep_ToolCall(t *testing.T) {
 
 	// Execute the MCP step
 	step := &flow.States[0].Steps[0]
-	err := exec.(*flowExecutorImpl).executeMCPStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeMCPStep(context.Background(), step, "init")
 
 	require.NoError(t, err)
 
@@ -193,7 +193,7 @@ func TestExecuteMCPStep_MultipleParams(t *testing.T) {
 	exec := svc.New(flow)
 
 	step := &flow.States[0].Steps[0]
-	err := exec.(*flowExecutorImpl).executeMCPStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeMCPStep(context.Background(), step, "init")
 
 	require.NoError(t, err)
 }
@@ -228,7 +228,7 @@ func TestExecuteMCPStep_ToolNotFound(t *testing.T) {
 	exec := svc.New(flow)
 
 	step := &flow.States[0].Steps[0]
-	err := exec.(*flowExecutorImpl).executeMCPStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeMCPStep(context.Background(), step, "init")
 
 	// Should return MCPError with "tool not found"
 	require.Error(t, err)
@@ -288,7 +288,7 @@ func TestExecuteMCPStep_TemplateSubstitution(t *testing.T) {
 	exec.SetInput(map[string]string{"name": "Alice"})
 
 	step := &flow.States[0].Steps[0]
-	err := exec.(*flowExecutorImpl).executeMCPStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeMCPStep(context.Background(), step, "init")
 
 	require.NoError(t, err)
 
@@ -336,7 +336,7 @@ func TestExecuteMCPStep_ToolExecutionError(t *testing.T) {
 	exec := svc.New(flow)
 
 	step := &flow.States[0].Steps[0]
-	err := exec.(*flowExecutorImpl).executeMCPStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeMCPStep(context.Background(), step, "init")
 
 	// Should return MCPError with tool execution error
 	require.Error(t, err)

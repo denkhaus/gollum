@@ -13,7 +13,7 @@ import (
 )
 
 // executeLLMStep executes an LLM step
-func (p *flowExecutorImpl) executeLLMStep(step *flows.Step, _ string) error {
+func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step, _ string) error {
 	// Find agent configuration
 	var agentConfig *flows.Agent
 	for i := range p.flow.Agents {
@@ -50,13 +50,13 @@ func (p *flowExecutorImpl) executeLLMStep(step *flows.Step, _ string) error {
 	}
 
 	// Create agent using factory
-	agent, err := p.agentFactory.CreateAgent(context.Background(), config)
+	agent, err := p.agentFactory.CreateAgent(ctx, config)
 	if err != nil {
 		return fmt.Errorf("failed to create agent: %w", err)
 	}
 
-	// Execute with user prompt
-	response, err := agent.Execute(context.Background(), gollem.Text(prompt))
+	// Execute with user prompt (pass ctx for enriched logging in tools)
+	response, err := agent.Execute(ctx, gollem.Text(prompt))
 	if err != nil {
 		return fmt.Errorf("LLM execution failed: %w", err)
 	}

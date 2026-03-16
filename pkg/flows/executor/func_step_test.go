@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"context"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/flows"
@@ -43,7 +44,7 @@ func TestExecuteFuncStep_StringsToUpper(t *testing.T) {
 	exec.SetInput(map[string]string{"text": "hello"})
 	step := &flow.States[0].Steps[0]
 
-	err := exec.(*flowExecutorImpl).executeFuncStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeFuncStep(context.Background(), step, "init")
 
 	require.NoError(t, err)
 	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("result")
@@ -85,7 +86,7 @@ func TestExecuteFuncStep_StringsToLower(t *testing.T) {
 	exec.SetInput(map[string]string{"text": "HELLO"})
 	step := &flow.States[0].Steps[0]
 
-	err := exec.(*flowExecutorImpl).executeFuncStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeFuncStep(context.Background(), step, "init")
 
 	require.NoError(t, err)
 	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("result")
@@ -133,7 +134,7 @@ func TestExecuteFuncStep_StringsContains(t *testing.T) {
 	exec.SetInput(map[string]string{"text": "hello world", "substr": "world"})
 	step := &flow.States[0].Steps[0]
 
-	err := exec.(*flowExecutorImpl).executeFuncStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeFuncStep(context.Background(), step, "init")
 
 	require.NoError(t, err)
 	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("result")
@@ -175,7 +176,7 @@ func TestExecuteFuncStep_Len_String(t *testing.T) {
 	exec.SetInput(map[string]string{"text": "hello"})
 	step := &flow.States[0].Steps[0]
 
-	err := exec.(*flowExecutorImpl).executeFuncStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeFuncStep(context.Background(), step, "init")
 
 	require.NoError(t, err)
 	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("length")

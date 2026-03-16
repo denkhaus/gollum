@@ -29,6 +29,8 @@ func TestFlowExecutor_WithHookManagerIntegration(t *testing.T) {
 	mockLogger := mocks.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().InfoWithFlowStep(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().InfoWithFlowStep(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
 	// Register HookManager using the real implementation

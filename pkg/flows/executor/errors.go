@@ -68,6 +68,13 @@ func (p *flowExecutorImpl) handleErrorWithErrorTransition(err error, step *flows
 		// Capture error context
 		p.captureError(step, err.Error())
 
+		// Log error transition (with nil check for test scenarios)
+		if p.logService != nil {
+			p.logService.ErrorWithFlowStep(
+				fmt.Sprintf("Error in state '%s', transitioning to error state '%s': %v", state.Name, step.OnError.State, err),
+				p.flow.Name, state.Name, step.Type)
+		}
+
 		// Transition to error state
 		return p.transitionTo(step.OnError.State)
 	}

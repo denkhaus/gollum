@@ -189,6 +189,12 @@ func (p *flowExecutorImpl) executeState(state *flows.State) error {
 	// Record state entry
 	p.history.RecordStateEntry(state.Name, time.Now())
 
+	// Log state entry (with nil check for test scenarios)
+	if p.logService != nil {
+		p.logService.InfoWithFlowStep(fmt.Sprintf("Entering state: %s", state.Name),
+			p.flow.Name, state.Name, "")
+	}
+
 	// Evaluate computed fields
 	if p.flow.Computed != nil {
 		if err := p.ctx.EvaluateComputed(); err != nil {
@@ -249,11 +255,20 @@ func (p *flowExecutorImpl) executeTransition(state *flows.State) error {
 
 	// No transition - terminal state
 	p.history.RecordStateExit(state.Name, time.Now())
+
+	// Log terminal state (with nil check for test scenarios)
+	if p.logService != nil {
+		p.logService.InfoWithFlowStep(fmt.Sprintf("Reached terminal state: %s", state.Name),
+			p.flow.Name, state.Name, "")
+	}
+
 	return nil
 }
 
 // transitionTo transitions to a new state
 func (p *flowExecutorImpl) transitionTo(stateName string) error {
+	fromState := p.currentState
+
 	// Find target state
 	var targetState *flows.State
 	for i := range p.flow.States {
@@ -267,31 +282,44 @@ func (p *flowExecutorImpl) transitionTo(stateName string) error {
 		return fmt.Errorf("state not found: %s", stateName)
 	}
 
+	// Log state transition (with nil check for test scenarios)
+	if p.logService != nil {
+		p.logService.InfoWithFlowStep(fmt.Sprintf("Transitioning from '%s' to '%s'", fromState, stateName),
+			p.flow.Name, fromState, "")
+	}
+
 	p.currentState = stateName
 	return p.executeState(targetState)
 }
 
 // executeStep executes a single step
 func (p *flowExecutorImpl) executeStep(step *flows.Step, stateName string) error {
+	// Create context with flow/step metadata for enriched logging
+	ctx := hooks.WithFlowStepContext(context.Background(), &hooks.FlowStepContext{
+		FlowName:  p.flow.Name,
+		StateName: stateName,
+		StepType:  step.Type,
+	})
+
 	// Wrap step execution with hooks
 	_, err := p.hookManager.WithFlowStepHooks(
-		context.Background(),
+		ctx,
 		uuid.Nil, // SessionID - will be available when executor is used in session context
 		uuid.Nil, // FlowID - flows don't have IDs yet, use Nil for now
 		p.flow.Name,
 		step.Type,
 		stateName,
 		func() (map[string]any, error) {
-			// Execute the actual step logic
+			// Execute the actual step logic with enriched context
 			switch step.Type {
 			case "llm":
-				return nil, p.executeLLMStep(step, stateName)
+				return nil, p.executeLLMStep(ctx, step, stateName)
 			case "shell":
-				return nil, p.executeShellStep(step, stateName)
+				return nil, p.executeShellStep(ctx, step, stateName)
 			case "func":
-				return nil, p.executeFuncStep(step, stateName)
+				return nil, p.executeFuncStep(ctx, step, stateName)
 			case "mcp":
-				return nil, p.executeMCPStep(step, stateName)
+				return nil, p.executeMCPStep(ctx, step, stateName)
 			default:
 				return nil, fmt.Errorf("unknown step type: %s", step.Type)
 			}
@@ -301,7 +329,7 @@ func (p *flowExecutorImpl) executeStep(step *flows.Step, stateName string) error
 	return err
 }
 
-func (p *flowExecutorImpl) executeShellStep(step *flows.Step, _ string) error {
+func (p *flowExecutorImpl) executeShellStep(_ context.Context, step *flows.Step, _ string) error {
 	// Substitute template variables in command
 	cmd := p.substituteTemplate(step.Cmd)
 
@@ -404,7 +432,7 @@ func extractFieldName(assign string) string {
 	return strings.TrimSuffix(assign, "}")
 }
 
-func (p *flowExecutorImpl) executeFuncStep(step *flows.Step, stateName string) error {
+func (p *flowExecutorImpl) executeFuncStep(_ context.Context, step *flows.Step, stateName string) error {
 	// Use Scriggo runner from extension service
 	funcRunner := p.extService.GetFuncRunner()
 
@@ -436,7 +464,7 @@ func (p *flowExecutorImpl) executeFuncStep(step *flows.Step, stateName string) e
 	return nil
 }
 
-func (p *flowExecutorImpl) executeMCPStep(step *flows.Step, stateName string) error {
+func (p *flowExecutorImpl) executeMCPStep(_ context.Context, step *flows.Step, stateName string) error {
 	// step.Tool format: "server.tool" (e.g., "tavily.search")
 	// For now, we use the full tool name directly from step.Tool
 	toolName := step.Tool

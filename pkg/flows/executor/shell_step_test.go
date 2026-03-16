@@ -99,7 +99,7 @@ func TestExecuteShellStep_SuccessfulExecution(t *testing.T) {
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
 	step := &flow.States[0].Steps[0]
-	err := exec.(*flowExecutorImpl).executeShellStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeShellStep(context.Background(), step, "init")
 
 	require.NoError(t, err)
 	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("greeting")
@@ -152,7 +152,7 @@ func TestExecuteShellStep_WithInputVariable(t *testing.T) {
 	exec.SetInput(map[string]string{"name": "Claude"})
 
 	step := &flow.States[0].Steps[0]
-	err := exec.(*flowExecutorImpl).executeShellStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeShellStep(context.Background(), step, "init")
 
 	require.NoError(t, err)
 	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("greeting")
@@ -202,7 +202,7 @@ func TestExecuteShellStep_WithTimeout(t *testing.T) {
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
 	step := &flow.States[0].Steps[0]
-	err := exec.(*flowExecutorImpl).executeShellStep(step, "init")
+	err := exec.(*flowExecutorImpl).executeShellStep(context.Background(), step, "init")
 
 	require.NoError(t, err)
 }
