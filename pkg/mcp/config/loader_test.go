@@ -298,8 +298,8 @@ func TestConfigLoader_Load_EnabledFiltering(t *testing.T) {
 	}
 
 	// Only enabled servers should be included
-	if len(result) != 1 {
-		t.Errorf("Load() returned %d servers, want 1 (only enabled)", len(result))
+	if len(result) != 2 {
+		t.Errorf("Load() returned %d servers, want 2 (enabled-server and default-server)", len(result))
 	}
 
 	if _, exists := result["enabled-server"]; !exists {
@@ -310,7 +310,7 @@ func TestConfigLoader_Load_EnabledFiltering(t *testing.T) {
 		t.Error("disabled-server should NOT be in result")
 	}
 
-	if _, exists := result["default-server"]; exists {
-		t.Error("default-server should NOT be in result (enabled=false by default)")
+	if _, exists := result["default-server"]; !exists {
+		t.Error("default-server should be in result (enabled=true by default)")
 	}
 }
