@@ -204,9 +204,12 @@
   </xs:complexType>
 
   <xs:complexType name="CallFieldsBlock">
-    <xs:sequence>
-      <xs:element name="field" type="gollum:CallFieldType" maxOccurs="unbounded"/>
-    </xs:sequence>
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="string" type="gollum:CallFieldType"/>
+      <xs:element name="int" type="gollum:CallFieldType"/>
+      <xs:element name="bool" type="gollum:CallFieldType"/>
+      <xs:element name="float" type="gollum:CallFieldType"/>
+    </xs:choice>
   </xs:complexType>
 
   <xs:complexType name="CallFieldType">

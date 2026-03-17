@@ -583,12 +583,6 @@ type CallTypedField struct {
 	Value string `xml:"value,attr"`
 }
 
-// CallField maps fields for call input/output (deprecated - use CallInputField/CallOutputField)
-type CallField struct {
-	Name  string `xml:"name,attr"`
-	Value string `xml:"value,attr"`
-}
-
 // Transition defines state transition
 type Transition struct {
 	To        string `xml:"to,attr"`
