@@ -13,7 +13,8 @@ import (
 
 // TimeoutChecker validates that call timeouts are sufficient for called flows
 type TimeoutChecker struct {
-	Resolver *parser.Resolver
+	Resolver   *parser.Resolver
+	PosTracker *PositionTracker
 }
 
 // NewTimeoutChecker creates a new timeout checker

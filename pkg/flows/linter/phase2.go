@@ -21,7 +21,9 @@ var validPrefixes = map[string]bool{
 }
 
 // ExpressionChecker validates expressions in flows
-type ExpressionChecker struct{}
+type ExpressionChecker struct {
+	PosTracker *PositionTracker
+}
 
 // NewExpressionChecker creates a new expression checker
 func NewExpressionChecker() *ExpressionChecker {

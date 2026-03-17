@@ -5,7 +5,9 @@ import (
 )
 
 // SchemaChecker validates flow schema
-type SchemaChecker struct{}
+type SchemaChecker struct {
+	PosTracker *PositionTracker
+}
 
 // Check runs schema validation
 func (s *SchemaChecker) Check(flow *flows.Flow, result *flows.LinterResult) {

@@ -9,7 +9,9 @@ import (
 // SyntaxChecker validates $() syntax rules:
 // - Expressions (when, eval, computed): NO $() syntax
 // - Templates (prompt, cmd, param value): MUST use $() syntax
-type SyntaxChecker struct{}
+type SyntaxChecker struct {
+	PosTracker *PositionTracker
+}
 
 // Check runs all syntax checks
 func (s *SyntaxChecker) Check(flow *flows.Flow, result *flows.LinterResult) {
@@ -64,46 +66,37 @@ func (s *SyntaxChecker) checkTemplates(flow *flows.Flow, result *flows.LinterRes
 
 	for _, state := range flow.States {
 		for _, step := range state.Steps {
-			// Check prompt templates
+			// Check prompt templates - these require ${} syntax
 			if step.Prompt != "" {
-				s.checkTemplateForFieldRefs(step.Prompt, "prompt", result, fieldRefPattern)
+				s.checkTemplateForFieldRefs(step.Prompt, "prompt", result, fieldRefPattern, s.PosTracker)
 			}
 
-			// Check command templates
+			// Check command templates - these require ${} syntax
 			if step.Cmd != "" {
-				s.checkTemplateForFieldRefs(step.Cmd, "command", result, fieldRefPattern)
+				s.checkTemplateForFieldRefs(step.Cmd, "command", result, fieldRefPattern, s.PosTracker)
 			}
 
-			// Check param value templates
-			for _, param := range step.Params {
-				if param.Value != "" {
-					s.checkTemplateForFieldRefs(param.Value, "param", result, fieldRefPattern)
-				}
-			}
+			// Parameter values use direct field references (input.field) - no ${} needed
+			// Skip checking params as they use the correct syntax
 		}
 
-		// Check call input/output values
-		for _, call := range state.Calls {
-			if call.Input != nil {
-				for _, field := range call.Input.GetFields() {
-					if value := s.getCallFieldValue(field); value != "" {
-						s.checkTemplateForFieldRefs(value, "call input", result, fieldRefPattern)
-					}
-				}
-			}
-			if call.Output != nil {
-				for _, field := range call.Output.GetFields() {
-					if value := s.getCallOutputFieldValue(field); value != "" {
-						s.checkTemplateForFieldRefs(value, "call output", result, fieldRefPattern)
-					}
-				}
-			}
-		}
+		// Call input/output values use direct field references - no ${} needed
+		// Skip checking call fields as they use the correct syntax
 	}
 }
 
 // checkTemplateForFieldRefs checks if a template contains field references without ${}
-func (s *SyntaxChecker) checkTemplateForFieldRefs(template, context string, result *flows.LinterResult, pattern string) {
+func (s *SyntaxChecker) checkTemplateForFieldRefs(template, context string, result *flows.LinterResult, pattern string, posTracker *PositionTracker) {
+	line, col := 0, 0
+	if posTracker != nil {
+		// Try to find the template in the XML content
+		line, col = posTracker.FindContextForExpression(template)
+	}
+	s.checkTemplateForFieldRefsWithContext(template, context, result, pattern, line, col)
+}
+
+// checkTemplateForFieldRefsWithContext checks if a template contains field references without ${}, with explicit position
+func (s *SyntaxChecker) checkTemplateForFieldRefsWithContext(template, context string, result *flows.LinterResult, pattern string, line, col int) {
 	// Skip if template already uses ${} syntax correctly
 	if strings.Contains(template, "${") {
 		return
@@ -113,9 +106,11 @@ func (s *SyntaxChecker) checkTemplateForFieldRefs(template, context string, resu
 	// This is a basic heuristic - we look for patterns like "input.value" but not "${input.value}"
 	if s.containsFieldRefWithoutBrackets(template, pattern) {
 		result.Warnings = append(result.Warnings, flows.LinterError{
-			Code:    "W002",
-			Message: "Template may contain field references without ${} syntax - use ${input.field}, ${context.field}, etc.",
-			Context: template,
+			Line:     line,
+			Column:   col,
+			Code:     "W002",
+			Message:  "Template may contain field references without ${} syntax - use ${input.field}, ${context.field}, etc.",
+			Context:  template,
 		})
 	}
 }

@@ -9,7 +9,8 @@ import (
 
 // ComputedChecker validates computed field definitions
 type ComputedChecker struct {
-	parser *variables.ExpressionParser
+	parser     *variables.ExpressionParser
+	PosTracker *PositionTracker
 }
 
 // NewComputedChecker creates a new computed field checker

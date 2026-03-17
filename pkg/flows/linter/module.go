@@ -145,8 +145,8 @@ func (r *ModuleLinterResult) lintFlowRecursive(flowPath string, visited map[stri
 		return
 	}
 
-	// Lint this flow
-	flowResult := LintPath(absPath, flow)
+	// Lint this flow with raw content for position tracking
+	flowResult := LintWithContent(absPath, string(data), flow)
 	r.Flows[absPath] = flowResult
 
 	// Resolve and lint all called flows

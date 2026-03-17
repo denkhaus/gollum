@@ -9,7 +9,8 @@ import (
 
 // CallChecker validates that call input/output arguments match the called flow's interface
 type CallChecker struct {
-	Resolver *parser.Resolver
+	Resolver   *parser.Resolver
+	PosTracker *PositionTracker
 }
 
 // NewCallChecker creates a new call checker
@@ -30,13 +31,21 @@ func (c *CallChecker) Check(flowPath string, flow *flows.Flow, result *flows.Lin
 
 // checkCall validates a single call against its referenced flow
 func (c *CallChecker) checkCall(flowPath string, call flows.Call, result *flows.LinterResult) {
+	line, col := 0, 0
+	if c.PosTracker != nil {
+		line, col = c.PosTracker.FindCallPosition(call.Ref)
+	}
+
 	// Resolve the called flow
 	resolvedPath, err := c.Resolver.ResolveCall(call.Ref, flowPath)
 	if err != nil {
 		// Call reference not found - report error
 		result.Errors = append(result.Errors, flows.LinterError{
-			Code:    flows.ErrCallRefNotFound,
-			Message: fmt.Sprintf("call reference '%s' not found: %v", call.Ref, err),
+			FlowPath: flowPath,
+			Line:     line,
+			Column:   col,
+			Code:     flows.ErrCallRefNotFound,
+			Message:  fmt.Sprintf("call reference '%s' not found: %v", call.Ref, err),
 		})
 		return
 	}
@@ -46,8 +55,11 @@ func (c *CallChecker) checkCall(flowPath string, call flows.Call, result *flows.
 	if err != nil {
 		// Can't parse the called flow - report error
 		result.Errors = append(result.Errors, flows.LinterError{
-			Code:    flows.ErrCallRefNotFound,
-			Message: fmt.Sprintf("failed to parse called flow '%s' (resolved to %s): %v", call.Ref, resolvedPath, err),
+			FlowPath: flowPath,
+			Line:     line,
+			Column:   col,
+			Code:     flows.ErrCallRefNotFound,
+			Message:  fmt.Sprintf("failed to parse called flow '%s' (resolved to %s): %v", call.Ref, resolvedPath, err),
 		})
 		return
 	}
@@ -96,6 +108,8 @@ func (c *CallChecker) checkCall(flowPath string, call flows.Call, result *flows.
 			// Missing required input
 			result.Warnings = append(result.Warnings, flows.LinterError{
 				FlowPath: flowPath,
+				Line:     line,
+				Column:   col,
 				Code:     flows.ErrCallInputMissing,
 				Message:  fmt.Sprintf("call to '%s': required input parameter '%s' (type=%s) has no default value", call.Ref, inputField.Name, inputField.Type),
 			})
@@ -107,6 +121,8 @@ func (c *CallChecker) checkCall(flowPath string, call flows.Call, result *flows.
 		if callType != "" && callType != string(inputField.Type) {
 			result.Errors = append(result.Errors, flows.LinterError{
 				FlowPath: flowPath,
+				Line:     line,
+				Column:   col,
 				Code:     flows.ErrCallInputType,
 				Message:  fmt.Sprintf("call to '%s': input parameter '%s' type mismatch - call uses <%s>, but flow expects <%s>", call.Ref, inputField.Name, callType, inputField.Type),
 			})
@@ -125,6 +141,8 @@ func (c *CallChecker) checkCall(flowPath string, call flows.Call, result *flows.
 			// Missing required output
 			result.Warnings = append(result.Warnings, flows.LinterError{
 				FlowPath: flowPath,
+				Line:     line,
+				Column:   col,
 				Code:     flows.ErrCallOutputMissing,
 				Message:  fmt.Sprintf("call to '%s': required output parameter '%s' (type=%s) has no default value", call.Ref, outputField.Name, outputField.Type),
 			})
@@ -136,6 +154,8 @@ func (c *CallChecker) checkCall(flowPath string, call flows.Call, result *flows.
 		if callType != "" && callType != string(outputField.Type) {
 			result.Errors = append(result.Errors, flows.LinterError{
 				FlowPath: flowPath,
+				Line:     line,
+				Column:   col,
 				Code:     flows.ErrCallOutputType,
 				Message:  fmt.Sprintf("call to '%s': output parameter '%s' type mismatch - call uses <%s>, but flow expects <%s>", call.Ref, outputField.Name, callType, outputField.Type),
 			})
@@ -151,6 +171,8 @@ func (c *CallChecker) checkCall(flowPath string, call flows.Call, result *flows.
 				if !exists {
 					result.Warnings = append(result.Warnings, flows.LinterError{
 						FlowPath: flowPath,
+						Line:     line,
+						Column:   col,
 						Code:     flows.ErrCallExtraInput,
 						Message:  fmt.Sprintf("call to '%s': input parameter '%s' not defined in called flow's input block", call.Ref, typedField.Name),
 					})
@@ -168,6 +190,8 @@ func (c *CallChecker) checkCall(flowPath string, call flows.Call, result *flows.
 				if !exists {
 					result.Warnings = append(result.Warnings, flows.LinterError{
 						FlowPath: flowPath,
+						Line:     line,
+						Column:   col,
 						Code:     flows.ErrCallExtraOutput,
 						Message:  fmt.Sprintf("call to '%s': output parameter '%s' not defined in called flow's output block", call.Ref, typedField.Name),
 					})

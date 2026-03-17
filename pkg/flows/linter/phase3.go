@@ -5,7 +5,9 @@ import (
 )
 
 // GraphChecker validates flow graph structure
-type GraphChecker struct{}
+type GraphChecker struct {
+	PosTracker *PositionTracker
+}
 
 // Check runs graph validation
 func (g *GraphChecker) Check(flow *flows.Flow, result *flows.LinterResult) {
