@@ -16,6 +16,9 @@ type (
 
 	// ToolResultKeys represents the type for tool result key constants.
 	ToolResultKeys string
+
+	// ToolParamKeys represents the type for tool parameter key constants.
+	ToolParamKeys string
 )
 
 const (
@@ -84,7 +87,63 @@ const (
 	KeyFileDiffs ToolResultKeys = "file_diffs"
 )
 
-// ToolResult is a type alias for tool execution result maps.
+// ToolParam key constants for tool input parameters.
+const (
+	// ParamCommand is the command to execute (string).
+	ParamCommand ToolParamKeys = "command"
+	// ParamFilePath is the absolute path to the file (string).
+	ParamFilePath ToolParamKeys = "file_path"
+	// ParamPath is a directory or file path (string).
+	ParamPath ToolParamKeys = "path"
+	// ParamContent is the content to read/write (string).
+	ParamContent ToolParamKeys = "content"
+	 // ParamPattern is the search pattern (string).
+	 ParamPattern ToolParamKeys = "pattern"
+    // ParamTimeout is the timeout in seconds (float64).
+    ParamTimeout ToolParamKeys = "timeout"
+    // ParamOutputMode is the output mode (string).
+    ParamOutputMode ToolParamKeys = "output_mode"
+    // ParamLimit is the maximum number of results (int).
+    ParamLimit ToolParamKeys = "limit"
+    // ParamOffset is the starting line number (int).
+    ParamOffset ToolParamKeys = "offset"
+    // ParamGlob is the glob pattern for file filtering (string).
+    ParamGlob ToolParamKeys = "glob"
+    // ParamOldString is the string to replace (string).
+    ParamOldString ToolParamKeys = "old_string"
+    // ParamNewString is the replacement string (string).
+    ParamNewString ToolParamKeys = "new_string"
+    // ParamReplaceAll = " replace all occurrences (bool).
+    ParamReplaceAll ToolParamKeys = "replace_all"
+    // ParamCreateDirs = " create parent directories (bool).
+    ParamCreateDirs ToolParamKeys = "create_dirs"
+    // ParamContextBefore = " context lines before match (int).
+    ParamContextBefore ToolParamKeys = "-B"
+    // ParamContextAfter = " context lines after match (int).
+    ParamContextAfter ToolParamKeys = "-A"
+    // ParamContextBoth = " context lines before and after (int).
+    ParamContextBoth ToolParamKeys = "-C"
+    // ParamCaseIgnore = " case-insensitive search (bool).
+    ParamCaseIgnore ToolParamKeys = "-i"
+    // ParamShowNumbers = " show line numbers (bool).
+    ParamShowNumbers ToolParamKeys = "-n"
+    // ParamMultiline = " multiline regex mode (bool).
+    ParamMultiline ToolParamKeys = "multiline"
+    // ParamHeadLimit is the maximum results to return (int).
+    ParamHeadLimit ToolParamKeys = "head_limit"
+    // ParamAgentID is the agent ID (string).
+    ParamAgentID ToolParamKeys = "agent_id"
+    // ParamAgentName is the agent name (string).
+    ParamAgentName ToolParamKeys = "name"
+    // ParamModel is the model identifier (string).
+    ParamModel ToolParamKeys = "model"
+    // ParamPrompt is " prompt text (string).
+    ParamPrompt ToolParamKeys = "prompt"
+    // ParamQuery is the search query (string).
+    ParamQuery ToolParamKeys = "query"
+    // ParamURL is the URL (string).
+    ParamURL ToolParamKeys = "url"
+)// ToolResult is a type alias for tool execution result maps.
 type ToolResult map[string]any
 
 // GetString returns a string value from the result.

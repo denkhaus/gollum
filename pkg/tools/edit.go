@@ -103,44 +103,21 @@ func (t *editToolImpl) Run(ctx context.Context, args map[string]any) (map[string
 }
 
 // runEdit implements the core edit logic
-func (t *editToolImpl) runEdit(ctx context.Context, args map[string]any) (map[string]any, error) {
-	filePath, ok := args["file_path"].(string)
-	if !ok || filePath == "" {
-		t.logService.Error("Edit operation failed: file_path is required and must be a non-empty string",
-			zap.String("agent_id", t.agentID.String()))
-		return map[string]any{
-			string(shared.KeySuccess): false,
-			string(shared.KeyError):   "file_path is required and must be a non-empty string",
-		}, nil
+func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
+	filePath, errResp := args.GetFilePath(shared.ParamFilePath)
+	if errResp != nil {
+		return errResp, nil
 	}
 
-	oldString, ok := args["old_string"].(string)
-	if !ok || oldString == "" {
-		t.logService.Error("Edit operation failed: old_string is required and must be a non-empty string",
-			zap.String("agent_id", t.agentID.String()),
-			zap.String("file_path", filePath))
-		return map[string]any{
-			string(shared.KeySuccess): false,
-			string(shared.KeyError):   "old_string is required and must be a non-empty string",
-		}, nil
+	oldString, errResp := args.MustGetString(shared.ParamOldString)
+	if errResp != nil {
+		return errResp, nil
 	}
 
-	newString, ok := args["new_string"].(string)
-	if !ok {
-		t.logService.Error("Edit operation failed: new_string is required and must be a string",
-			zap.String("agent_id", t.agentID.String()),
-			zap.String("file_path", filePath))
-		return map[string]any{
-			string(shared.KeySuccess): false,
-			string(shared.KeyError):   "new_string is required and must be a string",
-		}, nil
-	}
+	newString := args.GetString(shared.ParamNewString, "")
 
 	// Get replace_all flag, default to false
-	replaceAll := false
-	if flagVal, exists := args["replace_all"].(bool); exists {
-		replaceAll = flagVal
-	}
+	replaceAll := args.GetBool(shared.ParamReplaceAll, false)
 
 	// Convert relative path to absolute
 	originalPath := filePath

@@ -89,36 +89,17 @@ func (t *readFileToolImpl) Run(ctx context.Context, args map[string]any) (map[st
 }
 
 // runFileRead implements the core file read logic
-func (t *readFileToolImpl) runFileRead(ctx context.Context, args map[string]any) (map[string]any, error) {
-	path, ok := args["file_path"].(string)
-	if !ok || path == "" {
-		t.logService.Debug("Read file failed: invalid file_path parameter",
-			zap.String("agent_id", t.agentID.String()),
-			zap.String("error", "file_path is required and must be a non-empty string"),
-		)
-		return map[string]any{
-			"success": false,
-			"error":   "file_path is required and must be a non-empty string",
-		}, nil
+func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
+	path, errResp := args.GetFilePath(shared.ParamFilePath)
+	if errResp != nil {
+		return errResp, nil
 	}
 
 	// Get optional offset (line number, default: 1)
-	offset := 1
-	if offsetVal, exists := args["offset"].(float64); exists {
-		offset = int(offsetVal)
-		if offset < 1 {
-			offset = 1
-		}
-	}
+	offset := max(1, args.GetInt(shared.ParamOffset, 1))
 
 	// Get optional limit (max lines, default: 200)
-	limit := 200
-	if limitVal, exists := args["limit"].(float64); exists {
-		limit = int(limitVal)
-		if limit < 1 {
-			limit = 200 // Reset to default if invalid
-		}
-	}
+	limit := max(1, args.GetInt(shared.ParamLimit, 200))
 
 	// Convert relative path to absolute
 	path, err := filepath.Abs(path)
@@ -219,10 +200,7 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args map[string]any)
 			}
 
 			// Calculate end line (exclusive)
-			endLine := offset + limit
-			if endLine > len(allLines) {
-				endLine = len(allLines)
-			}
+			endLine := min(offset+limit, len(allLines))
 
 			// Extract the requested lines (convert to 0-based index)
 			selectedLines := allLines[offset-1 : endLine]

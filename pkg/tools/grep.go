@@ -129,21 +129,16 @@ func (t *grepToolImpl) Run(ctx context.Context, args map[string]any) (map[string
 }
 
 // runGrep implements the core Grep logic
-func (t *grepToolImpl) runGrep(ctx context.Context, args map[string]any) (map[string]any, error) {
-	pattern, ok := args["pattern"].(string)
-	if !ok || pattern == "" {
-		t.logService.Error("Grep operation failed: pattern is required and must be a non-empty string",
-			zap.String("agent_id", t.agentID.String()))
-		return map[string]any{
-			"success": false,
-			"error":   "pattern is required and must be a non-empty string",
-		}, nil
+func (t *grepToolImpl) runGrep(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
+	pattern, errResp := args.MustGetString(shared.ParamPattern)
+	if errResp != nil {
+		return errResp, nil
 	}
 
 	// Get optional path (default: current directory)
-	searchPath := "."
-	if pathVal, exists := args["path"].(string); exists && pathVal != "" {
-		searchPath = pathVal
+	searchPath := args.GetString(shared.ParamPath, ".")
+	if searchPath == "" {
+		searchPath = "."
 	}
 
 	// Convert relative path to absolute
@@ -153,16 +148,13 @@ func (t *grepToolImpl) runGrep(ctx context.Context, args map[string]any) (map[st
 			zap.String("agent_id", t.agentID.String()),
 			zap.String("path", searchPath),
 			zap.Error(err))
-		return map[string]any{
-			"success": false,
-			"error":   fmt.Sprintf("failed to resolve absolute path: %v", err),
-		}, nil
+		return ErrorResponse("failed to resolve absolute path: %v", err), nil
 	}
 
 	// Get output mode (default: content)
-	outputMode := outputModeContent
-	if modeVal, exists := args["output_mode"].(string); exists && modeVal != "" {
-		outputMode = modeVal
+	outputMode := args.GetString(shared.ParamOutputMode, outputModeContent)
+	if outputMode == ""{
+		outputMode = outputModeContent
 	}
 
 	// Validate output mode

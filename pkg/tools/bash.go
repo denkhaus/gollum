@@ -104,13 +104,10 @@ func (t *bashToolImpl) Run(ctx context.Context, args map[string]any) (map[string
 }
 
 // runBashCommand implements the core bash command logic
-func (t *bashToolImpl) runBashCommand(ctx context.Context, args map[string]any) (map[string]any, error) {
-	command, ok := args["command"].(string)
-	if !ok || command == "" {
-		return map[string]any{
-			string(shared.KeySuccess): false,
-			string(shared.KeyError):   "command is required and must be a non-empty string",
-		}, nil
+func (t *bashToolImpl) runBashCommand(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
+	command, errResp := args.MustGetString(shared.ParamCommand)
+	if errResp != nil {
+		return errResp, nil
 	}
 
 	// Snapshot file state BEFORE command execution (if tracking enabled)
@@ -120,13 +117,7 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args map[string]any) 
 	}
 
 	// Get timeout, default to 60 seconds, max 300 (5 minutes)
-	timeoutSeconds := 60.0
-	if timeout, exists := args["timeout"].(float64); exists && timeout > 0 {
-		timeoutSeconds = timeout
-		if timeoutSeconds > 300 {
-			timeoutSeconds = 300
-		}
-	}
+	timeoutSeconds := max(1.0, min(args.GetFloat(shared.ParamTimeout, 60.0), 300.0))
 
 	// Create context with timeout
 	timeout := time.Duration(timeoutSeconds) * time.Second

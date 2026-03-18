@@ -95,37 +95,17 @@ func (t *writeFileToolImpl) Run(ctx context.Context, args map[string]any) (map[s
 }
 
 // runFileWrite implements the core file write logic
-func (t *writeFileToolImpl) runFileWrite(ctx context.Context, args map[string]any) (map[string]any, error) {
-	path, ok := args["file_path"].(string)
-	if !ok || path == "" {
-		t.logService.Debug("Write file failed: invalid file_path parameter",
-			zap.String("agent_id", t.agentID.String()),
-			zap.String("error", "file_path is required and must be a non-empty string"),
-		)
-		return map[string]any{
-			"success": false,
-			"error":   "file_path is required and must be a non-empty string",
-		}, nil
+func (t *writeFileToolImpl) runFileWrite(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
+	path, errResp := args.GetFilePath(shared.ParamFilePath)
+	if errResp != nil {
+		return errResp, nil
 	}
 
-	content, ok := args["content"].(string)
-	if !ok {
-		t.logService.Debug("Write file failed: invalid content parameter",
-			zap.String("agent_id", t.agentID.String()),
-			zap.String("file_path", path),
-			zap.String("error", "content is required and must be a string"),
-		)
-		return map[string]any{
-			"success": false,
-			"error":   "content is required and must be a string",
-		}, nil
-	}
+	// Content can be empty (for creating empty files)
+	content := args.GetString(shared.ParamContent, "")
 
 	// Get create_dirs flag, default to false
-	createDirs := false
-	if createDirsFlag, exists := args["create_dirs"].(bool); exists {
-		createDirs = createDirsFlag
-	}
+	createDirs := args.GetBool(shared.ParamCreateDirs, false)
 
 	// Convert relative path to absolute
 	path, err := filepath.Abs(path)
