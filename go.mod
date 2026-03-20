@@ -27,6 +27,7 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/charmbracelet/x/exp/slice v0.0.0-20260315003922-bbd79dac4a98 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
+	github.com/form3tech-oss/go-xsd-validate v1.0.3 // indirect
 	github.com/go-resty/resty/v2 v2.17.2 // indirect
 	github.com/gofrs/uuid/v5 v5.4.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect

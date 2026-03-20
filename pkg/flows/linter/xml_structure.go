@@ -19,6 +19,13 @@ func NewXMLStructureChecker() *XMLStructureChecker {
 
 // CheckRawXML validates raw XML content for structural issues
 func (x *XMLStructureChecker) CheckRawXML(xmlContent string, result *flows.LinterResult) {
+	// XSD validation (catches unknown attributes, invalid elements, etc.)
+	xsdErrors := ValidateXSD(xmlContent)
+	if len(xsdErrors) > 0 {
+		result.Errors = append(result.Errors, xsdErrors...)
+		return // Skip further validation if XSD fails
+	}
+
 	// Check for <computed> elements inside <context> blocks
 	x.checkComputedInBlock(xmlContent, "context", result)
 	// Check for <computed> elements inside <output> blocks

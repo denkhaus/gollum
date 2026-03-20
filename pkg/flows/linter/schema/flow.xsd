@@ -1,23 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
-           targetNamespace="http://gollum.dev/flow"
-           xmlns:gollum="http://gollum.dev/flow"
-           elementFormDefault="qualified">
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
   <!-- Root element -->
-  <xs:element name="flow" type="gollum:FlowType"/>
+  <xs:element name="flow" type="FlowType"/>
 
   <!-- Flow definition -->
   <xs:complexType name="FlowType">
-    <xs:sequence>
+    <xs:all>
       <xs:element name="description" type="xs:string" minOccurs="0"/>
-      <xs:element name="input" type="gollum:InputBlock" minOccurs="0"/>
-      <xs:element name="output" type="gollum:OutputBlock" minOccurs="0"/>
-      <xs:element name="context" type="gollum:ContextBlock" minOccurs="0"/>
-      <xs:element name="computed" type="gollum:ComputedBlock" minOccurs="0"/>
-      <xs:element name="agents" type="gollum:AgentsBlock" minOccurs="0"/>
-      <xs:element name="states" type="gollum:StatesBlock" minOccurs="0"/>
-    </xs:sequence>
+      <xs:element name="input" type="InputBlock" minOccurs="0"/>
+      <xs:element name="output" type="OutputBlock" minOccurs="0"/>
+      <xs:element name="context" type="ContextBlock" minOccurs="0"/>
+      <xs:element name="computed" type="ComputedBlock" minOccurs="0"/>
+      <xs:element name="agents" type="AgentsBlock" minOccurs="0"/>
+      <xs:element name="extensions" type="ExtensionsBlock" minOccurs="0"/>
+      <xs:element name="states" type="StatesBlock" minOccurs="0"/>
+    </xs:all>
     <xs:attribute name="name" type="xs:string" use="required"/>
     <xs:attribute name="version" type="xs:string" use="required"/>
   </xs:complexType>
@@ -25,45 +23,57 @@
   <!-- Input block -->
   <xs:complexType name="InputBlock">
     <xs:choice minOccurs="0" maxOccurs="unbounded">
-      <xs:element name="string" type="gollum:InputField"/>
-      <xs:element name="int" type="gollum:InputField"/>
-      <xs:element name="bool" type="gollum:InputField"/>
-      <xs:element name="float" type="gollum:InputField"/>
-      <xs:element name="array" type="gollum:InputField"/>
-      <xs:element name="map" type="gollum:InputField"/>
-      <xs:element name="object" type="gollum:ObjectDef"/>
+      <xs:element name="string" type="InputField"/>
+      <xs:element name="int" type="InputField"/>
+      <xs:element name="bool" type="InputField"/>
+      <xs:element name="float" type="InputField"/>
+      <xs:element name="array" type="InputField"/>
+      <xs:element name="map" type="InputField"/>
+      <xs:element name="object" type="ObjectDef"/>
     </xs:choice>
   </xs:complexType>
 
   <!-- Output block -->
   <xs:complexType name="OutputBlock">
     <xs:choice minOccurs="0" maxOccurs="unbounded">
-      <xs:element name="string" type="gollum:OutputField"/>
-      <xs:element name="int" type="gollum:OutputField"/>
-      <xs:element name="bool" type="gollum:OutputField"/>
-      <xs:element name="float" type="gollum:OutputField"/>
-      <xs:element name="object" type="gollum:ObjectDef"/>
+      <xs:element name="string" type="OutputField"/>
+      <xs:element name="int" type="OutputField"/>
+      <xs:element name="bool" type="OutputField"/>
+      <xs:element name="float" type="OutputField"/>
+      <xs:element name="object" type="ObjectDef"/>
     </xs:choice>
   </xs:complexType>
 
   <!-- Context block - NO computed elements allowed -->
   <xs:complexType name="ContextBlock">
     <xs:choice minOccurs="0" maxOccurs="unbounded">
-      <xs:element name="string" type="gollum:ContextField"/>
-      <xs:element name="int" type="gollum:ContextField"/>
-      <xs:element name="bool" type="gollum:ContextField"/>
-      <xs:element name="float" type="gollum:ContextField"/>
-      <xs:element name="object" type="gollum:ObjectDef"/>
+      <xs:element name="string" type="ContextField"/>
+      <xs:element name="int" type="ContextField"/>
+      <xs:element name="bool" type="ContextField"/>
+      <xs:element name="float" type="ContextField"/>
+      <xs:element name="object" type="ObjectContextDef"/>
     </xs:choice>
+  </xs:complexType>
+
+  <xs:complexType name="ObjectContextDef">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="string" type="FieldDef"/>
+      <xs:element name="int" type="FieldDef"/>
+      <xs:element name="bool" type="FieldDef"/>
+      <xs:element name="float" type="FieldDef"/>
+      <xs:element name="object" type="ObjectContextDef"/>
+    </xs:choice>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="default" type="xs:string"/>
   </xs:complexType>
 
   <!-- Computed block - TOP LEVEL ONLY -->
   <xs:complexType name="ComputedBlock">
     <xs:choice minOccurs="0" maxOccurs="unbounded">
-      <xs:element name="string" type="gollum:ComputedFieldDef"/>
-      <xs:element name="int" type="gollum:ComputedFieldDef"/>
-      <xs:element name="bool" type="gollum:ComputedFieldDef"/>
-      <xs:element name="float" type="gollum:ComputedFieldDef"/>
+      <xs:element name="string" type="ComputedFieldDef"/>
+      <xs:element name="int" type="ComputedFieldDef"/>
+      <xs:element name="bool" type="ComputedFieldDef"/>
+      <xs:element name="float" type="ComputedFieldDef"/>
     </xs:choice>
   </xs:complexType>
 
@@ -77,11 +87,15 @@
 
   <xs:complexType name="OutputField">
     <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="from" type="xs:string"/>
+    <xs:attribute name="eval" type="xs:string"/>
+    <xs:attribute name="required" type="xs:boolean"/>
   </xs:complexType>
 
   <xs:complexType name="ContextField">
     <xs:attribute name="name" type="xs:string" use="required"/>
     <xs:attribute name="default" type="xs:string"/>
+    <xs:attribute name="required" type="xs:boolean"/>
   </xs:complexType>
 
   <!-- Computed field definition -->
@@ -93,10 +107,10 @@
   <!-- Object definition -->
   <xs:complexType name="ObjectDef">
     <xs:choice minOccurs="0" maxOccurs="unbounded">
-      <xs:element name="string" type="gollum:FieldDef"/>
-      <xs:element name="int" type="gollum:FieldDef"/>
-      <xs:element name="bool" type="gollum:FieldDef"/>
-      <xs:element name="float" type="gollum:FieldDef"/>
+      <xs:element name="string" type="FieldDef"/>
+      <xs:element name="int" type="FieldDef"/>
+      <xs:element name="bool" type="FieldDef"/>
+      <xs:element name="float" type="FieldDef"/>
     </xs:choice>
     <xs:attribute name="name" type="xs:string" use="required"/>
     <xs:attribute name="default" type="xs:string"/>
@@ -106,10 +120,17 @@
     <xs:attribute name="name" type="xs:string" use="required"/>
   </xs:complexType>
 
+  <!-- Extensions block - allows arbitrary extension elements -->
+  <xs:complexType name="ExtensionsBlock">
+    <xs:sequence>
+      <xs:any processContents="skip" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
   <!-- Agents block -->
   <xs:complexType name="AgentsBlock">
     <xs:sequence>
-      <xs:element name="agent" type="gollum:AgentType" maxOccurs="unbounded"/>
+      <xs:element name="agent" type="AgentType" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -127,38 +148,39 @@
   <!-- States block -->
   <xs:complexType name="StatesBlock">
     <xs:sequence>
-      <xs:element name="state" type="gollum:StateType" maxOccurs="unbounded"/>
+      <xs:element name="state" type="StateType" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="StateType">
     <xs:sequence>
-      <xs:element name="steps" type="gollum:StepsBlock" minOccurs="0"/>
-      <xs:element name="transitions" type="gollum:TransitionsBlock" minOccurs="0"/>
+      <xs:element name="steps" type="StepsBlock" minOccurs="0"/>
+      <xs:element name="transitions" type="TransitionsBlock" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="name" type="xs:string" use="required"/>
     <xs:attribute name="initial" type="xs:boolean"/>
   </xs:complexType>
 
   <xs:complexType name="StepsBlock">
-    <xs:choice maxOccurs="unbounded">
-      <xs:element name="step" type="gollum:StepType"/>
-      <xs:element name="call" type="gollum:CallType"/>
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="step" type="StepType"/>
+      <xs:element name="call" type="CallType"/>
     </xs:choice>
   </xs:complexType>
 
   <!-- Simplified step/call types for brevity -->
   <xs:complexType name="StepType">
-    <xs:sequence>
+    <xs:all>
+      <xs:element name="description" type="xs:string" minOccurs="0"/>
       <xs:element name="prompt" type="xs:string" minOccurs="0"/>
       <xs:element name="tools" type="xs:string" minOccurs="0"/>
       <xs:element name="timeout" type="xs:string" minOccurs="0"/>
       <xs:element name="cmd" type="xs:string" minOccurs="0"/>
-      <xs:element name="params" type="gollum:ParamsBlock" minOccurs="0"/>
-      <xs:element name="on-error" type="gollum:OnErrorType" minOccurs="0"/>
-      <xs:element name="retry" type="gollum:RetryType" minOccurs="0"/>
-      <xs:element name="output" type="gollum:OutputMappingType" minOccurs="0"/>
-    </xs:sequence>
+      <xs:element name="params" type="ParamsBlock" minOccurs="0"/>
+      <xs:element name="on-error" type="OnErrorType" minOccurs="0"/>
+      <xs:element name="retry" type="RetryType" minOccurs="0"/>
+      <xs:element name="output" type="OutputMappingType" minOccurs="0"/>
+    </xs:all>
     <xs:attribute name="type" type="xs:string"/>
     <xs:attribute name="name" type="xs:string"/>
     <xs:attribute name="agent" type="xs:string"/>
@@ -168,8 +190,9 @@
 
   <xs:complexType name="CallType">
     <xs:sequence>
-      <xs:element name="input" type="gollum:CallFieldsBlock" minOccurs="0"/>
-      <xs:element name="output" type="gollum:CallFieldsBlock" minOccurs="0"/>
+      <xs:element name="input" type="CallFieldsBlock" minOccurs="0"/>
+      <xs:element name="output" type="CallFieldsBlock" minOccurs="0"/>
+      <xs:element name="on-error" type="OnErrorType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="ref" type="xs:string" use="required"/>
     <xs:attribute name="when" type="xs:string"/>
@@ -178,7 +201,7 @@
 
   <xs:complexType name="ParamsBlock">
     <xs:sequence>
-      <xs:element name="param" type="gollum:ParamType" maxOccurs="unbounded"/>
+      <xs:element name="param" type="ParamType" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -197,7 +220,7 @@
   </xs:complexType>
 
   <xs:complexType name="OutputMappingType">
-    <xs:sequence>
+    <xs:sequence minOccurs="0">
       <xs:any processContents="skip" maxOccurs="unbounded"/>
     </xs:sequence>
     <xs:attribute name="assign" type="xs:string"/>
@@ -205,10 +228,10 @@
 
   <xs:complexType name="CallFieldsBlock">
     <xs:choice minOccurs="0" maxOccurs="unbounded">
-      <xs:element name="string" type="gollum:CallFieldType"/>
-      <xs:element name="int" type="gollum:CallFieldType"/>
-      <xs:element name="bool" type="gollum:CallFieldType"/>
-      <xs:element name="float" type="gollum:CallFieldType"/>
+      <xs:element name="string" type="CallFieldType"/>
+      <xs:element name="int" type="CallFieldType"/>
+      <xs:element name="bool" type="CallFieldType"/>
+      <xs:element name="float" type="CallFieldType"/>
     </xs:choice>
   </xs:complexType>
 
@@ -219,7 +242,7 @@
 
   <xs:complexType name="TransitionsBlock">
     <xs:sequence>
-      <xs:element name="transition" type="gollum:TransitionType" maxOccurs="unbounded"/>
+      <xs:element name="transition" type="TransitionType" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 

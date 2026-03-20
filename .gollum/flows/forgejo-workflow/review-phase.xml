@@ -47,6 +47,9 @@
     <states>
         <state name="collect-info" initial="true">
             <steps>
+                <!-- NOTE: The <group parallel="true"> feature is NOT YET IMPLEMENTED.
+                     Steps will execute sequentially until parallel execution is built.
+                     See: https://github.com/denkhaus/gollum/issues/XXX -->
                 <group name="parallel-fetch" parallel="true">
                     <!-- Fetch PR diff -->
                     <step type="func" function="GetPRDiff">

@@ -41,11 +41,16 @@ func (c *ComputedChecker) Check(flow *flows.Flow, result *flows.LinterResult) {
 
 // checkField validates a single computed field
 func (c *ComputedChecker) checkField(field flows.ComputedFieldDef, registry map[string]bool, result *flows.LinterResult) {
+	// Get position of this computed field
+	line, col := c.getFieldPosition(field.Name)
+
 	// Check name is not empty
 	if field.Name == "" {
 		result.Errors = append(result.Errors, flows.LinterError{
 			Code:    flows.ErrInvalidExpr,
 			Message: "computed field must have a name attribute",
+			Line:    line,
+			Column:  col,
 		})
 		return
 	}
@@ -58,6 +63,8 @@ func (c *ComputedChecker) checkField(field flows.ComputedFieldDef, registry map[
 		result.Errors = append(result.Errors, flows.LinterError{
 			Code:    flows.ErrInvalidExpr,
 			Message: fmt.Sprintf("computed field '%s' has invalid type '%s'", field.Name, field.Type),
+			Line:    line,
+			Column:  col,
 		})
 	}
 
@@ -66,6 +73,8 @@ func (c *ComputedChecker) checkField(field flows.ComputedFieldDef, registry map[
 		result.Errors = append(result.Errors, flows.LinterError{
 			Code:    flows.ErrInvalidExpr,
 			Message: fmt.Sprintf("computed field '%s' must have an eval expression", field.Name),
+			Line:    line,
+			Column:  col,
 		})
 		return
 	}
@@ -76,6 +85,8 @@ func (c *ComputedChecker) checkField(field flows.ComputedFieldDef, registry map[
 		result.Errors = append(result.Errors, flows.LinterError{
 			Code:    flows.ErrInvalidExpr,
 			Message: fmt.Sprintf("computed field '%s' has invalid expression: %s", field.Name, err.Error()),
+			Line:    line,
+			Column:  col,
 		})
 		return
 	}
@@ -88,6 +99,8 @@ func (c *ComputedChecker) checkField(field flows.ComputedFieldDef, registry map[
 			result.Errors = append(result.Errors, flows.LinterError{
 				Code:    flows.ErrFieldNotFound,
 				Message: fmt.Sprintf("computed field '%s' references undefined field '%s'", field.Name, refKey),
+				Line:    line,
+				Column:  col,
 			})
 		}
 	}
@@ -98,9 +111,22 @@ func (c *ComputedChecker) checkField(field flows.ComputedFieldDef, registry map[
 			result.Errors = append(result.Errors, flows.LinterError{
 				Code:    flows.ErrCircularDeps,
 				Message: fmt.Sprintf("computed field '%s' cannot reference itself", field.Name),
+				Line:    line,
+				Column:  col,
 			})
 		}
 	}
+}
+
+// getFieldPosition returns the line and column for a computed field
+func (c *ComputedChecker) getFieldPosition(fieldName string) (line, col int) {
+	if c.PosTracker != nil {
+		line, col = c.PosTracker.FindComputedFieldPosition(fieldName)
+	}
+	if line == 0 {
+		line, col = 1, 1
+	}
+	return
 }
 
 // checkCircularDependencies detects circular dependencies in computed fields
@@ -142,9 +168,12 @@ func (c *ComputedChecker) checkCircularDependencies(fields []flows.ComputedField
 	for _, field := range fields {
 		if !visited[field.Name] {
 			if dfs(field.Name) {
+				line, col := c.getFieldPosition(field.Name)
 				result.Errors = append(result.Errors, flows.LinterError{
 					Code:    flows.ErrCircularDeps,
 					Message: fmt.Sprintf("circular dependency detected involving computed field '%s'", field.Name),
+					Line:    line,
+					Column:  col,
 				})
 				return
 			}

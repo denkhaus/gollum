@@ -112,6 +112,28 @@ func (p *PositionTracker) FindComputedFieldPosition(fieldName string) (line, col
 	return 0, 0
 }
 
+// FindOutputFieldPosition finds the line number of an output field by name
+func (p *PositionTracker) FindOutputFieldPosition(fieldName string) (line, column int) {
+	// Output fields can be <string name="...">, <int name="...">, etc.
+	for _, elemType := range []string{"string", "int", "bool", "float"} {
+		if line, col := p.FindElementPosition(elemType, "name", fieldName); line > 0 {
+			return line, col
+		}
+	}
+	return 0, 0
+}
+
+// FindOutputFieldByFrom finds the line number of an output field by its 'from' attribute
+func (p *PositionTracker) FindOutputFieldByFrom(fromValue string) (line, column int) {
+	// Output fields can be <string name="..." from="...">, <int name="..." from="...">, etc.
+	for _, elemType := range []string{"string", "int", "bool", "float"} {
+		if line, col := p.FindElementPosition(elemType, "from", fromValue); line > 0 {
+			return line, col
+		}
+	}
+	return 0, 0
+}
+
 // FindContextForExpression finds the line number where an expression appears
 // by searching for the expression text in the XML
 func (p *PositionTracker) FindContextForExpression(expr string) (line, column int) {

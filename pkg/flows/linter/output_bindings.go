@@ -30,14 +30,27 @@ func (c *OutputBindingsChecker) Check(flow *flows.Flow, result *flows.LinterResu
 
 // checkBinding validates a single output binding
 func (c *OutputBindingsChecker) checkBinding(flow *flows.Flow, field *flows.FieldDef, result *flows.LinterResult) {
+	// Get position of this output field by its 'from' attribute (more specific than name)
+	line, col := 1, 1
+	if c.PosTracker != nil {
+		line, col = c.PosTracker.FindOutputFieldByFrom(field.From)
+		if line == 0 {
+			// Fallback to searching by name
+			line, col = c.PosTracker.FindOutputFieldPosition(field.Name)
+		}
+		if line == 0 {
+			line, col = 1, 1
+		}
+	}
+
 	// Parse the 'from' reference
 	sourceScope, sourceName, err := variables.ParseFieldReference(field.From)
 	if err != nil {
 		result.Errors = append(result.Errors, flows.LinterError{
 			Code:     "E005",
 			Message:  fmt.Sprintf("invalid 'from' reference: %s", field.From),
-			Line:     1,
-			Column:   1,
+			Line:     line,
+			Column:   col,
 		})
 		return
 	}
@@ -47,8 +60,8 @@ func (c *OutputBindingsChecker) checkBinding(flow *flows.Flow, field *flows.Fiel
 		result.Errors = append(result.Errors, flows.LinterError{
 			Code:     "E006",
 			Message:  fmt.Sprintf("invalid scope '%s' in 'from' attribute (allowed: input, context, computed, output)", sourceScope),
-			Line:     1,
-			Column:   1,
+			Line:     line,
+			Column:   col,
 		})
 		return
 	}
@@ -59,8 +72,8 @@ func (c *OutputBindingsChecker) checkBinding(flow *flows.Flow, field *flows.Fiel
 			result.Errors = append(result.Errors, flows.LinterError{
 				Code:     "E008",
 				Message:  fmt.Sprintf("circular dependency: output.%s -> output.%s", field.Name, sourceName),
-				Line:     1,
-				Column:   1,
+				Line:     line,
+				Column:   col,
 			})
 			return
 		}
@@ -71,8 +84,8 @@ func (c *OutputBindingsChecker) checkBinding(flow *flows.Flow, field *flows.Fiel
 		result.Errors = append(result.Errors, flows.LinterError{
 			Code:     "E007",
 			Message:  fmt.Sprintf("field '%s.%s' does not exist", sourceScope, sourceName),
-			Line:     1,
-			Column:   1,
+			Line:     line,
+			Column:   col,
 		})
 		return
 	}
@@ -82,8 +95,8 @@ func (c *OutputBindingsChecker) checkBinding(flow *flows.Flow, field *flows.Fiel
 		result.Warnings = append(result.Warnings, flows.LinterError{
 			Code:     "W003",
 			Message:  fmt.Sprintf("multiple output fields map from '%s'", field.From),
-			Line:     1,
-			Column:   1,
+			Line:     line,
+			Column:   col,
 		})
 	}
 }

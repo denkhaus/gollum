@@ -67,6 +67,8 @@ github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f h1:Y/CXytFA4m6
 github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f/go.mod h1:vw97MGsxSvLiUE2X8qFplwetxpGLQrlU1Q9AUEIzCaM=
 github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
+github.com/form3tech-oss/go-xsd-validate v1.0.3 h1:607FT70CezGkYauwmntLzNdFRX2tbS3wAvhV2a+QUQA=
+github.com/form3tech-oss/go-xsd-validate v1.0.3/go.mod h1:N6vmvmiGS5cW0/pUiTiQMmp5NtcEhBs3+UEwusC1P1g=
 github.com/fsnotify/fsnotify v1.9.0 h1:2Ml+OJNzbYCTzsxtv8vKSFD9PbJjmhYF14k/jKC7S9k=
 github.com/fsnotify/fsnotify v1.9.0/go.mod h1:8jBTzvmWwFyi3Pb8djgCCO5IBqzKJ/Jwo8TRcHyHii0=
 github.com/git-hulk/langfuse-go v0.1.0 h1:C4/POT5gdcErjfeTGX3dZcjW40XcaQl3NH+oQLC5/Bc=
