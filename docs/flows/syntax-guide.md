@@ -100,12 +100,84 @@ When referencing fields, always use the absolute path syntax:
 | Computed | `computed.` | `${computed.is_ready}`, `computed.doubled` |
 | System | `sys.` | `${sys.error.message}`, `${sys.error.step}` |
 
+## Output Field Bindings
+
+Output fields can optionally declare their source using the `from` attribute:
+
+### Declarative Output (with `from`)
+
+Output fields with `from` are automatically populated from the specified source:
+
+```xml
+<output>
+    <int name="sum" from="computed.sum" />
+    <string name="message" from="input.text" />
+    <bool name="is_valid" from="computed.is_valid" />
+</output>
+```
+
+**Key properties:**
+- **Readonly at runtime** - Cannot be set by tools/steps via `set_output_value`
+- **Auto-populated** - Value flows automatically after source evaluation
+- **Type-safe** - Linter validates source exists and type matches
+
+### Imperative Output (without `from`)
+
+Output fields without `from` are set by tools/steps at runtime:
+
+```xml
+<output>
+    <string name="result" />
+    <int name="count" />
+</output>
+```
+
+### Allowed Sources
+
+| Source | Example | When to Use |
+|--------|---------|-------------|
+| `input.*` | `from="input.value"` | Pass input through to output |
+| `context.*` | `from="context.status"` | Expose context value as output |
+| `computed.*` | `from="computed.sum"` | Expose computed value as output |
+| `output.*` | `from="output.other"` | Alias another output field |
+
+### Migration from `assign` Function
+
+**Before (verbose):**
+```xml
+<state name="assign" initial="true">
+    <steps>
+        <step type="func" function="assign">
+            <params>
+                <param name="from" value="computed.sum" />
+                <param name="to" value="output.sum" />
+            </params>
+        </step>
+    </steps>
+    <transitions>
+        <transition to="done" />
+    </transitions>
+</state>
+```
+
+**After (declarative):**
+```xml
+<output>
+    <int name="sum" from="computed.sum" />
+</output>
+
+<states>
+    <state name="done" initial="true" />
+</states>
+```
+
 ## Linter Warnings
 
 The linter enforces these syntax rules:
 
 - **W001**: Expression contains `${}` syntax - use direct field references
 - **W002**: Template may contain field references without `${}` - wrap in `${}`
+- **W003**: Multiple output fields map from the same source (warning)
 
 ## Examples
 
