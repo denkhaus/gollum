@@ -1,6 +1,7 @@
 package flows
 
 import (
+	"encoding/xml"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -64,4 +65,13 @@ func TestFlow_HasComputedBlock(t *testing.T) {
 	assert.NotNil(t, flow.Computed)
 	assert.Len(t, flow.Computed.GetAllFields(), 1)
 	assert.Equal(t, "result", flow.Computed.GetAllFields()[0].Name)
+}
+
+func TestFieldDef_FromAttribute(t *testing.T) {
+	xmlData := `<string name="result" from="computed.sum" />`
+	var field FieldDef
+	err := xml.Unmarshal([]byte(xmlData), &field)
+	assert.NoError(t, err)
+	assert.Equal(t, "result", field.Name)
+	assert.Equal(t, "computed.sum", field.From)
 }

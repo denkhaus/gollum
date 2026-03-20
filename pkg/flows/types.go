@@ -244,6 +244,7 @@ type FieldDef struct {
 	Type     ValueType `xml:"type,attr"`
 	Required bool      `xml:"required,attr"`
 	Default  string    `xml:"default,attr"`
+	From     string    `xml:"from,attr,omitempty"` // Source reference for output bindings
 }
 
 // GetName returns the field name (implements variables.FieldDefinition interface)
