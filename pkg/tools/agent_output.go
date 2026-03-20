@@ -69,7 +69,7 @@ func (t *agentOutputToolImpl) Spec() gollem.ToolSpec {
 			},
 			"timeout": {
 				Type:        gollem.TypeInteger,
-				Description: "Maximum time to wait in milliseconds (default: 30000, max: 600000). Only applies when block=true.",
+				Description: fmt.Sprintf("Maximum time to wait in milliseconds (default: %d, max: %d). Only applies when block=true.", DefaultAgentOutputTimeout, MaxAgentOutputTimeout),
 			},
 		},
 	}
@@ -104,26 +104,16 @@ func (t *agentOutputToolImpl) runAgentOutput(ctx context.Context, args map[strin
 		}
 	}
 
-	// Parse timeout parameter (defaults to 30000ms)
-	timeout := 30000 * time.Millisecond
+	// Parse timeout parameter (defaults to DefaultAgentOutputTimeout)
+	timeout := DefaultAgentOutputTimeoutDuration
 	if timeoutVal, exists := args["timeout"]; exists {
 		if timeoutInt, ok := timeoutVal.(int); ok {
-			// Clamp timeout between 1ms and 10 minutes
-			if timeoutInt < 1 {
-				timeoutInt = 1
-			}
-			if timeoutInt > 600000 {
-				timeoutInt = 600000
-			}
+			// Clamp timeout between MinAgentOutputTimeout and MaxAgentOutputTimeout
+			timeoutInt = shared.Clamp(timeoutInt, MinAgentOutputTimeout, MaxAgentOutputTimeout)
 			timeout = time.Duration(timeoutInt) * time.Millisecond
 		} else if timeoutFloat, ok := timeoutVal.(float64); ok {
 			timeoutInt := int(timeoutFloat)
-			if timeoutInt < 1 {
-				timeoutInt = 1
-			}
-			if timeoutInt > 600000 {
-				timeoutInt = 600000
-			}
+			timeoutInt = shared.Clamp(timeoutInt, MinAgentOutputTimeout, MaxAgentOutputTimeout)
 			timeout = time.Duration(timeoutInt) * time.Millisecond
 		}
 	}

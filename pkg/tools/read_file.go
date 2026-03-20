@@ -70,11 +70,11 @@ func (t *readFileToolImpl) Spec() gollem.ToolSpec {
 			},
 			"offset": {
 				Type:        gollem.TypeNumber,
-				Description: "The line number to start reading from (default: 1)",
+				Description: fmt.Sprintf("The line number to start reading from (default: %d)", DefaultReadFileOffset),
 			},
 			"limit": {
 				Type:        gollem.TypeNumber,
-				Description: "The maximum number of lines to read (default: 200)",
+				Description: fmt.Sprintf("The maximum number of lines to read (default: %d)", DefaultReadFileLimit),
 			},
 		},
 	}
@@ -95,11 +95,11 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 		return errResp, nil
 	}
 
-	// Get optional offset (line number, default: 1)
-	offset := max(1, args.GetInt(shared.ParamOffset, 1))
+	// Get optional offset (line number, default: DefaultReadFileOffset)
+	offset := max(1, args.GetInt(shared.ParamOffset, DefaultReadFileOffset))
 
-	// Get optional limit (max lines, default: 200)
-	limit := max(1, args.GetInt(shared.ParamLimit, 200))
+	// Get optional limit (max lines, default: DefaultReadFileLimit)
+	limit := max(1, args.GetInt(shared.ParamLimit, DefaultReadFileLimit))
 
 	// Convert relative path to absolute
 	path, err := filepath.Abs(path)

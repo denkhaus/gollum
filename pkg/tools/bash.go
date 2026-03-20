@@ -89,7 +89,7 @@ func (t *bashToolImpl) Spec() gollem.ToolSpec {
 			},
 			"timeout": {
 				Type:        gollem.TypeNumber,
-				Description: "Optional timeout in seconds (default: 60, max: 300 = 5 minutes)",
+				Description: fmt.Sprintf("Optional timeout in seconds (default: %.0f, max: %.0f = 5 minutes)", DefaultBashTimeout, MaxBashTimeout),
 			},
 		},
 	}
@@ -116,8 +116,8 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args ToolRequestParam
 		beforeStats = t.fileState.GetAllStats()
 	}
 
-	// Get timeout, default to 60 seconds, max 300 (5 minutes)
-	timeoutSeconds := max(1.0, min(args.GetFloat(shared.ParamTimeout, 60.0), 300.0))
+	// Get timeout, default to DefaultBashTimeout seconds, max MaxBashTimeout (5 minutes)
+	timeoutSeconds := shared.Clamp(args.GetFloat(shared.ParamTimeout, DefaultBashTimeout), 1.0, MaxBashTimeout)
 
 	// Create context with timeout
 	timeout := time.Duration(timeoutSeconds) * time.Second

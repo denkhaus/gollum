@@ -82,7 +82,7 @@ func (t *sessionLogsToolImpl) runSessionLogs(_ context.Context, args map[string]
 	}
 
 	// Parse optional parameters
-	count := 100 // default
+	count := DefaultSessionLogCount
 	if c, exists := args["count"].(float64); exists {
 		count = int(c)
 		if count <= 0 {
@@ -204,7 +204,7 @@ func (t *sessionLogsToolImpl) Spec() gollem.ToolSpec {
 			},
 			"count": {
 				Type:        gollem.TypeInteger,
-				Description: "Maximum number of entries to return (default: 100). Applied to 'head', 'tail', and 'all' modes.",
+				Description: fmt.Sprintf("Maximum number of entries to return (default: %d). Applied to 'head', 'tail', and 'all' modes.", DefaultSessionLogCount),
 			},
 			"since": {
 				Type:        gollem.TypeString,
