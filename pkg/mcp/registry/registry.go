@@ -32,6 +32,7 @@ type mcpRegistryImpl struct {
 	loader    mcpconfig.ConfigLoader
 	appConfig appconfig.ConfigService
 	logger    logger.LoggerService
+	sem       chan struct{} // semaphore for limiting concurrent connections
 }
 
 // NewMCPRegistry is the DI constructor
@@ -46,6 +47,7 @@ func NewMCPRegistry(injector do.Injector) (MCPRegistry, error) {
 		loader:    loader,
 		appConfig: appConfig,
 		logger:    log,
+		sem:       make(chan struct{}, 5), // max 5 parallel MCP connections
 	}
 
 	// Use context with timeout for MCP client initialization
