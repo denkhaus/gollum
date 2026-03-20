@@ -97,3 +97,44 @@ func TestExecutor_ErrorHandling_TransitionsToErrorState(t *testing.T) {
 	// Verify we ended up in error state (or init, since it transitioned)
 	assert.True(t, exec.(*flowExecutorImpl).currentState == "error" || exec.(*flowExecutorImpl).currentState == "init")
 }
+
+func TestExecutor_DeclarativeOutput_BindsFromComputed(t *testing.T) {
+	flow := &flows.Flow{
+		Name:    "declarative-output-test",
+		Version: "1.0",
+		Input: &flows.InputBlock{
+			Ints: []flows.FieldDef{{Name: "a", Default: "10"}},
+		},
+		Computed: &flows.ComputedBlock{
+			Ints: []flows.ComputedFieldDef{
+				{Name: "doubled", Type: flows.TypeInt, Eval: "MUL(input.a, 2)"},
+			},
+		},
+		Output: &flows.OutputBlock{
+			Ints: []flows.FieldDef{
+				{Name: "result", From: "computed.doubled", Type: flows.TypeInt},
+			},
+		},
+		States: []flows.State{
+			{Name: "done", Initial: true},
+		},
+	}
+
+	injector := setupTestDI(t)
+	svc := do.MustInvoke[FlowExecutorService](injector)
+	exec := svc.New(flow)
+
+	err := exec.SetInput(map[string]string{"a": "15"})
+	require.NoError(t, err)
+
+	err = exec.Validate()
+	require.NoError(t, err)
+
+	err = exec.Run()
+	require.NoError(t, err)
+
+	// Verify declarative output was populated
+	result, err := exec.GetContext().GetOutputField("result")
+	assert.NoError(t, err)
+	assert.Equal(t, 30, result)
+}

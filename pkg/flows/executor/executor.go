@@ -272,6 +272,14 @@ func (p *flowExecutorImpl) executeState(state *flows.State) error {
 		}
 	}
 
+	// Initialize output bindings from declarative 'from' attributes
+	if p.flow.Output != nil {
+		binder := NewOutputBinder()
+		if err := binder.InitializeBindings(p.ctx, p.flow.Output); err != nil {
+			return fmt.Errorf("output binding initialization: %w", err)
+		}
+	}
+
 	// Execute steps
 	for _, step := range state.Steps {
 		if err := p.executeStep(&step, state.Name); err != nil {
