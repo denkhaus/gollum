@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 Assign Input to Output
-Simplest test - pass input values directly to output
+Simplest test - pass input values directly to output using bindings
 -->
 <flow name="assign-input-to-output" version="1.0">
     <description>
-        Simplest assign flow - copies input to output.
+        Simplest assign flow - copies input to output using bindings.
         Test with: gollum flow run assign-input-to-output.xml -i "message=Hello World"
     </description>
 
@@ -14,23 +14,10 @@ Simplest test - pass input values directly to output
     </input>
 
     <output>
-        <string name="result" />
+        <string name="result" from="input.message" />
     </output>
 
     <states>
-        <state name="assign" initial="true">
-            <steps>
-                <step type="func" function="assign">
-                    <params>
-                        <param name="from" value="input.message" />
-                        <param name="to" value="output.result" />
-                    </params>
-                </step>
-            </steps>
-            <transitions>
-                <transition to="done" />
-            </transitions>
-        </state>
-        <state name="done" />
+        <state name="done" initial="true" />
     </states>
 </flow>
