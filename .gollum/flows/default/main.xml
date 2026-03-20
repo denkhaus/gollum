@@ -25,7 +25,7 @@
     </computed>
 
     <agents>
-        <agent name="startup" model="anthropic/claude-opus-4-6">
+        <agent name="startup" model="anthropic/glm-4.7">
             <prompt>You are a helpfull agent</prompt>
             <temperature>0.0</temperature>
         </agent>
