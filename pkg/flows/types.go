@@ -219,6 +219,56 @@ func (o *OutputBlock) GetImperative() []FieldDef {
 	return fields
 }
 
+// HasField checks if a field with the given name exists
+func (o *OutputBlock) HasField(name string) bool {
+	for _, f := range o.GetAllFields() {
+		if f.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// GetField returns the field with the given name, or nil if not found
+func (o *OutputBlock) GetField(name string) *FieldDef {
+	for _, f := range o.GetAllFields() {
+		if f.Name == name {
+			return &f
+		}
+	}
+	return nil
+}
+
+// HasField checks if a field with the given name exists in the input block
+func (i *InputBlock) HasField(name string) bool {
+	for _, f := range i.GetAllFields() {
+		if f.Name == name {
+			return true
+	}
+	}
+	return false
+}
+
+// HasField checks if a field with the given name exists in the context block
+func (c *ContextBlock) HasField(name string) bool {
+	for _, f := range c.GetAllFields() {
+		if f.Name == name {
+			return true
+	 }
+	}
+	return false
+}
+
+// HasField checks if a field with the given name exists in the computed block
+func (c *ComputedBlock) HasField(name string) bool {
+	for _, f := range c.GetAllFields() {
+		if f.Name == name {
+			return true
+	 }
+    }
+	return false
+}
+
 // ContextBlock defines internal context fields (mutable by tools)
 type ContextBlock struct {
 	Strings []ContextField `xml:"string"`

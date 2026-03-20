@@ -55,6 +55,11 @@ func LintWithContent(flowPath, xmlContent string, flow *flows.Flow) *flows.Linte
 	phase7 := &SyntaxChecker{PosTracker: posTracker}
 	phase7.Check(flow, result)
 
+	// Phase 8: Output binding validation
+	phase8 := NewOutputBindingsChecker()
+	phase8.PosTracker = posTracker
+	phase8.Check(flow, result)
+
 	// Determine validity
 	result.Valid = len(result.Errors) == 0
 
