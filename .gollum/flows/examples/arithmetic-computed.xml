@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 Integer Arithmetic with Computed Fields
-Tests ADD, SUB, MUL, DIV using computed block and assign function
+Tests ADD, SUB, MUL, DIV using computed block and output bindings
 -->
 <flow name="arithmetic-computed" version="1.0">
     <description>
-        Integer arithmetic using computed block and assign function.
+        Integer arithmetic using computed block and output bindings.
         Test with: gollum flow run arithmetic-computed.xml -i "a=20,b=4"
         Expected: sum=24, diff=16, product=80, quotient=5
     </description>
@@ -15,13 +15,6 @@ Tests ADD, SUB, MUL, DIV using computed block and assign function
         <int name="b" default="5" />
     </input>
 
-    <output>
-        <int name="sum" />
-        <int name="difference" />
-        <int name="product" />
-        <int name="quotient" />
-    </output>
-
     <computed>
         <int name="sum" eval="ADD(input.a, input.b)" />
         <int name="difference" eval="SUB(input.a, input.b)" />
@@ -29,38 +22,14 @@ Tests ADD, SUB, MUL, DIV using computed block and assign function
         <int name="quotient" eval="DIV(input.a, input.b)" />
     </computed>
 
+    <output>
+        <int name="sum" from="computed.sum" />
+        <int name="difference" from="computed.difference" />
+        <int name="product" from="computed.product" />
+        <int name="quotient" from="computed.quotient" />
+    </output>
+
     <states>
-        <state name="assign_outputs" initial="true">
-            <steps>
-                <step type="func" function="assign">
-                    <params>
-                        <param name="from" value="computed.sum" />
-                        <param name="to" value="output.sum" />
-                    </params>
-                </step>
-                <step type="func" function="assign">
-                    <params>
-                        <param name="from" value="computed.difference" />
-                        <param name="to" value="output.difference" />
-                    </params>
-                </step>
-                <step type="func" function="assign">
-                    <params>
-                        <param name="from" value="computed.product" />
-                        <param name="to" value="output.product" />
-                    </params>
-                </step>
-                <step type="func" function="assign">
-                    <params>
-                        <param name="from" value="computed.quotient" />
-                        <param name="to" value="output.quotient" />
-                    </params>
-                </step>
-            </steps>
-            <transitions>
-                <transition to="done" />
-            </transitions>
-        </state>
-        <state name="done" />
+        <state name="done" initial="true" />
     </states>
 </flow>
