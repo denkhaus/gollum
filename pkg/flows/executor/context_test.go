@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/flows"
+	"github.com/denkhaus/gollum/pkg/flows/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -78,4 +79,28 @@ func TestContext_ComputedFieldsAreImmutable(t *testing.T) {
 
 	// Context field is separate and mutable
 	assert.NoError(t, ctx.SetContextField("count", 15))
+}
+
+func TestContextImpl_SetOutputField_DeclarativeReadonly(t *testing.T) {
+	output := &flows.OutputBlock{
+		Ints: []flows.FieldDef{
+			{Name: "sum", From: "computed.sum", Type: flows.TypeInt},
+			{Name: "count", Type: flows.TypeInt},
+		},
+	}
+
+	ctx := newContext(nil, output, nil, nil)
+
+	// Attempting to set a declarative field should fail
+	err := ctx.SetOutputField("sum", 42)
+	assert.Error(t, err)
+
+	var readOnlyErr *errors.OutputFieldReadOnlyError
+	assert.ErrorAs(t, err, &readOnlyErr)
+	assert.Equal(t, "sum", readOnlyErr.FieldName)
+	assert.Equal(t, "computed.sum", readOnlyErr.Source)
+
+	// Setting an imperative field should succeed
+	err = ctx.SetOutputField("count", 100)
+	assert.NoError(t, err)
 }

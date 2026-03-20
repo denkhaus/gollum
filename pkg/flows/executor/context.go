@@ -319,7 +319,7 @@ func (c *contextImpl) SetContextField(name string, value any) error {
 }
 
 // SetOutputField sets the output variable by name
-// Returns error if the field is not defined in the output schema
+// Returns error if the field is not defined or is a declarative (readonly) field
 func (c *contextImpl) SetOutputField(name string, value any) error {
 	if c.outputValues == nil {
 		return &errors.NoSchemaError{
@@ -340,6 +340,15 @@ func (c *contextImpl) SetOutputField(name string, value any) error {
 				Field:   name,
 			},
 			Scope: "output",
+		}
+	}
+
+	// Check if field is declarative (readonly)
+	if c.outputBlock != nil {
+		for _, field := range c.outputBlock.GetAllFields() {
+			if field.Name == name && field.From != "" {
+				return errors.NewOutputFieldReadOnlyError(name, field.From)
+			}
 		}
 	}
 
