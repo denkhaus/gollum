@@ -197,6 +197,28 @@ func (o *OutputBlock) GetAllFields() []FieldDef {
 	return fields
 }
 
+// GetDeclarative returns all output fields with a 'from' attribute
+func (o *OutputBlock) GetDeclarative() []FieldDef {
+	var fields []FieldDef
+	for _, f := range o.GetAllFields() {
+		if f.From != "" {
+			fields = append(fields, f)
+		}
+	}
+	return fields
+}
+
+// GetImperative returns all output fields without a 'from' attribute
+func (o *OutputBlock) GetImperative() []FieldDef {
+	var fields []FieldDef
+	for _, f := range o.GetAllFields() {
+		if f.From == "" {
+			fields = append(fields, f)
+		}
+	}
+	return fields
+}
+
 // ContextBlock defines internal context fields (mutable by tools)
 type ContextBlock struct {
 	Strings []ContextField `xml:"string"`

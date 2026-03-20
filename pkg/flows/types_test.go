@@ -75,3 +75,20 @@ func TestFieldDef_FromAttribute(t *testing.T) {
 	assert.Equal(t, "result", field.Name)
 	assert.Equal(t, "computed.sum", field.From)
 }
+
+func TestOutputBlock_GetDeclarative(t *testing.T) {
+	block := &OutputBlock{
+		Ints: []FieldDef{
+			{Name: "sum", From: "computed.sum", Type: TypeInt},    // declarative
+			{Name: "count", Type: TypeInt},                        // imperative
+		},
+	}
+
+	declarative := block.GetDeclarative()
+	assert.Len(t, declarative, 1)
+	assert.Equal(t, "sum", declarative[0].Name)
+
+	imperative := block.GetImperative()
+	assert.Len(t, imperative, 1)
+	assert.Equal(t, "count", imperative[0].Name)
+}
