@@ -14,6 +14,7 @@ import (
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/tools"
+	"github.com/m-mizutani/gollem"
 	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
@@ -83,10 +84,20 @@ func Double(x int) int {
 	// Register HookManager
 	do.Provide(injector, hooks.NewHookManager)
 
+	// Create and register generated mocks
+	mockMCPRegistry := mcpregistry.NewMockMCPRegistry(ctrl)
+	mockMCPRegistry.EXPECT().GetToolSets().Return([]gollem.ToolSet{}).AnyTimes()
+	mockMCPRegistry.EXPECT().GetToolNames().Return([]string{}).AnyTimes()
+	mockMCPRegistry.EXPECT().Close().Return(nil).AnyTimes()
+	do.ProvideValue(injector, mcpregistry.MCPRegistry(mockMCPRegistry))
+
+	mockFlowRegistry := flowregistry.NewMockFlowRegistry(ctrl)
+	mockFlowRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFlowRegistry.EXPECT().GetFlow(gomock.Any()).Return(nil, flowregistry.ErrFlowNotFound).AnyTimes()
+	do.ProvideValue(injector, flowregistry.FlowRegistry(mockFlowRegistry))
+
 	// Register mock dependencies for other services
 	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
-	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
-	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 	// Create mock AgentFactory for tests that don't need LLM functionality
 	mockAgentFactory := shared.NewMockAgentFactory(ctrl)

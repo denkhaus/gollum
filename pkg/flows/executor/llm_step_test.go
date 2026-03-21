@@ -96,11 +96,17 @@ func TestExecuteLLMStep_SubstitutesPrompt(t *testing.T) {
 
 	// Add other required services
 	do.ProvideValue(injector, shared.AgentFactory(mockAgentFactory))
-	testMCPReg := &testMCPRegistry{}
-	do.ProvideValue(injector, mcpregistry.MCPRegistry(testMCPReg))
+	mockMCPRegistry := mcpregistry.NewMockMCPRegistry(ctrl)
+	mockMCPRegistry.EXPECT().GetToolSets().Return([]gollem.ToolSet{}).AnyTimes()
+	mockMCPRegistry.EXPECT().GetToolNames().Return([]string{}).AnyTimes()
+	mockMCPRegistry.EXPECT().Close().Return(nil).AnyTimes()
+	do.ProvideValue(injector, mcpregistry.MCPRegistry(mockMCPRegistry))
 	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
-	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	mockFlowRegistry := flowregistry.NewMockFlowRegistry(ctrl)
+	mockFlowRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFlowRegistry.EXPECT().GetFlow(gomock.Any()).Return(nil, flowregistry.ErrFlowNotFound).AnyTimes()
+	do.ProvideValue(injector, flowregistry.FlowRegistry(mockFlowRegistry))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 
 	// Register the flow executor service
@@ -170,11 +176,17 @@ func TestExecuteLLMStep_CreateAgentFails(t *testing.T) {
 
 	// Add other required services
 	do.ProvideValue(injector, shared.AgentFactory(mockAgentFactory))
-	testMCPReg := &testMCPRegistry{}
-	do.ProvideValue(injector, mcpregistry.MCPRegistry(testMCPReg))
+	mockMCPRegistry := mcpregistry.NewMockMCPRegistry(ctrl)
+	mockMCPRegistry.EXPECT().GetToolSets().Return([]gollem.ToolSet{}).AnyTimes()
+	mockMCPRegistry.EXPECT().GetToolNames().Return([]string{}).AnyTimes()
+	mockMCPRegistry.EXPECT().Close().Return(nil).AnyTimes()
+	do.ProvideValue(injector, mcpregistry.MCPRegistry(mockMCPRegistry))
 	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
-	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	mockFlowRegistry := flowregistry.NewMockFlowRegistry(ctrl)
+	mockFlowRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFlowRegistry.EXPECT().GetFlow(gomock.Any()).Return(nil, flowregistry.ErrFlowNotFound).AnyTimes()
+	do.ProvideValue(injector, flowregistry.FlowRegistry(mockFlowRegistry))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 
 	// Register the flow executor service
@@ -237,11 +249,17 @@ func TestExecuteLLMStep_ExecuteFails(t *testing.T) {
 
 	// Add other required services
 	do.ProvideValue(injector, shared.AgentFactory(mockAgentFactory))
-	testMCPReg := &testMCPRegistry{}
-	do.ProvideValue(injector, mcpregistry.MCPRegistry(testMCPReg))
+	mockMCPRegistry := mcpregistry.NewMockMCPRegistry(ctrl)
+	mockMCPRegistry.EXPECT().GetToolSets().Return([]gollem.ToolSet{}).AnyTimes()
+	mockMCPRegistry.EXPECT().GetToolNames().Return([]string{}).AnyTimes()
+	mockMCPRegistry.EXPECT().Close().Return(nil).AnyTimes()
+	do.ProvideValue(injector, mcpregistry.MCPRegistry(mockMCPRegistry))
 	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
-	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	mockFlowRegistry := flowregistry.NewMockFlowRegistry(ctrl)
+	mockFlowRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFlowRegistry.EXPECT().GetFlow(gomock.Any()).Return(nil, flowregistry.ErrFlowNotFound).AnyTimes()
+	do.ProvideValue(injector, flowregistry.FlowRegistry(mockFlowRegistry))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 
 	// Register the flow executor service
@@ -384,10 +402,17 @@ func TestExecuteLLMStep_PopulatesAllowedTools(t *testing.T) {
 
 	do.Provide(injector, hooks.NewHookManager)
 	do.ProvideValue(injector, shared.AgentFactory(mockAgentFactory))
-	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
+	mockMCPRegistry := mcpregistry.NewMockMCPRegistry(ctrl)
+	mockMCPRegistry.EXPECT().GetToolSets().Return([]gollem.ToolSet{}).AnyTimes()
+	mockMCPRegistry.EXPECT().GetToolNames().Return([]string{}).AnyTimes()
+	mockMCPRegistry.EXPECT().Close().Return(nil).AnyTimes()
+	do.ProvideValue(injector, mcpregistry.MCPRegistry(mockMCPRegistry))
 	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
-	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	mockFlowRegistry := flowregistry.NewMockFlowRegistry(ctrl)
+	mockFlowRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFlowRegistry.EXPECT().GetFlow(gomock.Any()).Return(nil, flowregistry.ErrFlowNotFound).AnyTimes()
+	do.ProvideValue(injector, flowregistry.FlowRegistry(mockFlowRegistry))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 	do.Provide(injector, NewFlowExecutor)
 
@@ -490,10 +515,17 @@ func TestExecuteLLMStep_SeparatesFlowTools(t *testing.T) {
 
 	do.Provide(injector, hooks.NewHookManager)
 	do.ProvideValue(injector, shared.AgentFactory(mockAgentFactory))
-	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
+	mockMCPRegistry := mcpregistry.NewMockMCPRegistry(ctrl)
+	mockMCPRegistry.EXPECT().GetToolSets().Return([]gollem.ToolSet{}).AnyTimes()
+	mockMCPRegistry.EXPECT().GetToolNames().Return([]string{}).AnyTimes()
+	mockMCPRegistry.EXPECT().Close().Return(nil).AnyTimes()
+	do.ProvideValue(injector, mcpregistry.MCPRegistry(mockMCPRegistry))
 	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
-	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
+	mockFlowRegistry := flowregistry.NewMockFlowRegistry(ctrl)
+	mockFlowRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFlowRegistry.EXPECT().GetFlow(gomock.Any()).Return(nil, flowregistry.ErrFlowNotFound).AnyTimes()
+	do.ProvideValue(injector, flowregistry.FlowRegistry(mockFlowRegistry))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 	do.Provide(injector, NewFlowExecutor)
 

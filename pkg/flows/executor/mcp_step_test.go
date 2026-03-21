@@ -64,6 +64,21 @@ func (m *mockMCPRegistryWithTools) GetToolSets() []gollem.ToolSet {
 	return m.toolSets
 }
 
+func (m *mockMCPRegistryWithTools) GetToolNames() []string {
+	var toolNames []string
+	for _, toolSet := range m.toolSets {
+		// Get specs from tool set
+		specs, err := toolSet.Specs(context.Background())
+		if err != nil {
+			continue
+		}
+		for _, spec := range specs {
+			toolNames = append(toolNames, spec.Name)
+		}
+	}
+	return toolNames
+}
+
 func (m *mockMCPRegistryWithTools) Close() error {
 	return nil
 }

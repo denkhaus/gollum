@@ -18,17 +18,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// testMCPRegistry is a simple mock for testing
-type testMCPRegistry struct{}
-
-func (m *testMCPRegistry) GetToolSets() []gollem.ToolSet {
-	return []gollem.ToolSet{}
-}
-
-func (m *testMCPRegistry) Close() error {
-	return nil
-}
-
 // setupTestDI creates a DI injector with mock services for testing
 func setupTestDI(t *testing.T) do.Injector {
 	injector := do.New()
@@ -54,11 +43,21 @@ func setupTestDI(t *testing.T) do.Injector {
 	// Register HookManager
 	do.Provide(injector, hooks.NewHookManager)
 
-	// Register mock dependencies
+	// Create and register generated mocks
+	mockMCPRegistry := mcpregistry.NewMockMCPRegistry(ctrl)
+	mockMCPRegistry.EXPECT().GetToolSets().Return([]gollem.ToolSet{}).AnyTimes()
+	mockMCPRegistry.EXPECT().GetToolNames().Return([]string{}).AnyTimes()
+	mockMCPRegistry.EXPECT().Close().Return(nil).AnyTimes()
+	do.ProvideValue(injector, mcpregistry.MCPRegistry(mockMCPRegistry))
+
+	mockFlowRegistry := flowregistry.NewMockFlowRegistry(ctrl)
+	mockFlowRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFlowRegistry.EXPECT().GetFlow(gomock.Any()).Return(nil, flowregistry.ErrFlowNotFound).AnyTimes()
+	do.ProvideValue(injector, flowregistry.FlowRegistry(mockFlowRegistry))
+
+	// Register remaining custom mocks (to be migrated)
 	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
-	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
-	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 
 	// Create mock AgentFactory for LLM step testing
@@ -97,11 +96,17 @@ func setupTestDIWithRegistry(t *testing.T, registry flowregistry.FlowRegistry) d
 	// Register HookManager
 	do.Provide(injector, hooks.NewHookManager)
 
+	// Create and register generated mocks
+	mockMCPRegistry := mcpregistry.NewMockMCPRegistry(ctrl)
+	mockMCPRegistry.EXPECT().GetToolSets().Return([]gollem.ToolSet{}).AnyTimes()
+	mockMCPRegistry.EXPECT().GetToolNames().Return([]string{}).AnyTimes()
+	mockMCPRegistry.EXPECT().Close().Return(nil).AnyTimes()
+	do.ProvideValue(injector, mcpregistry.MCPRegistry(mockMCPRegistry))
+
 	// Register dependencies
 	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
 	do.ProvideValue(injector, registry)
-	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 
 	// Create mock AgentFactory for LLM step testing
@@ -137,11 +142,21 @@ func setupTestDIWithBashProvider(t *testing.T, provider tools.BashToolProvider) 
 	// Register HookManager
 	do.Provide(injector, hooks.NewHookManager)
 
+	// Create and register generated mocks
+	mockMCPRegistry := mcpregistry.NewMockMCPRegistry(ctrl)
+	mockMCPRegistry.EXPECT().GetToolSets().Return([]gollem.ToolSet{}).AnyTimes()
+	mockMCPRegistry.EXPECT().GetToolNames().Return([]string{}).AnyTimes()
+	mockMCPRegistry.EXPECT().Close().Return(nil).AnyTimes()
+	do.ProvideValue(injector, mcpregistry.MCPRegistry(mockMCPRegistry))
+
+	mockFlowRegistry := flowregistry.NewMockFlowRegistry(ctrl)
+	mockFlowRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFlowRegistry.EXPECT().GetFlow(gomock.Any()).Return(nil, flowregistry.ErrFlowNotFound).AnyTimes()
+	do.ProvideValue(injector, flowregistry.FlowRegistry(mockFlowRegistry))
+
 	// Register dependencies
 	do.ProvideValue(injector, provider)
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
-	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
-	do.ProvideValue(injector, mcpregistry.MCPRegistry(&testMCPRegistry{}))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 
 	// Create mock AgentFactory for LLM step testing
@@ -177,10 +192,15 @@ func setupTestDIWithBashProviderAndMCPRegistry(t *testing.T, provider tools.Bash
 	// Register HookManager
 	do.Provide(injector, hooks.NewHookManager)
 
+	// Create and register generated mocks
+	mockFlowRegistry := flowregistry.NewMockFlowRegistry(ctrl)
+	mockFlowRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFlowRegistry.EXPECT().GetFlow(gomock.Any()).Return(nil, flowregistry.ErrFlowNotFound).AnyTimes()
+	do.ProvideValue(injector, flowregistry.FlowRegistry(mockFlowRegistry))
+
 	// Register dependencies
 	do.ProvideValue(injector, provider)
 	do.ProvideValue(injector, extensions.ExtensionService(&testExtensionService{}))
-	do.ProvideValue(injector, flowregistry.FlowRegistry(&testFlowRegistry{}))
 	do.ProvideValue(injector, mcpReg)
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 
