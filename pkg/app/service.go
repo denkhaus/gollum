@@ -221,7 +221,7 @@ func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (sha
 	}
 
 	// Get MCP tool names in "server_name/tool_name" format
-	allowedTools := convertToolSetsToAllowedTools(ctx, nil, p.mcpRegistry)
+	allowedTools := p.mcpRegistry.GetToolNames()
 	if len(allowedTools) == 0 {
 		p.logService.Warn("no mcp tools configured for supervision agent")
 	}
