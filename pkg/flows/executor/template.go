@@ -19,7 +19,7 @@ func SubstituteTemplate(ctx ExecutionContext, tmpl string) string {
 			return match
 		}
 
-		scope := flows.VarContainerTarget(parts[1])
+		scope := flows.FlowVariableScope(parts[1])
 		field := parts[2]
 
 		var value any

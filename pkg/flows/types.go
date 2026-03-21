@@ -26,7 +26,7 @@ type FlowContext interface {
 	RequestTransition(to string) error
 }
 
-type VarContainerTarget string
+type FlowVariableScope string
 
 // ValueType represents the type of a field
 type ValueType string
@@ -36,9 +36,9 @@ func (p ValueType) IsEmpty() bool {
 }
 
 const (
-	VarContainerTargetInput   VarContainerTarget = "input"
-	VarContainerTargetContext VarContainerTarget = "context"
-	VarContainerTargetOutput  VarContainerTarget = "output"
+	FlowVariableScopeInput   FlowVariableScope = "input"
+	FlowVariableScopeContext FlowVariableScope = "context"
+	FlowVariableScopeOutput  FlowVariableScope = "output"
 
 	// Field type constants
 	TypeString ValueType = "string"
@@ -244,7 +244,7 @@ func (i *InputBlock) HasField(name string) bool {
 	for _, f := range i.GetAllFields() {
 		if f.Name == name {
 			return true
-	}
+		}
 	}
 	return false
 }
@@ -254,7 +254,7 @@ func (c *ContextBlock) HasField(name string) bool {
 	for _, f := range c.GetAllFields() {
 		if f.Name == name {
 			return true
-	 }
+		}
 	}
 	return false
 }
@@ -264,8 +264,8 @@ func (c *ComputedBlock) HasField(name string) bool {
 	for _, f := range c.GetAllFields() {
 		if f.Name == name {
 			return true
-	 }
-    }
+		}
+	}
 	return false
 }
 

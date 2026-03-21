@@ -53,7 +53,7 @@ func TestMCPRegistry_CreateSSEClient(t *testing.T) {
 		configs: map[string]mcpconfig.MCPServerConfig{
 			"invalid-sse": {
 				Type:    "sse",
-				URL:     "http://invalid-local-url:9999/mcp",
+				URL:     "http://127.0.0.1:9999/mcp", // Use IP to avoid slow DNS lookup
 				Enabled: true,
 			},
 		},
@@ -81,7 +81,7 @@ func TestMCPRegistry_CreateHTTPClient(t *testing.T) {
 		configs: map[string]mcpconfig.MCPServerConfig{
 			"invalid-http": {
 				Type:    "http",
-				URL:     "http://invalid-local-url:9999/mcp",
+				URL:     "http://127.0.0.1:9999/mcp", // Use IP to avoid slow DNS lookup
 				Enabled: true,
 			},
 		},
@@ -171,7 +171,8 @@ func NewMCPRegistryWithLoader(t *testing.T, ctrl *gomock.Controller, loader mcpc
 		sem:       make(chan struct{}, 5), // Initialize semaphore for tests
 	}
 	// Initialize clients for testing with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	// Short timeout to fail fast on invalid URLs in parallel tests
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := p.initializeClients(ctx); err != nil {
 		return nil, err
