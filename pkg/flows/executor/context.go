@@ -10,6 +10,9 @@ import (
 	"github.com/denkhaus/gollum/pkg/flows/variables"
 )
 
+// EvaluationScope is a typed scope map for expression evaluation
+type EvaluationScope map[flows.FlowVariableScope]map[string]any
+
 // Evaluator wraps the ast package for expression evaluation
 type Evaluator struct {
 	// Placeholder for future state/caching if needed
@@ -27,6 +30,17 @@ func (e *Evaluator) EvaluateExpr(expr string, scope map[string]any) (any, error)
 		return nil, err
 	}
 	return ast.Evaluate(parsed, scope)
+}
+
+// EvaluateExprTyped evaluates an expression against a typed EvaluationScope
+func (e *Evaluator) EvaluateExprTyped(expr string, scope EvaluationScope) (any, error) {
+	// Convert EvaluationScope to map[string]any for ast.Evaluate
+	// This is needed because the ast package doesn't know about our typed scopes
+	converted := make(map[string]any)
+	for key, value := range scope {
+		converted[string(key)] = value
+	}
+	return e.EvaluateExpr(expr, converted)
 }
 
 // ExtractDependencies extracts field references from an expression
@@ -454,10 +468,10 @@ func (c *contextImpl) GetComputedEvaluator() *variables.ComputedEvaluator {
 	return variables.NewComputedEvaluator(c.computedVals, c.inputVals, c.contextValues, c.outputValues)
 }
 
-// buildScope builds the evaluation scope for backward compatibility
-// TODO: Remove this once all code uses GetComputedEvaluator
-func (c *contextImpl) buildScope() map[string]any {
-	scope := make(map[string]any)
+// buildScope builds the evaluation scope for expression evaluation
+// Used by executeTransition, executeCall, and substituteTemplate
+func (c *contextImpl) buildScope() EvaluationScope {
+	scope := make(EvaluationScope)
 
 	// Build input scope from typed wrapper
 	if c.inputBlock != nil && c.inputVals != nil {
@@ -469,7 +483,7 @@ func (c *contextImpl) buildScope() map[string]any {
 			// Unset fields are not added to scope
 		}
 		if len(inputScope) > 0 {
-			scope["input"] = inputScope
+			scope[flows.FlowVariableScopeInput] = inputScope
 		}
 	}
 
@@ -483,7 +497,7 @@ func (c *contextImpl) buildScope() map[string]any {
 			// Unset fields are not added to scope
 		}
 		if len(outputScope) > 0 {
-			scope["output"] = outputScope
+			scope[flows.FlowVariableScopeOutput] = outputScope
 		}
 	}
 
@@ -497,7 +511,7 @@ func (c *contextImpl) buildScope() map[string]any {
 			// Unset fields are not added to scope
 		}
 		if len(contextScope) > 0 {
-			scope["context"] = contextScope
+			scope[flows.FlowVariableScopeContext] = contextScope
 		}
 	}
 
@@ -510,13 +524,13 @@ func (c *contextImpl) buildScope() map[string]any {
 			}
 		}
 		if len(computedScope) > 0 {
-			scope["computed"] = computedScope
+			scope[flows.FlowVariableScopeComputed] = computedScope
 		}
 	}
 
 	// Add system scope with error context if available
 	if c.lastError != nil {
-		scope["sys"] = map[string]any{
+		scope[flows.FlowVariableScopeSys] = map[string]any{
 			"error": c.lastError,
 		}
 	}

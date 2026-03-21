@@ -321,7 +321,7 @@ func (p *flowExecutorImpl) executeTransition(state *flows.State) error {
 
 		// Evaluate condition
 		eval := NewEvaluator()
-		result, err := eval.EvaluateExpr(trans.When, scope)
+		result, err := eval.EvaluateExprTyped(trans.When, scope)
 		if err != nil {
 			return fmt.Errorf("transition condition: %w", err)
 		}
@@ -475,7 +475,7 @@ func (p *flowExecutorImpl) substituteTemplate(cmd string) string {
 	scope := p.ctx.buildScope()
 
 	// Replace input references
-	if inputScope, ok := scope["input"].(map[string]any); ok {
+	if inputScope, ok := scope[flows.FlowVariableScopeInput]; ok {
 		for k, v := range inputScope {
 			placeholder := fmt.Sprintf("${input.%s}", k)
 			result = strings.ReplaceAll(result, placeholder, fmt.Sprintf("%v", v))
@@ -483,7 +483,7 @@ func (p *flowExecutorImpl) substituteTemplate(cmd string) string {
 	}
 
 	// Replace context references
-	if ctxScope, ok := scope["context"].(map[string]any); ok {
+	if ctxScope, ok := scope[flows.FlowVariableScopeContext]; ok {
 		for k, v := range ctxScope {
 			placeholder := fmt.Sprintf("${context.%s}", k)
 			result = strings.ReplaceAll(result, placeholder, fmt.Sprintf("%v", v))
@@ -491,7 +491,7 @@ func (p *flowExecutorImpl) substituteTemplate(cmd string) string {
 	}
 
 	// Replace output references
-	if outScope, ok := scope["output"].(map[string]any); ok {
+	if outScope, ok := scope[flows.FlowVariableScopeOutput]; ok {
 		for k, v := range outScope {
 			placeholder := fmt.Sprintf("${output.%s}", k)
 			result = strings.ReplaceAll(result, placeholder, fmt.Sprintf("%v", v))
@@ -728,7 +728,7 @@ func (p *flowExecutorImpl) executeCall(call *flows.Call, _ string) error {
 		// Evaluate the condition
 		scope := p.ctx.buildScope()
 		eval := NewEvaluator()
-		result, err := eval.EvaluateExpr(call.When, scope)
+		result, err := eval.EvaluateExprTyped(call.When, scope)
 		if err != nil {
 			return fmt.Errorf("call condition evaluation failed: %w", err)
 		}

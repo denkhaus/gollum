@@ -36,9 +36,11 @@ func (p ValueType) IsEmpty() bool {
 }
 
 const (
-	FlowVariableScopeInput   FlowVariableScope = "input"
-	FlowVariableScopeContext FlowVariableScope = "context"
-	FlowVariableScopeOutput  FlowVariableScope = "output"
+	FlowVariableScopeInput    FlowVariableScope = "input"
+	FlowVariableScopeContext  FlowVariableScope = "context"
+	FlowVariableScopeOutput   FlowVariableScope = "output"
+	FlowVariableScopeComputed FlowVariableScope = "computed"
+	FlowVariableScopeSys      FlowVariableScope = "sys"
 
 	// Field type constants
 	TypeString ValueType = "string"
