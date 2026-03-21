@@ -26,14 +26,14 @@ func SubstituteTemplate(ctx ExecutionContext, tmpl string) string {
 		var err error
 
 		switch scope {
-		case flows.VarContainerTargetInput:
+		case flows.FlowVariableScopeInput:
 			value = ctx.GetInput(field)
-		case flows.VarContainerTargetContext:
+		case flows.FlowVariableScopeContext:
 			value, err = ctx.GetContextField(field)
 			if err != nil {
 				value = nil
 			}
-		case flows.VarContainerTargetOutput:
+		case flows.FlowVariableScopeOutput:
 			value, err = ctx.GetOutputField(field)
 			if err != nil {
 				value = nil
