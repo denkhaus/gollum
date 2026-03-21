@@ -26,6 +26,14 @@
 // when the registry is created. Failed servers are logged but don't
 // prevent the application from starting.
 //
+// # Parallel Initialization
+//
+// The registry initializes MCP clients in parallel using a semaphore
+// to limit concurrent connections. The default semaphore buffer size
+// is 5, meaning up to 5 MCP clients will be created simultaneously.
+// Individual client failures are logged as warnings but do not prevent
+// other clients from being initialized.
+//
 // # Client Types
 //
 // The registry supports three MCP client types:
