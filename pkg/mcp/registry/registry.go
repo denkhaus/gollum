@@ -22,6 +22,9 @@ type MCPRegistry interface {
 	// GetToolSets returns all ToolSets for gollem.WithToolSets()
 	GetToolSets() []gollem.ToolSet
 
+	// GetToolNames returns all tool names in "server_name/tool_name" format
+	GetToolNames() []string
+
 	// Close shuts down all active MCP clients
 	Close() error
 }
@@ -257,6 +260,24 @@ func (p *mcpRegistryImpl) buildHeaders(headers map[string]string) map[string]str
 
 func (p *mcpRegistryImpl) GetToolSets() []gollem.ToolSet {
 	return p.tools
+}
+
+// GetToolNames returns all tool names in "server_name/tool_name" format
+func (p *mcpRegistryImpl) GetToolNames() []string {
+	toolNames := make([]string, 0)
+
+	for serverName, client := range p.clients {
+		specs, err := client.Specs(context.Background())
+		if err != nil {
+			continue
+		}
+
+		for _, spec := range specs {
+			toolNames = append(toolNames, fmt.Sprintf("%s/%s", serverName, spec.Name))
+		}
+	}
+
+	return toolNames
 }
 
 func (p *mcpRegistryImpl) Close() error {

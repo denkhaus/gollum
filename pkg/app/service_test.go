@@ -273,11 +273,16 @@ func TestCreateToolSet_Success(t *testing.T) {
 
 // mockMCPRegistry is a simple mock for testing
 type mockMCPRegistry struct {
-	toolSets []gollem.ToolSet
+	toolSets  []gollem.ToolSet
+	toolNames []string
 }
 
 func (m *mockMCPRegistry) GetToolSets() []gollem.ToolSet {
 	return m.toolSets
+}
+
+func (m *mockMCPRegistry) GetToolNames() []string {
+	return m.toolNames
 }
 
 func (m *mockMCPRegistry) Close() error {
@@ -292,7 +297,7 @@ func TestCreateSupervisorAgent_ToolSetSuccess(t *testing.T) {
 	ctx := context.Background()
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Warn("no mcp servers configured for supervision agent").Times(1)
+	mockLogger.EXPECT().Warn("no mcp tools configured for supervision agent").Times(1)
 	mockLogger.EXPECT().Infof("Supervisor agent %s registered", gomock.Any()).Times(1)
 
 	mockFSM := state.NewMockFileStateManager(ctrl)
@@ -389,7 +394,7 @@ func TestCreateSupervisorAgent_AgentFactoryError(t *testing.T) {
 	ctx := context.Background()
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Warn("no mcp servers configured for supervision agent").Times(1)
+	mockLogger.EXPECT().Warn("no mcp tools configured for supervision agent").Times(1)
 
 	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
@@ -436,7 +441,7 @@ func TestCreateSupervisorAgent_RegistryError(t *testing.T) {
 	agentID := uuid.New()
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Warn("no mcp servers configured for supervision agent").Times(1)
+	mockLogger.EXPECT().Warn("no mcp tools configured for supervision agent").Times(1)
 
 	mockFSM := state.NewMockFileStateManager(ctrl)
 

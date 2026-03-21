@@ -4,23 +4,30 @@ import (
 	"context"
 	"testing"
 
+	"github.com/denkhaus/gollum/pkg/mcp/registry"
 	"github.com/m-mizutani/gollem"
 	"github.com/stretchr/testify/assert"
 )
 
-// mockToolSet is a simple mock ToolSet for testing
-type mockToolSet struct {
-	serverName string
-	tools      []gollem.ToolSpec
+// mockMCPRegistryForTools is a mock that returns predefined tool names
+type mockMCPRegistryForTools struct {
+	toolNames []string
 }
 
-func (m *mockToolSet) Specs(ctx context.Context) ([]gollem.ToolSpec, error) {
-	return m.tools, nil
+func (m *mockMCPRegistryForTools) GetToolSets() []gollem.ToolSet {
+	return nil
 }
 
-func (m *mockToolSet) Run(ctx context.Context, name string, args map[string]any) (map[string]any, error) {
-	return nil, nil
+func (m *mockMCPRegistryForTools) GetToolNames() []string {
+	return m.toolNames
 }
+
+func (m *mockMCPRegistryForTools) Close() error {
+	return nil
+}
+
+// Ensure mock implements interface
+var _ registry.MCPRegistry = (*mockMCPRegistryForTools)(nil)
 
 // TestConvertToolSetsToAllowedTools tests the conversion function
 func TestConvertToolSetsToAllowedTools(t *testing.T) {
@@ -28,55 +35,34 @@ func TestConvertToolSetsToAllowedTools(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		toolSets       []gollem.ToolSet
+		mcpRegistry    registry.MCPRegistry
 		expectedOutput []string
 	}{
 		{
-			name:           "empty tool sets",
-			toolSets:       []gollem.ToolSet{},
+			name: "empty registry",
+			mcpRegistry: &mockMCPRegistryForTools{
+				toolNames: []string{},
+			},
 			expectedOutput: []string{},
 		},
 		{
-			name: "single tool set with one tool",
-			toolSets: []gollem.ToolSet{
-				&mockToolSet{
-					serverName: "filesystem",
-					tools: []gollem.ToolSpec{
-						{Name: "read_file"},
-					},
-				},
+			name: "single tool",
+			mcpRegistry: &mockMCPRegistryForTools{
+				toolNames: []string{"filesystem/read_file"},
 			},
 			expectedOutput: []string{"filesystem/read_file"},
 		},
 		{
-			name: "single tool set with multiple tools",
-			toolSets: []gollem.ToolSet{
-				&mockToolSet{
-					serverName: "filesystem",
-					tools: []gollem.ToolSpec{
-						{Name: "read_file"},
-						{Name: "write_file"},
-					},
-				},
+			name: "multiple tools from same server",
+			mcpRegistry: &mockMCPRegistryForTools{
+				toolNames: []string{"filesystem/read_file", "filesystem/write_file"},
 			},
 			expectedOutput: []string{"filesystem/read_file", "filesystem/write_file"},
 		},
 		{
-			name: "multiple tool sets",
-			toolSets: []gollem.ToolSet{
-				&mockToolSet{
-					serverName: "filesystem",
-					tools: []gollem.ToolSpec{
-						{Name: "read_file"},
-					},
-				},
-				&mockToolSet{
-					serverName: "math",
-					tools: []gollem.ToolSpec{
-						{Name: "add"},
-						{Name: "subtract"},
-					},
-				},
+			name: "multiple tools from different servers",
+			mcpRegistry: &mockMCPRegistryForTools{
+				toolNames: []string{"filesystem/read_file", "math/add", "math/subtract"},
 			},
 			expectedOutput: []string{"filesystem/read_file", "math/add", "math/subtract"},
 		},
@@ -84,7 +70,7 @@ func TestConvertToolSetsToAllowedTools(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := convertToolSetsToAllowedTools(ctx, tt.toolSets)
+			result := convertToolSetsToAllowedTools(ctx, nil, tt.mcpRegistry)
 			assert.Equal(t, tt.expectedOutput, result)
 		})
 	}
