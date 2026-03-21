@@ -34,4 +34,12 @@ package pkg
 
 //go:generate go run go.uber.org/mock/mockgen -source=flows/executor/executor.go -destination=flows/executor/mock.go -package=executor github.com/denkhaus/gollum/pkg/flows/executor FlowExecutorService
 
-//go:generate go run go.uber.org/mock/mockgen -source=shared/flows.go -destination=shared/flows_mock.go -package=shared github.com/denkhaus/gollum/pkg/shared FlowExecutorInstance
+//go:generate go run go.uber.org/mock/mockgen -source=mcp/registry/registry.go -destination=mcp/registry/registry_mock.go -package=registry github.com/denkhaus/gollum/pkg/mcp/registry MCPRegistry
+
+//go:generate go run go.uber.org/mock/mockgen -source=tools/bash.go -destination=tools/bash_mock.go -package=tools github.com/denkhaus/gollum/pkg/tools BashToolProvider
+
+//go:generate go run go.uber.org/mock/mockgen -source=tools/flow_tools.go -destination=tools/flow_tools_mock.go -package=tools github.com/denkhaus/gollum/pkg/tools FlowToolsProvider
+
+//go:generate go run go.uber.org/mock/mockgen -source=flows/registry/service.go -destination=flows/registry/registry_mock.go -package=registry github.com/denkhaus/gollum/pkg/flows/registry FlowRegistry
+
+//go:generate go run go.uber.org/mock/mockgen -source=extensions/service.go -destination=extensions/service_mock.go -package=extensions github.com/denkhaus/gollum/pkg/extensions ExtensionService
