@@ -111,8 +111,10 @@ func TestMCPRegistry_ParallelErrorHandling(t *testing.T) {
 	mockLog := logger.NewMockLoggerService(ctrl)
 	mockAppConfig := appconfig.NewMockConfigService(ctrl)
 
-	// Expect warnings for failed servers
+	// Expect warnings for failed servers (4 fields each)
 	mockLog.EXPECT().Warn(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).MinTimes(2)
+	// Expect warnings for error summary (1 field each)
+	mockLog.EXPECT().Warn(gomock.Any(), gomock.Any()).MinTimes(2)
 	mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
 	mockAppConfig.EXPECT().GetMCPConfig().Return(&appconfig.MCPConfig{

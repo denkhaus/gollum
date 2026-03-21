@@ -152,6 +152,8 @@ func NewMCPRegistryWithLoader(t *testing.T, ctrl *gomock.Controller, loader mcpc
 	mockLog := logger.NewMockLoggerService(ctrl)
 	mockAppConfig := appconfig.NewMockConfigService(ctrl)
 	// Set up expectations for warnings, debug logs, info logs, and config access
+	// Warn can be called with 2 args (error summary) or 5+ args (failed server details)
+	mockLog.EXPECT().Warn(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	mockLog.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
 	mockLog.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
@@ -166,6 +168,7 @@ func NewMCPRegistryWithLoader(t *testing.T, ctrl *gomock.Controller, loader mcpc
 		loader:    loader,
 		appConfig: mockAppConfig,
 		logger:    mockLog,
+		sem:       make(chan struct{}, 5), // Initialize semaphore for tests
 	}
 	// Initialize clients for testing with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)

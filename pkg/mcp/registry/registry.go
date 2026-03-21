@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 
 	appconfig "github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/logger"
@@ -78,11 +79,12 @@ func (p *mcpRegistryImpl) initializeClients(ctx context.Context) error {
 	}
 
 	mcpConfig := p.appConfig.GetMCPConfig()
-	p.logger.Info("MCP client initialization starting",
+	p.logger.Info("MCP client initialization starting (parallel)",
 		zap.Int("total_servers", len(allConfigs)),
 		zap.Int("enabled", enabledCount),
 		zap.Int("disabled", len(allConfigs)-enabledCount),
 		zap.Duration("init_timeout", mcpConfig.GetClientInitTimeout()),
+		zap.Int("max_parallel", cap(p.sem)),
 	)
 
 	// Filter to enabled servers only
@@ -93,50 +95,79 @@ func (p *mcpRegistryImpl) initializeClients(ctx context.Context) error {
 		}
 	}
 
+	// Semaphore-bounded parallel initialization
+	var wg sync.WaitGroup
+	var mu sync.Mutex // Protects p.clients, p.tools
+	errors := make([]error, 0)
+
 	for name, cfg := range configs {
-		// Log config details (with secrets masked)
-		p.logger.Debug("Attempting to create MCP client",
-			zap.String("mcp_server", name),
-			zap.String("type", cfg.Type),
-			zap.String("command", cfg.Command),
-			zap.Int("args_count", len(cfg.Args)),
-			zap.Int("env_count", len(cfg.Env)),
-		)
+		wg.Add(1)
+		go func(name string, cfg mcpconfig.MCPServerConfig) {
+			defer wg.Done()
 
-		// Log env vars (with values masked for security)
-		for k, v := range cfg.Env {
-			maskedValue := "***" // Mask all values for security
-			if len(v) == 0 {
-				maskedValue = "(empty)"
-			}
-			p.logger.Debug("MCP server env var",
-				zap.String("mcp_server", name),
-				zap.String("key", k),
-				zap.String("value", maskedValue),
-			)
-		}
+			p.sem <- struct{}{} // Acquire semaphore
+			defer func() { <-p.sem }() // Release semaphore
 
-		client, err := p.createClient(ctx, name, cfg)
-		if err != nil {
-			// Log warning with structured context for debugging
-			p.logger.Warn("failed to create MCP client",
+			p.logger.Debug("Attempting to create MCP client (parallel)",
 				zap.String("mcp_server", name),
 				zap.String("type", cfg.Type),
-				zap.String("command", cfg.Command),
-				zap.Error(err),
+				zap.Int("args_count", len(cfg.Args)),
+				zap.Int("env_count", len(cfg.Env)),
 			)
-			continue
-		}
 
-		p.clients[name] = client
-		p.tools = append(p.tools, client) // mcp.Client implements gollem.ToolSet
+			// Log env vars (with values masked for security)
+			for k, v := range cfg.Env {
+				maskedValue := "***" // Mask all values for security
+				if len(v) == 0 {
+					maskedValue = "(empty)"
+				}
+				p.logger.Debug("MCP server env var",
+					zap.String("mcp_server", name),
+					zap.String("key", k),
+					zap.String("value", maskedValue),
+				)
+			}
+
+			client, err := p.createClient(ctx, name, cfg)
+			if err != nil {
+				p.logger.Warn("failed to create MCP client",
+					zap.String("mcp_server", name),
+					zap.String("type", cfg.Type),
+					zap.String("command", cfg.Command),
+					zap.Error(err),
+				)
+				mu.Lock()
+				errors = append(errors, fmt.Errorf("%s: %w", name, err))
+				mu.Unlock()
+				return
+			}
+
+			mu.Lock()
+			p.clients[name] = client
+			p.tools = append(p.tools, client) // mcp.Client implements gollem.ToolSet
+			mu.Unlock()
+
+			p.logger.Debug("MCP client created successfully",
+				zap.String("mcp_server", name))
+		}(name, cfg)
 	}
+
+	wg.Wait()
+
+	// Log summary
+	successCount := len(p.clients)
+	failedCount := len(errors)
 
 	p.logger.Info("MCP client initialization completed",
 		zap.Int("enabled_attempted", len(configs)),
-		zap.Int("success_count", len(p.clients)),
-		zap.Int("failed_count", len(configs)-len(p.clients)),
+		zap.Int("success_count", successCount),
+		zap.Int("failed_count", failedCount),
 	)
+
+	// Log all errors (but don't fail initialization)
+	for _, err := range errors {
+		p.logger.Warn("MCP client initialization error", zap.Error(err))
+	}
 
 	return nil
 }
