@@ -32,6 +32,44 @@ const (
 	ToolNameTransitionTo    ToolName = "transition_to"
 )
 
+// SupervisorBuiltinTools contains the built-in tools available to the supervisor agent.
+// Flow executor tools (set_output_field, set_context_field, etc.) are excluded as they
+// are only available within flow executions.
+var SupervisorBuiltinTools = []ToolName{
+	ToolNameSpawnAgent,
+	ToolNameResumeAgent,
+	ToolNameAgentOutput,
+	ToolNameRemoveAgent,
+	ToolNameListAgents,
+	ToolNameCurrentTime,
+	ToolNameBash,
+	ToolNameWriteFile,
+	ToolNameReadFile,
+	ToolNameSessionLogs,
+	ToolNameChangeDirectory,
+	ToolNameInvokeSkill,
+	ToolNameEdit,
+	ToolNameGlob,
+	ToolNameGrep,
+}
+
+// SubAgentBuiltinTools contains the built-in tools available to subagents by default.
+// Excludes agent management tools (spawn_agent, resume_agent, agent_output, remove_agent, list_agents)
+// to keep sub-agents focused on task execution. For orchestrator subagents that need to spawn
+// additional subagents, these tools can be explicitly added via allowed_tools parameter.
+var SubAgentBuiltinTools = []ToolName{
+	ToolNameCurrentTime,
+	ToolNameBash,
+	ToolNameWriteFile,
+	ToolNameReadFile,
+	ToolNameSessionLogs,
+	ToolNameChangeDirectory,
+	ToolNameInvokeSkill,
+	ToolNameEdit,
+	ToolNameGlob,
+	ToolNameGrep,
+}
+
 // ToolRegistry provides validation for tool names used in skills.
 // It maintains a list of all valid Gollum tool names and allows
 // the skills package to validate tool configurations

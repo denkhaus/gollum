@@ -54,6 +54,9 @@ func setupTestInjector() do.Injector {
 	// Register HookManager (needed by tool providers)
 	do.Provide(injector, hooks.NewHookManager)
 
+	// Register ToolRegistry (needed by SpawnAgentTool)
+	do.Provide(injector, NewToolRegistry)
+
 	// Register file state manager (needed by BashTool)
 	do.Provide(injector, state.NewFileStateManager)
 

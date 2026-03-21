@@ -575,6 +575,7 @@ func TestSpawnAgentTool_AllowedTools_Builtin(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
+	toolRegistry := do.MustInvoke[shared.ToolRegistry](injector)
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
@@ -592,6 +593,7 @@ func TestSpawnAgentTool_AllowedTools_Builtin(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
+		toolRegistry:    toolRegistry,
 		senderID:        senderID,
 	}
 
@@ -643,6 +645,7 @@ func TestSpawnAgentTool_AllowedTools_MCP(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
+	toolRegistry := do.MustInvoke[shared.ToolRegistry](injector)
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
@@ -660,6 +663,7 @@ func TestSpawnAgentTool_AllowedTools_MCP(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
+		toolRegistry:    toolRegistry,
 		senderID:        senderID,
 	}
 
@@ -711,6 +715,7 @@ func TestSpawnAgentTool_AllowedTools_Mixed(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
+	toolRegistry := do.MustInvoke[shared.ToolRegistry](injector)
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
@@ -728,6 +733,7 @@ func TestSpawnAgentTool_AllowedTools_Mixed(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
+		toolRegistry:    toolRegistry,
 		senderID:        senderID,
 	}
 
@@ -779,6 +785,7 @@ func TestSpawnAgentTool_AllowedTools_Empty(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
+	toolRegistry := do.MustInvoke[shared.ToolRegistry](injector)
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
@@ -796,6 +803,7 @@ func TestSpawnAgentTool_AllowedTools_Empty(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
+		toolRegistry:    toolRegistry,
 		senderID:        senderID,
 	}
 
@@ -847,6 +855,7 @@ func TestSpawnAgentTool_AllowedTools_NonStringValue(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
+	toolRegistry := do.MustInvoke[shared.ToolRegistry](injector)
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
@@ -864,6 +873,7 @@ func TestSpawnAgentTool_AllowedTools_NonStringValue(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
+		toolRegistry:    toolRegistry,
 		senderID:        senderID,
 	}
 

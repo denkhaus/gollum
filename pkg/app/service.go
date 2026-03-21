@@ -220,10 +220,15 @@ func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (sha
 		return nil, nil, fmt.Errorf("failed to get supervisor prompt: %w", err)
 	}
 
-	// Get MCP tool names in "server_name/tool_name" format
+	// Combine MCP tools and built-in tools for the supervisor
 	allowedTools := p.mcpRegistry.GetToolNames()
 	if len(allowedTools) == 0 {
 		p.logService.Warn("no mcp tools configured for supervision agent")
+	}
+
+	// Add built-in tools (excluding flow executor tools)
+	for _, toolName := range shared.SupervisorBuiltinTools {
+		allowedTools = append(allowedTools, toolName.String())
 	}
 
 	// Create agent config

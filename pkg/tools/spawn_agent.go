@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/config"
@@ -27,6 +28,7 @@ type (
 		executionHelper AgentExecutionHelper
 		configService   config.ConfigService
 		hookManager     hooks.HookManager
+		toolRegistry    shared.ToolRegistry
 		senderID        uuid.UUID
 	}
 
@@ -42,25 +44,28 @@ type (
 		executionHelper AgentExecutionHelper
 		configService   config.ConfigService
 		hookManager     hooks.HookManager
+		toolRegistry    shared.ToolRegistry
 	}
 )
 
 // NewSpawnAgentToolProvider creates a provider for SpawnAgent tools
 func NewSpawnAgentToolProvider(injector do.Injector) (SpawnAgentToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	registry := do.MustInvoke[registry.AgentRegistry](injector)
+	agentRegistry := do.MustInvoke[registry.AgentRegistry](injector)
 	promptManager := do.MustInvoke[manager.PromptManager](injector)
 	executionHelper := do.MustInvoke[AgentExecutionHelper](injector)
 	configService := do.MustInvoke[config.ConfigService](injector)
 	hookManager := do.MustInvoke[hooks.HookManager](injector)
+	toolRegistry := do.MustInvoke[shared.ToolRegistry](injector)
 
 	return &spawnAgentToolProvider{
 		logService:      logService,
-		registry:        registry,
+		registry:        agentRegistry,
 		promptManager:   promptManager,
 		executionHelper: executionHelper,
 		configService:   configService,
 		hookManager:     hookManager,
+		toolRegistry:    toolRegistry,
 	}, nil
 }
 
@@ -74,8 +79,25 @@ func (p *spawnAgentToolProvider) CreateTool(senderID uuid.UUID, agentFactory sha
 		executionHelper: p.executionHelper,
 		configService:   p.configService,
 		hookManager:     p.hookManager,
+		toolRegistry:    p.toolRegistry,
 		senderID:        senderID,
 	}
+}
+
+// formatToolNamesForDescription creates a comma-separated list of tool names for descriptions
+func formatToolNamesForDescription(tools []shared.ToolName) string {
+	if len(tools) == 0 {
+		return "none"
+	}
+
+	names := make([]string, len(tools))
+	for i, tool := range tools {
+		names[i] = "'" + tool.String() + "'"
+	}
+
+	// Join with commas
+	result := strings.Join(names, ", ")
+	return result
 }
 
 // Spec returns the tool specification for SpawnAgentTool
@@ -116,7 +138,8 @@ func (t *spawnAgentToolImpl) Spec() gollem.ToolSpec {
 			"allowed_tools": {
 				Type:        gollem.TypeArray,
 				Items:       &gollem.Parameter{Type: gollem.TypeString},
-				Description: "List of tool names the agent can access. Built-in tools use names like 'bash', 'read_file', 'current_time'. MCP tools use 'server_name/tool_name' format. If omitted, agent has no tools available.",
+				Description: fmt.Sprintf("List of tool names the agent can access. Available built-in tools: %s. MCP tools use 'server_name/tool_name' format. If omitted, agent has no tools available.",
+					formatToolNamesForDescription(shared.SubAgentBuiltinTools)),
 			},
 		},
 	}
@@ -170,6 +193,15 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args map[string]
 		if atSlice, ok := atVal.([]any); ok {
 			for _, item := range atSlice {
 				if toolName, ok := item.(string); ok {
+					// Validate built-in tools (MCP tools with "/" are validated later in factory)
+					if !strings.Contains(toolName, "/") {
+						// Check against tool registry (spawn_agent is allowed when explicitly specified)
+						if !t.toolRegistry.IsValidTool(shared.ToolName(toolName)) {
+							t.logService.WarnWithAgent("Invalid built-in tool name in allowed_tools", t.senderID,
+								zap.String("tool_name", toolName))
+							return t.executionHelper.ErrorResponse(fmt.Sprintf("invalid built-in tool name: %s", toolName)), nil
+						}
+					}
 					allowedTools = append(allowedTools, toolName)
 				}
 			}
