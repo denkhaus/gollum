@@ -4,17 +4,30 @@ import (
 	"github.com/denkhaus/gollum/pkg/flows"
 )
 
-// Lint runs all linter phases on a flow
-func Lint(flow *flows.Flow) *flows.LinterResult {
-	return LintPath("", flow)
+func init() {
+	// Register this package as the linter implementation
+	flows.RegisterLintRunner(lintRunnerImpl{})
 }
 
-// LintPath runs all linter phases on a flow with a known file path
+// lintRunnerImpl implements flows.LintRunner interface
+type lintRunnerImpl struct{}
+
+func (l lintRunnerImpl) LintFlow(flow *flows.Flow, flowPath, xmlContent string) *flows.LinterResult {
+	return LintWithContent(flowPath, xmlContent, flow)
+}
+
+// Lint runs all linter phases on a flow (backward compatibility wrapper)
+func Lint(flow *flows.Flow) *flows.LinterResult {
+	return flow.Lint()
+}
+
+// LintPath runs all linter phases on a flow with a known file path (backward compatibility wrapper)
 func LintPath(flowPath string, flow *flows.Flow) *flows.LinterResult {
-	return LintWithContent(flowPath, "", flow)
+	return flow.LintPath(flowPath)
 }
 
 // LintWithContent runs all linter phases on a flow with raw XML content for position tracking
+// Note: This is the actual implementation used by Flow.LintWithContent
 func LintWithContent(flowPath, xmlContent string, flow *flows.Flow) *flows.LinterResult {
 	result := &flows.LinterResult{}
 

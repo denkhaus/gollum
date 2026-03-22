@@ -82,6 +82,7 @@ type ExecutionContext interface {
 	EvaluateComputed() error
 	SetError(ctx *ErrorContext)
 	GetError() *ErrorContext
+	SubstituteTemplate(tmpl string) string
 }
 
 // Context manages execution contextImpl with input, output, and computed fields
@@ -551,4 +552,9 @@ func (c *contextImpl) GetComputedField(name string) (any, error) {
 		}
 	}
 	return c.computedVals.GetValue(name)
+}
+
+// SubstituteTemplate replaces variables in template strings using context values
+func (c *contextImpl) SubstituteTemplate(tmpl string) string {
+	return substituteTemplate(c, tmpl)
 }

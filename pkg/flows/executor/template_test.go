@@ -19,7 +19,7 @@ func TestSubstituteTemplate_ReplacesVariables(t *testing.T) {
 	// Set context field directly
 	_ = ctx.SetContextField("pr_title", "Fix bug")
 
-	result := SubstituteTemplate(ctx, "Analyze PR #${input.pr_number}: ${context.pr_title}")
+	result := ctx.SubstituteTemplate("Analyze PR #${input.pr_number}: ${context.pr_title}")
 
 	assert.Equal(t, "Analyze PR #123: Fix bug", result)
 }
@@ -27,7 +27,7 @@ func TestSubstituteTemplate_ReplacesVariables(t *testing.T) {
 func TestSubstituteTemplate_HandlesMissingFields(t *testing.T) {
 	ctx := NewContext(nil, nil, nil, nil)
 
-	result := SubstituteTemplate(ctx, "Value: ${input.missing}")
+	result := ctx.SubstituteTemplate("Value: ${input.missing}")
 
 	assert.Equal(t, "Value: ${input.missing}", result)
 }

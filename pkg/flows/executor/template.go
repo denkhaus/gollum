@@ -10,8 +10,8 @@ import (
 // Substitution matches ${input.field}, ${context.field}, ${output.field}
 var subRegex = regexp.MustCompile(`\$\{(input|context|output)\.([^}]+)\}`)
 
-// SubstituteTemplate replaces variables in template strings
-func SubstituteTemplate(ctx ExecutionContext, tmpl string) string {
+// substituteTemplate replaces variables in template strings (internal helper)
+func substituteTemplate(ctx ExecutionContext, tmpl string) string {
 	return subRegex.ReplaceAllStringFunc(tmpl, func(match string) string {
 		// Extract input.field from ${input.field}
 		parts := subRegex.FindStringSubmatch(match)

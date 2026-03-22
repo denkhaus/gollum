@@ -221,7 +221,7 @@ func TestSubstituteTemplate_InputVariables(t *testing.T) {
 	err := exec.SetInput(map[string]string{"name": "Claude"})
 	require.NoError(t, err)
 
-	result := exec.(*flowExecutorImpl).substituteTemplate("echo 'Hello ${input.name}'")
+	result := exec.GetContext().SubstituteTemplate("echo 'Hello ${input.name}'")
 
 	assert.Equal(t, "echo 'Hello Claude'", result)
 }
@@ -246,7 +246,7 @@ func TestSubstituteTemplate_ContextVariables(t *testing.T) {
 		}
 	}
 
-	result := exec.(*flowExecutorImpl).substituteTemplate("ls ${context.project_dir}")
+	result := exec.GetContext().SubstituteTemplate("ls ${context.project_dir}")
 
 	assert.Equal(t, "ls /tmp/project", result)
 }
@@ -265,7 +265,7 @@ func TestSubstituteTemplate_OutputVariables(t *testing.T) {
 	exec.(*flowExecutorImpl).ctx = newContext(flow.Input, flow.Output, flow.Context, nil)
 	_ = exec.(*flowExecutorImpl).ctx.SetOutputField("result", "success")
 
-	result := exec.(*flowExecutorImpl).substituteTemplate("echo 'Status: ${output.result}'")
+	result := exec.GetContext().SubstituteTemplate("echo 'Status: ${output.result}'")
 
 	assert.Equal(t, "echo 'Status: success'", result)
 }
@@ -293,7 +293,7 @@ func TestSubstituteTemplate_MultipleVariables(t *testing.T) {
 	_ = exec.(*flowExecutorImpl).ctx.SetOutputField("result", "pending")
 
 	cmd := "${input.action} ${input.name} in ${context.env}, status: ${output.result}"
-	result := exec.(*flowExecutorImpl).substituteTemplate(cmd)
+	result := exec.GetContext().SubstituteTemplate(cmd)
 
 	assert.Equal(t, "deploy app in prod, status: pending", result)
 }

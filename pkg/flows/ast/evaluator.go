@@ -6,21 +6,9 @@ import (
 )
 
 // Evaluate evaluates an expression against a context
+// This is a convenience wrapper that calls the expr's Evaluate method
 func Evaluate(expr Expr, ctx map[string]any) (any, error) {
-	switch e := expr.(type) {
-	case *CallExpr:
-		return evaluateCall(e, ctx)
-	case *FieldRef:
-		return resolveFieldRef(e, ctx)
-	case *StringLiteral:
-		return e.Value, nil
-	case *NumberLiteral:
-		return e.Value, nil
-	case *BoolLiteral:
-		return e.Value, nil
-	default:
-		return nil, fmt.Errorf("unknown expression type: %T", expr)
-	}
+	return expr.Evaluate(ctx)
 }
 
 // evaluateCall evaluates a function call
@@ -28,7 +16,7 @@ func evaluateCall(call *CallExpr, ctx map[string]any) (any, error) {
 	// Evaluate arguments
 	args := make([]any, len(call.Args))
 	for i, arg := range call.Args {
-		val, err := Evaluate(arg, ctx)
+		val, err := arg.Evaluate(ctx)
 		if err != nil {
 			return nil, err
 		}

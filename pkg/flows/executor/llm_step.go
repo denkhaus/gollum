@@ -29,7 +29,7 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 	}
 
 	// Substitute variables in prompt
-	prompt := SubstituteTemplate(p.ctx, step.Prompt)
+	prompt := p.ctx.SubstituteTemplate(step.Prompt)
 
 	// Parse tools from step.Tools
 	// Separate flow tools from built-in/MCP tools

@@ -664,3 +664,33 @@ type Transition struct {
 	When      string `xml:"when,attr"`
 	Otherwise bool   `xml:"otherwise,attr"`
 }
+
+// LintRunner is an interface for linting flows (implemented by linter package to avoid circular imports)
+type LintRunner interface {
+	LintFlow(flow *Flow, flowPath, xmlContent string) *LinterResult
+}
+
+// lintRunner is set by the linter package to provide the actual implementation
+var lintRunner LintRunner
+
+// RegisterLintRunner registers the linter implementation (called by linter package init)
+func RegisterLintRunner(runner LintRunner) {
+	lintRunner = runner
+}
+
+// Lint runs all linter phases on a flow
+func (f *Flow) Lint() *LinterResult {
+	return f.LintPath("")
+}
+
+// LintPath runs all linter phases on a flow with a known file path
+func (f *Flow) LintPath(flowPath string) *LinterResult {
+	if lintRunner == nil {
+		return &LinterResult{
+			Errors: []LinterError{
+				{Message: "linter not initialized - import linter package to enable linting"},
+			},
+		}
+	}
+	return lintRunner.LintFlow(f, flowPath, "")
+}
