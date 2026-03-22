@@ -10,9 +10,8 @@
     </input>
 
     <output>
-        <int name="complexity" />
-        <string name="recommendation" />
-        <bool name="needs_refactor" />
+        <string name="the_current_time" from="context.the_current_time" />
+        <bool name="is_afternoon" from="computed.is_afternoon" />
     </output>
 
     <context>
