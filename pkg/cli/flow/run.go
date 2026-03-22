@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/flows/executor"
 	"github.com/denkhaus/gollum/pkg/flows/parser"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -81,15 +80,13 @@ func executeFlow(ctx context.Context, injector do.Injector, path string, w write
 	if _, err := fmt.Fprintf(w, "Executing flow: %s\n", flow.Name); err != nil {
 		return fmt.Errorf("failed to write output: %w", err)
 	}
-	if err := exec.Run(); err != nil {
+	result, err := exec.Run()
+	if err != nil {
 		return fmt.Errorf("flow execution failed: %w", err)
 	}
 
 	// Display outputs
-	execCtx := exec.GetContext()
-	if execCtx != nil {
-		displayOutputs(w, flow, execCtx)
-	}
+	displayOutputs(w, result)
 
 	// Cleanup
 	exec.Close()
@@ -124,40 +121,15 @@ func parseInputFlag(input string) (map[string]string, error) {
 	return result, nil
 }
 
-// displayOutputs shows the output field values
-func displayOutputs(w writer, flow *flows.Flow, execCtx executor.ExecutionContext) {
-	if flow.Output == nil {
+// displayOutputs shows the output field values from FlowResult
+func displayOutputs(w writer, result *executor.FlowResult) {
+	if len(result.Outputs) == 0 {
 		return
 	}
 
 	fmt.Fprintf(w, "\nOutputs:\n")
-
-	// Display string outputs
-	for _, field := range flow.Output.Strings {
-		if val, err := execCtx.GetOutputField(field.Name); err == nil && val != nil {
-			fmt.Fprintf(w, "  %s: %s\n", field.Name, anyToString(val))
-		}
-	}
-
-	// Display int outputs
-	for _, field := range flow.Output.Ints {
-		if val, err := execCtx.GetOutputField(field.Name); err == nil && val != nil {
-			fmt.Fprintf(w, "  %s: %s\n", field.Name, anyToString(val))
-		}
-	}
-
-	// Display bool outputs
-	for _, field := range flow.Output.Bools {
-		if val, err := execCtx.GetOutputField(field.Name); err == nil && val != nil {
-			fmt.Fprintf(w, "  %s: %s\n", field.Name, anyToString(val))
-		}
-	}
-
-	// Display float outputs
-	for _, field := range flow.Output.Floats {
-		if val, err := execCtx.GetOutputField(field.Name); err == nil && val != nil {
-			fmt.Fprintf(w, "  %s: %s\n", field.Name, anyToString(val))
-		}
+	for name, value := range result.Outputs {
+		fmt.Fprintf(w, "  %s: %s\n", name, anyToString(value))
 	}
 }
 

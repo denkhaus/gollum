@@ -16,11 +16,9 @@ import (
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/markdown"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
-	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
-	"github.com/denkhaus/gollum/pkg/skills"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/denkhaus/gollum/pkg/tui"
 	"github.com/denkhaus/gollum/pkg/workspace"
@@ -50,7 +48,6 @@ type applicationServiceImpl struct {
 	agentFactory        shared.AgentFactory
 	markdownRenderer    markdown.Renderer
 	workspaceService    workspace.Service
-	skillsService       skills.SkillService
 	mcpRegistry         mcpregistry.MCPRegistry
 	channelFacade       channel.ChannelFacade
 	flowExecutorService executor.FlowExecutorService
@@ -69,19 +66,18 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 	agentFactory := do.MustInvoke[shared.AgentFactory](injector)
 	markdownRenderer := do.MustInvoke[markdown.Renderer](injector)
 	workspaceService := do.MustInvoke[workspace.Service](injector)
-	skillsService := do.MustInvoke[skills.SkillService](injector)
 	mcpRegistry := do.MustInvoke[mcpregistry.MCPRegistry](injector)
 	channelFacade := do.MustInvoke[channel.ChannelFacadeService](injector)
 	flowExecutorService := do.MustInvoke[executor.FlowExecutorService](injector)
 	flowRegistry := do.MustInvoke[flowregistry.FlowRegistry](injector)
 
 	return &applicationServiceImpl{
-		sessionID:           uuid.New(),
-		logService:          logService,
-		fsm:                 fsm,
-		agentRegistry:       agentRegistry,
-		workspaceService:    workspaceService,
-		skillsService:       skillsService,
+		sessionID:        uuid.New(),
+		logService:       logService,
+		fsm:              fsm,
+		agentRegistry:    agentRegistry,
+		workspaceService: workspaceService,
+
 		promptMgr:           promptMgr,
 		agentFactory:        agentFactory,
 		markdownRenderer:    markdownRenderer,
@@ -132,7 +128,7 @@ func (p *applicationServiceImpl) Run(ctx context.Context) error {
 func (p *applicationServiceImpl) runTUI(ctx context.Context) error {
 
 	// Create and register Supervisor agent
-	agent, _, err := p.createSupervisorAgent(ctx)
+	agent, _, err := p.agentFactory.CreateSupervisorAgent(ctx)
 	if err != nil {
 		return err
 	}
@@ -184,11 +180,20 @@ func (p *applicationServiceImpl) runDefaultFlow(ctx context.Context, flowPath st
 		return fmt.Errorf("default flow validation failed: %w", err)
 	}
 
-	if err := executor.Run(); err != nil {
+	result, err := executor.Run()
+	if err != nil {
 		return fmt.Errorf("default flow execution failed: %w", err)
 	}
 
-	p.logService.Infof("Default flow completed successfully")
+	// Display flow outputs
+	if len(result.Outputs) > 0 {
+		p.logService.Info("Flow outputs:")
+		for name, value := range result.Outputs {
+			p.logService.Infof("  %s: %v", name, value)
+		}
+	}
+
+	p.logService.Info("Default flow completed successfully")
 	return nil
 }
 
@@ -200,61 +205,6 @@ func (p *applicationServiceImpl) primeFileStateManager(ctx context.Context) erro
 	}
 	p.logService.Infof("FileStateManager primed successfully")
 	return nil
-}
-
-// createSupervisorAgent creates and registers the Supervisor agent
-func (p *applicationServiceImpl) createSupervisorAgent(ctx context.Context) (shared.Agent, *shared.AgentConfig, error) {
-
-	// Get supervisor prompt from PromptManager
-	systemPrompt, err := p.promptMgr.GetPromptWithContext(ctx,
-		prompt.PromptIDSupervisorSystem,
-		&prompt.RenderContext{
-			Workspace: &shared.WorkspaceContext{
-				SkillsXML:   p.skillsService.GetSkillsXML(),
-				Skills:      p.skillsService.GetSkillInfos(),
-				CurrentPath: p.workspaceService.GetCurrentWorkspace(),
-			},
-		},
-	)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get supervisor prompt: %w", err)
-	}
-
-	// Combine MCP tools and built-in tools for the supervisor
-	allowedTools := p.mcpRegistry.GetToolNames()
-	if len(allowedTools) == 0 {
-		p.logService.Warn("no mcp tools configured for supervision agent")
-	}
-
-	// Add built-in tools (excluding flow executor tools)
-	for _, toolName := range shared.SupervisorBuiltinTools {
-		allowedTools = append(allowedTools, toolName.String())
-	}
-
-	// Create agent config
-	agentConfig := &shared.AgentConfig{
-		AllowCompaction: true,
-		SystemPrompt:    systemPrompt,
-		AllowedTools:    allowedTools,
-		Role:            "Supervisor Agent",
-		LLMClientConfig: &shared.LLMClientConfig{
-			Model: "anthropic/glm-4.7",
-		},
-	}
-
-	// Create agent
-	agent, err := p.agentFactory.CreateAgent(ctx, agentConfig)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create supervisor agent: %v", err)
-	}
-
-	// Register in registry
-	if err := p.agentRegistry.Register(agent, agentConfig); err != nil {
-		return nil, nil, fmt.Errorf("failed to register supervisor agent: %w", err)
-	}
-	p.logService.Infof("Supervisor agent %s registered", agent.GetID())
-
-	return agent, agentConfig, nil
 }
 
 // runInteractiveLoop runs the main CLI interactive loop using Bubbletea TUI
