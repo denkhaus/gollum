@@ -86,9 +86,72 @@ git commit -m "refactor(types): rename StepOutput to StepResult
 
 ---
 
-## Chunk 2: Executor Code Updates
+## Chunk 2: XSD Schema Updates
 
-### Task 2: Update executor.go for StepResult
+### Task 2: Update XSD schema for result notation
+
+**Files:**
+- Modify: `pkg/flows/linter/schema/flow.xsd`
+
+- [ ] **Step 1: Update OutputMappingType to ResultMappingType**
+
+Find (line 223):
+```xml
+<xs:complexType name="OutputMappingType">
+    <xs:sequence minOccurs="0">
+      <xs:any processContents="skip" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="assign" type="xs:string"/>
+</xs:complexType>
+```
+
+Replace with:
+```xml
+<xs:complexType name="ResultMappingType">
+    <xs:sequence minOccurs="0">
+      <xs:any processContents="skip" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="assignTo" type="xs:string"/>
+</xs:complexType>
+```
+
+- [ ] **Step 2: Update step element to use result instead of output**
+
+Find in StepType (line 182):
+```xml
+<xs:element name="output" type="OutputMappingType" minOccurs="0"/>
+```
+
+Replace with:
+```xml
+<xs:element name="result" type="ResultMappingType" minOccurs="0"/>
+```
+
+- [ ] **Step 3: Verify XSD is valid**
+
+```bash
+xmllint --schema pkg/flows/linter/schema/flow.xsd --noout .gollum/flows/default/main.xml
+```
+
+Expected: No validation errors for migrated flows
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add pkg/flows/linter/schema/flow.xsd
+git commit -m "refactor(xsd): update step output to result notation
+
+- OutputMappingType → ResultMappingType
+- <output> element → <result> element
+- assign attribute → assignTo
+"
+```
+
+---
+
+## Chunk 3: Executor Code Updates
+
+### Task 3: Update executor.go for StepResult
 
 **Files:**
 - Modify: `pkg/flows/executor/executor.go`
@@ -149,9 +212,9 @@ git commit -m "refactor(executor): update step.Output to step.Result"
 
 ---
 
-## Chunk 3: Linter Updates
+## Chunk 4: Linter Updates
 
-### Task 3: Update linter for StepResult
+### Task 4: Update linter for StepResult
 
 **Files:**
 - Modify: `pkg/flows/linter/output_bindings.go`
@@ -191,9 +254,9 @@ git commit -m "refactor(linter): update StepOutput to StepResult"
 
 ---
 
-## Chunk 4: Test Fixture Updates
+## Chunk 5: Test Fixture Updates
 
-### Task 4: Update all test files with StepResult
+### Task 5: Update all test files with StepResult
 
 **Files:**
 - Modify: `pkg/flows/executor/shell_step_test.go`
@@ -239,9 +302,9 @@ git commit -m "refactor(tests): update StepOutput to StepResult in fixtures"
 
 ---
 
-## Chunk 5: XML Flow Migration
+## Chunk 6: XML Flow Migration
 
-### Task 5: Migrate all flow XML files
+### Task 6: Migrate all flow XML files
 
 **Files:**
 - Modify: All `.xml` files in `.gollum/flows/`
@@ -315,9 +378,9 @@ git commit -m "refactor(flows): migrate step-level <output> to <result>
 
 ---
 
-## Chunk 6: Documentation Updates
+## Chunk 7: Documentation Updates
 
-### Task 6: Update documentation
+### Task 7: Update documentation
 
 **Files:**
 - Modify: `.gollum/flows/idea_plan.md`
@@ -387,9 +450,9 @@ git commit -m "docs: update step result notation documentation"
 
 ---
 
-## Chunk 7: Final Integration Tests
+## Chunk 8: Final Integration Tests
 
-### Task 7: Run full integration tests
+### Task 8: Run full integration tests
 
 - [ ] **Step 1: Run all tests**
 
