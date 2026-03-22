@@ -26,6 +26,9 @@ func (c *OutputBindingsChecker) Check(flow *flows.Flow, result *flows.LinterResu
 	for _, field := range flow.Output.GetDeclarative() {
 		c.checkBinding(flow, &field, result)
 	}
+
+	// Also validate step output assign attributes
+	c.checkStepOutputAssigns(flow, result)
 }
 
 // checkBinding validates a single output binding
@@ -152,4 +155,84 @@ func (c *OutputBindingsChecker) hasDuplicateSource(output *flows.OutputBlock, so
 		}
 	}
 	return false
+}
+
+// checkStepOutputAssigns validates output assign attributes in steps
+func (c *OutputBindingsChecker) checkStepOutputAssigns(flow *flows.Flow, result *flows.LinterResult) {
+	for _, state := range flow.States {
+		for _, step := range state.Steps {
+			if step.Output != nil && step.Output.Assign != "" {
+				c.checkStepOutputAssign(flow, &step, &state, result)
+			}
+		}
+	}
+}
+
+// checkStepOutputAssign validates a single step output assign attribute
+func (c *OutputBindingsChecker) checkStepOutputAssign(flow *flows.Flow, step *flows.Step, state *flows.State, result *flows.LinterResult) {
+	assignValue := step.Output.Assign
+
+	// Check for ${} syntax - should NOT be used in assign attributes
+	if len(assignValue) > 2 && assignValue[0] == '$' && assignValue[1] == '{' && assignValue[len(assignValue)-1] == '}' {
+		line, col := 1, 1
+		if c.PosTracker != nil {
+			line, col = c.PosTracker.FindStepOutputPosition(state.Name, step.Name)
+		}
+
+		result.Errors = append(result.Errors, flows.LinterError{
+			Code:     "E009",
+			Message:  fmt.Sprintf("invalid assign syntax '%s' - use 'scope.field' without ${} (e.g., 'output.result' not '${output.result}')", assignValue),
+			Line:     line,
+			Column:   col,
+		})
+		return
+	}
+
+	// Parse the assign reference
+	sourceScope, sourceName, err := variables.ParseFieldReference(assignValue)
+	if err != nil {
+		line, col := 1, 1
+		if c.PosTracker != nil {
+			line, col = c.PosTracker.FindStepOutputPosition(state.Name, step.Name)
+		}
+
+		result.Errors = append(result.Errors, flows.LinterError{
+			Code:     "E005",
+			Message:  fmt.Sprintf("invalid assign reference: %s", assignValue),
+			Line:     line,
+			Column:   col,
+		})
+		return
+	}
+
+	// Validate scope - for step output, should be 'output' only
+	if sourceScope != "output" {
+		line, col := 1, 1
+		if c.PosTracker != nil {
+			line, col = c.PosTracker.FindStepOutputPosition(state.Name, step.Name)
+		}
+
+		result.Errors = append(result.Errors, flows.LinterError{
+			Code:     "E010",
+			Message:  fmt.Sprintf("invalid scope '%s' in step output assign - must be 'output.field' (e.g., 'output.result')", sourceScope),
+			Line:     line,
+			Column:   col,
+		})
+		return
+	}
+
+	// Check referenced output field exists
+	if flow.Output != nil && !flow.Output.HasField(sourceName) {
+		line, col := 1, 1
+		if c.PosTracker != nil {
+			line, col = c.PosTracker.FindStepOutputPosition(state.Name, step.Name)
+		}
+
+		result.Errors = append(result.Errors, flows.LinterError{
+			Code:     "E007",
+			Message:  fmt.Sprintf("output field '%s' does not exist", sourceName),
+			Line:     line,
+			Column:   col,
+		})
+	}
 }

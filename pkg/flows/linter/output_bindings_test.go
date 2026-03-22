@@ -116,3 +116,112 @@ func TestOutputBindingsChecker_DuplicateSource(t *testing.T) {
 	assert.NotEmpty(t, result.Warnings)
 	assert.Contains(t, result.Warnings[0].Message, "multiple output fields")
 }
+
+func TestOutputBindingsChecker_StepOutputAssignInvalidDollarSyntax(t *testing.T) {
+	flow := &flows.Flow{
+		Output: &flows.OutputBlock{
+			Strings: []flows.FieldDef{{Name: "result", Type: flows.TypeString}},
+		},
+		States: []flows.State{
+			{
+				Name: "init",
+				Steps: []flows.Step{
+					{
+						Type:   "llm",
+						Agent:  "test",
+						Output: &flows.StepOutput{Assign: "${output.result}"},
+					},
+				},
+			},
+		},
+	}
+
+	checker := NewOutputBindingsChecker()
+	result := &flows.LinterResult{}
+	checker.Check(flow, result)
+
+	assert.NotEmpty(t, result.Errors)
+	assert.Contains(t, result.Errors[0].Message, "invalid assign syntax")
+	assert.Contains(t, result.Errors[0].Message, "without ${}")
+}
+
+func TestOutputBindingsChecker_StepOutputAssignInvalidScope(t *testing.T) {
+	flow := &flows.Flow{
+		Output: &flows.OutputBlock{
+			Strings: []flows.FieldDef{{Name: "result", Type: flows.TypeString}},
+		},
+		States: []flows.State{
+			{
+				Name: "init",
+				Steps: []flows.Step{
+					{
+						Type:   "llm",
+						Agent:  "test",
+						Output: &flows.StepOutput{Assign: "input.result"},
+					},
+				},
+			},
+		},
+	}
+
+	checker := NewOutputBindingsChecker()
+	result := &flows.LinterResult{}
+	checker.Check(flow, result)
+
+	assert.NotEmpty(t, result.Errors)
+	assert.Contains(t, result.Errors[0].Message, "invalid scope")
+	assert.Contains(t, result.Errors[0].Message, "must be 'output.field'")
+}
+
+func TestOutputBindingsChecker_StepOutputAssignFieldNotFound(t *testing.T) {
+	flow := &flows.Flow{
+		Output: &flows.OutputBlock{
+			Strings: []flows.FieldDef{{Name: "result", Type: flows.TypeString}},
+		},
+		States: []flows.State{
+			{
+				Name: "init",
+				Steps: []flows.Step{
+					{
+						Type:   "llm",
+						Agent:  "test",
+						Output: &flows.StepOutput{Assign: "output.nonexistent"},
+					},
+				},
+			},
+		},
+	}
+
+	checker := NewOutputBindingsChecker()
+	result := &flows.LinterResult{}
+	checker.Check(flow, result)
+
+	assert.NotEmpty(t, result.Errors)
+	assert.Contains(t, result.Errors[0].Message, "does not exist")
+}
+
+func TestOutputBindingsChecker_StepOutputAssignValid(t *testing.T) {
+	flow := &flows.Flow{
+		Output: &flows.OutputBlock{
+			Strings: []flows.FieldDef{{Name: "result", Type: flows.TypeString}},
+		},
+		States: []flows.State{
+			{
+				Name: "init",
+				Steps: []flows.Step{
+					{
+						Type:   "llm",
+						Agent:  "test",
+						Output: &flows.StepOutput{Assign: "output.result"},
+					},
+				},
+			},
+		},
+	}
+
+	checker := NewOutputBindingsChecker()
+	result := &flows.LinterResult{}
+	checker.Check(flow, result)
+
+	assert.Empty(t, result.Errors)
+}

@@ -152,3 +152,52 @@ func (p *PositionTracker) FindContextForExpression(expr string) (line, column in
 	}
 	return 0, 0
 }
+
+// FindStepOutputPosition finds the line number of a step's output element
+func (p *PositionTracker) FindStepOutputPosition(stateName, stepName string) (line, column int) {
+	// First, try to find the step, then look for output nearby
+	stepPatterns := []string{
+		fmt.Sprintf(`<step name="%s"`, stepName),
+		fmt.Sprintf(`name="%s"`, stepName),
+	}
+
+	for i := 0; i < len(p.lines); i++ {
+		lineContent := p.lines[i]
+
+		// Check if this line contains the step definition
+		isStepLine := false
+		for _, stepPat := range stepPatterns {
+			if strings.Contains(lineContent, stepPat) {
+				isStepLine = true
+				break
+			}
+		}
+
+		if isStepLine {
+			// Search forward for the output element
+			for j := i; j < len(p.lines) && j < i+10; j++ {
+				searchLine := p.lines[j]
+				if strings.Contains(searchLine, `<output`) &&
+				   strings.Contains(searchLine, `assign=`) {
+					// Found the output element
+					idx := strings.Index(searchLine, `<output`)
+					return j + 1, idx + 1
+				}
+				// Stop if we hit another step or closing tag
+				if strings.Contains(searchLine, `</step>`) || strings.Contains(searchLine, `<step `) {
+					break
+				}
+			}
+		}
+
+		// Also check if output appears in same line
+		if strings.Contains(lineContent, `<output`) &&
+		   strings.Contains(lineContent, `assign=`) &&
+		   strings.Contains(lineContent, stepName) {
+			idx := strings.Index(lineContent, `<output`)
+			return i + 1, idx + 1
+		}
+	}
+
+	return 0, 0
+}
