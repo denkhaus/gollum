@@ -11,11 +11,14 @@ import (
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
 	mcp "github.com/denkhaus/gollum/pkg/mcp"
+	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
 	"github.com/denkhaus/gollum/pkg/prompt"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/skills"
 	"github.com/denkhaus/gollum/pkg/tools"
+	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/m-mizutani/gollem/middleware/compacter"
@@ -26,12 +29,15 @@ import (
 
 // defaultAgentFactory implements the AgentFactory interface
 type defaultAgentFactory struct {
-	logService      logger.LoggerService
-	configService   config.ConfigService
-	clientProvider  llm.ClientProvider
-	registry        registry.AgentRegistry
-	promptManager   manager.PromptManager
-	channelProvider channel.ChannelMiddlewareProvider
+	logService       logger.LoggerService
+	configService    config.ConfigService
+	clientProvider   llm.ClientProvider
+	registry         registry.AgentRegistry
+	mcpRegistry      mcpregistry.MCPRegistry
+	promptManager    manager.PromptManager
+	workspaceService workspace.Service
+	channelProvider  channel.ChannelMiddlewareProvider
+	skillsService    skills.SkillService
 	// Tool providers for adding default tools to all agents
 	spawnAgentToolProv      tools.SpawnAgentToolProvider
 	agentOutputToolProv     tools.AgentOutputToolProvider
@@ -58,8 +64,11 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 	clientProvider := do.MustInvoke[llm.ClientProvider](injector)
 	registry := do.MustInvoke[registry.AgentRegistry](injector)
 	promptManager := do.MustInvoke[manager.PromptManager](injector)
+	mcpRegistry := do.MustInvoke[mcpregistry.MCPRegistry](injector)
+	workspaceService := do.MustInvoke[workspace.Service](injector)
 	channelProvider := do.MustInvoke[channel.ChannelMiddlewareProvider](injector)
 	mcpToolProvider := do.MustInvoke[mcp.MCPToolProvider](injector)
+	skillsService := do.MustInvoke[skills.SkillService](injector)
 
 	// Get tool providers
 	spawnAgentToolProv := do.MustInvoke[tools.SpawnAgentToolProvider](injector)
@@ -80,8 +89,11 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 
 	return &defaultAgentFactory{
 		logService:              logService,
+		skillsService:           skillsService,
+		workspaceService:        workspaceService,
 		configService:           configService,
 		clientProvider:          clientProvider,
+		mcpRegistry:             mcpRegistry,
 		registry:                registry,
 		promptManager:           promptManager,
 		channelProvider:         channelProvider,
@@ -229,6 +241,60 @@ func (f *defaultAgentFactory) resolveTools(ctx context.Context, agentID uuid.UUI
 	}
 
 	return tools, nil
+}
+
+func (p *defaultAgentFactory) CreateSupervisorAgent(ctx context.Context) (shared.Agent, *shared.AgentConfig, error) {
+
+	// Get supervisor prompt from PromptManager
+	systemPrompt, err := p.promptManager.GetPromptWithContext(ctx,
+		prompt.PromptIDSupervisorSystem,
+		&prompt.RenderContext{
+			Workspace: &shared.WorkspaceContext{
+				SkillsXML:   p.skillsService.GetSkillsXML(),
+				Skills:      p.skillsService.GetSkillInfos(),
+				CurrentPath: p.workspaceService.GetCurrentWorkspace(),
+			},
+		},
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get supervisor prompt: %w", err)
+	}
+
+	// Combine MCP tools and built-in tools for the supervisor
+	allowedTools := p.mcpRegistry.GetToolNames()
+	if len(allowedTools) == 0 {
+		p.logService.Warn("no mcp tools configured for supervision agent")
+	}
+
+	// Add built-in tools (excluding flow executor tools)
+	for _, toolName := range shared.SupervisorBuiltinTools {
+		allowedTools = append(allowedTools, toolName.String())
+	}
+
+	// Create agent config
+	agentConfig := &shared.AgentConfig{
+		AllowCompaction: true,
+		SystemPrompt:    systemPrompt,
+		AllowedTools:    allowedTools,
+		Role:            "Supervisor Agent",
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/glm-4.7",
+		},
+	}
+
+	// Create agent
+	agent, err := p.CreateAgent(ctx, agentConfig)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create supervisor agent: %v", err)
+	}
+
+	// Register in registry
+	if err := p.registry.Register(agent, agentConfig); err != nil {
+		return nil, nil, fmt.Errorf("failed to register supervisor agent: %w", err)
+	}
+	p.logService.Infof("Supervisor agent %s registered", agent.GetID())
+
+	return agent, agentConfig, nil
 }
 
 func (f *defaultAgentFactory) resolveBuiltinTool(agentID uuid.UUID, name string) (gollem.Tool, error) {

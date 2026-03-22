@@ -8,4 +8,5 @@ import (
 // This allows both AgentProvider and SpawnAgentTool to use the same logic
 type AgentFactory interface {
 	CreateAgent(ctx context.Context, config *AgentConfig) (Agent, error)
+	CreateSupervisorAgent(ctx context.Context) (Agent, *AgentConfig, error)
 }

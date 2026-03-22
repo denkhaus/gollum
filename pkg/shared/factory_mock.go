@@ -54,3 +54,19 @@ func (mr *MockAgentFactoryMockRecorder) CreateAgent(ctx, config any) *gomock.Cal
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAgent", reflect.TypeOf((*MockAgentFactory)(nil).CreateAgent), ctx, config)
 }
+
+// CreateSupervisorAgent mocks base method.
+func (m *MockAgentFactory) CreateSupervisorAgent(ctx context.Context) (Agent, *AgentConfig, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSupervisorAgent", ctx)
+	ret0, _ := ret[0].(Agent)
+	ret1, _ := ret[1].(*AgentConfig)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// CreateSupervisorAgent indicates an expected call of CreateSupervisorAgent.
+func (mr *MockAgentFactoryMockRecorder) CreateSupervisorAgent(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSupervisorAgent", reflect.TypeOf((*MockAgentFactory)(nil).CreateSupervisorAgent), ctx)
+}

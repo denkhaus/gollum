@@ -19,7 +19,8 @@ Then use `forgejo issue ready --repo denkhaus/gollum` to lern about the next rea
 - [Langfuse Tracing Guide](/home/denkhaus/dev/kb/guides/guide.golang.langfuse-tracing.md)
 
 
-## Avoid build artifacts in the codebase
+## General rules
 
 - Explore lifecycle functions running `just`
 - Whenever you build the app for testing reasons run `just build`
+- General helper functions MUST be implemented in the `shared` package to be reusable from other packages
