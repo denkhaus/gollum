@@ -148,7 +148,7 @@ func Double(x int) int {
 	exec := execSvc.New(flow)
 	exec.SetInput(map[string]string{"value": "21"})
 
-	err := exec.Run()
+	_, err := exec.Run()
 	require.NoError(t, err, "Flow execution should succeed")
 
 	// Verify the output

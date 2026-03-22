@@ -137,7 +137,7 @@ func TestFlowExecutor_ExecuteStepWithHooks(t *testing.T) {
 	// Mock the func step to return successfully
 	// (For now, we'll test that the wrapper works even if step fails)
 
-	err = instance.Run()
+	_, err = instance.Run()
 
 	// We expect this to fail (func not found), but hooks should still be called
 	assert.Error(t, err)

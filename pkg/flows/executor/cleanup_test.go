@@ -45,14 +45,14 @@ func TestExecutor_Close_AfterRun(t *testing.T) {
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
 
-	// Run the flow
-	err := exec.Run()
+	_, err := exec.Run()
 	require.NoError(t, err)
 
 	// Close should cleanup resources
 	err = exec.Close()
 	require.NoError(t, err)
 }
+
 
 // TestExecutor_Close_WithContext tests cleanup with context
 func TestExecutor_Close_WithContext(t *testing.T) {
@@ -170,7 +170,8 @@ func TestExecutor_Close_ContextCancellation(t *testing.T) {
 	// Run in background
 	done := make(chan error, 1)
 	go func() {
-		done <- exec.Run()
+		_, err := exec.Run()
+		done <- err
 	}()
 
 	// Wait for run to complete (it's a simple flow with just transitions)

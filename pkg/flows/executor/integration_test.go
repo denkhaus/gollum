@@ -83,7 +83,7 @@ func TestExecutor_ErrorHandling_TransitionsToErrorState(t *testing.T) {
 	injector := setupTestDI(t)
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	err := exec.Run()
+	_, err := exec.Run()
 
 	// The error state transition succeeds, so Run returns nil
 	// But we can verify the error was captured
@@ -130,7 +130,7 @@ func TestExecutor_DeclarativeOutput_BindsFromComputed(t *testing.T) {
 	err = exec.Validate()
 	require.NoError(t, err)
 
-	err = exec.Run()
+	_, err = exec.Run()
 	require.NoError(t, err)
 
 	// Verify declarative output was populated

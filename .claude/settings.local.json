@@ -88,7 +88,9 @@
       "mcp__plugin_context-mode_context-mode__ctx_execute",
       "Bash(just run:*)",
       "Bash(just lint:*)",
-      "Bash(mockgen:*)"
+      "Bash(mockgen:*)",
+      "Bash(just build:*)",
+      "Bash(go version:*)"
     ],
     "deny": [],
     "ask": []

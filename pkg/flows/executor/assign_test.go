@@ -43,7 +43,7 @@ func TestAssignStep_FromInputToOutput(t *testing.T) {
 	err := exec.SetInput(map[string]string{"message": "Hello World"})
 	require.NoError(t, err)
 
-	err = exec.Run()
+	_, err = exec.Run()
 	require.NoError(t, err)
 
 	result, err := exec.GetContext().GetOutputField("result")
@@ -91,7 +91,7 @@ func TestAssignStep_FromComputedToOutput(t *testing.T) {
 	err := exec.SetInput(map[string]string{"a": "10", "b": "5"})
 	require.NoError(t, err)
 
-	err = exec.Run()
+	_, err = exec.Run()
 	require.NoError(t, err)
 
 	result, err := exec.GetContext().GetOutputField("sum")
@@ -131,13 +131,14 @@ func TestAssignStep_WithDirectValue(t *testing.T) {
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
 
-	err := exec.Run()
+	_, err := exec.Run()
 	require.NoError(t, err)
 
 	result, err := exec.GetContext().GetOutputField("message")
 	require.NoError(t, err)
 	assert.Equal(t, "Hello from assign!", result)
 }
+
 
 // TestAssignStep_ToContext tests assigning to context
 func TestAssignStep_ToContext(t *testing.T) {
@@ -173,7 +174,7 @@ func TestAssignStep_ToContext(t *testing.T) {
 	err := exec.SetInput(map[string]string{"value": "test123"})
 	require.NoError(t, err)
 
-	err = exec.Run()
+	_, err = exec.Run()
 	require.NoError(t, err)
 
 	result, err := exec.GetContext().GetContextField("stored")
