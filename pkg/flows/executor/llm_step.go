@@ -43,7 +43,7 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 		Role:            "flow-llm-step",
 		Description:     fmt.Sprintf("LLM agent for flow %s, step %s", p.flow.Name, step.Name),
 		LLMClientConfig: agentConfig.ToClientConfig(),
-		OutputMode:      shared.OutputModeSilent, // Suppress output during flow execution
+		OutputMode:      p.getOutputModeForStep(step), // Use verbose flag to control output
 		Strategy:        simple.New(),
 		AllowedTools:    allowedTools,
 	}
@@ -167,4 +167,12 @@ func (p *flowExecutorImpl) addFlowToolsToAgent(ctx context.Context, agent shared
 	}
 
 	return nil
+}
+
+// getOutputModeForStep determines the output mode based on step's verbose flag
+func (p *flowExecutorImpl) getOutputModeForStep(step *flows.Step) shared.OutputMode {
+	if step.Verbose {
+		return shared.OutputModeFull // Show LLM response in logs
+	}
+	return shared.OutputModeSilent // Suppress LLM response (default)
 }

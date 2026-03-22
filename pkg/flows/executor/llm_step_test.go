@@ -551,3 +551,31 @@ func TestExecuteLLMStep_SeparatesFlowTools(t *testing.T) {
 	require.NotNil(t, capturedConfig)
 	assert.Equal(t, []string{"bash", "read_file"}, capturedConfig.AllowedTools)
 }
+
+func TestGetOutputModeForStep_VerboseControlsOutput(t *testing.T) {
+	flow := &flows.Flow{
+		Name: "test",
+		Agents: []flows.Agent{
+			{Name: "worker", Model: "claude-3.5", Prompt: "You are a helper"},
+		},
+	}
+
+	injector := setupTestDI(t)
+	svc := do.MustInvoke[FlowExecutorService](injector)
+	exec := svc.New(flow).(*flowExecutorImpl)
+
+	// Test 1: Verbose=false (default) uses OutputModeSilent
+	step1 := &flows.Step{Type: "llm", Agent: "worker", Verbose: false}
+	outputMode := exec.getOutputModeForStep(step1)
+	assert.Equal(t, shared.OutputModeSilent, outputMode, "verbose=false should use OutputModeSilent")
+
+	// Test 2: Verbose=true uses OutputModeFull
+	step2 := &flows.Step{Type: "llm", Agent: "worker", Verbose: true}
+	outputMode = exec.getOutputModeForStep(step2)
+	assert.Equal(t, shared.OutputModeFull, outputMode, "verbose=true should use OutputModeFull")
+
+	// Test 3: Step without verbose attribute defaults to false
+	step3 := &flows.Step{Type: "llm", Agent: "worker"}
+	outputMode = exec.getOutputModeForStep(step3)
+	assert.Equal(t, shared.OutputModeSilent, outputMode, "missing verbose should default to OutputModeSilent")
+}
