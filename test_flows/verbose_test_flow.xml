@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow name="verbose-test" version="1.0">
+    <agents>
+        <agent name="test" model="test-model">
+            <prompt>You are a test agent. Always respond with "Test successful"</prompt>
+        </agent>
+    </agents>
+
+    <states>
+        <state name="init" initial="true">
+            <steps>
+                <!-- This step should NOT show LLM output in logs (default behavior) -->
+                <step type="llm" agent="test">
+                    <prompt>Say something quietly</prompt>
+                </step>
+                <!-- This step SHOULD show LLM output in logs -->
+                <step type="llm" agent="test" verbose="true">
+                    <prompt>Say something loudly</prompt>
+                </step>
+            </steps>
+            <transitions>
+                <transition to="done"/>
+            </transitions>
+        </state>
+        <state name="done"/>
+    </states>
+</flow>
