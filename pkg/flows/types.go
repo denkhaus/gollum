@@ -471,6 +471,7 @@ type Step struct {
 	OnError  *OnErrorTransition `xml:"on-error"`
 	Retry    *Retry             `xml:"retry"`
 	Output   *StepOutput        `xml:"output"`
+	Verbose  bool               `xml:"verbose,attr"` // Show LLM output in logs
 }
 
 // OnErrorTransition defines an error handler transition

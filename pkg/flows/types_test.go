@@ -92,3 +92,25 @@ func TestOutputBlock_GetDeclarative(t *testing.T) {
 	assert.Len(t, imperative, 1)
 	assert.Equal(t, "count", imperative[0].Name)
 }
+
+func TestStep_VerboseAttribute(t *testing.T) {
+	xmlData := `<step type="llm" agent="test" verbose="true">
+		<prompt>Test</prompt>
+	</step>`
+
+	var step Step
+	err := xml.Unmarshal([]byte(xmlData), &step)
+	assert.NoError(t, err)
+	assert.True(t, step.Verbose, "verbose should be true when set to true")
+}
+
+func TestStep_VerboseAttributeDefault(t *testing.T) {
+	xmlData := `<step type="llm" agent="test">
+		<prompt>Test</prompt>
+	</step>`
+
+	var step Step
+	err := xml.Unmarshal([]byte(xmlData), &step)
+	assert.NoError(t, err)
+	assert.False(t, step.Verbose, "verbose should default to false when omitted")
+}
