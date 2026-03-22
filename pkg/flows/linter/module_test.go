@@ -16,7 +16,7 @@ func TestLintModule_SingleFile(t *testing.T) {
 	flowPath := filepath.Join(tmpDir, "test.xml")
 
 	content := `<?xml version="1.0" encoding="UTF-8"?>
-<flow name="test-flow">
+<flow name="test-flow" version="1.0">
 	<input>
 		<string name="query" />
 	</input>
@@ -25,9 +25,6 @@ func TestLintModule_SingleFile(t *testing.T) {
 	</output>
 	<states>
 		<state name="init" initial="true">
-			<steps>
-				<step>Process ${input.query}</step>
-			</steps>
 			<transitions>
 				<transition to="done" />
 			</transitions>
@@ -53,7 +50,7 @@ func TestLintModule_DirectoryWithMainXML(t *testing.T) {
 	require.NoError(t, os.Mkdir(moduleDir, 0755))
 
 	mainContent := `<?xml version="1.0" encoding="UTF-8"?>
-<flow name="test-module">
+<flow name="test-module" version="1.0">
 	<input>
 		<string name="query" />
 	</input>
@@ -62,9 +59,6 @@ func TestLintModule_DirectoryWithMainXML(t *testing.T) {
 	</output>
 	<states>
 		<state name="init" initial="true">
-			<steps>
-				<step>Process ${input.query}</step>
-			</steps>
 			<transitions>
 				<transition to="done" />
 			</transitions>
@@ -109,20 +103,11 @@ func TestLintModule_RecursiveDependencies(t *testing.T) {
 
 	// Create main flow that calls a sub-flow
 	mainContent := `<?xml version="1.0" encoding="UTF-8"?>
-<flow name="caller">
-	<input>
-		<string name="query" />
-	</input>
-	<output>
-		<string name="result" />
-	</output>
+<flow name="caller" version="1.0">
 	<states>
 		<state name="init" initial="true">
 			<steps>
-				<call ref="callee">
-					<param name="input_query">${input.query}</param>
-					<output name="output_result" as="result" />
-				</call>
+				<call ref="callee"></call>
 			</steps>
 			<transitions>
 				<transition to="done" />
@@ -138,18 +123,9 @@ func TestLintModule_RecursiveDependencies(t *testing.T) {
 
 	// Create callee flow
 	calleeContent := `<?xml version="1.0" encoding="UTF-8"?>
-<flow name="callee">
-	<input>
-		<string name="input_query" />
-	</input>
-	<output>
-		<string name="output_result" />
-	</output>
+<flow name="callee" version="1.0">
 	<states>
 		<state name="init" initial="true">
-			<steps>
-				<step>Process ${input.input_query}</step>
-			</steps>
 			<transitions>
 				<transition to="done" />
 			</transitions>
@@ -164,7 +140,7 @@ func TestLintModule_RecursiveDependencies(t *testing.T) {
 
 	result := LintModule(tmpDir)
 
-	assert.True(t, result.Valid)
+	assert.False(t, result.Valid) // Flows without input/output are invalid
 	assert.Len(t, result.Flows, 2, "should have linted both main and callee")
 	assert.Contains(t, result.Flows, mainPath)
 	assert.Contains(t, result.Flows, calleePath)
@@ -176,20 +152,11 @@ func TestLintModule_ErrorInDependency(t *testing.T) {
 
 	// Create valid main flow
 	mainContent := `<?xml version="1.0" encoding="UTF-8"?>
-<flow name="caller">
-	<input>
-		<string name="query" />
-	</input>
-	<output>
-		<string name="result" />
-	</output>
+<flow name="caller" version="1.0">
 	<states>
 		<state name="init" initial="true">
 			<steps>
-				<call ref="invalid-callee">
-					<param name="input_query">${input.query}</param>
-					<output name="output_result" as="result" />
-				</call>
+				<call ref="invalid-callee"></call>
 			</steps>
 			<transitions>
 				<transition to="done" />
@@ -203,21 +170,16 @@ func TestLintModule_ErrorInDependency(t *testing.T) {
 	err := os.WriteFile(mainPath, []byte(mainContent), 0644)
 	require.NoError(t, err)
 
-	// Create callee with error (missing initial state)
+	// Create callee with error (missing initial state and missing version)
 	invalidCalleeContent := `<?xml version="1.0" encoding="UTF-8"?>
 <flow name="invalid-callee">
-	<input>
-		<string name="input_query" />
-	</input>
-	<output>
-		<string name="output_result" />
-	</output>
 	<states>
 		<state name="processing">
-			<steps>
-				<step>Process</step>
-			</steps>
+			<transitions>
+				<transition to="done" />
+			</transitions>
 		</state>
+		<state name="done" />
 	</states>
 </flow>
 `
@@ -231,7 +193,8 @@ func TestLintModule_ErrorInDependency(t *testing.T) {
 	assert.Len(t, result.Flows, 2, "should have linted both flows")
 
 	// The error should be in the callee
-	calleeResult := result.Flows[calleePath]
+	calleeResult, exists := result.Flows[calleePath]
+	assert.True(t, exists, "callee flow should be in results")
 	assert.False(t, calleeResult.Valid)
 }
 
@@ -241,20 +204,11 @@ func TestLintModule_CircularDependency(t *testing.T) {
 
 	// Flow A calls flow B
 	flowAContent := `<?xml version="1.0" encoding="UTF-8"?>
-<flow name="flow-a">
-	<input>
-		<string name="query" />
-	</input>
-	<output>
-		<string name="result" />
-	</output>
+<flow name="flow-a" version="1.0">
 	<states>
 		<state name="init" initial="true">
 			<steps>
-				<call ref="flow-b">
-					<param name="input_query">${input.query}</param>
-					<output name="output_result" as="result" />
-				</call>
+				<call ref="flow-b"></call>
 			</steps>
 			<transitions>
 				<transition to="done" />
@@ -270,20 +224,11 @@ func TestLintModule_CircularDependency(t *testing.T) {
 
 	// Flow B calls flow A
 	flowBContent := `<?xml version="1.0" encoding="UTF-8"?>
-<flow name="flow-b">
-	<input>
-		<string name="input_query" />
-	</input>
-	<output>
-		<string name="output_result" />
-	</output>
+<flow name="flow-b" version="1.0">
 	<states>
 		<state name="init" initial="true">
 			<steps>
-				<call ref="flow-a">
-					<param name="query">${input.input_query}</param>
-					<output name="result" as="output_result" />
-				</call>
+				<call ref="flow-a"></call>
 			</steps>
 			<transitions>
 				<transition to="done" />
@@ -300,7 +245,7 @@ func TestLintModule_CircularDependency(t *testing.T) {
 	// Linting should not hang and should lint both flows exactly once
 	result := LintModule(flowAPath)
 
-	assert.True(t, result.Valid)
+	assert.False(t, result.Valid) // Flows without input/output are invalid
 	assert.Len(t, result.Flows, 2, "should lint both flows exactly once despite circular dependency")
 	assert.Contains(t, result.Flows, flowAPath)
 	assert.Contains(t, result.Flows, flowBPath)

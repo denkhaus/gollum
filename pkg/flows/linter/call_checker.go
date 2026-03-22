@@ -65,8 +65,14 @@ func (c *CallChecker) checkCall(flowPath string, call flows.Call, result *flows.
 	}
 
 	// Get called flow's input and output fields
-	calledInputFields := calledFlow.Input.GetAllFields()
-	calledOutputFields := calledFlow.Output.GetAllFields()
+	var calledInputFields []flows.FieldDef
+	if calledFlow.Input != nil {
+		calledInputFields = calledFlow.Input.GetAllFields()
+	}
+	var calledOutputFields []flows.FieldDef
+	if calledFlow.Output != nil {
+		calledOutputFields = calledFlow.Output.GetAllFields()
+	}
 
 	// Build maps for quick lookup
 	calledInputsByName := make(map[string]flows.FieldDef)
