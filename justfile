@@ -4,8 +4,17 @@
 default:
     @just --list
 
+# Install system dependencies (libxml2-dev for go-xsd-validate)
+deps:
+    #!/usr/bin/env bash
+    if ! pkg-config --exists libxml-2.0; then
+        echo "❌ libxml2-dev not found. Run: sudo apt-get install -y libxml2-dev"
+        exit 1
+    fi
+    echo "✓ libxml2-dev installed"
+
 # Build and install gollum to GOBIN
-build:
+build: deps
     @go install ./cmd/gollum
     @ls -la $(which gollum)
 

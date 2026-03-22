@@ -30,7 +30,7 @@ package pkg
 
 //go:generate go run go.uber.org/mock/mockgen -source=tools/agent_execution_helper.go -destination=tools/agent_execution_helper_mock.go -package=tools github.com/denkhaus/gollum/pkg/tools AgentExecutionHelper
 
-//go:generate go run go.uber.org/mock/mockgen -source=tui/model.go -destination=tui/model_mock.go -package=tui github.com/denkhaus/gollum/pkg/tui AgentExecutor
+//go:generate go run go.uber.org/mock/mockgen -source=tui/model_types.go -destination=tui/model_mock.go -package=tui github.com/denkhaus/gollum/pkg/tui AgentExecutor
 
 //go:generate go run go.uber.org/mock/mockgen -source=flows/executor/executor.go -destination=flows/executor/mock.go -package=executor github.com/denkhaus/gollum/pkg/flows/executor FlowExecutorService
 

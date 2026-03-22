@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -19,14 +20,106 @@ import (
 	"github.com/samber/do/v2"
 )
 
+// FlowResult holds the execution result of a flow
+type FlowResult struct {
+	Outputs map[string]any // Output field name -> value
+}
+
+// ToFlowResult marshals the flow result into a struct using field name matching.
+// The target struct must have exported fields with matching names to the output fields.
+// Uses generics for type-safe result conversion.
+func ToFlowResult[T any](r *FlowResult) (T, error) {
+	var result T
+	resultVal := reflect.ValueOf(&result).Elem()
+	resultType := resultVal.Type()
+
+	if r.Outputs == nil {
+		return result, fmt.Errorf("no outputs available")
+	}
+
+	for i := 0; i < resultVal.NumField(); i++ {
+		field := resultVal.Field(i)
+		fieldType := resultType.Field(i)
+
+		// Skip unexported fields
+		if !fieldType.IsExported() {
+			continue
+		}
+
+		// Get field name from struct tag or field name
+		fieldName := fieldType.Name
+		tag := fieldType.Tag.Get("flow")
+		if tag != "" {
+			fieldName = tag
+		}
+
+		value, exists := r.Outputs[fieldName]
+		if !exists {
+			continue // Skip if field not in outputs
+		}
+
+		// Set field value with type conversion
+		if err := shared.SetFieldValue(field, value); err != nil {
+			return result, fmt.Errorf("failed to set field '%s': %w", fieldType.Name, err)
+		}
+	}
+
+	return result, nil
+}
+
+// Get returns the raw value for a field name
+func (r *FlowResult) Get(name string) (any, bool) {
+	if r.Outputs == nil {
+		return nil, false
+	}
+	val, ok := r.Outputs[name]
+	return val, ok
+}
+
+// GetString returns a string field value
+func (r *FlowResult) GetString(name string) (string, error) {
+	val, ok := r.Get(name)
+	if !ok {
+		return "", fmt.Errorf("field '%s' not found", name)
+	}
+	return shared.ConvertToString(val)
+}
+
+// GetInt returns an int field value
+func (r *FlowResult) GetInt(name string) (int, error) {
+	val, ok := r.Get(name)
+	if !ok {
+		return 0, fmt.Errorf("field '%s' not found", name)
+	}
+	return shared.ConvertToInt(val)
+}
+
+// GetBool returns a bool field value
+func (r *FlowResult) GetBool(name string) (bool, error) {
+	val, ok := r.Get(name)
+	if !ok {
+		return false, fmt.Errorf("field '%s' not found", name)
+	}
+	return shared.ConvertToBool(val)
+}
+
+// GetFloat returns a float64 field value
+func (r *FlowResult) GetFloat(name string) (float64, error) {
+	val, ok := r.Get(name)
+	if !ok {
+		return 0, fmt.Errorf("field '%s' not found", name)
+	}
+	return shared.ConvertToFloat(val)
+}
+
 // FlowExecutorInstance defines the interface for a flow executor instance
 type FlowExecutorInstance interface {
 	// SetInput sets input field values with validation
 	SetInput(vals map[string]string) error
 	// Validate validates the flow before execution
 	Validate() error
-	// Run executes the flow from the initial state
-	Run() error
+	// Run executes the flow from the initial state and returns the result
+	Run() (*FlowResult, error)
 	// GetContext returns the execution context (for testing)
 	GetContext() ExecutionContext
 	// Close releases resources held by the executor
@@ -206,11 +299,11 @@ func (p *flowExecutorImpl) Validate() error {
 }
 
 // Run executes the flow from the initial state
-func (p *flowExecutorImpl) Run() error {
+func (p *flowExecutorImpl) Run() (*FlowResult, error) {
 	defer p.history.Complete(time.Now())
 
 	if err := p.Validate(); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Find initial state
@@ -223,10 +316,26 @@ func (p *flowExecutorImpl) Run() error {
 	}
 
 	if initialState == nil {
-		return fmt.Errorf("no initial state found")
+		return nil, fmt.Errorf("no initial state found")
 	}
 
-	return p.executeState(initialState)
+	if err := p.executeState(initialState); err != nil {
+		return nil, err
+	}
+
+	// Collect output values
+	result := &FlowResult{Outputs: make(map[string]any)}
+	if p.flow.Output != nil {
+		for _, field := range p.flow.Output.GetAllFields() {
+			value, err := p.ctx.GetOutputField(field.Name)
+			if err != nil {
+				continue // Skip fields that weren't set
+			}
+			result.Outputs[field.Name] = value
+		}
+	}
+
+	return result, nil
 }
 
 // GetContext returns the execution context (for testing)
@@ -272,14 +381,6 @@ func (p *flowExecutorImpl) executeState(state *flows.State) error {
 		}
 	}
 
-	// Initialize output bindings from declarative 'from' attributes
-	if p.flow.Output != nil {
-		binder := NewOutputBinder()
-		if err := binder.InitializeBindings(p.ctx, p.flow.Output); err != nil {
-			return fmt.Errorf("output binding initialization: %w", err)
-		}
-	}
-
 	// Execute steps
 	for _, step := range state.Steps {
 		if err := p.executeStep(&step, state.Name); err != nil {
@@ -296,6 +397,15 @@ func (p *flowExecutorImpl) executeState(state *flows.State) error {
 	for _, call := range state.Calls {
 		if err := p.executeCall(&call, state.Name); err != nil {
 			return p.handleError(err, nil, state)
+		}
+	}
+
+	// Initialize output bindings from declarative 'from' attributes
+	// This must happen after steps/calls so context fields set by agents are available
+	if p.flow.Output != nil {
+		binder := NewOutputBinder()
+		if err := binder.InitializeBindings(p.ctx, p.flow.Output); err != nil {
+			return fmt.Errorf("output binding initialization: %w", err)
 		}
 	}
 
@@ -469,36 +579,7 @@ func (p *flowExecutorImpl) executeShellStep(_ context.Context, step *flows.Step,
 
 // substituteTemplate replaces ${input.field}, ${output.field}, ${context.field} placeholders
 func (p *flowExecutorImpl) substituteTemplate(cmd string) string {
-	result := cmd
-
-	// Build scope for template substitution
-	scope := p.ctx.buildScope()
-
-	// Replace input references
-	if inputScope, ok := scope[flows.FlowVariableScopeInput]; ok {
-		for k, v := range inputScope {
-			placeholder := fmt.Sprintf("${input.%s}", k)
-			result = strings.ReplaceAll(result, placeholder, fmt.Sprintf("%v", v))
-		}
-	}
-
-	// Replace context references
-	if ctxScope, ok := scope[flows.FlowVariableScopeContext]; ok {
-		for k, v := range ctxScope {
-			placeholder := fmt.Sprintf("${context.%s}", k)
-			result = strings.ReplaceAll(result, placeholder, fmt.Sprintf("%v", v))
-		}
-	}
-
-	// Replace output references
-	if outScope, ok := scope[flows.FlowVariableScopeOutput]; ok {
-		for k, v := range outScope {
-			placeholder := fmt.Sprintf("${output.%s}", k)
-			result = strings.ReplaceAll(result, placeholder, fmt.Sprintf("%v", v))
-		}
-	}
-
-	return result
+	return p.ctx.SubstituteTemplate(cmd)
 }
 
 // extractFieldName extracts the field name from:
@@ -780,7 +861,8 @@ func (p *flowExecutorImpl) executeCall(call *flows.Call, _ string) error {
 	}
 
 	// Execute the sub-flow
-	if err := subExec.Run(); err != nil {
+	result, err := subExec.Run()
+	if err != nil {
 		return fmt.Errorf("sub-flow execution failed: %w", err)
 	}
 
@@ -789,10 +871,10 @@ func (p *flowExecutorImpl) executeCall(call *flows.Call, _ string) error {
 		for _, field := range call.Output.GetFields() {
 			typedField := field.GetTypedField()
 			if typedField != nil {
-				// Get the value from sub-flow output
+				// Get the value from sub-flow result
 				fieldName := extractFieldName(typedField.Value)
-				value, err := subExec.ctx.GetOutputField(fieldName)
-				if err != nil {
+				value, ok := result.Outputs[fieldName]
+				if !ok {
 					continue // Skip if field doesn't exist in sub-flow output
 				}
 
