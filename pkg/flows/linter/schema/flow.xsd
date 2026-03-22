@@ -186,6 +186,7 @@
     <xs:attribute name="agent" type="xs:string"/>
     <xs:attribute name="function" type="xs:string"/>
     <xs:attribute name="tool" type="xs:string"/>
+    <xs:attribute name="verbose" type="xs:boolean"/>
   </xs:complexType>
 
   <xs:complexType name="CallType">
