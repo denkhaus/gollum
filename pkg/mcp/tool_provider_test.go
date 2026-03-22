@@ -120,6 +120,11 @@ func (m *mockMCPRegistry) GetToolSets() []gollem.ToolSet {
 	return m.tools
 }
 
+func (m *mockMCPRegistry) GetToolNames() []string {
+	// Return empty list for mock
+	return []string{}
+}
+
 func (m *mockMCPRegistry) Close() error {
 	return nil
 }
