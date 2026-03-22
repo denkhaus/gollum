@@ -26,6 +26,22 @@ func (p ToolRequestParams) GetString(key shared.ToolParamKeys, def string) strin
 	}
 	return def
 }
+
+// GetStringAllowEmpty returns a string value for the given key.
+// Returns an error response if the key is missing or not a string type.
+// Unlike MustGetString, this allows empty strings as valid values.
+// This is useful for parameters that can be empty (like file content) but must be provided.
+func (p ToolRequestParams) GetStringAllowEmpty(key shared.ToolParamKeys) (string, map[string]any) {
+	val, exists := p[string(key)]
+	if !exists {
+		return "", ErrorResponse("%s is required and must be a string", key)
+	}
+	if str, ok := val.(string); ok {
+		return str, nil
+	}
+	// Key exists but wrong type
+	return "", ErrorResponse("%s is required and must be a string", key)
+}
 // GetBool returns a bool value for the given key, or the default if not present or not a bool.
 func (p ToolRequestParams) GetBool(key shared.ToolParamKeys, def bool) bool {
 	if val, ok := p[string(key)].(bool); ok {

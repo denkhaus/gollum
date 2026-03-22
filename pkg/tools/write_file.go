@@ -101,8 +101,11 @@ func (t *writeFileToolImpl) runFileWrite(ctx context.Context, args ToolRequestPa
 		return errResp, nil
 	}
 
-	// Content can be empty (for creating empty files)
-	content := args.GetString(shared.ParamContent, "")
+	// Content must be provided and must be a string type (but can be empty string for creating empty files)
+	content, errResp := args.GetStringAllowEmpty(shared.ParamContent)
+	if errResp != nil {
+		return errResp, nil
+	}
 
 	// Get create_dirs flag, default to false
 	createDirs := args.GetBool(shared.ParamCreateDirs, false)

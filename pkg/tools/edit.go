@@ -114,7 +114,10 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 		return errResp, nil
 	}
 
-	newString := args.GetString(shared.ParamNewString, "")
+	newString, errResp := args.MustGetString(shared.ParamNewString)
+	if errResp != nil {
+		return errResp, nil
+	}
 
 	// Get replace_all flag, default to false
 	replaceAll := args.GetBool(shared.ParamReplaceAll, false)
