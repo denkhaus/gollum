@@ -179,7 +179,7 @@
       <xs:element name="params" type="ParamsBlock" minOccurs="0"/>
       <xs:element name="on-error" type="OnErrorType" minOccurs="0"/>
       <xs:element name="retry" type="RetryType" minOccurs="0"/>
-      <xs:element name="output" type="OutputMappingType" minOccurs="0"/>
+      <xs:element name="result" type="ResultMappingType" minOccurs="0"/>
     </xs:all>
     <xs:attribute name="type" type="xs:string"/>
     <xs:attribute name="name" type="xs:string"/>
@@ -220,11 +220,11 @@
     <xs:attribute name="backoff" type="xs:string"/>
   </xs:complexType>
 
-  <xs:complexType name="OutputMappingType">
+  <xs:complexType name="ResultMappingType">
     <xs:sequence minOccurs="0">
       <xs:any processContents="skip" maxOccurs="unbounded"/>
     </xs:sequence>
-    <xs:attribute name="assign" type="xs:string"/>
+    <xs:attribute name="assignTo" type="xs:string"/>
   </xs:complexType>
 
   <xs:complexType name="CallFieldsBlock">
