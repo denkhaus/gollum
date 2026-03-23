@@ -112,16 +112,10 @@ func (t *listAgentsToolImpl) Run(ctx context.Context, params map[string]any) (ma
 }
 
 // runListAgents implements the core ListAgents logic
-func (t *listAgentsToolImpl) runListAgents(_ context.Context, params map[string]any) (map[string]any, error) {
+func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequestParams) (map[string]any, error) {
 	// Parse flags
-	recursive := false
-	tree := false
-	if val, ok := params["recursive"].(bool); ok {
-		recursive = val
-	}
-	if val, ok := params["tree"].(bool); ok {
-		tree = val
-	}
+	recursive := params.GetBool(shared.ParamRecursive, false)
+	tree := params.GetBool(shared.ParamTree, false)
 
 	t.logService.InfoWithAgent("Listing related agents", t.senderID,
 		zap.Bool("recursive", recursive),

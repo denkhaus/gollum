@@ -23,6 +23,7 @@ Demonstr: Nested objects, computed fields, expression syntax
         <!-- Simple fields -->
         <int name="line_count" />
         <int name="function_count" />
+        <int name="exit_code" />
 
         <!-- Nested object for organization) -->
         <object name="metrics">
@@ -60,7 +61,7 @@ Demonstr: Nested objects, computed fields, expression syntax
                 <step type="shell">
                     <cmd><![CDATA[wc -l ${input.target} | awk -1 | tail -1]]></cmd>
                     <result>
-                        <int path="exit_code" assignTo="exit_code" />
+                        <int path="exit_code" assignTo="context.exit_code" />
                     </result>
                     <timeout>60s</timeout>
                     <on-error state="error" />

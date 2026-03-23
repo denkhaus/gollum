@@ -184,19 +184,8 @@ func (c *contextImpl) SetComputedBlock(block *flows.ComputedBlock) {
 		return
 	}
 
-	// Convert ComputedFieldDef to ComputedField for the variables package
-	computedFields := make([]flows.ComputedField, 0, len(block.GetAllFields()))
-	for _, cf := range block.GetAllFields() {
-		// Manually convert since ComputedFieldDef.Type is now ValueType
-		computedFields = append(computedFields, flows.ComputedField{
-			Name: cf.Name,
-			Type: string(cf.Type),
-			Eval: cf.Eval,
-		})
-	}
-
-	// Initialize ComputedValues with the fields
-	c.computedVals = variables.NewComputedValues(computedFields)
+	// Initialize ComputedValues with the ComputedFieldDef fields directly
+	c.computedVals = variables.NewComputedValues(block.GetAllFields())
 
 	// Create and store the evaluator (will be created each time in EvaluateComputed, but we need a reference for MarkDirty)
 	// Note: We'll create it fresh in EvaluateComputed to ensure it has the latest field values
@@ -239,7 +228,7 @@ func (c *contextImpl) GetContextField(name string) (any, error) {
 				Code:    errors.ErrCodeUnknownField,
 				Message: "context schema not defined",
 			},
-			Scope: "context",
+			Scope: flows.FlowVariableScopeContext,
 		}
 	}
 
@@ -306,7 +295,7 @@ func (c *contextImpl) SetContextField(name string, value any) error {
 				Code:    errors.ErrCodeUnknownField,
 				Message: "context schema not defined",
 			},
-			Scope: "context",
+			Scope: flows.FlowVariableScopeContext,
 		}
 	}
 
@@ -318,7 +307,7 @@ func (c *contextImpl) SetContextField(name string, value any) error {
 				Message: "field not defined",
 				Field:   name,
 			},
-			Scope: "context",
+			Scope: flows.FlowVariableScopeContext,
 		}
 	}
 
@@ -355,7 +344,7 @@ func (c *contextImpl) SetOutputField(name string, value any) error {
 				Code:    errors.ErrCodeUnknownField,
 				Message: "output schema not defined",
 			},
-			Scope: "output",
+			Scope: flows.FlowVariableScopeOutput,
 		}
 	}
 
@@ -367,15 +356,15 @@ func (c *contextImpl) SetOutputField(name string, value any) error {
 				Message: "field not defined",
 				Field:   name,
 			},
-			Scope: "output",
+			Scope: flows.FlowVariableScopeOutput,
 		}
 	}
 
 	// Check if field is declarative (readonly)
 	if c.outputBlock != nil {
 		for _, field := range c.outputBlock.GetAllFields() {
-			if field.Name == name && field.From != "" {
-				return errors.NewOutputFieldReadOnlyError(name, field.From)
+			if field.Name == name && field.AssignFrom != "" {
+				return errors.NewOutputFieldReadOnlyError(name, field.AssignFrom)
 			}
 		}
 	}
@@ -405,7 +394,7 @@ func (c *contextImpl) GetOutputField(name string) (any, error) {
 				Code:    errors.ErrCodeUnknownField,
 				Message: "output schema not defined",
 			},
-			Scope: "output",
+			Scope: flows.FlowVariableScopeOutput,
 		}
 	}
 
@@ -564,7 +553,7 @@ func (c *contextImpl) GetComputedField(name string) (any, error) {
 				Message: "computed field not defined",
 				Field:   name,
 			},
-			Scope: "computed",
+			Scope: flows.FlowVariableScopeComputed,
 		}
 	}
 	return c.computedVals.GetValue(name)

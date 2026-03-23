@@ -84,10 +84,10 @@ func (t *agentOutputToolImpl) Run(ctx context.Context, args map[string]any) (map
 }
 
 // runAgentOutput implements the core AgentOutput logic
-func (t *agentOutputToolImpl) runAgentOutput(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *agentOutputToolImpl) runAgentOutput(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
 	// Validate agent_id
-	agentIDStr, ok := args["agent_id"].(string)
-	if !ok || agentIDStr == "" {
+	agentIDStr, errResp := args.MustGetString(shared.ParamAgentID)
+	if errResp != nil {
 		return errorResponseAgentOutput("agent_id is required and must be a non-empty string"), nil
 	}
 
@@ -97,26 +97,14 @@ func (t *agentOutputToolImpl) runAgentOutput(ctx context.Context, args map[strin
 	}
 
 	// Parse block parameter (defaults to true)
-	block := true
-	if blockVal, exists := args["block"]; exists {
-		if blockBool, ok := blockVal.(bool); ok {
-			block = blockBool
-		}
-	}
+	block := args.GetBool(shared.ParamBlock, true)
 
 	// Parse timeout parameter (defaults to DefaultAgentOutputTimeout)
 	timeout := DefaultAgentOutputTimeoutDuration
-	if timeoutVal, exists := args["timeout"]; exists {
-		if timeoutInt, ok := timeoutVal.(int); ok {
-			// Clamp timeout between MinAgentOutputTimeout and MaxAgentOutputTimeout
-			timeoutInt = shared.Clamp(timeoutInt, MinAgentOutputTimeout, MaxAgentOutputTimeout)
-			timeout = time.Duration(timeoutInt) * time.Millisecond
-		} else if timeoutFloat, ok := timeoutVal.(float64); ok {
-			timeoutInt := int(timeoutFloat)
-			timeoutInt = shared.Clamp(timeoutInt, MinAgentOutputTimeout, MaxAgentOutputTimeout)
-			timeout = time.Duration(timeoutInt) * time.Millisecond
-		}
-	}
+	timeoutInt := args.GetInt(shared.ParamTimeout, DefaultAgentOutputTimeout)
+	// Clamp timeout between MinAgentOutputTimeout and MaxAgentOutputTimeout
+	timeoutInt = shared.Clamp(timeoutInt, MinAgentOutputTimeout, MaxAgentOutputTimeout)
+	timeout = time.Duration(timeoutInt) * time.Millisecond
 
 	// PERMISSION CHECK: Verify caller is DIRECT parent of target agent
 	// Separation of concerns: each agent can only access outputs from their direct children

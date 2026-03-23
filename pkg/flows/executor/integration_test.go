@@ -112,7 +112,7 @@ func TestExecutor_DeclarativeOutput_BindsFromComputed(t *testing.T) {
 		},
 		Output: &flows.OutputBlock{
 			Ints: []flows.FieldDef{
-				{Name: "result", From: "computed.doubled", Type: flows.TypeInt},
+				{Name: "result", AssignFrom: "computed.doubled", Type: flows.TypeInt},
 			},
 		},
 		States: []flows.State{

@@ -15,6 +15,7 @@
         <string name="target_dir" required="true" />
         <int name="score" />
         <string name="cyclomatic_output" />
+        <int name="exit_code" />
     </context>
 
     <states>
@@ -23,8 +24,8 @@
                 <step type="shell" name="run-gocyclo">
                     <cmd><![CDATA[gocyclo -avg ${input.target_dir}]]></cmd>
                     <result>
-                        <string name="stdout" assignTo="cyclomatic_output" />
-                        <int name="exit_code" assignTo="exit_code" />
+                        <string name="stdout" assignTo="context.cyclomatic_output" />
+                        <int name="exit_code" assignTo="context.exit_code" />
                     </result>
                     <timeout>60s</timeout>
                     <on-error state="error" />
@@ -48,7 +49,7 @@
                 <step type="func" function="fmt.Sprintf">
                     <params>
                         <param name="format" value="Complexity check failed: %s" />
-                        <param name="a" value="${sys.error.message}" />
+                        <param name="a" value="sys.error.message" />
                     </params>
                 </step>
             </steps>

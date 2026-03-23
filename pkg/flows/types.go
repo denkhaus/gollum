@@ -2,6 +2,7 @@ package flows
 
 import (
 	"encoding/xml"
+	"fmt"
 
 	"github.com/denkhaus/gollum/pkg/shared"
 )
@@ -27,6 +28,26 @@ type FlowContext interface {
 }
 
 type FlowVariableScope string
+
+func (p FlowVariableScope) String() string {
+	return string(p)
+}
+
+// Validate checks if the scope is a valid FlowVariableScope
+func (p FlowVariableScope) Validate() error {
+	valid := map[FlowVariableScope]bool{
+		FlowVariableScopeInput:    true,
+		FlowVariableScopeContext:  true,
+		FlowVariableScopeOutput:   true,
+		FlowVariableScopeComputed: true,
+		FlowVariableScopeSys:      true,
+	}
+
+	if !valid[p] {
+		return fmt.Errorf("invalid flow variable scope: %s (expected one of: input, context, output, computed, sys)", p)
+	}
+	return nil
+}
 
 // ValueType represents the type of a field
 type ValueType string
@@ -203,7 +224,7 @@ func (o *OutputBlock) GetAllFields() []FieldDef {
 func (o *OutputBlock) GetDeclarative() []FieldDef {
 	var fields []FieldDef
 	for _, f := range o.GetAllFields() {
-		if f.From != "" {
+		if f.AssignFrom != "" {
 			fields = append(fields, f)
 		}
 	}
@@ -214,7 +235,7 @@ func (o *OutputBlock) GetDeclarative() []FieldDef {
 func (o *OutputBlock) GetImperative() []FieldDef {
 	var fields []FieldDef
 	for _, f := range o.GetAllFields() {
-		if f.From == "" {
+		if f.AssignFrom == "" {
 			fields = append(fields, f)
 		}
 	}
@@ -313,12 +334,12 @@ type ObjectDef struct {
 
 // FieldDef is a base type for field definitions
 type FieldDef struct {
-	XMLName  xml.Name
-	Name     string    `xml:"name,attr"`
-	Type     ValueType `xml:"type,attr"`
-	Required bool      `xml:"required,attr"`
-	Default  string    `xml:"default,attr"`
-	From     string    `xml:"from,attr,omitempty"` // Source reference for output bindings
+	XMLName    xml.Name
+	Name       string    `xml:"name,attr"`
+	Type       ValueType `xml:"type,attr"`
+	Required   bool      `xml:"required,attr"`
+	Default    string    `xml:"default,attr"`
+	AssignFrom string    `xml:"assignFrom,attr,omitempty"` // Source reference for output bindings
 }
 
 // GetName returns the field name (implements variables.FieldDefinition interface)
@@ -357,13 +378,6 @@ func (c ContextField) GetType() ValueType {
 // GetDefault returns the default value (implements variables.FieldDefinition interface)
 func (c ContextField) GetDefault() string {
 	return c.Default
-}
-
-// ComputedField represents a computed context field (deprecated - use ComputedBlock)
-type ComputedField struct {
-	Name string `xml:"name,attr"`
-	Type string `xml:"type,attr"`
-	Eval string `xml:"eval,attr"` // Expression to compute value
 }
 
 // ComputedBlock defines computed fields at the flow level

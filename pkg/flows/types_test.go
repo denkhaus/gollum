@@ -67,19 +67,19 @@ func TestFlow_HasComputedBlock(t *testing.T) {
 	assert.Equal(t, "result", flow.Computed.GetAllFields()[0].Name)
 }
 
-func TestFieldDef_FromAttribute(t *testing.T) {
-	xmlData := `<string name="result" from="computed.sum" />`
+func TestFieldDef_AssignFromAttribute(t *testing.T) {
+	xmlData := `<string name="result" assignFrom="computed.sum" />`
 	var field FieldDef
 	err := xml.Unmarshal([]byte(xmlData), &field)
 	assert.NoError(t, err)
 	assert.Equal(t, "result", field.Name)
-	assert.Equal(t, "computed.sum", field.From)
+	assert.Equal(t, "computed.sum", field.AssignFrom)
 }
 
 func TestOutputBlock_GetDeclarative(t *testing.T) {
 	block := &OutputBlock{
 		Ints: []FieldDef{
-			{Name: "sum", From: "computed.sum", Type: TypeInt},    // declarative
+			{Name: "sum", AssignFrom: "computed.sum", Type: TypeInt},    // declarative
 			{Name: "count", Type: TypeInt},                        // imperative
 		},
 	}

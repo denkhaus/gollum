@@ -94,7 +94,7 @@ func (c *ComputedChecker) checkField(field flows.ComputedFieldDef, registry map[
 	// Check field references
 	deps := c.parser.ExtractDependencies(field.Eval)
 	for _, dep := range deps {
-		refKey := dep.Scope + "." + dep.Name
+		refKey := dep.Key()
 		if !registry[refKey] {
 			result.Errors = append(result.Errors, flows.LinterError{
 				Code:    flows.ErrFieldNotFound,
@@ -107,7 +107,7 @@ func (c *ComputedChecker) checkField(field flows.ComputedFieldDef, registry map[
 
 	// Check for self-reference
 	for _, dep := range deps {
-		if dep.Scope == "computed" && dep.Name == field.Name {
+		if dep.Scope == flows.FlowVariableScopeComputed && dep.Name == field.Name {
 			result.Errors = append(result.Errors, flows.LinterError{
 				Code:    flows.ErrCircularDeps,
 				Message: fmt.Sprintf("computed field '%s' cannot reference itself", field.Name),
@@ -136,7 +136,7 @@ func (c *ComputedChecker) checkCircularDependencies(fields []flows.ComputedField
 	for _, field := range fields {
 		deps := c.parser.ExtractDependencies(field.Eval)
 		for _, dep := range deps {
-			if dep.Scope == "computed" {
+			if dep.Scope == flows.FlowVariableScopeComputed {
 				graph[field.Name] = append(graph[field.Name], dep.Name)
 			}
 		}

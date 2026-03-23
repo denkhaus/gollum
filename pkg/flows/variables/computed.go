@@ -30,7 +30,7 @@ type ComputedValues struct {
 }
 
 // NewComputedValues creates a new ComputedValues from a slice of ComputedField definitions
-func NewComputedValues(computedFields []flows.ComputedField) *ComputedValues {
+func NewComputedValues(computedFields []flows.ComputedFieldDef) *ComputedValues {
 	cv := &ComputedValues{
 		fields: make(map[string]*ComputedField),
 	}
@@ -86,7 +86,7 @@ func (cv *ComputedValues) GetField(name string) (*ComputedField, error) {
 				Message: "computed field not defined",
 				Field:   name,
 			},
-			Scope: "computed",
+			Scope: flows.FlowVariableScopeComputed,
 		}
 	}
 	return field, nil
@@ -242,7 +242,7 @@ func NewComputedEvaluator(computed *ComputedValues, input *FieldValues[flows.Fie
 func (ce *ComputedEvaluator) buildDependentsMap() {
 	for _, field := range ce.computed.GetAll() {
 		for _, dep := range field.Dependencies {
-			key := dep.Scope + "." + dep.Name
+			key := dep.Key()
 			ce.dependents[key] = append(ce.dependents[key], field.Name)
 		}
 	}
@@ -309,7 +309,7 @@ func (ce *ComputedEvaluator) evaluateField(name string, evaluated map[string]boo
 
 	// First, evaluate all dependencies
 	for _, dep := range field.Dependencies {
-		if dep.Scope == "computed" && !evaluated[dep.Name] {
+		if dep.Scope == flows.FlowVariableScopeComputed && !evaluated[dep.Name] {
 			if err := ce.evaluateField(dep.Name, evaluated); err != nil {
 				return err
 			}

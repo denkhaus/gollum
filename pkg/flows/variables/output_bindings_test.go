@@ -16,7 +16,7 @@ func TestOutputBinding(t *testing.T) {
 	}
 
 	assert.Equal(t, "result", binding.TargetName)
-	assert.Equal(t, "computed", binding.SourceScope)
+	assert.Equal(t, flows.FlowVariableScopeComputed, binding.SourceScope)
 	assert.Equal(t, "sum", binding.SourceName)
 	assert.Equal(t, flows.TypeInt, binding.ValueType)
 }
@@ -24,7 +24,7 @@ func TestOutputBinding(t *testing.T) {
 func TestParseFieldReference(t *testing.T) {
 	scope, name, err := ParseFieldReference("computed.sum")
 	assert.NoError(t, err)
-	assert.Equal(t, "computed", scope)
+	assert.Equal(t, flows.FlowVariableScopeComputed, scope)
 	assert.Equal(t, "sum", name)
 
 	_, _, err = ParseFieldReference("invalid")
@@ -37,11 +37,12 @@ func TestParseFieldReference(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestIsValidSourceScope(t *testing.T) {
-	assert.True(t, IsValidSourceScope("input"))
-	assert.True(t, IsValidSourceScope("context"))
-	assert.True(t, IsValidSourceScope("computed"))
-	assert.True(t, IsValidSourceScope("output"))
-	assert.False(t, IsValidSourceScope("invalid"))
-	assert.False(t, IsValidSourceScope(""))
+func TestFlowVariableScope_Validate(t *testing.T) {
+	assert.NoError(t, flows.FlowVariableScopeInput.Validate())
+	assert.NoError(t, flows.FlowVariableScopeContext.Validate())
+	assert.NoError(t, flows.FlowVariableScopeComputed.Validate())
+	assert.NoError(t, flows.FlowVariableScopeOutput.Validate())
+	assert.NoError(t, flows.FlowVariableScopeSys.Validate())
+	assert.Error(t, flows.FlowVariableScope("invalid").Validate())
+	assert.Error(t, flows.FlowVariableScope("").Validate())
 }

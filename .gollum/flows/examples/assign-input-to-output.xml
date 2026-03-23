@@ -14,7 +14,7 @@ Simplest test - pass input values directly to output using bindings
     </input>
 
     <output>
-        <string name="result" from="input.message" />
+        <string name="result" assignFrom="input.message" />
     </output>
 
     <states>

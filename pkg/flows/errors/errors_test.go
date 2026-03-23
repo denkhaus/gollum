@@ -37,10 +37,10 @@ func TestUnknownFieldError(t *testing.T) {
 			Message: "field not found",
 			Field:   "missingField",
 		},
-		Scope: "context",
+		Scope: flows.FlowVariableScopeContext,
 	}
 
-	assert.Equal(t, "context", err.Scope)
+	assert.Equal(t, flows.FlowVariableScopeContext, err.Scope)
 	assert.Equal(t, errors.ErrCodeUnknownField, err.Code)
 }
 

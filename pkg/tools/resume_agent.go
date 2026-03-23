@@ -98,10 +98,10 @@ func (t *resumeAgentToolImpl) Run(ctx context.Context, args map[string]any) (map
 }
 
 // runResumeAgent implements the core ResumeAgent logic
-func (t *resumeAgentToolImpl) runResumeAgent(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *resumeAgentToolImpl) runResumeAgent(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
 	// Validate required parameters
-	agentIDStr, ok := args["agent_id"].(string)
-	if !ok || agentIDStr == "" {
+	agentIDStr, errResp := args.MustGetString(shared.ParamAgentID)
+	if errResp != nil {
 		return t.executionHelper.ErrorResponse("agent_id is required and must be a non-empty string"), nil
 	}
 
@@ -111,18 +111,13 @@ func (t *resumeAgentToolImpl) runResumeAgent(ctx context.Context, args map[strin
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("invalid agent_id format: %v", err)), nil
 	}
 
-	prompt, ok := args["prompt"].(string)
-	if !ok || prompt == "" {
+	prompt, errResp := args.MustGetString(shared.ParamPrompt)
+	if errResp != nil {
 		return t.executionHelper.ErrorResponse("prompt is required and must be a non-empty string"), nil
 	}
 
 	// Check run_in_background parameter (defaults to false)
-	runInBackground := false
-	if bgVal, exists := args["run_in_background"]; exists {
-		if bgBool, ok := bgVal.(bool); ok {
-			runInBackground = bgBool
-		}
-	}
+	runInBackground := args.GetBool(shared.ParamRunInBackground, false)
 
 	// PERMISSION CHECK: Verify caller is DIRECT parent of target agent
 	if !t.registry.IsDirectParent(t.senderID, agentID) {

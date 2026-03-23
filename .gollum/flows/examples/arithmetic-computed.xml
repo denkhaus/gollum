@@ -23,10 +23,10 @@ Tests ADD, SUB, MUL, DIV using computed block and output bindings
     </computed>
 
     <output>
-        <int name="sum" from="computed.sum" />
-        <int name="difference" from="computed.difference" />
-        <int name="product" from="computed.product" />
-        <int name="quotient" from="computed.quotient" />
+        <int name="sum" assignFrom="computed.sum" />
+        <int name="difference" assignFrom="computed.difference" />
+        <int name="product" assignFrom="computed.product" />
+        <int name="quotient" assignFrom="computed.quotient" />
     </output>
 
     <states>

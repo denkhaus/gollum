@@ -71,10 +71,10 @@ func (t *changeDirectoryToolImpl) Run(ctx context.Context, args map[string]any) 
 // runChangeDirectory implements the core ChangeDirectory logic
 // It only validates, changes the actual directory, and publishes an event.
 // Services (WorkspaceService, SkillService) subscribe to the event to update their state.
-func (t *changeDirectoryToolImpl) runChangeDirectory(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *changeDirectoryToolImpl) runChangeDirectory(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
 	// Get path from args
-	path, ok := args["path"].(string)
-	if !ok || path == "" {
+	path, errResp := args.GetFilePath(shared.ParamPath)
+	if errResp != nil {
 		return nil, fmt.Errorf("path argument is required and must be a non-empty string")
 	}
 

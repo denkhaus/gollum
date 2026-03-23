@@ -21,6 +21,7 @@
         <string name="review_status" />
         <int name="issue_count" />
         <string name="review_summary" />
+        <string name="label_result" />
     </context>
 
     <extensions>
@@ -47,34 +48,30 @@
     <states>
         <state name="collect-info" initial="true">
             <steps>
-                <!-- NOTE: The <group parallel="true"> feature is NOT YET IMPLEMENTED.
-                     Steps will execute sequentially until parallel execution is built.
-                     See: https://github.com/denkhaus/gollum/issues/XXX -->
-                <group name="parallel-fetch" parallel="true">
-                    <!-- Fetch PR diff -->
-                    <step type="func" function="GetPRDiff">
-                        <params>
-                            <param name="owner" value="input.repo_owner" />
-                            <param name="repo" value="input.repo_name" />
-                            <param name="index" value="input.pr_number" />
-                        </params>
-                        <result assignTo="${context.pr_diff}" />
-                        <timeout>60s</timeout>
-                        <on-error state="error" />
-                    </step>
+                <!-- NOTE: Parallel execution not yet implemented, steps run sequentially -->
+                <!-- Fetch PR diff -->
+                <step type="func" function="GetPRDiff">
+                    <params>
+                        <param name="owner" value="input.repo_owner" />
+                        <param name="repo" value="input.repo_name" />
+                        <param name="index" value="input.pr_number" />
+                    </params>
+                    <result assignTo="context.pr_diff" />
+                    <timeout>60s</timeout>
+                    <on-error state="error" />
+                </step>
 
-                    <!-- Fetch comments -->
-                    <step type="mcp" tool="forgejo/list_issue_comments">
-                        <params>
-                            <param name="owner" value="input.repo_owner" />
-                            <param name="repo" value="input.repo_name" />
-                            <param name="index" value="input.pr_number" />
-                        </params>
-                        <result assignTo="${context.pr_comments}" />
-                        <timeout>30s</timeout>
-                        <on-error state="error" />
-                    </step>
-                </group>
+                <!-- Fetch comments -->
+                <step type="mcp" tool="forgejo/list_issue_comments">
+                    <params>
+                        <param name="owner" value="input.repo_owner" />
+                        <param name="repo" value="input.repo_name" />
+                        <param name="index" value="input.pr_number" />
+                    </params>
+                    <result assignTo="context.pr_comments" />
+                    <timeout>30s</timeout>
+                    <on-error state="error" />
+                </step>
             </steps>
 
             <transitions>
@@ -127,7 +124,7 @@
                         <param name="index" value="input.pr_number" />
                         <param name="labels" value="output.review_status" />
                     </params>
-                    <result assignTo="label_result" />
+                    <result assignTo="context.label_result" />
                     <timeout>30s</timeout>
                     <on-error state="error" />
                 </step>

@@ -3,6 +3,8 @@ package ast
 import (
 	"fmt"
 	"strconv"
+
+	"github.com/denkhaus/gollum/pkg/flows"
 )
 
 // Parser holds parsing state
@@ -108,14 +110,16 @@ func (p *Parser) parseFieldRef() (Expr, error) {
 		p.advance()
 	}
 
-	// Determine prefix (first part should be input/output/context/error/computed)
+	// Determine prefix (first part should be input/output/context/sys/computed)
 	if len(parts) < 2 {
 		return nil, p.error("field reference must have prefix (e.g., context.field)")
 	}
 
-	prefix := parts[0]
-	if prefix != "input" && prefix != "output" && prefix != "context" && prefix != "error" && prefix != "computed" {
-		return nil, p.error("invalid field prefix: " + prefix + ", expected one of: input, output, context, error, computed")
+	prefix := flows.FlowVariableScope(parts[0])
+
+	// Validate prefix using the Validate method
+	if err := prefix.Validate(); err != nil {
+		return nil, p.error(err.Error())
 	}
 
 	return &FieldRef{

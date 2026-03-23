@@ -28,7 +28,7 @@ func (fe *FlowError) Unwrap() error {
 // UnknownFieldError indicates a field reference that doesn't exist in the flow
 type UnknownFieldError struct {
 	FlowError
-	Scope string // "input", "context", "output", "computed"
+	Scope flows.FlowVariableScope // "input", "context", "output", "computed", "sys"
 }
 
 // TypeError indicates a type mismatch in value assignment or expression
@@ -70,5 +70,5 @@ func (ve *ValidationError) Error() string {
 // NoSchemaError indicates that no schema (context/output) was defined for the operation
 type NoSchemaError struct {
 	FlowError
-	Scope string // "context", "output", "input"
+	Scope flows.FlowVariableScope // "context", "output", "input"
 }

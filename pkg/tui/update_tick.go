@@ -35,10 +35,14 @@ func (m Model) fetchNewLogEntries() Model {
 		return m
 	}
 
-	newLogs := m.logService.GetLogs(logger.LogFilter{
-		SinceSeq: m.lastLogFetchSeq,
-		Reverse:  false,
-	})
+	// Build filter - only set SinceSeq if we've fetched logs before
+	filter := logger.LogFilter{
+		Reverse: false,
+	}
+	if m.lastLogFetchSeq >= 0 {
+		filter.SinceSeq = &m.lastLogFetchSeq
+	}
+	newLogs := m.logService.GetLogs(filter)
 
 	if len(newLogs) == 0 {
 		return m

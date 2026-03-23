@@ -11,15 +11,6 @@ import (
 
 var varRefRegex = regexp.MustCompile(`\$\{([^}]+)\}`)
 
-// validPrefixes are the allowed variable reference prefixes
-var validPrefixes = map[string]bool{
-	"input":    true,
-	"output":   true,
-	"context":  true,
-	"sys":      true, // System scope (contains error, etc.)
-	"computed": true,
-}
-
 // ExpressionChecker validates expressions in flows
 type ExpressionChecker struct {
 	PosTracker *PositionTracker
@@ -147,7 +138,7 @@ func (e *ExpressionChecker) checkVarRefs(text, location string, result *flows.Li
 
 		// Check if the path has a valid prefix
 		parts := strings.SplitN(path, ".", 2)
-		if len(parts) < 2 || !validPrefixes[parts[0]] {
+		if len(parts) < 2 || flows.FlowVariableScope(parts[0]).Validate() != nil {
 			result.Errors = append(result.Errors, flows.LinterError{
 				Code:    flows.ErrRelativePath,
 				Message: fmt.Sprintf("variable reference %s in %s must use absolute path (e.g., ${context.%s} or ${output.%s})", ref, location, path, path),
@@ -158,47 +149,47 @@ func (e *ExpressionChecker) checkVarRefs(text, location string, result *flows.Li
 }
 
 // buildFieldMap builds a map of available fields for validation
-func (e *ExpressionChecker) buildFieldMap(flow *flows.Flow) map[string][]string {
-	fields := make(map[string][]string)
+func (e *ExpressionChecker) buildFieldMap(flow *flows.Flow) map[flows.FlowVariableScope][]string {
+	fields := make(map[flows.FlowVariableScope][]string)
 
 	// Input fields
 	if flow.Input != nil {
 		for _, f := range flow.Input.GetAllFields() {
-			fields["input"] = append(fields["input"], f.Name)
+			fields[flows.FlowVariableScopeInput] = append(fields[flows.FlowVariableScopeInput], f.Name)
 		}
 	}
 
 	// Output fields
 	if flow.Output != nil {
 		for _, f := range flow.Output.GetAllFields() {
-			fields["output"] = append(fields["output"], f.Name)
+			fields[flows.FlowVariableScopeOutput] = append(fields[flows.FlowVariableScopeOutput], f.Name)
 		}
 	}
 
 	// Context fields
 	if flow.Context != nil {
 		for _, f := range flow.Context.Strings {
-			fields["context"] = append(fields["context"], f.Name)
+			fields[flows.FlowVariableScopeContext] = append(fields[flows.FlowVariableScopeContext], f.Name)
 		}
 		for _, f := range flow.Context.Ints {
-			fields["context"] = append(fields["context"], f.Name)
+			fields[flows.FlowVariableScopeContext] = append(fields[flows.FlowVariableScopeContext], f.Name)
 		}
 		for _, f := range flow.Context.Bools {
-			fields["context"] = append(fields["context"], f.Name)
+			fields[flows.FlowVariableScopeContext] = append(fields[flows.FlowVariableScopeContext], f.Name)
 		}
 		for _, f := range flow.Context.Floats {
-			fields["context"] = append(fields["context"], f.Name)
+			fields[flows.FlowVariableScopeContext] = append(fields[flows.FlowVariableScopeContext], f.Name)
 		}
 		// Add nested object fields
 		for _, obj := range flow.Context.Objects {
-			fields["context"] = append(fields["context"], obj.Name)
+			fields[flows.FlowVariableScopeContext] = append(fields[flows.FlowVariableScopeContext], obj.Name)
 		}
 	}
 
 	// Computed fields
 	if flow.Computed != nil {
 		for _, f := range flow.Computed.GetAllFields() {
-			fields["computed"] = append(fields["computed"], f.Name)
+			fields[flows.FlowVariableScopeComputed] = append(fields[flows.FlowVariableScopeComputed], f.Name)
 		}
 	}
 
@@ -206,12 +197,12 @@ func (e *ExpressionChecker) buildFieldMap(flow *flows.Flow) map[string][]string 
 }
 
 // validateFields checks that all field references exist
-func (e *ExpressionChecker) validateFields(expr ast.Expr, available map[string][]string) error {
+func (e *ExpressionChecker) validateFields(expr ast.Expr, available map[flows.FlowVariableScope][]string) error {
 	// Walk the AST and check FieldRef nodes
 	return checkFieldRefs(expr, available)
 }
 
-func checkFieldRefs(expr ast.Expr, available map[string][]string) error {
+func checkFieldRefs(expr ast.Expr, available map[flows.FlowVariableScope][]string) error {
 	switch e := expr.(type) {
 	case *ast.CallExpr:
 		for _, arg := range e.Args {

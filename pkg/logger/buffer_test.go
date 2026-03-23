@@ -167,24 +167,23 @@ func TestLogBuffer_FilterByAgentID(t *testing.T) {
 	assert.Empty(t, result)
 }
 
-// TestLogBuffer_FilterBySince tests filtering by timestamp.
-func TestLogBuffer_FilterBySince(t *testing.T) {
+// TestLogBuffer_FilterBySinceSeq tests filtering by sequence number.
+func TestLogBuffer_FilterBySinceSeq(t *testing.T) {
 	buf := newLogBuffer(10, true)
 
-	now := time.Now()
+	// Add entries - they get sequence numbers 0, 1, 2
+	oldEntry := LogEntry{Level: "info", Message: "old"}
+	recentEntry := LogEntry{Level: "info", Message: "recent"}
+	futureEntry := LogEntry{Level: "info", Message: "future"}
 
-	// Add entries at different times
-	oldEntry := LogEntry{Timestamp: now.Add(-1 * time.Hour), Level: "info", Message: "old"}
-	recentEntry := LogEntry{Timestamp: now.Add(-1 * time.Second), Level: "info", Message: "recent"}
-	futureEntry := LogEntry{Timestamp: now.Add(1 * time.Second), Level: "info", Message: "future"}
+	buf.add(oldEntry)    // seq 0
+	buf.add(recentEntry) // seq 1
+	buf.add(futureEntry) // seq 2
 
-	buf.add(oldEntry)
-	buf.add(recentEntry)
-	buf.add(futureEntry)
-
-	// Filter by 30 minutes ago - should get recent and future
-	cutoff := now.Add(-30 * time.Minute)
-	result := buf.getEntries(LogFilter{Since: cutoff})
+	// Filter by sequence number - should get entries after seq 0
+	// SinceSeq is exclusive, so SinceSeq=0 means seq > 0
+	sinceSeq := int64(0)
+	result := buf.getEntries(LogFilter{SinceSeq: &sinceSeq})
 	assert.Len(t, result, 2)
 
 	// Verify order

@@ -59,7 +59,7 @@ func TestExecuteShellStep_SuccessfulExecution(t *testing.T) {
 	flow := &flows.Flow{
 		Name:    "test-shell",
 		Version: "1.0",
-		Output: &flows.OutputBlock{Strings: []flows.FieldDef{{Name: "greeting"}}},
+		Output:  &flows.OutputBlock{Strings: []flows.FieldDef{{Name: "greeting"}}},
 		States: []flows.State{
 			{
 				Name:    "init",
@@ -112,7 +112,7 @@ func TestExecuteShellStep_WithInputVariable(t *testing.T) {
 		Name:    "test-shell-var",
 		Version: "1.0",
 		Input:   &flows.InputBlock{Strings: []flows.FieldDef{{Name: "name"}}},
-		Output: &flows.OutputBlock{Strings: []flows.FieldDef{{Name: "greeting"}}},
+		Output:  &flows.OutputBlock{Strings: []flows.FieldDef{{Name: "greeting"}}},
 		States: []flows.State{
 			{
 				Name:    "init",
@@ -296,35 +296,4 @@ func TestSubstituteTemplate_MultipleVariables(t *testing.T) {
 	result := exec.GetContext().SubstituteTemplate(cmd)
 
 	assert.Equal(t, "deploy app in prod, status: pending", result)
-}
-
-func TestExtractFieldName(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "output variable",
-			input:    "${output.result}",
-			expected: "result",
-		},
-		{
-			name:     "context variable",
-			input:    "${context.status}",
-			expected: "status",
-		},
-		{
-			name:     "nested output variable",
-			input:    "${output.data.field}",
-			expected: "data.field",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := extractFieldName(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
 }

@@ -85,15 +85,10 @@ func (t *removeAgentToolImpl) Run(ctx context.Context, args map[string]any) (map
 }
 
 // runRemoveAgent implements the core RemoveAgent logic
-func (t *removeAgentToolImpl) runRemoveAgent(_ context.Context, args map[string]any) (map[string]any, error) {
-	agentIDStr, ok := args["agent_id"].(string)
-	if !ok {
-		t.logService.DebugWithAgent("RemoveAgent: invalid agent_id type", t.senderID,
-			zap.String("sender_id", t.senderID.String()))
-		return map[string]any{
-			"success": false,
-			"error":   "agent_id is required and must be a string",
-		}, nil
+func (t *removeAgentToolImpl) runRemoveAgent(_ context.Context, args ToolRequestParams) (map[string]any, error) {
+	agentIDStr, errResp := args.MustGetString(shared.ParamAgentID)
+	if errResp != nil {
+		return errResp, nil
 	}
 
 	agentID, err := uuid.Parse(agentIDStr)
@@ -160,10 +155,7 @@ func (t *removeAgentToolImpl) runRemoveAgent(_ context.Context, args map[string]
 	}
 
 	// Check for force parameter
-	force := false
-	if forceVal, ok := args["force"].(bool); ok {
-		force = forceVal
-	}
+	force := args.GetBool(shared.ParamForce, false)
 
 	// Get children count for reporting
 	children := t.registry.GetChildren(agentID)

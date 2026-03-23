@@ -555,27 +555,49 @@ func (p *flowExecutorImpl) executeShellStep(_ context.Context, step *flows.Step,
 	if step.Result != nil {
 		// Handle simple assign
 		if step.Result.AssignTo != "" {
-			fieldName := extractFieldName(step.Result.AssignTo)
+			scope, fieldName, err := parseAssignTarget(step.Result.AssignTo)
+			if err != nil {
+				return fmt.Errorf("invalid assignTo: %w", err)
+			}
 			if val, ok := result["stdout"]; ok {
-				_ = p.ctx.SetOutputField(fieldName, anyToString(val))
+				if scope == flows.FlowVariableScopeContext {
+					_ = p.ctx.SetContextField(fieldName, anyToString(val))
+				} else {
+					_ = p.ctx.SetOutputField(fieldName, anyToString(val))
+				}
 			}
 		}
 		// Handle path-based outputs
 		for _, path := range step.Result.Paths {
-			fieldName := extractFieldName(path.AssignTo)
+			scope, fieldName, err := parseAssignTarget(path.AssignTo)
+			if err != nil {
+				return fmt.Errorf("invalid path assignTo: %w", err)
+			}
 			switch path.Path {
 			case "stdout":
 				if val, ok := result["stdout"]; ok {
-					_ = p.ctx.SetOutputField(fieldName, anyToString(val))
+					if scope == flows.FlowVariableScopeContext {
+						_ = p.ctx.SetContextField(fieldName, anyToString(val))
+					} else {
+						_ = p.ctx.SetOutputField(fieldName, anyToString(val))
+					}
 				}
 			case "stderr":
 				if val, ok := result["stderr"]; ok {
-					_ = p.ctx.SetOutputField(fieldName, anyToString(val))
+					if scope == flows.FlowVariableScopeContext {
+						_ = p.ctx.SetContextField(fieldName, anyToString(val))
+					} else {
+						_ = p.ctx.SetOutputField(fieldName, anyToString(val))
+					}
 				}
 			case "exit_code":
 				// Bash tool returns exit_code as a number
 				if val, ok := result["exit_code"]; ok {
-					_ = p.ctx.SetOutputField(fieldName, anyToString(val))
+					if scope == flows.FlowVariableScopeContext {
+						_ = p.ctx.SetContextField(fieldName, anyToString(val))
+					} else {
+						_ = p.ctx.SetOutputField(fieldName, anyToString(val))
+					}
 				}
 			}
 		}
@@ -590,29 +612,23 @@ func (p *flowExecutorImpl) substituteTemplate(cmd string) string {
 	return p.ctx.SubstituteTemplate(cmd)
 }
 
-// extractFieldName extracts the field name from:
-// - ${output.field_name} or ${context.field_name} (legacy format)
-// - output.field_name or context.field_name (preferred format)
-func extractFieldName(assign string) string {
-	// Handle legacy ${} format
-	assign = strings.TrimPrefix(assign, "${output.")
-	assign = strings.TrimPrefix(assign, "${context.")
-	assign = strings.TrimSuffix(assign, "}")
-
-	// Handle plain prefix.field format (preferred)
-	assign = strings.TrimPrefix(assign, "output.")
-	assign = strings.TrimPrefix(assign, "context.")
-	assign = strings.TrimPrefix(assign, "input.")
-	assign = strings.TrimPrefix(assign, "computed.")
-
-	return assign
+// parseAssignTarget parses assignTo value and returns (scope, fieldName)
+// Requires: output.field or context.field format
+// Returns: (flows.FlowVariableScope, "field", error)
+func parseAssignTarget(assignTo string) (flows.FlowVariableScope, string, error) {
+	// Split by first dot
+	parts := strings.SplitN(assignTo, ".", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid assignTo format '%s': must be 'scope.field' (e.g., 'output.result' or 'context.temp')", assignTo)
+	}
+	scope := flows.FlowVariableScope(parts[0])
+	if scope != flows.FlowVariableScopeOutput && scope != flows.FlowVariableScopeContext {
+		return "", "", fmt.Errorf("invalid scope '%s' in assignTo: must be 'output' or 'context'", scope)
+	}
+	return scope, parts[1], nil
 }
 
 func (p *flowExecutorImpl) executeFuncStep(_ context.Context, step *flows.Step, stateName string) error {
-	// Check for built-in "assign" function
-	if step.Function == "assign" {
-		return p.executeAssignStep(step, stateName)
-	}
 
 	// Use Yaegi runner from extension service for other functions
 	funcRunner := p.extService.GetFuncRunner()
@@ -636,110 +652,18 @@ func (p *flowExecutorImpl) executeFuncStep(_ context.Context, step *flows.Step, 
 
 	// Map result to output
 	if step.Result != nil && step.Result.AssignTo != "" {
-		fieldName := extractFieldName(step.Result.AssignTo)
-		if err := p.ctx.SetOutputField(fieldName, result); err != nil {
-			return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
+		scope, fieldName, err := parseAssignTarget(step.Result.AssignTo)
+		if err != nil {
+			return fmt.Errorf("invalid assignTo: %w", err)
 		}
-	}
-
-	return nil
-}
-
-// executeAssignStep handles the built-in assign function
-func (p *flowExecutorImpl) executeAssignStep(step *flows.Step, stateName string) error {
-	// Parse parameters
-	var (
-		from  string
-		to    string
-		value any
-	)
-
-	for _, param := range step.Params {
-		switch param.Name {
-		case "from":
-			// Don't substitute - we need the raw reference to parse
-			from = param.Value
-		case "to":
-			// Don't substitute - we need the raw reference to parse
-			to = param.Value
-		case "value":
-			valueStr := p.substituteTemplate(param.Value)
-			// Try to parse as int, float, bool
-			var intVal int64
-			var floatVal float64
-			var boolVal bool
-			_, intErr := fmt.Sscanf(valueStr, "%d", &intVal)
-			_, floatErr := fmt.Sscanf(valueStr, "%f", &floatVal)
-			_, boolErr := strconv.ParseBool(valueStr)
-
-			if intErr == nil && len(valueStr) > 0 && valueStr[0] >= '0' && valueStr[0] <= '9' {
-				value = intVal
-			} else if floatErr == nil && strings.Contains(valueStr, ".") {
-				value = floatVal
-			} else if boolErr == nil {
-				value = boolVal
-			} else {
-				value = valueStr
+		if scope == flows.FlowVariableScopeContext {
+			if err := p.ctx.SetContextField(fieldName, result); err != nil {
+				return fmt.Errorf("failed to set context field '%s': %w", fieldName, err)
 			}
-		}
-	}
-
-	if to == "" {
-		return fmt.Errorf("assign: missing 'to' parameter")
-	}
-
-	// Determine value to assign
-	var valueToAssign any
-	if value != nil {
-		valueToAssign = value
-	} else if from != "" {
-		// Parse source: prefix.field
-		parts := strings.SplitN(from, ".", 2)
-		if len(parts) != 2 {
-			return fmt.Errorf("assign: invalid 'from' format: %s (expected prefix.field)", from)
-		}
-
-		prefix := parts[0]
-		field := parts[1]
-
-		// Read from source
-		switch prefix {
-		case "input":
-			valueToAssign = p.ctx.GetInput(field)
-		case "context":
-			var err error
-			valueToAssign, err = p.ctx.GetContextField(field)
-			if err != nil {
-				return fmt.Errorf("assign: failed to read context field '%s': %w", field, err)
+		} else {
+			if err := p.ctx.SetOutputField(fieldName, result); err != nil {
+				return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
 			}
-		case "computed":
-			var err error
-			valueToAssign, err = p.ctx.GetComputedField(field)
-			if err != nil {
-				return fmt.Errorf("assign: failed to read computed field '%s': %w", field, err)
-			}
-		default:
-			return fmt.Errorf("assign: unknown prefix '%s' (expected input, context, or computed)", prefix)
-		}
-	} else {
-		return fmt.Errorf("assign: must provide either 'value' or 'from' parameter")
-	}
-
-	// Determine destination: output or context
-	if strings.HasPrefix(to, "output.") {
-		fieldName := strings.TrimPrefix(to, "output.")
-		if err := p.ctx.SetOutputField(fieldName, valueToAssign); err != nil {
-			return fmt.Errorf("assign: failed to set output field '%s': %w", fieldName, err)
-		}
-	} else if strings.HasPrefix(to, "context.") {
-		fieldName := strings.TrimPrefix(to, "context.")
-		if err := p.ctx.SetContextField(fieldName, valueToAssign); err != nil {
-			return fmt.Errorf("assign: failed to set context field '%s': %w", fieldName, err)
-		}
-	} else {
-		// Default to output
-		if err := p.ctx.SetOutputField(to, valueToAssign); err != nil {
-			return fmt.Errorf("assign: failed to set output field '%s': %w", to, err)
 		}
 	}
 
@@ -789,10 +713,24 @@ func (p *flowExecutorImpl) executeMCPStep(_ context.Context, step *flows.Step, s
 				if step.Result != nil {
 					// Handle simple assign
 					if step.Result.AssignTo != "" {
-						fieldName := extractFieldName(step.Result.AssignTo)
+						scope, fieldName, err := parseAssignTarget(step.Result.AssignTo)
+						if err != nil {
+							return &MCPError{
+								Server: toolName,
+								Tool:   toolName,
+								Step:   stateName,
+								Err:    fmt.Errorf("invalid assignTo: %w", err),
+							}
+						}
 						// For MCP tools, we'll map the entire result to the field
-						if err := p.ctx.SetOutputField(fieldName, anyToString(result)); err != nil {
-							return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
+						if scope == flows.FlowVariableScopeContext {
+							if err := p.ctx.SetContextField(fieldName, anyToString(result)); err != nil {
+								return fmt.Errorf("failed to set context field '%s': %w", fieldName, err)
+							}
+						} else {
+							if err := p.ctx.SetOutputField(fieldName, anyToString(result)); err != nil {
+								return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
+							}
 						}
 					}
 					// TODO: Handle path-based outputs with JSONPath extraction
@@ -882,14 +820,17 @@ func (p *flowExecutorImpl) executeCall(call *flows.Call, _ string) error {
 			typedField := field.GetTypedField()
 			if typedField != nil {
 				// Get the value from sub-flow result
-				fieldName := extractFieldName(typedField.Value)
-				value, ok := result.Outputs[fieldName]
+				// Call-Output values reference fields from sub-flow output
+				// Format: "field_name" (no scope prefix - always refers to sub-flow output)
+				sourceField := typedField.Value
+
+				value, ok := result.Outputs[sourceField]
 				if !ok {
 					continue // Skip if field doesn't exist in sub-flow output
 				}
 
 				// Set the value in parent flow output
-				targetField := extractFieldName(typedField.Name)
+				targetField := typedField.Name
 				if err := p.ctx.SetOutputField(targetField, anyToString(value)); err != nil {
 					return fmt.Errorf("failed to set output field '%s': %w", targetField, err)
 				}

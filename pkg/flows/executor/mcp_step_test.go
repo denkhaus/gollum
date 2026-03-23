@@ -286,7 +286,7 @@ func TestExecuteMCPStep_TemplateSubstitution(t *testing.T) {
 						Tool: "test.tool",
 						Params: []flows.StepParam{
 							{Name: "static", Value: "fixed value"},
-							{Name: "from_input", Value: "input.name"},
+							{Name: "from_input", Value: "${input.name}"},
 						},
 					},
 				},

@@ -87,7 +87,7 @@
 
   <xs:complexType name="OutputField">
     <xs:attribute name="name" type="xs:string" use="required"/>
-    <xs:attribute name="from" type="xs:string"/>
+    <xs:attribute name="assignFrom" type="xs:string"/>
     <xs:attribute name="eval" type="xs:string"/>
     <xs:attribute name="required" type="xs:boolean"/>
   </xs:complexType>

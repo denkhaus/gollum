@@ -17,6 +17,7 @@
         <string name="scan_type" default="full" />
         <int name="issues" />
         <string name="scan_output" />
+        <int name="exit_code" />
     </context>
 
     <extensions>
@@ -31,8 +32,8 @@
                 <step type="shell" name="run-gosec">
                     <cmd><![CDATA[gosec -fmt=json ${input.target_dir}]]></cmd>
                     <result>
-                        <string name="stdout" assignTo="scan_output" />
-                        <int name="exit_code" assignTo="exit_code" />
+                        <string name="stdout" assignTo="context.scan_output" />
+                        <int name="exit_code" assignTo="context.exit_code" />
                     </result>
                     <timeout>120s</timeout>
                     <on-error state="error" />
@@ -57,7 +58,7 @@
                 <step type="func" function="fmt.Sprintf">
                     <params>
                         <param name="format" value="Security scan failed: %s" />
-                        <param name="a" value="${sys.error.message}" />
+                        <param name="a" value="sys.error.message" />
                     </params>
                 </step>
             </steps>

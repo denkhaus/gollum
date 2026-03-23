@@ -84,7 +84,7 @@ func TestContext_ComputedFieldsAreImmutable(t *testing.T) {
 func TestContextImpl_SetOutputField_DeclarativeReadonly(t *testing.T) {
 	output := &flows.OutputBlock{
 		Ints: []flows.FieldDef{
-			{Name: "sum", From: "computed.sum", Type: flows.TypeInt},
+			{Name: "sum", AssignFrom: "computed.sum", Type: flows.TypeInt},
 			{Name: "count", Type: flows.TypeInt},
 		},
 	}

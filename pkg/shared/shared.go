@@ -143,6 +143,46 @@ const (
     ParamQuery ToolParamKeys = "query"
     // ParamURL is the URL (string).
     ParamURL ToolParamKeys = "url"
+    // ParamMode is the operation mode (string).
+    ParamMode ToolParamKeys = "mode"
+    // ParamCount is the count of items (int).
+    ParamCount ToolParamKeys = "count"
+    // ParamLevel is the log level (string).
+    ParamLevel ToolParamKeys = "level"
+    // ParamSinceSeq is the sequence number to start from (int64).
+    ParamSinceSeq ToolParamKeys = "since_seq"
+    // ParamBlock is whether to block for completion (bool).
+    ParamBlock ToolParamKeys = "block"
+    // ParamRecursive is whether to search recursively (bool).
+    ParamRecursive ToolParamKeys = "recursive"
+    // ParamTree is whether to format as tree (bool).
+    ParamTree ToolParamKeys = "tree"
+    // ParamForce is whether to force an operation (bool).
+    ParamForce ToolParamKeys = "force"
+    // ParamTimezone is the timezone (string).
+    ParamTimezone ToolParamKeys = "timezone"
+    // ParamRunInBackground is whether to run asynchronously (bool).
+    ParamRunInBackground ToolParamKeys = "run_in_background"
+    // ParamInput is the input text (string).
+    ParamInput ToolParamKeys = "input"
+    // ParamContextMode is the context mode (string).
+    ParamContextMode ToolParamKeys = "context_mode"
+    // ParamRole is the agent role (string).
+    ParamRole ToolParamKeys = "role"
+    // ParamDescription is a short description (string).
+    ParamDescription ToolParamKeys = "description"
+    // ParamShareContext is whether to share context (bool).
+    ParamShareContext ToolParamKeys = "share_context"
+    // ParamAllowedTools is the list of allowed tools ([]string).
+    ParamAllowedTools ToolParamKeys = "allowed_tools"
+    // ParamValue is a generic value parameter (string).
+    ParamValue ToolParamKeys = "value"
+    // ParamTo is the target destination (string).
+    ParamTo ToolParamKeys = "to"
+    // ParamFields is a list of fields ([]string).
+    ParamFields ToolParamKeys = "fields"
+    // ParamMessage is a message (string).
+    ParamMessage ToolParamKeys = "message"
 )// ToolResult is a type alias for tool execution result maps.
 type ToolResult map[string]any
 

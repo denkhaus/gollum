@@ -99,7 +99,7 @@ func TestSessionLogsTool_Run_HeadMode(t *testing.T) {
 	assert.Equal(t, "newest", entriesResult[2]["message"])
 }
 
-// TestSessionLogsTool_Run_SinceMode tests since mode with datetime filtering.
+// TestSessionLogsTool_Run_SinceMode tests since mode with sequence filtering.
 func TestSessionLogsTool_Run_SinceMode(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -111,19 +111,17 @@ func TestSessionLogsTool_Run_SinceMode(t *testing.T) {
 	now := time.Now()
 
 	entries := []logger.LogEntry{
-		{Timestamp: now.Add(-30 * time.Minute), Level: "info", Message: "recent", AgentID: agentID},
-		{Timestamp: now.Add(-1 * time.Minute), Level: "info", Message: "very_recent", AgentID: agentID},
+		{Timestamp: now.Add(-30 * time.Minute), Level: "info", Message: "recent", AgentID: agentID, Sequence: 5},
+		{Timestamp: now.Add(-1 * time.Minute), Level: "info", Message: "very_recent", AgentID: agentID, Sequence: 10},
 	}
 
 	mockLoggerService.EXPECT().GetLogs(gomock.Any()).Return(entries)
 
 	tool := &sessionLogsToolImpl{logService: mockLoggerService, hookManager: mockHookManager, agentID: uuid.New()}
 
-	sinceTime := now.Add(-1 * time.Hour).Format(time.RFC3339)
-
 	result, err := tool.Run(context.Background(), map[string]any{
-		"mode":  "since",
-		"since": sinceTime,
+		"mode":     "since",
+		"sinceSeq": float64(3), // Get entries after sequence 3
 	})
 	require.NoError(t, err)
 
@@ -256,7 +254,7 @@ func TestSessionLogsTool_Run_InvalidMode(t *testing.T) {
 	assert.Contains(t, err.Error(), "invalid mode")
 }
 
-// TestSessionLogsTool_Run_SinceModeWithoutSince tests error when since is missing.
+// TestSessionLogsTool_Run_SinceModeWithoutSince tests that "since" mode works without since parameter.
 func TestSessionLogsTool_Run_SinceModeWithoutSince(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -264,6 +262,15 @@ func TestSessionLogsTool_Run_SinceModeWithoutSince(t *testing.T) {
 	mockLoggerService := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
+	agentID := uuid.New()
+	now := time.Now()
+
+	entries := []logger.LogEntry{
+		{Timestamp: now, Level: "info", Message: "msg1", AgentID: agentID},
+		{Timestamp: now, Level: "info", Message: "msg2", AgentID: agentID},
+	}
+
+	mockLoggerService.EXPECT().GetLogs(gomock.Any()).Return(entries)
 
 	tool := &sessionLogsToolImpl{
 		logService:  mockLoggerService,
@@ -271,14 +278,16 @@ func TestSessionLogsTool_Run_SinceModeWithoutSince(t *testing.T) {
 		agentID:     uuid.New(),
 	}
 
-	_, err := tool.Run(context.Background(), map[string]any{
+	result, err := tool.Run(context.Background(), map[string]any{
 		"mode": "since",
 	})
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "since parameter is required")
+	require.NoError(t, err)
+
+	entriesResult := result["entries"].([]map[string]interface{})
+	assert.Len(t, entriesResult, 2)
 }
 
-// TestSessionLogsTool_Run_InvalidDateTime tests error handling for invalid datetime.
+// TestSessionLogsTool_Run_InvalidDateTime tests error handling for deprecated since parameter.
 func TestSessionLogsTool_Run_InvalidDateTime(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -298,7 +307,7 @@ func TestSessionLogsTool_Run_InvalidDateTime(t *testing.T) {
 		"since": "invalid-datetime",
 	})
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid since datetime")
+	assert.Contains(t, err.Error(), "since_seq")
 }
 
 // TestSessionLogsTool_Run_InvalidAgentID tests error handling for invalid UUID.

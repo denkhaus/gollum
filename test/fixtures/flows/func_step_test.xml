@@ -13,9 +13,9 @@
             <steps>
                 <step type="func" function="Double">
                     <params>
-                        <param name="x" value="${input.value}"/>
+                        <param name="x" value="input.value"/>
                     </params>
-                    <output assign="${output.result}"/>
+                    <result assignTo="output.result"/>
                 </step>
             </steps>
         </state>

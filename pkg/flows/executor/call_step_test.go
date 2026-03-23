@@ -28,7 +28,7 @@ func TestExecuteCall_SimpleFlowCall(t *testing.T) {
 					{
 						Type:     "func",
 						Function: "strings.ToUpper",
-						Params:   []flows.StepParam{{Name: "s", Value: "input.text"}},
+						Params:   []flows.StepParam{{Name: "s", Value: "${input.text}"}},
 						Result:   &flows.StepResult{AssignTo: "output.result"},
 					},
 				},
@@ -67,7 +67,7 @@ func TestExecuteCall_SimpleFlowCall(t *testing.T) {
 							Strings: []flows.CallTypedField{
 								{
 									Name:  "output",
-									Value: "${output.result}",
+									Value: "result",
 								},
 							},
 						},
@@ -174,7 +174,7 @@ func TestExecuteCall_MultipleInputFields(t *testing.T) {
 							Strings: []flows.CallTypedField{
 								{
 									Name:  "message",
-									Value: "${output.result}",
+									Value: "result",
 								},
 							},
 						},

@@ -26,6 +26,12 @@ const (
 	ErrFieldNotFound       ErrorCode = "E003"
 	ErrRelativePath        ErrorCode = "E004"
 	ErrComputedInContainer ErrorCode = "E005" // computed fields in context/output blocks
+	ErrInvalidRef          ErrorCode = "E006" // invalid field reference format
+	ErrInvalidScope        ErrorCode = "E007" // invalid scope in field reference
+	ErrCircularDep         ErrorCode = "E008" // circular dependency
+	ErrTemplateNotation    ErrorCode = "E009" // ${} notation not allowed in assignTo/assignFrom
+	ErrMissingScope        ErrorCode = "E010" // missing scope prefix in field reference
+	ErrInvalidEval         ErrorCode = "E011" // eval only allows function calls
 
 	// Graph errors (Gxxx)
 	ErrNoInitialState    ErrorCode = "G001"

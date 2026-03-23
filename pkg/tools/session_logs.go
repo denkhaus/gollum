@@ -15,10 +15,9 @@ import (
 )
 
 const (
-	modeHead  = "head"
-	modeTail  = "tail"
-	modeSince = "since"
-	modeAll   = "all"
+	modeHead = "head"
+	modeTail = "tail"
+	modeAll  = "all"
 )
 
 type (
@@ -68,38 +67,34 @@ func (t *sessionLogsToolImpl) Run(ctx context.Context, args map[string]any) (map
 }
 
 // runSessionLogs implements the core SessionLogs logic
-func (t *sessionLogsToolImpl) runSessionLogs(_ context.Context, args map[string]any) (map[string]any, error) {
-	// Get mode parameter (required)
-	mode, exists := args["mode"].(string)
-	if !exists || mode == "" {
-		// Default to tail mode
+func (t *sessionLogsToolImpl) runSessionLogs(_ context.Context, args ToolRequestParams) (map[string]any, error) {
+	// Get mode parameter (default to tail mode)
+	mode := args.GetString(shared.ParamMode, modeTail)
+	if mode == "" {
 		mode = modeTail
 	}
 
 	// Validate mode
 	if !isValidMode(mode) {
-		return nil, fmt.Errorf("invalid mode: %s (must be one of: %s, %s, %s, %s)", mode, modeHead, modeTail, modeSince, modeAll)
+		return nil, fmt.Errorf("invalid mode: %s (must be one of: %s, %s, %s)", mode, modeHead, modeTail, modeAll)
 	}
 
 	// Parse optional parameters
-	count := DefaultSessionLogCount
-	if c, exists := args["count"].(float64); exists {
-		count = int(c)
-		if count <= 0 {
-			return nil, fmt.Errorf("count must be positive, got: %d", count)
-		}
+	count := args.GetInt(shared.ParamCount, DefaultSessionLogCount)
+	if count <= 0 {
+		count = DefaultSessionLogCount
 	}
 
 	// Build log filter
 	filter := logger.LogFilter{}
 
 	// Set level filter if provided
-	if level, exists := args["level"].(string); exists && level != "" {
+	if level := args.GetString(shared.ParamLevel, ""); level != "" {
 		filter.Level = level
 	}
 
 	// Set agent ID filter if provided
-	if agentIDStr, exists := args["agent_id"].(string); exists && agentIDStr != "" {
+	if agentIDStr := args.GetString(shared.ParamAgentID, ""); agentIDStr != "" {
 		agentID, err := uuid.Parse(agentIDStr)
 		if err != nil {
 			return nil, fmt.Errorf("invalid agent_id UUID format: %w", err)
@@ -107,18 +102,10 @@ func (t *sessionLogsToolImpl) runSessionLogs(_ context.Context, args map[string]
 		filter.AgentID = agentID
 	}
 
-	// Handle "since" mode
-	if mode == modeSince {
-		sinceStr, exists := args["since"].(string)
-		if !exists || sinceStr == "" {
-			return nil, fmt.Errorf("since parameter is required for 'since' mode")
-		}
-
-		sinceTime, err := time.Parse(time.RFC3339, sinceStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid since datetime format (expected RFC3339): %w", err)
-		}
-		filter.Since = sinceTime
+	// Set since_seq filter if provided
+	sinceSeqInt := args.GetInt64(shared.ParamSinceSeq, 0)
+	if sinceSeqInt > 0 {
+		filter.SinceSeq = &sinceSeqInt
 	}
 
 	// Apply mode-specific logic
@@ -130,11 +117,6 @@ func (t *sessionLogsToolImpl) runSessionLogs(_ context.Context, args map[string]
 	case modeTail:
 		// Tail: oldest first (chronological), limited by count
 		filter.Count = count
-	case modeSince:
-		// Since: chronological order, no count limit (use count as soft limit if huge)
-		if count > 0 {
-			filter.Count = count
-		}
 	case modeAll:
 		// All: chronological order, optional count limit
 		if count > 0 {
@@ -182,8 +164,8 @@ func (t *sessionLogsToolImpl) runSessionLogs(_ context.Context, args map[string]
 	if filter.AgentID != uuid.Nil {
 		result["filters_applied"].(map[string]interface{})["agent_id"] = filter.AgentID.String()
 	}
-	if !filter.Since.IsZero() {
-		result["filters_applied"].(map[string]interface{})["since"] = filter.Since.Format(time.RFC3339)
+	if filter.SinceSeq != nil {
+		result["filters_applied"].(map[string]interface{})["since_seq"] = *filter.SinceSeq
 	}
 
 	return result, nil
@@ -194,21 +176,17 @@ func (t *sessionLogsToolImpl) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
 		Name: shared.ToolNameSessionLogs.String(),
 		Description: "Queries session logs with intelligent filtering. " +
-			"Supports multiple modes: '" + modeTail + "' (last N entries, default), '" + modeHead + "' (first N entries, newest first), " +
-			"'" + modeSince + "' (all entries after a datetime), and '" + modeAll + "' (all entries with optional count limit). " +
+			"Supports multiple modes: '" + modeTail + "' (last N entries, default), '" + modeHead + "' (first N entries, newest first) and " +
+			"'" + modeAll + "' (all entries with optional count limit). " +
 			"Optional filters: level (debug/info/warn/error), agent_id (specific agent UUID).",
 		Parameters: map[string]*gollem.Parameter{
 			"mode": {
 				Type:        gollem.TypeString,
-				Description: "Query mode: '" + modeTail + "' (last N, chronological), '" + modeHead + "' (first N, newest first), '" + modeSince + "' (after datetime), '" + modeAll + "' (all entries). Defaults to '" + modeTail + "'.",
+				Description: "Query mode: '" + modeTail + "' (last N, chronological), '" + modeHead + "' (first N, newest first), '" + modeAll + "' (all entries). Defaults to '" + modeTail + "'.",
 			},
 			"count": {
 				Type:        gollem.TypeInteger,
 				Description: fmt.Sprintf("Maximum number of entries to return (default: %d). Applied to 'head', 'tail', and 'all' modes.", DefaultSessionLogCount),
-			},
-			"since": {
-				Type:        gollem.TypeString,
-				Description: "ISO 8601 datetime (RFC3339) for 'since' mode (e.g., '2025-12-30T23:00:00Z'). Required for 'since' mode.",
 			},
 			"level": {
 				Type:        gollem.TypeString,
@@ -225,7 +203,7 @@ func (t *sessionLogsToolImpl) Spec() gollem.ToolSpec {
 // isValidMode checks if the mode is valid.
 func isValidMode(mode string) bool {
 	switch mode {
-	case modeHead, modeTail, modeSince, modeAll:
+	case modeHead, modeTail, modeAll:
 		return true
 	default:
 		return false

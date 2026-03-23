@@ -10,8 +10,8 @@
     </input>
 
     <output>
-        <string name="the_current_time" from="context.the_current_time" />
-        <bool name="is_afternoon" from="computed.is_afternoon" />
+        <string name="the_current_time" assignFrom="context.the_current_time" />
+        <bool name="is_afternoon" assignFrom="computed.is_afternoon" />
         <bool name="is_processed" />
     </output>
 

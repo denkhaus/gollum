@@ -154,56 +154,40 @@ func (t *spawnAgentToolImpl) Run(ctx context.Context, args map[string]any) (map[
 }
 
 // runSpawnAgent implements the core SpawnAgent logic
-func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
 	// Validate required parameters
-	role, ok := args["role"].(string)
-	if !ok || role == "" {
+	role, errResp := args.MustGetString(shared.ParamRole)
+	if errResp != nil {
 		return t.executionHelper.ErrorResponse("role is required and must be a non-empty string"), nil
 	}
 
-	description, ok := args["description"].(string)
-	if !ok || description == "" {
+	description, errResp := args.MustGetString(shared.ParamDescription)
+	if errResp != nil {
 		return t.executionHelper.ErrorResponse("description is required and must be a non-empty string"), nil
 	}
 
-	prompt, ok := args["prompt"].(string)
-	if !ok || prompt == "" {
+	prompt, errResp := args.MustGetString(shared.ParamPrompt)
+	if errResp != nil {
 		return t.executionHelper.ErrorResponse("prompt is required and must be a non-empty string"), nil
 	}
 
 	// Check run_in_background parameter (defaults to false)
-	runInBackground := false
-	if bgVal, exists := args["run_in_background"]; exists {
-		if bgBool, ok := bgVal.(bool); ok {
-			runInBackground = bgBool
-		}
-	}
+	runInBackground := args.GetBool(shared.ParamRunInBackground, false)
 
 	// Check share_context parameter (defaults to false)
-	shareContext := false
-	if scVal, exists := args["share_context"]; exists {
-		if scBool, ok := scVal.(bool); ok {
-			shareContext = scBool
-		}
-	}
+	shareContext := args.GetBool(shared.ParamShareContext, false)
 
 	// Parse allowed_tools parameter (optional)
-	var allowedTools []string
-	if atVal, exists := args["allowed_tools"]; exists {
-		if atSlice, ok := atVal.([]any); ok {
-			for _, item := range atSlice {
-				if toolName, ok := item.(string); ok {
-					// Validate built-in tools (MCP tools with "/" are validated later in factory)
-					if !strings.Contains(toolName, "/") {
-						// Check against tool registry (spawn_agent is allowed when explicitly specified)
-						if !t.toolRegistry.IsValidTool(shared.ToolName(toolName)) {
-							t.logService.WarnWithAgent("Invalid built-in tool name in allowed_tools", t.senderID,
-								zap.String("tool_name", toolName))
-							return t.executionHelper.ErrorResponse(fmt.Sprintf("invalid built-in tool name: %s", toolName)), nil
-						}
-					}
-					allowedTools = append(allowedTools, toolName)
-				}
+	allowedTools := args.GetStringSlice(shared.ParamAllowedTools)
+
+	// Validate built-in tool names (MCP tools with "/" are validated later in factory)
+	for _, toolName := range allowedTools {
+		if !strings.Contains(toolName, "/") {
+			// Check against tool registry (spawn_agent is allowed when explicitly specified)
+			if !t.toolRegistry.IsValidTool(shared.ToolName(toolName)) {
+				t.logService.WarnWithAgent("Invalid built-in tool name in allowed_tools", t.senderID,
+					zap.String("tool_name", toolName))
+				return t.executionHelper.ErrorResponse(fmt.Sprintf("invalid built-in tool name: %s", toolName)), nil
 			}
 		}
 	}

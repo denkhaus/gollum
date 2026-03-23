@@ -23,8 +23,7 @@ type LogEntry struct {
 type LogFilter struct {
 	Level    string    // Filter by log level (debug, info, warn, error)
 	AgentID  uuid.UUID // Filter by specific agent ID
-	SinceSeq int64     // Filter entries with sequence > this (exclusive)
-	Since    time.Time // Filter entries after this timestamp (deprecated, use SinceSeq)
+	SinceSeq *int64    // Filter entries with sequence > this (exclusive), nil = no filter
 	Count    int       // Maximum number of entries to return (0 = all)
 	Reverse  bool      // If true, return entries in reverse chronological order
 }
@@ -118,10 +117,12 @@ func (b *logBuffer) applyFilters(entries []LogEntry, filter LogFilter) []LogEntr
 	result := entries
 
 	// Filter by sequence number (preferred over timestamp for deduplication)
-	if filter.SinceSeq > 0 {
+	// SinceSeq filters entries with sequence > SinceSeq (exclusive)
+	// nil means no filtering
+	if filter.SinceSeq != nil {
 		filtered := make([]LogEntry, 0)
 		for _, entry := range result {
-			if entry.Sequence > filter.SinceSeq {
+			if entry.Sequence > *filter.SinceSeq {
 				filtered = append(filtered, entry)
 			}
 		}
@@ -144,18 +145,6 @@ func (b *logBuffer) applyFilters(entries []LogEntry, filter LogFilter) []LogEntr
 		filtered := make([]LogEntry, 0)
 		for _, entry := range result {
 			if entry.AgentID == filter.AgentID {
-				filtered = append(filtered, entry)
-			}
-		}
-		result = filtered
-	}
-
-	// Filter by timestamp (since) - fallback for backward compatibility
-	// Only apply if SinceSeq is not set (prefer sequence-based filtering)
-	if filter.SinceSeq <= 0 && !filter.Since.IsZero() {
-		filtered := make([]LogEntry, 0)
-		for _, entry := range result {
-			if entry.Timestamp.After(filter.Since) || entry.Timestamp.Equal(filter.Since) {
 				filtered = append(filtered, entry)
 			}
 		}

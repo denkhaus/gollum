@@ -6,7 +6,7 @@ import "fmt"
 type OutputFieldReadOnlyError struct {
 	FlowError
 	FieldName string
-	Source    string // the 'from' source reference
+	Source    string // the 'assignFrom' source reference
 }
 
 func (e *OutputFieldReadOnlyError) Error() string {
@@ -18,7 +18,7 @@ func NewOutputFieldReadOnlyError(fieldName, source string) *OutputFieldReadOnlyE
 	return &OutputFieldReadOnlyError{
 		FlowError: FlowError{
 			Code:    ErrCodeOutputFieldReadOnly,
-			Message: fmt.Sprintf("output field '%s' is readonly (has 'from' attribute, value flows from: %s)", fieldName, source),
+			Message: fmt.Sprintf("output field '%s' is readonly (has 'assignFrom' attribute, value flows from: %s)", fieldName, source),
 			Field:   fieldName,
 		},
 		FieldName: fieldName,

@@ -84,22 +84,14 @@ func (t *globToolImpl) Run(ctx context.Context, args map[string]any) (map[string
 }
 
 // runGlob implements the core Glob logic
-func (t *globToolImpl) runGlob(_ context.Context, args map[string]any) (map[string]any, error) {
-	pattern, ok := args["pattern"].(string)
-	if !ok || pattern == "" {
-		t.logService.ErrorWithAgent("Glob pattern validation failed", t.agentID,
-			zap.String("reason", "pattern_is_required"))
-		return map[string]any{
-			"success": false,
-			"error":   "pattern is required and must be a non-empty string",
-		}, nil
+func (t *globToolImpl) runGlob(_ context.Context, args ToolRequestParams) (map[string]any, error) {
+	pattern, errResp := args.MustGetString(shared.ParamPattern)
+	if errResp != nil {
+		return errResp, nil
 	}
 
 	// Get optional path (default: current directory)
-	searchPath := "."
-	if pathVal, exists := args["path"].(string); exists && pathVal != "" {
-		searchPath = pathVal
-	}
+	searchPath := args.GetString(shared.ParamPath, ".")
 
 	// Convert relative path to absolute
 	searchPath, err := filepath.Abs(searchPath)

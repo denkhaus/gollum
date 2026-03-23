@@ -75,7 +75,7 @@ func resolveFieldRef(ref *FieldRef, ctx map[string]any) (any, error) {
 	}
 
 	// Get prefix scope
-	scope, ok := ctx[ref.Prefix]
+	scope, ok := ctx[string(ref.Prefix)]
 	if !ok {
 		return nil, fmt.Errorf("prefix '%s' not found in context", ref.Prefix)
 	}

@@ -5,12 +5,46 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/denkhaus/gollum/pkg/flows"
+)
+
+// Precompiled regex for field reference pattern matching
+// Uses FlowVariableScope constants for consistency
+var (
+	fieldRefRegex = func() *regexp.Regexp {
+		scopes := []string{
+			string(flows.FlowVariableScopeInput),
+			string(flows.FlowVariableScopeContext),
+			string(flows.FlowVariableScopeOutput),
+			string(flows.FlowVariableScopeComputed),
+		}
+		pattern := `^(` + strings.Join(scopes, "|") + `)\.([a-zA-Z_][a-zA-Z0-9_]*)$`
+		return regexp.MustCompile(pattern)
+	}()
+
+	// Precompiled regex for dependency extraction (includes all scopes including sys)
+	dependencyRefRegex = func() *regexp.Regexp {
+		scopes := []string{
+			string(flows.FlowVariableScopeInput),
+			string(flows.FlowVariableScopeContext),
+			string(flows.FlowVariableScopeOutput),
+			string(flows.FlowVariableScopeComputed),
+			string(flows.FlowVariableScopeSys),
+		}
+		pattern := `(` + strings.Join(scopes, "|") + `)\.([a-zA-Z_][a-zA-Z0-9_]*)`
+		return regexp.MustCompile(pattern)
+	}()
 )
 
 // FieldReference represents a reference to a field
 type FieldReference struct {
-	Scope string // "input", "context", "output", "computed"
+	Scope flows.FlowVariableScope // "input", "context", "output", "computed"
 	Name  string
+}
+
+func (p FieldReference) Key() string {
+	return string(p.Scope) + "." + p.Name
 }
 
 // Expression represents a parsed expression
@@ -73,13 +107,12 @@ func (ep *ExpressionParser) Parse(expr string) (*Expression, error) {
 func (ep *ExpressionParser) ExtractDependencies(expr string) []FieldReference {
 	var deps []FieldReference
 
-	// Match patterns like: scope.fieldName
-	re := regexp.MustCompile(`(input|context|output|computed)\.([a-zA-Z_][a-zA-Z0-9_]*)`)
-	matches := re.FindAllStringSubmatch(expr, -1)
+	// Use precompiled regex for dependency extraction
+	matches := dependencyRefRegex.FindAllStringSubmatch(expr, -1)
 
 	for _, match := range matches {
 		deps = append(deps, FieldReference{
-			Scope: match[1],
+			Scope: flows.FlowVariableScope(match[1]),
 			Name:  match[2],
 		})
 	}
@@ -129,23 +162,22 @@ func (ee *ExpressionEvaluator) resolveArgs(args []string, scope *EvaluationScope
 	resolved := make([]any, len(args))
 
 	for i, arg := range args {
-		// Check if it's a field reference
-		re := regexp.MustCompile(`^(input|context|output|computed)\.([a-zA-Z_][a-zA-Z0-9_]*)$`)
-		matches := re.FindStringSubmatch(arg)
+		// Check if it's a field reference using precompiled regex
+		matches := fieldRefRegex.FindStringSubmatch(arg)
 
 		if matches != nil {
-			scopeName := matches[1]
+			scopeName := flows.FlowVariableScope(matches[1])
 			fieldName := matches[2]
 
 			var scopeMap map[string]any
 			switch scopeName {
-			case "input":
+			case flows.FlowVariableScopeInput:
 				scopeMap = scope.Input
-			case "context":
+			case flows.FlowVariableScopeContext:
 				scopeMap = scope.Context
-			case "output":
+			case flows.FlowVariableScopeOutput:
 				scopeMap = scope.Output
-			case "computed":
+			case flows.FlowVariableScopeComputed:
 				scopeMap = scope.Computed
 			}
 

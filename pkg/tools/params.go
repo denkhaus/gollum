@@ -42,6 +42,7 @@ func (p ToolRequestParams) GetStringAllowEmpty(key shared.ToolParamKeys) (string
 	// Key exists but wrong type
 	return "", ErrorResponse("%s is required and must be a string", key)
 }
+
 // GetBool returns a bool value for the given key, or the default if not present or not a bool.
 func (p ToolRequestParams) GetBool(key shared.ToolParamKeys, def bool) bool {
 	if val, ok := p[string(key)].(bool); ok {
@@ -124,13 +125,6 @@ func (p ToolRequestParams) MustGetFloat(key shared.ToolParamKeys) (float64, map[
 		return 0, ErrorResponse("%s is required and must be a number", key)
 	}
 	return val, nil
-}
-
-// GetIntWithDefault returns an int value for the given key (from float64 JSON representation),
-// or the default if not present or not a number.
-// Deprecated: Use GetInt instead.
-func (p ToolRequestParams) GetIntWithDefault(key shared.ToolParamKeys, def int) int {
-	return p.GetInt(key, def)
 }
 
 // GetFilePath returns an absolute file path for the given key.
@@ -273,6 +267,7 @@ func SuccessResponse(data map[string]any) map[string]any {
 	data[string(shared.KeySuccess)] = true
 	return data
 }
+
 // ToolResponse creates a response map with success status and optional error.
 // If err is provided, returns an error response; otherwise returns success with data.
 func ToolResponse(data map[string]any, err error) map[string]any {

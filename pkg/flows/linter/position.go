@@ -123,11 +123,11 @@ func (p *PositionTracker) FindOutputFieldPosition(fieldName string) (line, colum
 	return 0, 0
 }
 
-// FindOutputFieldByFrom finds the line number of an output field by its 'from' attribute
+// FindOutputFieldByFrom finds the line number of an output field by its 'assignFrom' attribute
 func (p *PositionTracker) FindOutputFieldByFrom(fromValue string) (line, column int) {
-	// Output fields can be <string name="..." from="...">, <int name="..." from="...">, etc.
+	// Output fields can be <string name="..." assignFrom="...">, <int name="..." assignFrom="...">, etc.
 	for _, elemType := range []string{"string", "int", "bool", "float"} {
-		if line, col := p.FindElementPosition(elemType, "from", fromValue); line > 0 {
+		if line, col := p.FindElementPosition(elemType, "assignFrom", fromValue); line > 0 {
 			return line, col
 		}
 	}

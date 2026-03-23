@@ -23,7 +23,7 @@ func (b *OutputBinder) InitializeBindings(ctx ExecutionContext, outputBlock *flo
 		return nil
 	}
 
-	// Get declarative output fields (those with 'from' attribute)
+	// Get declarative output fields (those with 'assignFrom' attribute)
 	declarative := outputBlock.GetDeclarative()
 
 	for _, field := range declarative {
@@ -37,40 +37,46 @@ func (b *OutputBinder) InitializeBindings(ctx ExecutionContext, outputBlock *flo
 
 // initializeBinding populates a single declarative output field
 func (b *OutputBinder) initializeBinding(ctx ExecutionContext, field *flows.FieldDef) error {
-	// Parse the 'from' reference
-	sourceScope, sourceName, err := variables.ParseFieldReference(field.From)
+	// Check for ${} syntax - should NOT be used in assignFrom attribute
+	if len(field.AssignFrom) > 2 && field.AssignFrom[0] == '$' && field.AssignFrom[1] == '{' && field.AssignFrom[len(field.AssignFrom)-1] == '}' {
+		return errors.NewOutputBindingError(field.Name, field.AssignFrom,
+			fmt.Errorf("invalid assignFrom syntax '%s' - use 'scope.field' without ${} (e.g., 'input.value' not '${input.value}')", field.AssignFrom))
+	}
+
+	// Parse the 'assignFrom' reference
+	sourceScope, sourceName, err := variables.ParseFieldReference(field.AssignFrom)
 	if err != nil {
-		return errors.NewOutputBindingError(field.Name, field.From, err)
+		return errors.NewOutputBindingError(field.Name, field.AssignFrom, err)
 	}
 
 	// Validate scope
-	if !variables.IsValidSourceScope(sourceScope) {
-		return errors.NewOutputBindingError(field.Name, field.From,
+	if err := sourceScope.Validate(); err != nil {
+		return errors.NewOutputBindingError(field.Name, field.AssignFrom,
 			fmt.Errorf("invalid scope '%s' (allowed: input, context, computed, output)", sourceScope))
 	}
 
 	// Get the value from the source
 	var value any
 	switch sourceScope {
-	case "computed":
+	case flows.FlowVariableScopeComputed:
 		value, err = ctx.GetComputedField(sourceName)
-	case "input":
+	case flows.FlowVariableScopeInput:
 		value = ctx.GetInput(sourceName)
 		if value == nil {
-			return errors.NewOutputBindingError(field.Name, field.From,
+			return errors.NewOutputBindingError(field.Name, field.AssignFrom,
 				fmt.Errorf("input field not set: %s", sourceName))
 		}
-	case "context":
+	case flows.FlowVariableScopeContext:
 		value, err = ctx.GetContextField(sourceName)
-	case "output":
+	case flows.FlowVariableScopeOutput:
 		value, err = ctx.GetOutputField(sourceName)
 	default:
-		return errors.NewOutputBindingError(field.Name, field.From,
+		return errors.NewOutputBindingError(field.Name, field.AssignFrom,
 			fmt.Errorf("unsupported scope: %s", sourceScope))
 	}
 
 	if err != nil {
-		return errors.NewOutputBindingError(field.Name, field.From, err)
+		return errors.NewOutputBindingError(field.Name, field.AssignFrom, err)
 	}
 
 	// Set the output value using direct assignment to bypass readonly check
@@ -98,7 +104,7 @@ func (b *OutputBinder) setInternalOutputField(c *contextImpl, name string, value
 				Code:    errors.ErrCodeUnknownField,
 				Message: "output schema not defined",
 			},
-			Scope: "output",
+			Scope: flows.FlowVariableScopeOutput,
 		}
 	}
 
@@ -110,7 +116,7 @@ func (b *OutputBinder) setInternalOutputField(c *contextImpl, name string, value
 				Message: "field not defined",
 				Field:   name,
 			},
-			Scope: "output",
+			Scope: flows.FlowVariableScopeOutput,
 		}
 	}
 

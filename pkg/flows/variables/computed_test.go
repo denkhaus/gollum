@@ -10,7 +10,7 @@ import (
 )
 
 func TestComputedValues_Register(t *testing.T) {
-	computedFields := []flows.ComputedField{
+	computedFields := []flows.ComputedFieldDef{
 		{Name: "is_large", Type: "bool", Eval: "GT(context.x, 10)"},
 		{Name: "doubled", Type: "int", Eval: "MUL(context.x, 2)"},
 	}
@@ -23,7 +23,7 @@ func TestComputedValues_Register(t *testing.T) {
 }
 
 func TestComputedValues_GetBeforeEvaluate(t *testing.T) {
-	computedFields := []flows.ComputedField{
+	computedFields := []flows.ComputedFieldDef{
 		{Name: "is_large", Type: "bool", Eval: "GT(context.x, 10)"},
 	}
 
@@ -43,7 +43,7 @@ func TestComputedValues_GetUnknownField(t *testing.T) {
 }
 
 func TestComputedValues_SetValue(t *testing.T) {
-	computedFields := []flows.ComputedField{
+	computedFields := []flows.ComputedFieldDef{
 		{Name: "is_large", Type: "bool", Eval: "GT(context.x, 10)"},
 	}
 
@@ -59,7 +59,7 @@ func TestComputedValues_SetValue(t *testing.T) {
 }
 
 func TestComputedValues_DirtyTracking(t *testing.T) {
-	computedFields := []flows.ComputedField{
+	computedFields := []flows.ComputedFieldDef{
 		{Name: "is_large", Type: "bool", Eval: "GT(context.x, 10)"},
 	}
 
@@ -78,7 +78,7 @@ func TestComputedValues_DirtyTracking(t *testing.T) {
 }
 
 func TestComputedValues_GetDependents(t *testing.T) {
-	computedFields := []flows.ComputedField{
+	computedFields := []flows.ComputedFieldDef{
 		{Name: "is_large", Type: "bool", Eval: "GT(context.x, 10)"},
 		{Name: "is_valid", Type: "bool", Eval: "AND(context.x, context.y)"},
 		{Name: "unrelated", Type: "bool", Eval: "EQ(input.status, active)"},
@@ -100,7 +100,7 @@ func TestComputedValues_GetDependents(t *testing.T) {
 }
 
 func TestComputedValues_GetField(t *testing.T) {
-	computedFields := []flows.ComputedField{
+	computedFields := []flows.ComputedFieldDef{
 		{Name: "is_large", Type: "bool", Eval: "GT(context.x, 10)"},
 	}
 
@@ -115,7 +115,7 @@ func TestComputedValues_GetField(t *testing.T) {
 }
 
 func TestComputedValues_MultipleTypes(t *testing.T) {
-	computedFields := []flows.ComputedField{
+	computedFields := []flows.ComputedFieldDef{
 		{Name: "flag", Type: "bool", Eval: "EQ(context.status, 1)"},
 		{Name: "count", Type: "int", Eval: "ADD(context.a, context.b)"},
 		{Name: "label", Type: "string", Eval: "context.name"},
@@ -160,7 +160,7 @@ func TestComputedValues_NilInput(t *testing.T) {
 }
 
 func TestComputedValues_GetAll(t *testing.T) {
-	computedFields := []flows.ComputedField{
+	computedFields := []flows.ComputedFieldDef{
 		{Name: "a", Type: "bool", Eval: "context.x"},
 		{Name: "b", Type: "int", Eval: "context.y"},
 	}
@@ -174,7 +174,7 @@ func TestComputedValues_GetAll(t *testing.T) {
 }
 
 func TestComputedEvaluator_ReactiveUpdate(t *testing.T) {
-	computedFields := []flows.ComputedField{
+	computedFields := []flows.ComputedFieldDef{
 		{Name: "is_large", Type: "bool", Eval: "GT(context.x, 10)"},
 	}
 	computed := variables.NewComputedValues(computedFields)
@@ -209,7 +209,7 @@ func TestComputedEvaluator_ReactiveUpdate(t *testing.T) {
 }
 
 func TestComputedEvaluator_CircularDependency(t *testing.T) {
-	computedFields := []flows.ComputedField{
+	computedFields := []flows.ComputedFieldDef{
 		{Name: "a", Type: "bool", Eval: "computed.b"},
 		{Name: "b", Type: "bool", Eval: "computed.a"},
 	}

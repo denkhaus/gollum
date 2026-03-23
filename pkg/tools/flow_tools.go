@@ -148,14 +148,14 @@ func (t *setOutputFieldTool) Run(ctx context.Context, args map[string]any) (map[
 		})
 }
 
-func (t *setOutputFieldTool) runSetOutputField(ctx context.Context, args map[string]any) (map[string]any, error) {
-	name, ok := args["name"].(string)
-	if !ok || name == "" {
+func (t *setOutputFieldTool) runSetOutputField(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
+	name, errResp := args.MustGetString(shared.ParamAgentName)
+	if errResp != nil {
 		return nil, fmt.Errorf("field name is required")
 	}
 
-	value, ok := args["value"].(string)
-	if !ok {
+	value, errResp := args.MustGetString(shared.ParamValue)
+	if errResp != nil {
 		return nil, fmt.Errorf("field value must be a string")
 	}
 
@@ -200,14 +200,14 @@ func (t *setContextFieldTool) Run(ctx context.Context, args map[string]any) (map
 		})
 }
 
-func (t *setContextFieldTool) runSetContextField(ctx context.Context, args map[string]any) (map[string]any, error) {
-	name, ok := args["name"].(string)
-	if !ok || name == "" {
+func (t *setContextFieldTool) runSetContextField(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
+	name, errResp := args.MustGetString(shared.ParamAgentName)
+	if errResp != nil {
 		return nil, fmt.Errorf("field name is required")
 	}
 
-	value, ok := args["value"].(string)
-	if !ok {
+	value, errResp := args.MustGetString(shared.ParamValue)
+	if errResp != nil {
 		return nil, fmt.Errorf("field value must be a string")
 	}
 
@@ -248,19 +248,17 @@ func (t *getContextTool) Run(ctx context.Context, args map[string]any) (map[stri
 		})
 }
 
-func (t *getContextTool) runGetContext(ctx context.Context, args map[string]any) (map[string]any, error) {
-	fields, _ := args["fields"].([]any)
+func (t *getContextTool) runGetContext(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
+	fields := args.GetStringSlice(shared.ParamFields)
 
 	result := make(map[string]any)
 	if len(fields) == 0 {
 		// Return all context fields
 		result = t.flowCtx.GetAllContextFields()
 	} else {
-		for _, f := range fields {
-			if fieldName, ok := f.(string); ok {
-				if val, err := t.flowCtx.GetContextField(fieldName); err == nil {
-					result[fieldName] = val
-				}
+		for _, fieldName := range fields {
+			if val, err := t.flowCtx.GetContextField(fieldName); err == nil {
+				result[fieldName] = val
 			}
 		}
 	}
@@ -301,9 +299,9 @@ func (t *emitLogTool) Run(ctx context.Context, args map[string]any) (map[string]
 		})
 }
 
-func (t *emitLogTool) runEmitLog(ctx context.Context, args map[string]any) (map[string]any, error) {
-	level, _ := args["level"].(string)
-	message, _ := args["message"].(string)
+func (t *emitLogTool) runEmitLog(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
+	level := args.GetString(shared.ParamLevel, "")
+	message := args.GetString(shared.ParamMessage, "")
 
 	if level == "" {
 		level = "info"
@@ -366,9 +364,9 @@ func (t *transitionToTool) Run(ctx context.Context, args map[string]any) (map[st
 		})
 }
 
-func (t *transitionToTool) runTransitionTo(ctx context.Context, args map[string]any) (map[string]any, error) {
-	toState, ok := args["to"].(string)
-	if !ok || toState == "" {
+func (t *transitionToTool) runTransitionTo(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
+	toState, errResp := args.MustGetString(shared.ParamTo)
+	if errResp != nil {
 		return nil, fmt.Errorf("target state is required")
 	}
 

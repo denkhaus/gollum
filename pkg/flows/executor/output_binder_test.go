@@ -19,7 +19,7 @@ func TestOutputBinder_InitializeBindings(t *testing.T) {
 		},
 		Output: &flows.OutputBlock{
 			Ints: []flows.FieldDef{
-				{Name: "result", From: "computed.doubled", Type: flows.TypeInt},
+				{Name: "result", AssignFrom: "computed.doubled", Type: flows.TypeInt},
 			},
 		},
 	}
@@ -49,7 +49,7 @@ func TestOutputBinder_BindFromInput(t *testing.T) {
 		},
 		Output: &flows.OutputBlock{
 			Strings: []flows.FieldDef{
-				{Name: "result", From: "input.message", Type: flows.TypeString},
+				{Name: "result", AssignFrom: "input.message", Type: flows.TypeString},
 			},
 		},
 	}
@@ -69,7 +69,7 @@ func TestOutputBinder_InvalidReference(t *testing.T) {
 	flow := &flows.Flow{
 		Output: &flows.OutputBlock{
 			Ints: []flows.FieldDef{
-				{Name: "result", From: "invalidformat", Type: flows.TypeInt},
+				{Name: "result", AssignFrom: "invalidformat", Type: flows.TypeInt},
 			},
 		},
 	}

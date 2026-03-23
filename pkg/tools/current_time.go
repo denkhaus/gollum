@@ -63,11 +63,11 @@ func (t *currentTimeToolImpl) Run(ctx context.Context, args map[string]any) (map
 }
 
 // runCurrentTime implements the core CurrentTime logic
-func (t *currentTimeToolImpl) runCurrentTime(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *currentTimeToolImpl) runCurrentTime(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
 	// Get timezone from args, default to UTC
-	timezone := defaultTimezone
-	if tz, exists := args["timezone"].(string); exists && tz != "" {
-		timezone = tz
+	timezone := args.GetString(shared.ParamTimezone, defaultTimezone)
+	if timezone == "" {
+		timezone = defaultTimezone
 	}
 
 	// Load location

@@ -77,15 +77,27 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 	if step.Result != nil {
 		// Handle simple assign
 		if step.Result.AssignTo != "" {
-			fieldName := extractFieldName(step.Result.AssignTo)
+			scope, fieldName, err := parseAssignTarget(step.Result.AssignTo)
+			if err != nil {
+				return fmt.Errorf("invalid assignTo: %w", err)
+			}
 			// For LLM steps, we assign the response text
-			if err := p.ctx.SetOutputField(fieldName, responseText); err != nil {
-				return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
+			if scope == flows.FlowVariableScopeContext {
+				if err := p.ctx.SetContextField(fieldName, responseText); err != nil {
+					return fmt.Errorf("failed to set context field '%s': %w", fieldName, err)
+				}
+			} else {
+				if err := p.ctx.SetOutputField(fieldName, responseText); err != nil {
+					return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
+				}
 			}
 		}
 		// Handle path-based outputs
 		for _, path := range step.Result.Paths {
-			fieldName := extractFieldName(path.AssignTo)
+			scope, fieldName, err := parseAssignTarget(path.AssignTo)
+			if err != nil {
+				return fmt.Errorf("invalid path assignTo: %w", err)
+			}
 			var value string
 			switch path.Path {
 			case "text", "content", "response":
@@ -97,8 +109,14 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 			default:
 				continue
 			}
-			if err := p.ctx.SetOutputField(fieldName, value); err != nil {
-				return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
+			if scope == flows.FlowVariableScopeContext {
+				if err := p.ctx.SetContextField(fieldName, value); err != nil {
+					return fmt.Errorf("failed to set context field '%s': %w", fieldName, err)
+				}
+			} else {
+				if err := p.ctx.SetOutputField(fieldName, value); err != nil {
+					return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
+				}
 			}
 		}
 	}

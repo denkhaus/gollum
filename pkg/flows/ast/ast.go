@@ -3,6 +3,8 @@ package ast
 import (
 	"fmt"
 	"strings"
+
+	"github.com/denkhaus/gollum/pkg/flows"
 )
 
 // Expr represents an expression node
@@ -34,7 +36,7 @@ func (c *CallExpr) Evaluate(ctx map[string]any) (any, error) {
 
 // FieldRef represents a field reference like "context.pr.state"
 type FieldRef struct {
-	Prefix string // "input", "output", "context", "error"
+	Prefix flows.FlowVariableScope
 	Path   []string
 }
 
@@ -53,7 +55,7 @@ func (f *FieldRef) AbsolutePath() string {
 	if f.Prefix == "" {
 		return strings.Join(f.Path, ".")
 	}
-	return f.Prefix + "." + strings.Join(f.Path, ".")
+	return string(f.Prefix) + "." + strings.Join(f.Path, ".")
 }
 
 // Literal represents a literal value

@@ -30,7 +30,7 @@ func TestExpressionParser_ExtractDependencies(t *testing.T) {
 	deps := parser.ExtractDependencies("GT(context.x, 10)")
 
 	assert.Len(t, deps, 1)
-	assert.Equal(t, "context", deps[0].Scope)
+	assert.Equal(t, "context", string(deps[0].Scope))
 	assert.Equal(t, "x", deps[0].Name)
 }
 
@@ -41,16 +41,20 @@ func TestExpressionParser_ExtractDependenciesMultiple(t *testing.T) {
 
 	assert.Len(t, deps, 3)
 
-	scopes := []string{}
-	names := []string{}
+	scopeMap := map[string]bool{}
 	for _, dep := range deps {
-		scopes = append(scopes, dep.Scope)
-		names = append(names, dep.Name)
+		scopeMap[string(dep.Scope)] = true
 	}
 
-	assert.Contains(t, scopes, "input")
-	assert.Contains(t, scopes, "context")
-	assert.Contains(t, scopes, "output")
+	assert.True(t, scopeMap["input"])
+	assert.True(t, scopeMap["context"])
+	assert.True(t, scopeMap["output"])
+
+	// Also check names
+	names := []string{}
+	for _, dep := range deps {
+		names = append(names, dep.Name)
+	}
 	assert.Contains(t, names, "a")
 	assert.Contains(t, names, "b")
 	assert.Contains(t, names, "c")

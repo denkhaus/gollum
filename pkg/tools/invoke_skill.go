@@ -94,8 +94,9 @@ func (p *invokeSkillToolProvider) CreateTool(senderID uuid.UUID, agentFactory sh
 // Spec returns the tool specification for InvokeSkillTool
 func (t *invokeSkillToolImpl) Spec() gollem.ToolSpec {
 	return gollem.ToolSpec{
-		Name:        shared.ToolNameInvokeSkill.String(),
-		Description: "Executes a discovered skill by name. Skills can run as subagents with inherited or isolated context, or as simple template transformations. Use this to invoke specialized capabilities defined in SKILL.md files.",
+		Name: shared.ToolNameInvokeSkill.String(),
+		Description: `Executes a discovered skill by name. Skills can run as subagents with inherited or isolated context,
+		or as simple template transformations. Use this to invoke specialized capabilities defined in SKILL.md files.`,
 		Parameters: map[string]*gollem.Parameter{
 			"name": {
 				Type:        gollem.TypeString,
@@ -126,15 +127,15 @@ func (t *invokeSkillToolImpl) Run(ctx context.Context, args map[string]any) (map
 }
 
 // runInvokeSkill implements the core skill invocation logic
-func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args map[string]any) (map[string]any, error) {
+func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
 	// Validate required parameters
-	skillName, ok := args["name"].(string)
-	if !ok || skillName == "" {
+	skillName, errResp := args.MustGetString(shared.ParamAgentName)
+	if errResp != nil {
 		return t.executionHelper.ErrorResponse("name is required and must be a non-empty string"), nil
 	}
 
-	input, ok := args["input"].(string)
-	if !ok || input == "" {
+	input, errResp := args.MustGetString(shared.ParamInput)
+	if errResp != nil {
 		return t.executionHelper.ErrorResponse("input is required and must be a non-empty string"), nil
 	}
 
@@ -149,7 +150,8 @@ func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args map[strin
 
 	// Determine context mode (skill default or override)
 	contextMode := ContextModeInherited // Default
-	if modeStr, exists := args["context_mode"].(string); exists && modeStr != "" {
+	modeStr := args.GetString(shared.ParamContextMode, "")
+	if modeStr != "" {
 		mode := ContextMode(modeStr)
 		if !mode.IsValid() {
 			return t.executionHelper.ErrorResponse(fmt.Sprintf("invalid context_mode '%s'. Use 'inherited' or 'isolated'.", modeStr)), nil
@@ -165,7 +167,8 @@ func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args map[strin
 		llmClientConfig = parentAgent.GetConfig().LLMClientConfig
 	}
 
-	if modelStr, exists := args["model"].(string); exists && modelStr != "" {
+	modelStr := args.GetString(shared.ParamModel, "")
+	if modelStr != "" {
 		switch modelStr {
 		case "sonnet":
 			llmClientConfig = &shared.LLMClientConfig{Model: "anthropic/claude-3-5-sonnet-20241022"}
