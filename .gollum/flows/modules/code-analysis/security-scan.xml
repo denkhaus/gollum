@@ -30,10 +30,10 @@
             <steps>
                 <step type="shell" name="run-gosec">
                     <cmd><![CDATA[gosec -fmt=json ${input.target_dir}]]></cmd>
-                    <output>
-                        <string name="stdout" assign="scan_output" />
-                        <int name="exit_code" assign="exit_code" />
-                    </output>
+                    <result>
+                        <string name="stdout" assignTo="scan_output" />
+                        <int name="exit_code" assignTo="exit_code" />
+                    </result>
                     <timeout>120s</timeout>
                     <on-error state="error" />
                 </step>
@@ -43,7 +43,7 @@
                         <param name="json" value="context.scan_output" />
                         <param name="path" value="results" />
                     </params>
-                    <output assign="issues" />
+                    <result assignTo="output.issues" />
                 </step>
             </steps>
 

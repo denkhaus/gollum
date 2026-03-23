@@ -59,9 +59,9 @@ Demonstr: Nested objects, computed fields, expression syntax
                 <!-- Calculate metrics -->
                 <step type="shell">
                     <cmd><![CDATA[wc -l ${input.target} | awk -1 | tail -1]]></cmd>
-                    <output>
-                        <int path="exit_code" assign="exit_code" />
-                    </output>
+                    <result>
+                        <int path="exit_code" assignTo="exit_code" />
+                    </result>
                     <timeout>60s</timeout>
                     <on-error state="error" />
                 </step>
@@ -71,7 +71,7 @@ Demonstr: Nested objects, computed fields, expression syntax
                     <params>
                         <param name="s" value="context.line_count_output" />
                     </params>
-                    <output assign="line_count" />
+                    <result assignTo="output.line_count" />
                 </step>
 
                 <!-- Use computed values in LLM prompt -->

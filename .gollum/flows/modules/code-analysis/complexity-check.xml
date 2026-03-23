@@ -22,10 +22,10 @@
             <steps>
                 <step type="shell" name="run-gocyclo">
                     <cmd><![CDATA[gocyclo -avg ${input.target_dir}]]></cmd>
-                    <output>
-                        <string name="stdout" assign="cyclomatic_output" />
-                        <int name="exit_code" assign="exit_code" />
-                    </output>
+                    <result>
+                        <string name="stdout" assignTo="cyclomatic_output" />
+                        <int name="exit_code" assignTo="exit_code" />
+                    </result>
                     <timeout>60s</timeout>
                     <on-error state="error" />
                 </step>
@@ -34,7 +34,7 @@
                     <params>
                         <param name="s" value="context.cyclomatic_output" />
                     </params>
-                    <output assign="score" />
+                    <result assignTo="output.score" />
                 </step>
             </steps>
 

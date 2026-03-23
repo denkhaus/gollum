@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow name="verbose-example" version="1.0">
+    <description>Demonstrates the verbose attribute for LLM steps - one step silent, one step with output</description>
+
+    <input>
+        <string name="message" default="Hello"/>
+    </input>
+
+    <output>
+        <string name="silent_result"/>
+        <string name="verbose_result"/>
+    </output>
+
+    <agents>
+        <agent name="writer" model="anthropic/claude-3.5-sonnet">
+            <prompt>You are a helpful assistant. Keep responses brief.</prompt>
+        </agent>
+    </agents>
+
+    <states>
+        <state name="init" initial="true">
+            <steps>
+                <!-- This step runs silently (default behavior) -->
+                <step type="llm" agent="writer" name="silent-step">
+                    <prompt>Count to 3 silently. Just respond with "1, 2, 3"</prompt>
+                    <result assignTo="output.silent_result"/>
+                </step>
+
+                <!-- This step shows LLM output in logs -->
+                <step type="llm" agent="writer" name="verbose-step" verbose="true">
+                    <prompt>Count to 3 loudly! Just respond with "ONE, TWO, THREE"</prompt>
+                    <result assignTo="output.verbose_result"/>
+                </step>
+            </steps>
+            <transitions>
+                <transition to="done"/>
+            </transitions>
+        </state>
+
+        <state name="done"/>
+    </states>
+</flow>

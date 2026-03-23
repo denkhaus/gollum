@@ -133,7 +133,7 @@ func Double(x int) int {
 					{
 						Type:     "func",
 						Function: "double.Double",
-						Params:   []flows.StepParam{{Name: "x", Value: "${input.value}"}},
+						Params:   []flows.StepParam{{Name: "x", Value: "input.value"}},
 						Result:   &flows.StepResult{AssignTo: "output.result"},
 					},
 				},

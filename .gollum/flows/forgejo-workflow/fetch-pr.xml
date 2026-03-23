@@ -31,13 +31,13 @@
                         <param name="repo" value="input.repo_name" />
                         <param name="index" value="input.pr_number" />
                     </params>
-                    <output>
-                        <string path="title" assign="${output.pr_title}" />
-                        <string path="state" assign="${output.pr_state}" />
-                        <int path="changed_files" assign="${output.changed_files}" />
-                        <string path="head.ref" assign="${output.head_branch}" />
-                        <string path="base.ref" assign="${output.base_branch}" />
-                    </output>
+                    <result>
+                        <string path="title" assignTo="output.pr_title" />
+                        <string path="state" assignTo="output.pr_state" />
+                        <int path="changed_files" assignTo="output.changed_files" />
+                        <string path="head.ref" assignTo="output.head_branch" />
+                        <string path="base.ref" assignTo="output.base_branch" />
+                    </result>
                     <timeout>30s</timeout>
                     <on-error state="error" />
                 </step>

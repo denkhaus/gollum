@@ -53,9 +53,9 @@ Demonstrates: func, shell, llm, mcp with unified output syntax
                 <!-- === SHELL: Bash commands === -->
                 <step type="shell" name="run-tests">
                     <cmd><![CDATA[go test ${input.target_dir} -v 2>&1]]></cmd>
-                    <output>
-                        <string path="stdout" assign="test_output" />
-                    </output>
+                    <result>
+                <string path="stdout" assignTo="test_output" />
+            </result>
                     <timeout>300s</timeout>
                     <on-error state="error" />
                 </step>
@@ -66,7 +66,7 @@ Demonstrates: func, shell, llm, mcp with unified output syntax
                     <params>
                         <param name="s" value="input.input_text" />
                     </params>
-                    <output assign="upper_text" />
+                    <result assignTo="output.upper_text" />
                 </step>
 
                 <step type="func" function="len">
@@ -74,7 +74,7 @@ Demonstrates: func, shell, llm, mcp with unified output syntax
                     <params>
                         <param name="v" value="input.input_text" />
                     </params>
-                    <output assign="item_count" />
+                    <result assignTo="output.item_count" />
                 </step>
 
                 <step type="func" function="strings.Contains">
@@ -83,7 +83,7 @@ Demonstrates: func, shell, llm, mcp with unified output syntax
                         <param name="s" value="input.input_text" />
                         <param name="substr" value="error" />
                     </params>
-                    <output assign="has_error" />
+                    <result assignTo="output.has_error" />
                 </step>
 
                 <!-- === FUNC: Extension function (registered at startup) === -->
@@ -92,7 +92,7 @@ Demonstrates: func, shell, llm, mcp with unified output syntax
                     <params>
                         <param name="target" value="input.target_dir" />
                     </params>
-                    <output assign="analysis_result" />
+                    <result assignTo="output.analysis_result" />
                     <timeout>60s</timeout>
                     <on-error state="error" />
                 </step>
@@ -117,11 +117,11 @@ Demonstrates: func, shell, llm, mcp with unified output syntax
                         <param name="repo" value="gollum" />
                         <param name="index" value="123" />
                     </params>
-                    <output>
-                        <string path="title" assign="pr_title" />
-                        <string path="state" assign="pr_state" />
-                        <string path="head.ref" assign="head_branch" />
-                    </output>
+                    <result>
+                        <string path="title" assignTo="pr_title" />
+                        <string path="state" assignTo="pr_state" />
+                        <string path="head.ref" assignTo="head_branch" />
+                    </result>
                     <timeout>30s</timeout>
                     <on-error state="error" />
                 </step>

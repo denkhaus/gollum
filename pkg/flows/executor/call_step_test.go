@@ -28,7 +28,7 @@ func TestExecuteCall_SimpleFlowCall(t *testing.T) {
 					{
 						Type:     "func",
 						Function: "strings.ToUpper",
-						Params:   []flows.StepParam{{Name: "s", Value: "${input.text}"}},
+						Params:   []flows.StepParam{{Name: "s", Value: "input.text"}},
 						Result:   &flows.StepResult{AssignTo: "output.result"},
 					},
 				},

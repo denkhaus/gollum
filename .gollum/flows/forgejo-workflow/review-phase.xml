@@ -58,7 +58,7 @@
                             <param name="repo" value="input.repo_name" />
                             <param name="index" value="input.pr_number" />
                         </params>
-                        <output assign="${context.pr_diff}" />
+                        <result assignTo="${context.pr_diff}" />
                         <timeout>60s</timeout>
                         <on-error state="error" />
                     </step>
@@ -70,7 +70,7 @@
                             <param name="repo" value="input.repo_name" />
                             <param name="index" value="input.pr_number" />
                         </params>
-                        <output assign="${context.pr_comments}" />
+                        <result assignTo="${context.pr_comments}" />
                         <timeout>30s</timeout>
                         <on-error state="error" />
                     </step>
@@ -127,7 +127,7 @@
                         <param name="index" value="input.pr_number" />
                         <param name="labels" value="output.review_status" />
                     </params>
-                    <output assign="label_result" />
+                    <result assignTo="label_result" />
                     <timeout>30s</timeout>
                     <on-error state="error" />
                 </step>

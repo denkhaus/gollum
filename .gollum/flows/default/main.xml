@@ -12,6 +12,7 @@
     <output>
         <string name="the_current_time" from="context.the_current_time" />
         <bool name="is_afternoon" from="computed.is_afternoon" />
+        <bool name="is_processed" />
     </output>
 
     <context>
@@ -39,8 +40,11 @@
                         Use the `set_context_field` tool to set:
                         1. The current time as string to the context like so: set_context_field("the_current_time", <DD.MM.YY HH:mm:ss>).
                         2. The hour to the context like so: set_context_field("hour", <hour>).
+
+                        Finally use the `set_output_field` tool like so: `set_output_field("is_processed", true)`
+
                     ]]></prompt>
-                    <tools>set_context_field,current_time</tools>
+                    <tools>set_context_field,set_output_field,current_time</tools>
                     <timeout>60s</timeout>
                 </step>
             </steps>
