@@ -114,3 +114,39 @@ func TestStep_VerboseAttributeDefault(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, step.Verbose, "verbose should default to false when omitted")
 }
+
+func TestStep_StepResultXMLParsing(t *testing.T) {
+	// Test that <result> with assignTo attribute parses correctly
+	xmlData := `<step type="shell" name="test">
+		<cmd>echo hello</cmd>
+		<result assignTo="output.stdout">
+			<string path="stdout" assignTo="stdout"/>
+		</result>
+	</step>`
+
+	var step Step
+	err := xml.Unmarshal([]byte(xmlData), &step)
+	assert.NoError(t, err)
+	assert.NotNil(t, step.Result, "Result should be parsed")
+	assert.Equal(t, "output.stdout", step.Result.AssignTo, "assignTo attribute should be parsed")
+	assert.Len(t, step.Result.Paths, 1, "Should have one result path")
+
+	path := step.Result.Paths[0]
+	assert.Equal(t, "stdout", path.Path, "path attribute should be parsed")
+	assert.Equal(t, "stdout", path.AssignTo, "assignTo attribute should be parsed")
+}
+
+func TestStep_StepResultSimpleAssign(t *testing.T) {
+	// Test simple assign without nested paths
+	xmlData := `<step type="llm" agent="worker">
+		<prompt>Analyze this</prompt>
+		<result assignTo="output.analysis"/>
+	</step>`
+
+	var step Step
+	err := xml.Unmarshal([]byte(xmlData), &step)
+	assert.NoError(t, err)
+	assert.NotNil(t, step.Result, "Result should be parsed")
+	assert.Equal(t, "output.analysis", step.Result.AssignTo, "assignTo should be parsed")
+	assert.Empty(t, step.Result.Paths, "Paths should be empty for simple assign")
+}

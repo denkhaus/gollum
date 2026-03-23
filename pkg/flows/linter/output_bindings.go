@@ -157,20 +157,20 @@ func (c *OutputBindingsChecker) hasDuplicateSource(output *flows.OutputBlock, so
 	return false
 }
 
-// checkStepOutputAssigns validates output assign attributes in steps
+// checkStepOutputAssigns validates result assignTo attributes in steps
 func (c *OutputBindingsChecker) checkStepOutputAssigns(flow *flows.Flow, result *flows.LinterResult) {
 	for _, state := range flow.States {
 		for _, step := range state.Steps {
-			if step.Output != nil && step.Output.Assign != "" {
+			if step.Result != nil && step.Result.AssignTo != "" {
 				c.checkStepOutputAssign(flow, &step, &state, result)
 			}
 		}
 	}
 }
 
-// checkStepOutputAssign validates a single step output assign attribute
+// checkStepOutputAssign validates a single step result assignTo attribute
 func (c *OutputBindingsChecker) checkStepOutputAssign(flow *flows.Flow, step *flows.Step, state *flows.State, result *flows.LinterResult) {
-	assignValue := step.Output.Assign
+	assignValue := step.Result.AssignTo
 
 	// Check for ${} syntax - should NOT be used in assign attributes
 	if len(assignValue) > 2 && assignValue[0] == '$' && assignValue[1] == '{' && assignValue[len(assignValue)-1] == '}' {

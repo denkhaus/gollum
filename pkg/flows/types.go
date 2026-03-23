@@ -470,7 +470,7 @@ type Step struct {
 	Params   []StepParam        `xml:"params>param"`
 	OnError  *OnErrorTransition `xml:"on-error"`
 	Retry    *Retry             `xml:"retry"`
-	Output   *StepOutput        `xml:"output"`
+	Result   *StepResult        `xml:"result"`
 	Verbose  bool               `xml:"verbose,attr"` // Show LLM output in logs
 }
 
@@ -485,17 +485,17 @@ type Retry struct {
 	Backoff string `xml:"backoff,attr"`
 }
 
-// StepOutput defines step output mapping
-type StepOutput struct {
-	Assign string       `xml:"assign,attr"`
-	Paths  []OutputPath `xml:",any"`
+// StepResult defines step result mapping
+type StepResult struct {
+	AssignTo string       `xml:"assignTo,attr"`
+	Paths    []ResultPath `xml:",any"`
 }
 
-// OutputPath maps a JSONPath to a field
-type OutputPath struct {
-	XMLName xml.Name
-	Path    string `xml:"path,attr"`
-	Assign  string `xml:"assign,attr"`
+// ResultPath maps a JSONPath to a field
+type ResultPath struct {
+	XMLName  xml.Name
+	Path     string `xml:"path,attr"`
+	AssignTo string `xml:"assignTo,attr"`
 }
 
 // StepParam defines a parameter for func steps
