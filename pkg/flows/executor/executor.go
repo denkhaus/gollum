@@ -657,9 +657,11 @@ func (p *flowExecutorImpl) executeAssignStep(step *flows.Step, stateName string)
 	for _, param := range step.Params {
 		switch param.Name {
 		case "from":
-			from = p.substituteTemplate(param.Value)
+			// Don't substitute - we need the raw reference to parse
+			from = param.Value
 		case "to":
-			to = p.substituteTemplate(param.Value)
+			// Don't substitute - we need the raw reference to parse
+			to = param.Value
 		case "value":
 			valueStr := p.substituteTemplate(param.Value)
 			// Try to parse as int, float, bool
