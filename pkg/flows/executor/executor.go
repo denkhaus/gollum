@@ -374,7 +374,7 @@ func (p *flowExecutorImpl) executeState(state *flows.State) error {
 			p.flow.Name, state.Name, "")
 	}
 
-	// Evaluate computed fields
+	// Evaluate computed fields before steps (for assign steps that reference them)
 	if p.flow.Computed != nil {
 		if err := p.ctx.EvaluateComputed(); err != nil {
 			return fmt.Errorf("computed field evaluation: %w", err)
@@ -397,6 +397,14 @@ func (p *flowExecutorImpl) executeState(state *flows.State) error {
 	for _, call := range state.Calls {
 		if err := p.executeCall(&call, state.Name); err != nil {
 			return p.handleError(err, nil, state)
+		}
+	}
+
+	// Re-evaluate computed fields after steps/calls to pick up any context
+	// fields set by LLM agents during step execution
+	if p.flow.Computed != nil {
+		if err := p.ctx.EvaluateComputed(); err != nil {
+			return fmt.Errorf("computed field re-evaluation: %w", err)
 		}
 	}
 
@@ -544,17 +552,17 @@ func (p *flowExecutorImpl) executeShellStep(_ context.Context, step *flows.Step,
 	}
 
 	// Map outputs
-	if step.Output != nil {
+	if step.Result != nil {
 		// Handle simple assign
-		if step.Output.Assign != "" {
-			fieldName := extractFieldName(step.Output.Assign)
+		if step.Result.AssignTo != "" {
+			fieldName := extractFieldName(step.Result.AssignTo)
 			if val, ok := result["stdout"]; ok {
 				_ = p.ctx.SetOutputField(fieldName, anyToString(val))
 			}
 		}
 		// Handle path-based outputs
-		for _, path := range step.Output.Paths {
-			fieldName := extractFieldName(path.Assign)
+		for _, path := range step.Result.Paths {
+			fieldName := extractFieldName(path.AssignTo)
 			switch path.Path {
 			case "stdout":
 				if val, ok := result["stdout"]; ok {
@@ -627,8 +635,8 @@ func (p *flowExecutorImpl) executeFuncStep(_ context.Context, step *flows.Step, 
 	}
 
 	// Map result to output
-	if step.Output != nil && step.Output.Assign != "" {
-		fieldName := extractFieldName(step.Output.Assign)
+	if step.Result != nil && step.Result.AssignTo != "" {
+		fieldName := extractFieldName(step.Result.AssignTo)
 		if err := p.ctx.SetOutputField(fieldName, result); err != nil {
 			return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
 		}
@@ -776,10 +784,10 @@ func (p *flowExecutorImpl) executeMCPStep(_ context.Context, step *flows.Step, s
 				}
 
 				// Map result to output fields if specified
-				if step.Output != nil {
+				if step.Result != nil {
 					// Handle simple assign
-					if step.Output.Assign != "" {
-						fieldName := extractFieldName(step.Output.Assign)
+					if step.Result.AssignTo != "" {
+						fieldName := extractFieldName(step.Result.AssignTo)
 						// For MCP tools, we'll map the entire result to the field
 						if err := p.ctx.SetOutputField(fieldName, anyToString(result)); err != nil {
 							return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)

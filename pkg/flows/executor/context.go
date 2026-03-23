@@ -95,6 +95,7 @@ type contextImpl struct {
 	contextValues *variables.FieldValues[flows.ContextField]
 	computedBlock *flows.ComputedBlock
 	computedVals  *variables.ComputedValues
+	computedEval  *variables.ComputedEvaluator // Reference to mark dirty when fields change
 	eval          *Evaluator
 	lastError     *ErrorContext
 }
@@ -179,6 +180,7 @@ func (c *contextImpl) SetComputedBlock(block *flows.ComputedBlock) {
 	c.computedBlock = block
 
 	if block == nil {
+		c.computedEval = nil
 		return
 	}
 
@@ -195,6 +197,9 @@ func (c *contextImpl) SetComputedBlock(block *flows.ComputedBlock) {
 
 	// Initialize ComputedValues with the fields
 	c.computedVals = variables.NewComputedValues(computedFields)
+
+	// Create and store the evaluator (will be created each time in EvaluateComputed, but we need a reference for MarkDirty)
+	// Note: We'll create it fresh in EvaluateComputed to ensure it has the latest field values
 }
 
 // GetInput retrieves an input field value
@@ -318,19 +323,27 @@ func (c *contextImpl) SetContextField(name string, value any) error {
 	}
 
 	// Convert value based on its actual type
+	var err error
 	switch v := value.(type) {
 	case string:
-		return c.contextValues.SetFromString(name, v)
+		err = c.contextValues.SetFromString(name, v)
 	case int:
-		return c.contextValues.SetInt(name, v)
+		err = c.contextValues.SetInt(name, v)
 	case bool:
-		return c.contextValues.SetBool(name, v)
+		err = c.contextValues.SetBool(name, v)
 	case float64:
-		return c.contextValues.SetFloat(name, v)
+		err = c.contextValues.SetFloat(name, v)
 	default:
 		// Try to convert to string as fallback
-		return c.contextValues.SetFromString(name, fmt.Sprintf("%v", v))
+		err = c.contextValues.SetFromString(name, fmt.Sprintf("%v", v))
 	}
+
+	// Mark dependent computed fields as dirty (if evaluator is available)
+	if err == nil && c.computedEval != nil {
+		c.computedEval.MarkDirty(name)
+	}
+
+	return err
 }
 
 // SetOutputField sets the output variable by name
@@ -456,8 +469,11 @@ func (c *contextImpl) EvaluateComputed() error {
 		return nil
 	}
 
-	// Use existing input, context and output wrappers (source of truth)
+	// Create or reuse evaluator with current field values
 	eval := variables.NewComputedEvaluator(c.computedVals, c.inputVals, c.contextValues, c.outputValues)
+
+	// Store evaluator for MarkDirty calls from SetContextField
+	c.computedEval = eval
 
 	// Evaluate all computed fields
 	return eval.ComputeDirty()

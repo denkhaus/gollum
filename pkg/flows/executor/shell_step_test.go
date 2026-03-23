@@ -59,7 +59,7 @@ func TestExecuteShellStep_SuccessfulExecution(t *testing.T) {
 	flow := &flows.Flow{
 		Name:    "test-shell",
 		Version: "1.0",
-		Output:  &flows.OutputBlock{Strings: []flows.FieldDef{{Name: "greeting"}}},
+		Output: &flows.OutputBlock{Strings: []flows.FieldDef{{Name: "greeting"}}},
 		States: []flows.State{
 			{
 				Name:    "init",
@@ -68,9 +68,9 @@ func TestExecuteShellStep_SuccessfulExecution(t *testing.T) {
 					{
 						Type: "shell",
 						Cmd:  "echo 'Hello World'",
-						Output: &flows.StepOutput{
-							Paths: []flows.OutputPath{
-								{Path: "stdout", Assign: "${output.greeting}"},
+						Result: &flows.StepResult{
+							Paths: []flows.ResultPath{
+								{Path: "stdout", AssignTo: "output.greeting"},
 							},
 						},
 					},
@@ -112,7 +112,7 @@ func TestExecuteShellStep_WithInputVariable(t *testing.T) {
 		Name:    "test-shell-var",
 		Version: "1.0",
 		Input:   &flows.InputBlock{Strings: []flows.FieldDef{{Name: "name"}}},
-		Output:  &flows.OutputBlock{Strings: []flows.FieldDef{{Name: "greeting"}}},
+		Output: &flows.OutputBlock{Strings: []flows.FieldDef{{Name: "greeting"}}},
 		States: []flows.State{
 			{
 				Name:    "init",
@@ -121,8 +121,8 @@ func TestExecuteShellStep_WithInputVariable(t *testing.T) {
 					{
 						Type: "shell",
 						Cmd:  "echo 'Hello ${input.name}'",
-						Output: &flows.StepOutput{
-							Paths: []flows.OutputPath{{Path: "stdout", Assign: "${output.greeting}"}},
+						Result: &flows.StepResult{
+							Paths: []flows.ResultPath{{Path: "stdout", AssignTo: "output.greeting"}},
 						},
 					},
 				},
@@ -175,7 +175,7 @@ func TestExecuteShellStep_WithTimeout(t *testing.T) {
 						Type:    "shell",
 						Cmd:     "sleep 1",
 						Timeout: "500ms",
-						Output:  &flows.StepOutput{Paths: []flows.OutputPath{{Path: "stdout", Assign: "${output.result}"}}},
+						Result:  &flows.StepResult{AssignTo: "output.result"},
 					},
 				},
 				Transitions: []flows.Transition{{To: "done"}},

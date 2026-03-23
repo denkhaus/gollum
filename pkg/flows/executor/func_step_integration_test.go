@@ -14,8 +14,8 @@ import (
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/tools"
-	"github.com/m-mizutani/gollem"
 	"github.com/denkhaus/gollum/pkg/workspace"
+	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -134,7 +134,7 @@ func Double(x int) int {
 						Type:     "func",
 						Function: "double.Double",
 						Params:   []flows.StepParam{{Name: "x", Value: "${input.value}"}},
-						Output:   &flows.StepOutput{Assign: "${output.result}"},
+						Result:   &flows.StepResult{AssignTo: "output.result"},
 					},
 				},
 				Transitions: []flows.Transition{{To: "done"}},

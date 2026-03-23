@@ -15,7 +15,7 @@ func TestAssignStep_FromInputToOutput(t *testing.T) {
 		Name:    "assign-test",
 		Version: "1.0",
 		Input:   &flows.InputBlock{Strings: []flows.FieldDef{{Name: "message"}}},
-		Output:  &flows.OutputBlock{Strings: []flows.FieldDef{{Name: "result"}}},
+		Output:		&flows.OutputBlock{Strings: []flows.FieldDef{{Name: "result"}}},
 		States: []flows.State{
 			{
 				Name:    "assign",
@@ -57,7 +57,7 @@ func TestAssignStep_FromComputedToOutput(t *testing.T) {
 		Name:    "computed-assign-test",
 		Version: "1.0",
 		Input:   &flows.InputBlock{Ints: []flows.FieldDef{{Name: "a"}, {Name: "b"}}},
-		Output:  &flows.OutputBlock{Ints: []flows.FieldDef{{Name: "sum"}}},
+		Output:		&flows.OutputBlock{Ints: []flows.FieldDef{{Name: "sum"}}},
 		Context: &flows.ContextBlock{Ints: []flows.ContextField{{Name: "sum"}}},
 		Computed: &flows.ComputedBlock{
 			Ints: []flows.ComputedFieldDef{
@@ -106,7 +106,7 @@ func TestAssignStep_WithDirectValue(t *testing.T) {
 	flow := &flows.Flow{
 		Name:    "value-assign-test",
 		Version: "1.0",
-		Output:  &flows.OutputBlock{Strings: []flows.FieldDef{{Name: "message"}}},
+		Output:		&flows.OutputBlock{Strings: []flows.FieldDef{{Name: "message"}}},
 		States: []flows.State{
 			{
 				Name:    "assign",

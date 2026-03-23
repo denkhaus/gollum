@@ -74,18 +74,18 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 	}
 
 	// Map result to output fields
-	if step.Output != nil {
+	if step.Result != nil {
 		// Handle simple assign
-		if step.Output.Assign != "" {
-			fieldName := extractFieldName(step.Output.Assign)
+		if step.Result.AssignTo != "" {
+			fieldName := extractFieldName(step.Result.AssignTo)
 			// For LLM steps, we assign the response text
 			if err := p.ctx.SetOutputField(fieldName, responseText); err != nil {
 				return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
 			}
 		}
 		// Handle path-based outputs
-		for _, path := range step.Output.Paths {
-			fieldName := extractFieldName(path.Assign)
+		for _, path := range step.Result.Paths {
+			fieldName := extractFieldName(path.AssignTo)
 			var value string
 			switch path.Path {
 			case "text", "content", "response":

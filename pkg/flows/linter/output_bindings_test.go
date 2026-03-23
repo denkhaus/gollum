@@ -3,8 +3,8 @@ package linter
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/denkhaus/gollum/pkg/flows"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestOutputBindingsChecker_Valid(t *testing.T) {
@@ -129,7 +129,7 @@ func TestOutputBindingsChecker_StepOutputAssignInvalidDollarSyntax(t *testing.T)
 					{
 						Type:   "llm",
 						Agent:  "test",
-						Output: &flows.StepOutput{Assign: "${output.result}"},
+						Result: &flows.StepResult{AssignTo: "${output.result}"},
 					},
 				},
 			},
@@ -157,7 +157,7 @@ func TestOutputBindingsChecker_StepOutputAssignInvalidScope(t *testing.T) {
 					{
 						Type:   "llm",
 						Agent:  "test",
-						Output: &flows.StepOutput{Assign: "input.result"},
+						Result: &flows.StepResult{AssignTo: "input.result"},
 					},
 				},
 			},
@@ -185,7 +185,7 @@ func TestOutputBindingsChecker_StepOutputAssignFieldNotFound(t *testing.T) {
 					{
 						Type:   "llm",
 						Agent:  "test",
-						Output: &flows.StepOutput{Assign: "output.nonexistent"},
+						Result: &flows.StepResult{AssignTo: "output.nonexistent"},
 					},
 				},
 			},
@@ -212,7 +212,7 @@ func TestOutputBindingsChecker_StepOutputAssignValid(t *testing.T) {
 					{
 						Type:   "llm",
 						Agent:  "test",
-						Output: &flows.StepOutput{Assign: "output.result"},
+						Result: &flows.StepResult{AssignTo: "output.result"},
 					},
 				},
 			},
