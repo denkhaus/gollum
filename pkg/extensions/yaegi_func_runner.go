@@ -118,9 +118,14 @@ func (p *yaegiFuncRunnerImpl) LoadFunc(name, source string) error {
 }
 
 func (p *yaegiFuncRunnerImpl) ExecuteFunc(name string, args map[string]any) (any, error) {
+	// Try bare name first, then try with "main." prefix (for .gollum/functions/ files)
 	info, ok := p.funcs[name]
 	if !ok {
-		return nil, fmt.Errorf("function not found: %s", name)
+		// Try with main package prefix for functions from .gollum/functions/
+		info, ok = p.funcs["main."+name]
+		if !ok {
+			return nil, fmt.Errorf("function not found: %s", name)
+		}
 	}
 
 	// Get function value from interpreter

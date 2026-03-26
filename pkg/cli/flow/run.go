@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/denkhaus/gollum/pkg/extensions"
 	"github.com/denkhaus/gollum/pkg/flows/executor"
 	"github.com/denkhaus/gollum/pkg/flows/parser"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -52,6 +53,12 @@ func executeFlow(ctx context.Context, injector do.Injector, path string, w write
 
 	// Get executor service
 	execSvc := do.MustInvoke[executor.FlowExecutorService](injector)
+
+	// Load extensions (functions from .gollum/functions/)
+	extService := do.MustInvoke[extensions.ExtensionService](injector)
+	if err := extService.LoadAll(ctx); err != nil {
+		return fmt.Errorf("failed to load extensions: %w", err)
+	}
 
 	// Create executor instance
 	exec := execSvc.New(flow)

@@ -31,7 +31,7 @@
                     <on-error state="error" />
                 </step>
 
-                <step type="func" function="strconv.Atoi">
+                <step type="func" function="Atoi">
                     <params>
                         <param name="s" assignFrom="context.cyclomatic_output" />
                     </params>
@@ -46,11 +46,14 @@
 
         <state name="error">
             <steps>
-                <step type="func" function="fmt.Sprintf">
-                    <params>
-                        <param name="format" assignFrom="Complexity check failed: %s" />
-                        <param name="a" assignFrom="sys.error.message" />
-                    </params>
+                <step type="llm" agent="system">
+                    <prompt><![CDATA[
+                        Complexity check failed:
+                        Error: ${sys.error.message}
+
+                        Use emit_log to report the error.
+                    ]]></prompt>
+                    <tools>emit_log</tools>
                 </step>
             </steps>
         </state>
