@@ -33,7 +33,7 @@
 
                 <step type="func" function="strconv.Atoi">
                     <params>
-                        <param name="s" value="context.cyclomatic_output" />
+                        <param name="s" assignFrom="context.cyclomatic_output" />
                     </params>
                     <result assignTo="output.score" />
                 </step>
@@ -48,8 +48,8 @@
             <steps>
                 <step type="func" function="fmt.Sprintf">
                     <params>
-                        <param name="format" value="Complexity check failed: %s" />
-                        <param name="a" value="sys.error.message" />
+                        <param name="format" assignFrom="Complexity check failed: %s" />
+                        <param name="a" assignFrom="sys.error.message" />
                     </params>
                 </step>
             </steps>

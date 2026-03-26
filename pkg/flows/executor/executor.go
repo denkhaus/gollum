@@ -628,15 +628,54 @@ func parseAssignTarget(assignTo string) (flows.FlowVariableScope, string, error)
 	return scope, parts[1], nil
 }
 
+// resolveAssignFrom resolves a bare notation assignFrom reference to its string value
+// Requires: scope.field format (e.g., "input.text", "context.value")
+// All values must be references - literals are not supported
+func (p *flowExecutorImpl) resolveAssignFrom(assignFrom string) string {
+	// Parse scope.field
+	parts := strings.SplitN(assignFrom, ".", 2)
+	if len(parts) != 2 {
+		return "" // Invalid format, return empty string
+	}
+
+	scope := flows.FlowVariableScope(parts[0])
+	field := parts[1]
+
+	// Get value based on scope
+	switch scope {
+	case flows.FlowVariableScopeInput:
+		if val := p.ctx.GetInput(field); val != nil {
+			return anyToString(val)
+		}
+	case flows.FlowVariableScopeContext:
+		if val, err := p.ctx.GetContextField(field); err == nil {
+			return anyToString(val)
+		}
+	case flows.FlowVariableScopeOutput:
+		if val, err := p.ctx.GetOutputField(field); err == nil {
+			return anyToString(val)
+		}
+	case flows.FlowVariableScopeComputed:
+		if val, err := p.ctx.GetComputedField(field); err == nil {
+			return anyToString(val)
+		}
+	case flows.FlowVariableScopeSys:
+		// System fields - handle specially if needed
+		return ""
+	}
+
+	return ""
+}
+
 func (p *flowExecutorImpl) executeFuncStep(_ context.Context, step *flows.Step, stateName string) error {
 
 	// Use Yaegi runner from extension service for other functions
 	funcRunner := p.extService.GetFuncRunner()
 
-	// Build args with template substitution
+	// Build args by resolving bare notation references
 	args := make(map[string]any)
 	for _, param := range step.Params {
-		value := p.substituteTemplate(param.Value)
+		value := p.resolveAssignFrom(param.AssignFrom)
 		args[param.Name] = value
 	}
 
@@ -675,11 +714,11 @@ func (p *flowExecutorImpl) executeMCPStep(_ context.Context, step *flows.Step, s
 	// For now, we use the full tool name directly from step.Tool
 	toolName := step.Tool
 
-	// Build args from step params with template substitution
+	// Build args from step params by resolving bare notation references
 	args := make(map[string]any)
 	for _, param := range step.Params {
-		// Substitute template variables in param value
-		value := p.substituteTemplate(param.Value)
+		// Resolve bare notation reference
+		value := p.resolveAssignFrom(param.AssignFrom)
 		args[param.Name] = value
 	}
 
@@ -775,15 +814,15 @@ func (p *flowExecutorImpl) executeCall(call *flows.Call, _ string) error {
 		return fmt.Errorf("flow lookup failed for %s: %w", call.Ref, err)
 	}
 
-	// Build input map from call.Input fields with template substitution
+	// Build input map from call.Input fields with bare notation resolution
 	subInput := make(map[string]string)
 	if call.Input != nil {
 		for _, field := range call.Input.GetFields() {
-			typedField := field.GetTypedField()
-			if typedField != nil {
-				// Substitute template variables in field value
-				value := p.substituteTemplate(typedField.Value)
-				subInput[typedField.Name] = value
+			param := field.GetParam()
+			if param != nil {
+				// Resolve bare notation reference
+				value := p.resolveAssignFrom(param.AssignFrom)
+				subInput[param.Name] = value
 			}
 		}
 	}
@@ -817,22 +856,34 @@ func (p *flowExecutorImpl) executeCall(call *flows.Call, _ string) error {
 	// Map output fields back using call.Output
 	if call.Output != nil {
 		for _, field := range call.Output.GetFields() {
-			typedField := field.GetTypedField()
-			if typedField != nil {
+			param := field.GetParam()
+			if param != nil {
 				// Get the value from sub-flow result
-				// Call-Output values reference fields from sub-flow output
-				// Format: "field_name" (no scope prefix - always refers to sub-flow output)
-				sourceField := typedField.Value
+				// Call-Output assignTo specifies the parent context destination (scope.field format)
+				// The source is param.Name (subflow output field), target is parsed from param.AssignTo
+				sourceField := param.Name
 
 				value, ok := result.Outputs[sourceField]
 				if !ok {
 					continue // Skip if field doesn't exist in sub-flow output
 				}
 
-				// Set the value in parent flow output
-				targetField := typedField.Name
-				if err := p.ctx.SetOutputField(targetField, anyToString(value)); err != nil {
-					return fmt.Errorf("failed to set output field '%s': %w", targetField, err)
+				// Parse assignTo to get scope and field name
+				targetScope, targetField, err := parseAssignTarget(param.AssignTo)
+				if err != nil {
+					return fmt.Errorf("invalid assignTo '%s': %w", param.AssignTo, err)
+				}
+
+				// Set the value in parent flow context based on scope
+				switch targetScope {
+				case flows.FlowVariableScopeOutput:
+					if err := p.ctx.SetOutputField(targetField, anyToString(value)); err != nil {
+						return fmt.Errorf("failed to set output field '%s': %w", targetField, err)
+					}
+				case flows.FlowVariableScopeContext:
+					if err := p.ctx.SetContextField(targetField, anyToString(value)); err != nil {
+						return fmt.Errorf("failed to set context field '%s': %w", targetField, err)
+					}
 				}
 			}
 		}

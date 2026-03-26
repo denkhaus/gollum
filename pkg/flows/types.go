@@ -514,9 +514,9 @@ type ResultPath struct {
 
 // StepParam defines a parameter for func steps
 type StepParam struct {
-	XMLName xml.Name
-	Name    string `xml:"name,attr"`
-	Value   string `xml:"value,attr"`
+	XMLName    xml.Name
+	Name       string `xml:"name,attr"`
+	AssignFrom string `xml:"assignFrom,attr"` // Source reference (data comes FROM this value)
 }
 
 // Call invokes a sub-flow
@@ -531,67 +531,79 @@ type Call struct {
 
 // CallInputBlock defines typed input fields for a call
 type CallInputBlock struct {
-	Strings []CallTypedField `xml:"string"`
-	Ints    []CallTypedField `xml:"int"`
-	Bools   []CallTypedField `xml:"bool"`
-	Floats  []CallTypedField `xml:"float"`
+	Strings []CallInputParam `xml:"string"`
+	Ints    []CallInputParam `xml:"int"`
+	Bools   []CallInputParam `xml:"bool"`
+	Floats  []CallInputParam `xml:"float"`
 }
 
-// GetFields returns all input fields as a slice of CallInputField
-func (c *CallInputBlock) GetFields() []CallInputField {
-	var fields []CallInputField
+// GetFields returns all input fields as a slice of CallInputFieldRef
+func (c *CallInputBlock) GetFields() []CallInputFieldRef {
+	var fields []CallInputFieldRef
 	for _, f := range c.Strings {
-		fields = append(fields, CallInputField{String: &f})
+		fields = append(fields, CallInputFieldRef{String: &f})
 	}
 	for _, f := range c.Ints {
-		fields = append(fields, CallInputField{Int: &f})
+		fields = append(fields, CallInputFieldRef{Int: &f})
 	}
 	for _, f := range c.Bools {
-		fields = append(fields, CallInputField{Bool: &f})
+		fields = append(fields, CallInputFieldRef{Bool: &f})
 	}
 	for _, f := range c.Floats {
-		fields = append(fields, CallInputField{Float: &f})
+		fields = append(fields, CallInputFieldRef{Float: &f})
 	}
 	return fields
 }
 
 // CallOutputBlock defines typed output fields for a call
 type CallOutputBlock struct {
-	Strings []CallTypedField `xml:"string"`
-	Ints    []CallTypedField `xml:"int"`
-	Bools   []CallTypedField `xml:"bool"`
-	Floats  []CallTypedField `xml:"float"`
+	Strings []CallOutputParam `xml:"string"`
+	Ints    []CallOutputParam `xml:"int"`
+	Bools   []CallOutputParam `xml:"bool"`
+	Floats  []CallOutputParam `xml:"float"`
 }
 
-// GetFields returns all output fields as a slice of CallOutputField
-func (c *CallOutputBlock) GetFields() []CallOutputField {
-	var fields []CallOutputField
+// GetFields returns all output fields as a slice of CallOutputFieldRef
+func (c *CallOutputBlock) GetFields() []CallOutputFieldRef {
+	var fields []CallOutputFieldRef
 	for _, f := range c.Strings {
-		fields = append(fields, CallOutputField{String: &f})
+		fields = append(fields, CallOutputFieldRef{String: &f})
 	}
 	for _, f := range c.Ints {
-		fields = append(fields, CallOutputField{Int: &f})
+		fields = append(fields, CallOutputFieldRef{Int: &f})
 	}
 	for _, f := range c.Bools {
-		fields = append(fields, CallOutputField{Bool: &f})
+		fields = append(fields, CallOutputFieldRef{Bool: &f})
 	}
 	for _, f := range c.Floats {
-		fields = append(fields, CallOutputField{Float: &f})
+		fields = append(fields, CallOutputFieldRef{Float: &f})
 	}
 	return fields
 }
 
-// CallInputField represents a typed input field in a call (internal use)
-type CallInputField struct {
-	XMLName xml.Name        `xml:"-"`
-	String  *CallTypedField `xml:"string"`
-	Int     *CallTypedField `xml:"int"`
-	Bool    *CallTypedField `xml:"bool"`
-	Float   *CallTypedField `xml:"float"`
+// CallInputParam represents a parameter for call input (data from parent context)
+type CallInputParam struct {
+	Name       string `xml:"name,attr"`
+	AssignFrom string `xml:"assignFrom,attr"` // Source reference in parent context
 }
 
-// GetTypedField returns the non-nil typed field
-func (c *CallInputField) GetTypedField() *CallTypedField {
+// CallOutputParam represents a parameter for call output (data to parent context)
+type CallOutputParam struct {
+	Name    string `xml:"name,attr"`
+	AssignTo string `xml:"assignTo,attr"` // Target in parent context
+}
+
+// CallInputFieldRef is a union wrapper for input field variants (internal use)
+type CallInputFieldRef struct {
+	XMLName xml.Name         `xml:"-"`
+	String  *CallInputParam  `xml:"string"`
+	Int     *CallInputParam  `xml:"int"`
+	Bool    *CallInputParam  `xml:"bool"`
+	Float   *CallInputParam  `xml:"float"`
+}
+
+// GetParam returns the non-nil parameter
+func (c *CallInputFieldRef) GetParam() *CallInputParam {
 	if c.String != nil {
 		return c.String
 	}
@@ -608,7 +620,7 @@ func (c *CallInputField) GetTypedField() *CallTypedField {
 }
 
 // GetType returns the type name of this field
-func (c *CallInputField) GetType() string {
+func (c *CallInputFieldRef) GetType() string {
 	if c.String != nil {
 		return string(TypeString)
 	}
@@ -624,17 +636,17 @@ func (c *CallInputField) GetType() string {
 	return ""
 }
 
-// CallOutputField represents a typed output field in a call
-type CallOutputField struct {
-	XMLName xml.Name        `xml:"-"`
-	String  *CallTypedField `xml:"string"`
-	Int     *CallTypedField `xml:"int"`
-	Bool    *CallTypedField `xml:"bool"`
-	Float   *CallTypedField `xml:"float"`
+// CallOutputFieldRef is a union wrapper for output field variants (internal use)
+type CallOutputFieldRef struct {
+	XMLName xml.Name          `xml:"-"`
+	String  *CallOutputParam  `xml:"string"`
+	Int     *CallOutputParam  `xml:"int"`
+	Bool    *CallOutputParam  `xml:"bool"`
+	Float   *CallOutputParam  `xml:"float"`
 }
 
-// GetTypedField returns the non-nil typed field
-func (c *CallOutputField) GetTypedField() *CallTypedField {
+// GetParam returns the non-nil parameter
+func (c *CallOutputFieldRef) GetParam() *CallOutputParam {
 	if c.String != nil {
 		return c.String
 	}
@@ -651,7 +663,7 @@ func (c *CallOutputField) GetTypedField() *CallTypedField {
 }
 
 // GetType returns the type name of this field
-func (c *CallOutputField) GetType() string {
+func (c *CallOutputFieldRef) GetType() string {
 	if c.String != nil {
 		return string(TypeString)
 	}
@@ -665,12 +677,6 @@ func (c *CallOutputField) GetType() string {
 		return string(TypeFloat)
 	}
 	return ""
-}
-
-// CallTypedField represents a typed field reference in a call
-type CallTypedField struct {
-	Name  string `xml:"name,attr"`
-	Value string `xml:"value,attr"`
 }
 
 // Transition defines state transition

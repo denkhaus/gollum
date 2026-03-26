@@ -41,8 +41,8 @@
 
                 <step type="func" function="JSONCount">
                     <params>
-                        <param name="json" value="context.scan_output" />
-                        <param name="path" value="results" />
+                        <param name="json" assignFrom="context.scan_output" />
+                        <param name="path" assignFrom="results" />
                     </params>
                     <result assignTo="output.issues" />
                 </step>
@@ -57,8 +57,8 @@
             <steps>
                 <step type="func" function="fmt.Sprintf">
                     <params>
-                        <param name="format" value="Security scan failed: %s" />
-                        <param name="a" value="sys.error.message" />
+                        <param name="format" assignFrom="Security scan failed: %s" />
+                        <param name="a" assignFrom="sys.error.message" />
                     </params>
                 </step>
             </steps>

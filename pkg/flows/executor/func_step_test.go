@@ -28,7 +28,7 @@ func TestExecuteFuncStep_StringsToUpper(t *testing.T) {
 					{
 						Type:     "func",
 						Function: "strings.ToUpper",
-						Params:   []flows.StepParam{{Name: "s", Value: "${input.text}"}},
+						Params:   []flows.StepParam{{Name: "s", AssignFrom: "input.text"}},
 						Result:   &flows.StepResult{AssignTo: "output.result"},
 					},
 				},
@@ -71,7 +71,7 @@ func TestExecuteFuncStep_StringsToLower(t *testing.T) {
 					{
 						Type:     "func",
 						Function: "strings.ToLower",
-						Params:   []flows.StepParam{{Name: "s", Value: "${input.text}"}},
+						Params:   []flows.StepParam{{Name: "s", AssignFrom: "input.text"}},
 						Result:   &flows.StepResult{AssignTo: "output.result"},
 					},
 				},
@@ -118,8 +118,8 @@ func TestExecuteFuncStep_StringsContains(t *testing.T) {
 						Type:     "func",
 						Function: "strings.Contains",
 						Params: []flows.StepParam{
-							{Name: "s", Value: "${input.text}"},
-							{Name: "substr", Value: "${input.substr}"},
+							{Name: "s", AssignFrom: "input.text"},
+							{Name: "substr", AssignFrom: "input.substr"},
 						},
 						Result: &flows.StepResult{AssignTo: "output.result"},
 					},
@@ -163,7 +163,7 @@ func TestExecuteFuncStep_Len_String(t *testing.T) {
 					{
 						Type:     "func",
 						Function: "len",
-						Params:   []flows.StepParam{{Name: "v", Value: "${input.text}"}},
+						Params:   []flows.StepParam{{Name: "v", AssignFrom: "input.text"}},
 						Result:   &flows.StepResult{AssignTo: "output.length"},
 					},
 				},

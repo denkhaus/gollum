@@ -1,10 +1,13 @@
 package linter
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // hasErrorCode checks if result contains a specific error code
@@ -88,12 +91,12 @@ func TestPhase2_BareVarRefInCallInput(t *testing.T) {
 					{
 						Ref: "sub-flow",
 						Input: &flows.CallInputBlock{
-							Strings: []flows.CallTypedField{
+							Strings: []flows.CallInputParam{
 								{
-									Name:  "dir",
-									Value: "${target}",
+									Name:       "dir",
+									AssignFrom: "${target}",
 								},
-							}, // bare - should error
+							}, // template notation - should error
 						},
 					},
 				},
@@ -103,7 +106,7 @@ func TestPhase2_BareVarRefInCallInput(t *testing.T) {
 
 	result := Lint(flow)
 	assert.False(t, result.Valid)
-	assert.True(t, hasErrorCode(result, flows.ErrRelativePath), "should have relative path error for bare call input")
+	assert.True(t, hasErrorCode(result, flows.ErrTemplateNotation), "should have template notation error for call input with ${}")
 }
 
 func TestPhase2_BareVarRefInCallOutput(t *testing.T) {
@@ -122,12 +125,12 @@ func TestPhase2_BareVarRefInCallOutput(t *testing.T) {
 					{
 						Ref: "sub-flow",
 						Output: &flows.CallOutputBlock{
-							Strings: []flows.CallTypedField{
+							Strings: []flows.CallOutputParam{
 								{
-									Name:  "result",
-									Value: "${score}",
+									Name:    "result",
+									AssignTo: "${score}",
 								},
-							}, // bare - should error
+							}, // template notation - should error
 						},
 					},
 				},
@@ -137,7 +140,7 @@ func TestPhase2_BareVarRefInCallOutput(t *testing.T) {
 
 	result := Lint(flow)
 	assert.False(t, result.Valid)
-	assert.True(t, hasErrorCode(result, flows.ErrRelativePath), "should have relative path error for bare call output")
+	assert.True(t, hasErrorCode(result, flows.ErrTemplateNotation), "should have template notation error for call output with ${}")
 }
 
 func TestPhase2_BareVarRefInStepParam(t *testing.T) {
@@ -157,7 +160,7 @@ func TestPhase2_BareVarRefInStepParam(t *testing.T) {
 						Type: "func",
 						Name: "process",
 						Params: []flows.StepParam{
-							{Name: "input", Value: "${data}"}, // bare - should error
+							{Name: "input", AssignFrom: "${data}"}, // template notation - should error
 						},
 					},
 				},
@@ -167,7 +170,7 @@ func TestPhase2_BareVarRefInStepParam(t *testing.T) {
 
 	result := Lint(flow)
 	assert.False(t, result.Valid)
-	assert.True(t, hasErrorCode(result, flows.ErrRelativePath), "should have relative path error for bare step param")
+	assert.True(t, hasErrorCode(result, flows.ErrTemplateNotation), "should have template notation error for step param with ${}")
 }
 
 func TestPhase2_BareVarRefInStepPrompt(t *testing.T) {
@@ -199,6 +202,32 @@ func TestPhase2_BareVarRefInStepPrompt(t *testing.T) {
 }
 
 func TestPhase2_ValidAbsoluteVarRefInCallInput(t *testing.T) {
+	// Use artifact directory for test flow files (saved when -artifacts flag is used)
+	tmpDir := t.ArtifactDir()
+
+	// Create a simple sub-flow file
+	subFlowContent := `<?xml version="1.0" encoding="UTF-8"?>
+<flow name="sub-flow" version="1.0">
+	<input>
+		<string name="dir" required="true" />
+	</input>
+	<output>
+		<string name="result" />
+	</output>
+	<states>
+		<state name="process" initial="true">
+			<transitions>
+				<transition to="done" />
+			</transitions>
+		</state>
+		<state name="done" />
+	</states>
+</flow>
+`
+	subFlowPath := filepath.Join(tmpDir, "sub-flow.xml")
+	require.NoError(t, os.WriteFile(subFlowPath, []byte(subFlowContent), 0644))
+
+	// Create the main flow
 	flow := &flows.Flow{
 		Name:   "test",
 		Input:  &flows.InputBlock{Strings: []flows.FieldDef{{Name: "target"}}},
@@ -211,12 +240,12 @@ func TestPhase2_ValidAbsoluteVarRefInCallInput(t *testing.T) {
 					{
 						Ref: "sub-flow",
 						Input: &flows.CallInputBlock{
-							Strings: []flows.CallTypedField{
+							Strings: []flows.CallInputParam{
 								{
-									Name:  "dir",
-									Value: "${input.target}",
+									Name:       "dir",
+									AssignFrom: "input.target",
 								},
-							}, // valid absolute path
+							}, // valid bare notation
 						},
 					},
 				},
@@ -224,11 +253,43 @@ func TestPhase2_ValidAbsoluteVarRefInCallInput(t *testing.T) {
 		},
 	}
 
-	result := Lint(flow)
-	assert.False(t, hasErrorCode(result, flows.ErrRelativePath), "should not have relative path error for valid input prefix")
+	// Lint with the temporary directory as the flow path
+	result := LintPath(filepath.Join(tmpDir, "main.xml"), flow)
+	if !result.Valid {
+		t.Logf("Errors: %+v", result.Errors)
+		for _, e := range result.Errors {
+			t.Logf("  - Code: %s, Message: %s, Context: %s", e.Code, e.Message, e.Context)
+		}
+	}
+	assert.True(t, result.Valid, "should be valid with bare notation and valid scope")
 }
 
 func TestPhase2_ValidAbsoluteVarRefInCallOutput(t *testing.T) {
+	// Use artifact directory for test flow files (saved when -artifacts flag is used)
+	tmpDir := t.ArtifactDir()
+
+	// Create a simple sub-flow file
+	subFlowContent := `<?xml version="1.0" encoding="UTF-8"?>
+<flow name="sub-flow" version="1.0">
+	<input>
+		<string name="input" />
+	</input>
+	<output>
+		<int name="result" />
+	</output>
+	<states>
+		<state name="process" initial="true">
+			<transitions>
+				<transition to="done" />
+			</transitions>
+		</state>
+		<state name="done" />
+	</states>
+</flow>
+`
+	subFlowPath := filepath.Join(tmpDir, "sub-flow.xml")
+	require.NoError(t, os.WriteFile(subFlowPath, []byte(subFlowContent), 0644))
+
 	flow := &flows.Flow{
 		Name:   "test",
 		Input:  &flows.InputBlock{},
@@ -244,12 +305,12 @@ func TestPhase2_ValidAbsoluteVarRefInCallOutput(t *testing.T) {
 					{
 						Ref: "sub-flow",
 						Output: &flows.CallOutputBlock{
-							Strings: []flows.CallTypedField{
+							Ints: []flows.CallOutputParam{
 								{
-									Name:  "result",
-									Value: "${context.score}",
+									Name:    "result",
+									AssignTo: "context.score",
 								},
-							}, // valid absolute path
+							}, // valid bare notation
 						},
 					},
 				},
@@ -257,8 +318,14 @@ func TestPhase2_ValidAbsoluteVarRefInCallOutput(t *testing.T) {
 		},
 	}
 
-	result := Lint(flow)
-	assert.False(t, hasErrorCode(result, flows.ErrRelativePath), "should not have relative path error for valid context prefix")
+	result := LintPath(filepath.Join(tmpDir, "main.xml"), flow)
+	if !result.Valid {
+		t.Logf("Errors: %+v", result.Errors)
+		for _, e := range result.Errors {
+			t.Logf("  - Code: %s, Message: %s, Context: %s", e.Code, e.Message, e.Context)
+		}
+	}
+	assert.True(t, result.Valid, "should be valid with bare notation and valid scope")
 }
 
 func TestPhase2_ValidAbsoluteVarRefInStepPrompt(t *testing.T) {

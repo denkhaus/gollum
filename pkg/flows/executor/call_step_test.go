@@ -28,7 +28,7 @@ func TestExecuteCall_SimpleFlowCall(t *testing.T) {
 					{
 						Type:     "func",
 						Function: "strings.ToUpper",
-						Params:   []flows.StepParam{{Name: "s", Value: "${input.text}"}},
+						Params:   []flows.StepParam{{Name: "s", AssignFrom: "input.text"}},
 						Result:   &flows.StepResult{AssignTo: "output.result"},
 					},
 				},
@@ -56,18 +56,18 @@ func TestExecuteCall_SimpleFlowCall(t *testing.T) {
 					{
 						Ref: "subflow",
 						Input: &flows.CallInputBlock{
-							Strings: []flows.CallTypedField{
+							Strings: []flows.CallInputParam{
 								{
-									Name:  "text",
-									Value: "${input.message}",
+									Name:       "text",
+									AssignFrom: "input.message",
 								},
 							},
 						},
 						Output: &flows.CallOutputBlock{
-							Strings: []flows.CallTypedField{
+							Strings: []flows.CallOutputParam{
 								{
-									Name:  "output",
-									Value: "result",
+									Name:    "result",
+									AssignTo: "output.output",
 								},
 							},
 						},
@@ -125,10 +125,9 @@ func TestExecuteCall_MultipleInputFields(t *testing.T) {
 				Steps: []flows.Step{
 					{
 						Type:     "func",
-						Function: "fmt.Sprintf",
+						Function: "strings.ToUpper",
 						Params: []flows.StepParam{
-							{Name: "format", Value: "%s %s"},
-							{Name: "args", Value: "[]any{${input.first}, ${input.second}}"},
+							{Name: "s", AssignFrom: "input.first"},
 						},
 						Result: &flows.StepResult{AssignTo: "output.result"},
 					},
@@ -159,22 +158,18 @@ func TestExecuteCall_MultipleInputFields(t *testing.T) {
 					{
 						Ref: "concat",
 						Input: &flows.CallInputBlock{
-							Strings: []flows.CallTypedField{
+							Strings: []flows.CallInputParam{
 								{
-									Name:  "first",
-									Value: "${input.greeting}",
-								},
-								{
-									Name:  "second",
-									Value: "${input.name}",
+									Name:       "first",
+									AssignFrom: "input.greeting",
 								},
 							},
 						},
 						Output: &flows.CallOutputBlock{
-							Strings: []flows.CallTypedField{
+							Strings: []flows.CallOutputParam{
 								{
-									Name:  "message",
-									Value: "result",
+									Name:    "result",
+									AssignTo: "output.message",
 								},
 							},
 						},
@@ -206,7 +201,5 @@ func TestExecuteCall_MultipleInputFields(t *testing.T) {
 	require.NoError(t, err)
 	result, err := exec.(*flowExecutorImpl).ctx.GetOutputField("message")
 	require.NoError(t, err)
-	// Note: fmt.Sprintf with the args parameter doesn't work as expected with current registry implementation
-	// This test might need adjustment based on how fmt.Sprintf is implemented
-	assert.NotNil(t, result)
+	assert.Equal(t, "HELLO", result)
 }

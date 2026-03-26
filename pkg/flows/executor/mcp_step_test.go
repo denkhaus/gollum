@@ -126,7 +126,7 @@ func TestExecuteMCPStep_ToolCall(t *testing.T) {
 					{
 						Type:   "mcp",
 						Tool:   "tavily.search",
-						Params: []flows.StepParam{{Name: "query", Value: "test search query"}},
+						Params: []flows.StepParam{{Name: "query", AssignFrom: "input.query"}},
 						Result: &flows.StepResult{AssignTo: "output.result"},
 					},
 				},
@@ -181,6 +181,15 @@ func TestExecuteMCPStep_MultipleParams(t *testing.T) {
 	flow := &flows.Flow{
 		Name:    "test-mcp-multi",
 		Version: "1.0",
+		Input: &flows.InputBlock{
+			Strings: []flows.FieldDef{
+				{Name: "param1", Required: true},
+				{Name: "param2", Required: true},
+			},
+			Ints: []flows.FieldDef{
+				{Name: "param3", Required: true},
+			},
+		},
 		States: []flows.State{
 			{
 				Name:    "init",
@@ -190,9 +199,9 @@ func TestExecuteMCPStep_MultipleParams(t *testing.T) {
 						Type: "mcp",
 						Tool: "test.tool",
 						Params: []flows.StepParam{
-							{Name: "param1", Value: "value1"},
-							{Name: "param2", Value: "value2"},
-							{Name: "param3", Value: "123"},
+							{Name: "param1", AssignFrom: "input.param1"},
+							{Name: "param2", AssignFrom: "input.param2"},
+							{Name: "param3", AssignFrom: "input.param3"},
 						},
 					},
 				},
@@ -207,9 +216,11 @@ func TestExecuteMCPStep_MultipleParams(t *testing.T) {
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
+	err := exec.SetInput(map[string]string{"param1": "value1", "param2": "value2", "param3": "123"})
+	require.NoError(t, err)
 
 	step := &flow.States[0].Steps[0]
-	err := exec.(*flowExecutorImpl).executeMCPStep(context.Background(), step, "init")
+	err = exec.(*flowExecutorImpl).executeMCPStep(context.Background(), step, "init")
 
 	require.NoError(t, err)
 }
@@ -274,7 +285,10 @@ func TestExecuteMCPStep_TemplateSubstitution(t *testing.T) {
 		Name:    "test-mcp-template",
 		Version: "1.0",
 		Input: &flows.InputBlock{
-			Strings: []flows.FieldDef{{Name: "name", Required: true}},
+			Strings: []flows.FieldDef{
+				{Name: "static", Required: true},
+				{Name: "name", Required: true},
+			},
 		},
 		States: []flows.State{
 			{
@@ -285,8 +299,8 @@ func TestExecuteMCPStep_TemplateSubstitution(t *testing.T) {
 						Type: "mcp",
 						Tool: "test.tool",
 						Params: []flows.StepParam{
-							{Name: "static", Value: "fixed value"},
-							{Name: "from_input", Value: "${input.name}"},
+							{Name: "static", AssignFrom: "input.static"},
+							{Name: "from_input", AssignFrom: "input.name"},
 						},
 					},
 				},
@@ -301,7 +315,7 @@ func TestExecuteMCPStep_TemplateSubstitution(t *testing.T) {
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
 	exec := svc.New(flow)
-	err := exec.SetInput(map[string]string{"name": "Alice"})
+	err := exec.SetInput(map[string]string{"static": "fixed value", "name": "Alice"})
 	require.NoError(t, err)
 
 	step := &flow.States[0].Steps[0]

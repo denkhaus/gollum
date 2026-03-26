@@ -152,36 +152,36 @@ func (s *SyntaxChecker) containsFieldRefWithoutBrackets(template, pattern string
 	return false
 }
 
-// getCallFieldValue extracts the Value from a CallInputField (union type)
-func (s *SyntaxChecker) getCallFieldValue(field flows.CallInputField) string {
+// getCallFieldValue extracts the AssignFrom from a CallInputFieldRef (union type)
+func (s *SyntaxChecker) getCallFieldValue(field flows.CallInputFieldRef) string {
 	if field.String != nil {
-		return field.String.Value
+		return field.String.AssignFrom
 	}
 	if field.Int != nil {
-		return field.Int.Value
+		return field.Int.AssignFrom
 	}
 	if field.Bool != nil {
-		return field.Bool.Value
+		return field.Bool.AssignFrom
 	}
 	if field.Float != nil {
-		return field.Float.Value
+		return field.Float.AssignFrom
 	}
 	return ""
 }
 
-// getCallOutputFieldValue extracts the Value from a CallOutputField (union type)
-func (s *SyntaxChecker) getCallOutputFieldValue(field flows.CallOutputField) string {
+// getCallOutputFieldValue extracts the AssignTo from a CallOutputFieldRef (union type)
+func (s *SyntaxChecker) getCallOutputFieldValue(field flows.CallOutputFieldRef) string {
 	if field.String != nil {
-		return field.String.Value
+		return field.String.AssignTo
 	}
 	if field.Int != nil {
-		return field.Int.Value
+		return field.Int.AssignTo
 	}
 	if field.Bool != nil {
-		return field.Bool.Value
+		return field.Bool.AssignTo
 	}
 	if field.Float != nil {
-		return field.Float.Value
+		return field.Float.AssignTo
 	}
 	return ""
 }

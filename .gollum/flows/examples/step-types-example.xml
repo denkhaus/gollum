@@ -15,6 +15,9 @@ Demonstrates: func, shell, llm, mcp with unified output syntax
     <input>
         <string name="target_dir" required="true" />
         <string name="input_text" />
+        <string name="forgejo_owner" default="denkhaus" />
+        <string name="forgejo_repo" default="gollum" />
+        <int name="pr_index" default="0" />
     </input>
 
     <output>
@@ -67,7 +70,7 @@ Demonstrates: func, shell, llm, mcp with unified output syntax
                 <step type="func" function="strings.ToUpper">
                     <description>Convert to uppercase - built-in Go function</description>
                     <params>
-                        <param name="s" value="input.input_text" />
+                        <param name="s" assignFrom="input.input_text" />
                     </params>
                     <result assignTo="output.upper_text" />
                 </step>
@@ -75,7 +78,7 @@ Demonstrates: func, shell, llm, mcp with unified output syntax
                 <step type="func" function="len">
                     <description>Count items - built-in Go function</description>
                     <params>
-                        <param name="v" value="input.input_text" />
+                        <param name="v" assignFrom="input.input_text" />
                     </params>
                     <result assignTo="output.item_count" />
                 </step>
@@ -83,8 +86,8 @@ Demonstrates: func, shell, llm, mcp with unified output syntax
                 <step type="func" function="strings.Contains">
                     <description>Check substring - built-in Go function</description>
                     <params>
-                        <param name="s" value="input.input_text" />
-                        <param name="substr" value="error" />
+                        <param name="s" assignFrom="input.input_text" />
+                        <param name="substr" assignFrom="sys.error" />
                     </params>
                     <result assignTo="output.has_error" />
                 </step>
@@ -93,7 +96,7 @@ Demonstrates: func, shell, llm, mcp with unified output syntax
                 <step type="func" function="CustomAnalyze">
                     <description>Call custom extension - registered at application startup</description>
                     <params>
-                        <param name="target" value="input.target_dir" />
+                        <param name="target" assignFrom="input.target_dir" />
                     </params>
                     <result assignTo="output.analysis_result" />
                     <timeout>60s</timeout>
@@ -116,9 +119,9 @@ Demonstrates: func, shell, llm, mcp with unified output syntax
                 <!-- === MCP: Tool calls with unified path syntax === -->
                 <step type="mcp" tool="forgejo/get_pull_request_by_index">
                     <params>
-                        <param name="owner" value="denkhaus" />
-                        <param name="repo" value="gollum" />
-                        <param name="index" value="123" />
+                        <param name="owner" assignFrom="input.forgejo_owner" />
+                        <param name="repo" assignFrom="input.forgejo_repo" />
+                        <param name="index" assignFrom="input.pr_index" />
                     </params>
                     <result>
                         <string path="title" assignTo="context.pr_title" />

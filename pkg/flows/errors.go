@@ -21,17 +21,19 @@ const (
 	ErrOutputAsParam    ErrorCode = "S006"
 
 	// Expression errors (Exxx)
-	ErrInvalidExpr         ErrorCode = "E001"
-	ErrCircularDeps        ErrorCode = "E002"
-	ErrFieldNotFound       ErrorCode = "E003"
-	ErrRelativePath        ErrorCode = "E004"
-	ErrComputedInContainer ErrorCode = "E005" // computed fields in context/output blocks
-	ErrInvalidRef          ErrorCode = "E006" // invalid field reference format
-	ErrInvalidScope        ErrorCode = "E007" // invalid scope in field reference
-	ErrCircularDep         ErrorCode = "E008" // circular dependency
-	ErrTemplateNotation    ErrorCode = "E009" // ${} notation not allowed in assignTo/assignFrom
-	ErrMissingScope        ErrorCode = "E010" // missing scope prefix in field reference
-	ErrInvalidEval         ErrorCode = "E011" // eval only allows function calls
+	ErrInvalidExpr           ErrorCode = "E001"
+	ErrCircularDeps          ErrorCode = "E002"
+	ErrFieldNotFound         ErrorCode = "E003"
+	ErrRelativePath          ErrorCode = "E004"
+	ErrComputedInContainer   ErrorCode = "E005" // computed fields in context/output blocks
+	ErrInvalidRef            ErrorCode = "E006" // invalid field reference format
+	ErrInvalidScope          ErrorCode = "E007" // invalid scope in field reference
+	ErrCircularDep           ErrorCode = "E008" // circular dependency
+	ErrTemplateNotation      ErrorCode = "E009" // ${} notation not allowed in assignTo/assignFrom
+	ErrMissingScope          ErrorCode = "E010" // missing scope prefix in field reference
+	ErrInvalidEval           ErrorCode = "E011" // eval only allows function calls
+	ErrInvalidAssignFromScope ErrorCode = "E012" // invalid scope in assignFrom (e.g., output)
+	ErrInvalidAssignToScope   ErrorCode = "E013" // invalid scope in assignTo (e.g., input, computed)
 
 	// Graph errors (Gxxx)
 	ErrNoInitialState    ErrorCode = "G001"

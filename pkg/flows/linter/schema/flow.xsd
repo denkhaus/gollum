@@ -191,8 +191,8 @@
 
   <xs:complexType name="CallType">
     <xs:sequence>
-      <xs:element name="input" type="CallFieldsBlock" minOccurs="0"/>
-      <xs:element name="output" type="CallFieldsBlock" minOccurs="0"/>
+      <xs:element name="input" type="CallInputFieldsBlock" minOccurs="0"/>
+      <xs:element name="output" type="CallOutputFieldsBlock" minOccurs="0"/>
       <xs:element name="on-error" type="OnErrorType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="ref" type="xs:string" use="required"/>
@@ -208,7 +208,7 @@
 
   <xs:complexType name="ParamType">
     <xs:attribute name="name" type="xs:string" use="required"/>
-    <xs:attribute name="value" type="xs:string" use="required"/>
+    <xs:attribute name="assignFrom" type="xs:string" use="required"/>
   </xs:complexType>
 
   <xs:complexType name="OnErrorType">
@@ -227,18 +227,34 @@
     <xs:attribute name="assignTo" type="xs:string"/>
   </xs:complexType>
 
-  <xs:complexType name="CallFieldsBlock">
+  <!-- Call input fields - data comes FROM parent context -->
+  <xs:complexType name="CallInputFieldsBlock">
     <xs:choice minOccurs="0" maxOccurs="unbounded">
-      <xs:element name="string" type="CallFieldType"/>
-      <xs:element name="int" type="CallFieldType"/>
-      <xs:element name="bool" type="CallFieldType"/>
-      <xs:element name="float" type="CallFieldType"/>
+      <xs:element name="string" type="CallInputFieldType"/>
+      <xs:element name="int" type="CallInputFieldType"/>
+      <xs:element name="bool" type="CallInputFieldType"/>
+      <xs:element name="float" type="CallInputFieldType"/>
     </xs:choice>
   </xs:complexType>
 
-  <xs:complexType name="CallFieldType">
+  <!-- Call output fields - data goes TO parent context -->
+  <xs:complexType name="CallOutputFieldsBlock">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="string" type="CallOutputFieldType"/>
+      <xs:element name="int" type="CallOutputFieldType"/>
+      <xs:element name="bool" type="CallOutputFieldType"/>
+      <xs:element name="float" type="CallOutputFieldType"/>
+    </xs:choice>
+  </xs:complexType>
+
+  <xs:complexType name="CallInputFieldType">
     <xs:attribute name="name" type="xs:string" use="required"/>
-    <xs:attribute name="value" type="xs:string" use="required"/>
+    <xs:attribute name="assignFrom" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="CallOutputFieldType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="assignTo" type="xs:string" use="required"/>
   </xs:complexType>
 
   <xs:complexType name="TransitionsBlock">

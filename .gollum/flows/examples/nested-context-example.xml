@@ -70,7 +70,7 @@ Demonstr: Nested objects, computed fields, expression syntax
                 <!-- Parse line count -->
                 <step type="func" function="strconv.Atoi">
                     <params>
-                        <param name="s" value="context.line_count_output" />
+                        <param name="s" assignFrom="context.line_count_output" />
                     </params>
                     <result assignTo="output.line_count" />
                 </step>

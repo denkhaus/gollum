@@ -28,21 +28,21 @@
                 <!-- Call internal flows -->
                 <call ref="complexity-check" timeout="120s">
                     <input>
-                        <string name="target_dir" value="input.target_dir" />
+                        <string name="target_dir" assignFrom="input.target_dir" />
                     </input>
                     <output>
-                        <int name="score" value="context.complexity_score" />
+                        <int name="score" assignTo="context.complexity_score" />
                     </output>
                     <on-error state="error" />
                 </call>
 
                 <call ref="security-scan" timeout="180s">
                     <input>
-                        <string name="target_dir" value="input.target_dir" />
-                        <string name="scan_type" value="input.scan_type" />
+                        <string name="target_dir" assignFrom="input.target_dir" />
+                        <string name="scan_type" assignFrom="input.scan_type" />
                     </input>
                     <output>
-                        <int name="issues" value="context.security_issues" />
+                        <int name="issues" assignTo="context.security_issues" />
                     </output>
                     <on-error state="error" />
                 </call>

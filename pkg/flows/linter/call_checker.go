@@ -85,19 +85,19 @@ func (c *CallChecker) checkCall(flowPath string, call flows.Call, result *flows.
 	}
 
 	// Build maps of call inputs/outputs
-	callInputsByName := make(map[string]flows.CallInputField)
+	callInputsByName := make(map[string]flows.CallInputFieldRef)
 	if call.Input != nil {
 		for _, f := range call.Input.GetFields() {
-			if typed := f.GetTypedField(); typed != nil {
-				callInputsByName[typed.Name] = f
+			if param := f.GetParam(); param != nil {
+				callInputsByName[param.Name] = f
 			}
 		}
 	}
-	callOutputsByName := make(map[string]flows.CallOutputField)
+	callOutputsByName := make(map[string]flows.CallOutputFieldRef)
 	if call.Output != nil {
 		for _, f := range call.Output.GetFields() {
-			if typed := f.GetTypedField(); typed != nil {
-				callOutputsByName[typed.Name] = f
+			if param := f.GetParam(); param != nil {
+				callOutputsByName[param.Name] = f
 			}
 		}
 	}
@@ -171,16 +171,16 @@ func (c *CallChecker) checkCall(flowPath string, call flows.Call, result *flows.
 	// Check for extra inputs (not defined in called flow)
 	if call.Input != nil {
 		for _, callInput := range call.Input.GetFields() {
-			typedField := callInput.GetTypedField()
-			if typedField != nil {
-				_, exists := calledInputsByName[typedField.Name]
+			param := callInput.GetParam()
+			if param != nil {
+				_, exists := calledInputsByName[param.Name]
 				if !exists {
 					result.Warnings = append(result.Warnings, flows.LinterError{
 						FlowPath: flowPath,
 						Line:     line,
 						Column:   col,
 						Code:     flows.ErrCallExtraInput,
-						Message:  fmt.Sprintf("call to '%s': input parameter '%s' not defined in called flow's input block", call.Ref, typedField.Name),
+						Message:  fmt.Sprintf("call to '%s': input parameter '%s' not defined in called flow's input block", call.Ref, param.Name),
 					})
 				}
 			}
@@ -190,16 +190,16 @@ func (c *CallChecker) checkCall(flowPath string, call flows.Call, result *flows.
 	// Check for extra outputs (not defined in called flow)
 	if call.Output != nil {
 		for _, callOutput := range call.Output.GetFields() {
-			typedField := callOutput.GetTypedField()
-			if typedField != nil {
-				_, exists := calledOutputsByName[typedField.Name]
+			param := callOutput.GetParam()
+			if param != nil {
+				_, exists := calledOutputsByName[param.Name]
 				if !exists {
 					result.Warnings = append(result.Warnings, flows.LinterError{
 						FlowPath: flowPath,
 						Line:     line,
 						Column:   col,
 						Code:     flows.ErrCallExtraOutput,
-						Message:  fmt.Sprintf("call to '%s': output parameter '%s' not defined in called flow's output block", call.Ref, typedField.Name),
+						Message:  fmt.Sprintf("call to '%s': output parameter '%s' not defined in called flow's output block", call.Ref, param.Name),
 					})
 				}
 			}

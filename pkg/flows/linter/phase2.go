@@ -98,15 +98,15 @@ func (e *ExpressionChecker) Check(flow *flows.Flow, result *flows.LinterResult) 
 		for _, call := range state.Calls {
 			if call.Input != nil {
 				for _, field := range call.Input.GetFields() {
-					if typed := field.GetTypedField(); typed != nil {
-						e.checkVarRefs(typed.Value, "call input", result)
+					if param := field.GetParam(); param != nil {
+						e.checkAssignFrom(param.AssignFrom, "call input", result)
 					}
 				}
 			}
 			if call.Output != nil {
 				for _, field := range call.Output.GetFields() {
-					if typed := field.GetTypedField(); typed != nil {
-						e.checkVarRefs(typed.Value, "call output", result)
+					if param := field.GetParam(); param != nil {
+						e.checkAssignTo(param.AssignTo, "call output", result)
 					}
 				}
 			}
@@ -117,7 +117,7 @@ func (e *ExpressionChecker) Check(flow *flows.Flow, result *flows.LinterResult) 
 	for _, state := range flow.States {
 		for _, step := range state.Steps {
 			for _, param := range step.Params {
-				e.checkVarRefs(param.Value, "step param", result)
+				e.checkAssignFrom(param.AssignFrom, "step param", result)
 			}
 			if step.Prompt != "" {
 				e.checkVarRefs(step.Prompt, "step prompt", result)
@@ -145,6 +145,123 @@ func (e *ExpressionChecker) checkVarRefs(text, location string, result *flows.Li
 				Context: text,
 			})
 		}
+	}
+}
+
+// Valid scopes for assignFrom (data sources)
+var validAssignFromScopes = map[flows.FlowVariableScope]bool{
+	flows.FlowVariableScopeInput:    true,
+	flows.FlowVariableScopeContext:  true,
+	flows.FlowVariableScopeComputed: true,
+	flows.FlowVariableScopeSys:      true,
+}
+
+// Valid scopes for assignTo (data destinations)
+var validAssignToScopes = map[flows.FlowVariableScope]bool{
+	flows.FlowVariableScopeOutput:  true,
+	flows.FlowVariableScopeContext: true,
+}
+
+// checkAssignFrom validates assignFrom attribute
+// - No ${} interpolation (bare notation only)
+// - All values must be scope.field references (no literals allowed)
+// - Valid scopes: input, context, computed, sys
+func (e *ExpressionChecker) checkAssignFrom(ref, location string, result *flows.LinterResult) {
+	// Check for ${} interpolation - not allowed in assignFrom
+	if strings.Contains(ref, "${") || strings.Contains(ref, "}") {
+		result.Errors = append(result.Errors, flows.LinterError{
+			Code:    flows.ErrTemplateNotation,
+			Message: fmt.Sprintf("assignFrom in %s must use bare notation (e.g., assignFrom=\"input.field\") instead of template notation (e.g., ${input.field})", location),
+			Context: ref,
+		})
+		return
+	}
+
+	// All values must be scope.field references - check for dot
+	if !strings.Contains(ref, ".") {
+		result.Errors = append(result.Errors, flows.LinterError{
+			Code:    flows.ErrMissingScope,
+			Message: fmt.Sprintf("assignFrom in %s must reference a flow variable (e.g., input.field, context.field) - literal values are not allowed", location),
+			Context: ref,
+		})
+		return
+	}
+
+	// Parse scope.field
+	parts := strings.SplitN(ref, ".", 2)
+	if len(parts) < 2 {
+		result.Errors = append(result.Errors, flows.LinterError{
+			Code:    flows.ErrMissingScope,
+			Message: fmt.Sprintf("assignFrom in %s must include scope prefix (e.g., input.field, context.field)", location),
+			Context: ref,
+		})
+		return
+	}
+
+	scope := flows.FlowVariableScope(parts[0])
+	// Validate scope
+	if scope.Validate() != nil {
+		result.Errors = append(result.Errors, flows.LinterError{
+			Code:    flows.ErrInvalidScope,
+			Message: fmt.Sprintf("invalid scope '%s' in assignFrom for %s", parts[0], location),
+			Context: ref,
+		})
+		return
+	}
+
+	// Check if scope is valid for assignFrom
+	if !validAssignFromScopes[scope] {
+		result.Errors = append(result.Errors, flows.LinterError{
+			Code:    flows.ErrInvalidAssignFromScope,
+			Message: fmt.Sprintf("invalid scope '%s' in assignFrom for %s - allowed scopes are: input, context, computed, sys", parts[0], location),
+			Context: ref,
+		})
+	}
+}
+
+// checkAssignTo validates assignTo attribute
+// - No ${} interpolation (bare notation only)
+// - Valid scopes: output, context
+func (e *ExpressionChecker) checkAssignTo(ref, location string, result *flows.LinterResult) {
+	// Check for ${} interpolation - not allowed in assignTo
+	if strings.Contains(ref, "${") || strings.Contains(ref, "}") {
+		result.Errors = append(result.Errors, flows.LinterError{
+			Code:    flows.ErrTemplateNotation,
+			Message: fmt.Sprintf("assignTo in %s must use bare notation (e.g., assignTo=\"output.field\") instead of template notation (e.g., ${output.field})", location),
+			Context: ref,
+		})
+		return
+	}
+
+	// Check for scope prefix
+	parts := strings.SplitN(ref, ".", 2)
+	if len(parts) < 2 {
+		result.Errors = append(result.Errors, flows.LinterError{
+			Code:    flows.ErrMissingScope,
+			Message: fmt.Sprintf("assignTo in %s must include scope prefix (e.g., output.field, context.field)", location),
+			Context: ref,
+		})
+		return
+	}
+
+	scope := flows.FlowVariableScope(parts[0])
+	// Validate scope
+	if scope.Validate() != nil {
+		result.Errors = append(result.Errors, flows.LinterError{
+			Code:    flows.ErrInvalidScope,
+			Message: fmt.Sprintf("invalid scope '%s' in assignTo for %s", parts[0], location),
+			Context: ref,
+		})
+		return
+	}
+
+	// Check if scope is valid for assignTo
+	if !validAssignToScopes[scope] {
+		result.Errors = append(result.Errors, flows.LinterError{
+			Code:    flows.ErrInvalidAssignToScope,
+			Message: fmt.Sprintf("invalid scope '%s' in assignTo for %s - allowed scopes are: output, context", parts[0], location),
+			Context: ref,
+		})
 	}
 }
 
