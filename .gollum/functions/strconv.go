@@ -9,6 +9,11 @@ func Atoi(s string) (int, error) {
 	return strconv.Atoi(s)
 }
 
+// Atof64 parses a string to a float64
+func Atof64(s string) (float64, error) {
+	return strconv.ParseFloat(s, 64)
+}
+
 // ParseInt parses a string to an integer with given base and bit size
 func ParseInt(s string, base, bitSize int) (int64, error) {
 	return strconv.ParseInt(s, base, bitSize)
