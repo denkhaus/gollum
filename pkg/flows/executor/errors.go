@@ -39,7 +39,7 @@ func (e *MCPError) Unwrap() error {
 }
 
 // captureError captures error information and sets error context
-func (p *flowExecutorImpl) captureError(step *flows.Step, errMsg string) {
+func (p *flowExecutorImpl) captureError(step *flows.Step, errMsg string, exitCode int) {
 	now := time.Now()
 
 	// Set error context
@@ -47,6 +47,7 @@ func (p *flowExecutorImpl) captureError(step *flows.Step, errMsg string) {
 		StepName:  step.Name,
 		StepType:  step.Type,
 		Message:   errMsg,
+		ExitCode:  exitCode,
 		Timestamp: now,
 	})
 
@@ -57,8 +58,8 @@ func (p *flowExecutorImpl) captureError(step *flows.Step, errMsg string) {
 // handleError with on-error transition support
 func (p *flowExecutorImpl) handleErrorWithErrorTransition(err error, step *flows.Step, state *flows.State) error {
 	if step != nil && step.OnError != nil {
-		// Capture error context
-		p.captureError(step, err.Error())
+		// Capture error context (exit code 0 for generic errors)
+		p.captureError(step, err.Error(), 0)
 
 		// Log error transition (with nil check for test scenarios)
 		if p.logService != nil {

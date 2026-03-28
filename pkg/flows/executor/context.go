@@ -3,6 +3,7 @@ package executor
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/flows/ast"
@@ -79,6 +80,7 @@ type ExecutionContext interface {
 	SetOutputField(name string, value any) error
 	GetComputedField(name string) (any, error)
 	GetInput(name string) any
+	GetSysField(field string) any
 	EvaluateComputed() error
 	SetError(ctx *ErrorContext)
 	GetError() *ErrorContext
@@ -450,6 +452,38 @@ func (c *contextImpl) SetError(err *ErrorContext) {
 // GetError returns the last error context (may be nil)
 func (c *contextImpl) GetError() *ErrorContext {
 	return c.lastError
+}
+
+// GetSysField resolves sys.* fields from the execution context
+func (c *contextImpl) GetSysField(field string) any {
+	// Handle sys.error.* fields
+	if field == "error" || strings.HasPrefix(field, "error.") {
+		if c.lastError == nil {
+			return nil
+		}
+
+		// Return whole error object for "error"
+		if field == "error" {
+			return c.lastError
+		}
+
+		// Extract specific field from error context
+		subField := strings.TrimPrefix(field, "error.")
+		switch subField {
+		case "message", "Message":
+			return c.lastError.Message
+		case "stepName", "StepName":
+			return c.lastError.StepName
+		case "stepType", "StepType":
+			return c.lastError.StepType
+		case "exitCode", "ExitCode":
+			return c.lastError.ExitCode
+		case "timestamp", "Timestamp":
+			return c.lastError.Timestamp
+		}
+	}
+
+	return nil
 }
 
 // EvaluateComputed evaluates all computed fields using the ComputedEvaluator

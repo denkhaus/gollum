@@ -137,6 +137,7 @@ type ErrorContext struct {
 	StepName  string
 	StepType  string
 	Message   string
+	ExitCode  int
 	Timestamp time.Time
 }
 
@@ -555,21 +556,21 @@ func (p *flowExecutorImpl) executeShellStep(_ context.Context, step *flows.Step,
 	if step.Result != nil {
 		// Handle simple assign
 		if step.Result.AssignTo != "" {
-			scope, fieldName, err := parseAssignTarget(step.Result.AssignTo)
+			scope, fieldName, err := p.parseAssignTarget(step.Result.AssignTo)
 			if err != nil {
 				return fmt.Errorf("invalid assignTo: %w", err)
 			}
 			if val, ok := result["stdout"]; ok {
 				if scope == flows.FlowVariableScopeContext {
-					_ = p.ctx.SetContextField(fieldName, anyToString(val))
+					_ = p.ctx.SetContextField(fieldName, shared.AnyToString(val))
 				} else {
-					_ = p.ctx.SetOutputField(fieldName, anyToString(val))
+					_ = p.ctx.SetOutputField(fieldName, shared.AnyToString(val))
 				}
 			}
 		}
 		// Handle path-based outputs
 		for _, path := range step.Result.Paths {
-			scope, fieldName, err := parseAssignTarget(path.AssignTo)
+			scope, fieldName, err := p.parseAssignTarget(path.AssignTo)
 			if err != nil {
 				return fmt.Errorf("invalid path assignTo: %w", err)
 			}
@@ -577,33 +578,41 @@ func (p *flowExecutorImpl) executeShellStep(_ context.Context, step *flows.Step,
 			case "stdout":
 				if val, ok := result["stdout"]; ok {
 					if scope == flows.FlowVariableScopeContext {
-						_ = p.ctx.SetContextField(fieldName, anyToString(val))
+						_ = p.ctx.SetContextField(fieldName, shared.AnyToString(val))
 					} else {
-						_ = p.ctx.SetOutputField(fieldName, anyToString(val))
+						_ = p.ctx.SetOutputField(fieldName, shared.AnyToString(val))
 					}
 				}
 			case "stderr":
 				if val, ok := result["stderr"]; ok {
 					if scope == flows.FlowVariableScopeContext {
-						_ = p.ctx.SetContextField(fieldName, anyToString(val))
+						_ = p.ctx.SetContextField(fieldName, shared.AnyToString(val))
 					} else {
-						_ = p.ctx.SetOutputField(fieldName, anyToString(val))
-					}
-				}
-			case "exit_code":
-				// Bash tool returns exit_code as a number
-				if val, ok := result["exit_code"]; ok {
-					if scope == flows.FlowVariableScopeContext {
-						_ = p.ctx.SetContextField(fieldName, anyToString(val))
-					} else {
-						_ = p.ctx.SetOutputField(fieldName, anyToString(val))
+						_ = p.ctx.SetOutputField(fieldName, shared.AnyToString(val))
 					}
 				}
 			}
 		}
 	}
 
-	// Don't error on non-zero exit codes - the flow can check exit_code
+	// Check exit code and trigger error transition if configured
+	exitCode := 0
+	if val, ok := result["exit_code"]; ok {
+		if code, ok := val.(int); ok {
+			exitCode = code
+		} else if code, ok := val.(float64); ok {
+			exitCode = int(code)
+		}
+	}
+
+	if exitCode != 0 && step.OnError != nil {
+		// Capture error with exit code for sys.error context
+		p.captureError(step, fmt.Sprintf("command failed with exit code %d", exitCode), exitCode)
+
+		// Transition to error state
+		return p.transitionTo(step.OnError.State)
+	}
+
 	return nil
 }
 
@@ -615,7 +624,7 @@ func (p *flowExecutorImpl) substituteTemplate(cmd string) string {
 // parseAssignTarget parses assignTo value and returns (scope, fieldName)
 // Requires: output.field or context.field format
 // Returns: (flows.FlowVariableScope, "field", error)
-func parseAssignTarget(assignTo string) (flows.FlowVariableScope, string, error) {
+func (p *flowExecutorImpl) parseAssignTarget(assignTo string) (flows.FlowVariableScope, string, error) {
 	// Split by first dot
 	parts := strings.SplitN(assignTo, ".", 2)
 	if len(parts) != 2 {
@@ -645,19 +654,19 @@ func (p *flowExecutorImpl) resolveAssignFrom(assignFrom string) string {
 	switch scope {
 	case flows.FlowVariableScopeInput:
 		if val := p.ctx.GetInput(field); val != nil {
-			return anyToString(val)
+			return shared.AnyToString(val)
 		}
 	case flows.FlowVariableScopeContext:
 		if val, err := p.ctx.GetContextField(field); err == nil {
-			return anyToString(val)
+			return shared.AnyToString(val)
 		}
 	case flows.FlowVariableScopeOutput:
 		if val, err := p.ctx.GetOutputField(field); err == nil {
-			return anyToString(val)
+			return shared.AnyToString(val)
 		}
 	case flows.FlowVariableScopeComputed:
 		if val, err := p.ctx.GetComputedField(field); err == nil {
-			return anyToString(val)
+			return shared.AnyToString(val)
 		}
 	case flows.FlowVariableScopeSys:
 		// System fields - handle specially if needed
@@ -691,7 +700,7 @@ func (p *flowExecutorImpl) executeFuncStep(_ context.Context, step *flows.Step, 
 
 	// Map result to output
 	if step.Result != nil && step.Result.AssignTo != "" {
-		scope, fieldName, err := parseAssignTarget(step.Result.AssignTo)
+		scope, fieldName, err := p.parseAssignTarget(step.Result.AssignTo)
 		if err != nil {
 			return fmt.Errorf("invalid assignTo: %w", err)
 		}
@@ -752,7 +761,7 @@ func (p *flowExecutorImpl) executeMCPStep(_ context.Context, step *flows.Step, s
 				if step.Result != nil {
 					// Handle simple assign
 					if step.Result.AssignTo != "" {
-						scope, fieldName, err := parseAssignTarget(step.Result.AssignTo)
+						scope, fieldName, err := p.parseAssignTarget(step.Result.AssignTo)
 						if err != nil {
 							return &MCPError{
 								Server: toolName,
@@ -763,11 +772,11 @@ func (p *flowExecutorImpl) executeMCPStep(_ context.Context, step *flows.Step, s
 						}
 						// For MCP tools, we'll map the entire result to the field
 						if scope == flows.FlowVariableScopeContext {
-							if err := p.ctx.SetContextField(fieldName, anyToString(result)); err != nil {
+							if err := p.ctx.SetContextField(fieldName, shared.AnyToString(result)); err != nil {
 								return fmt.Errorf("failed to set context field '%s': %w", fieldName, err)
 							}
 						} else {
-							if err := p.ctx.SetOutputField(fieldName, anyToString(result)); err != nil {
+							if err := p.ctx.SetOutputField(fieldName, shared.AnyToString(result)); err != nil {
 								return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
 							}
 						}
@@ -869,7 +878,7 @@ func (p *flowExecutorImpl) executeCall(call *flows.Call, _ string) error {
 				}
 
 				// Parse assignTo to get scope and field name
-				targetScope, targetField, err := parseAssignTarget(param.AssignTo)
+				targetScope, targetField, err := p.parseAssignTarget(param.AssignTo)
 				if err != nil {
 					return fmt.Errorf("invalid assignTo '%s': %w", param.AssignTo, err)
 				}
@@ -877,11 +886,11 @@ func (p *flowExecutorImpl) executeCall(call *flows.Call, _ string) error {
 				// Set the value in parent flow context based on scope
 				switch targetScope {
 				case flows.FlowVariableScopeOutput:
-					if err := p.ctx.SetOutputField(targetField, anyToString(value)); err != nil {
+					if err := p.ctx.SetOutputField(targetField, shared.AnyToString(value)); err != nil {
 						return fmt.Errorf("failed to set output field '%s': %w", targetField, err)
 					}
 				case flows.FlowVariableScopeContext:
-					if err := p.ctx.SetContextField(targetField, anyToString(value)); err != nil {
+					if err := p.ctx.SetContextField(targetField, shared.AnyToString(value)); err != nil {
 						return fmt.Errorf("failed to set context field '%s': %w", targetField, err)
 					}
 				}
@@ -1010,29 +1019,6 @@ func (p *flowExecutorImpl) RequestTransition(to string) error {
 	// Set the pending transition - executor will execute it after step completes
 	p.pendingTransition = to
 	return nil
-}
-
-// anyToString converts any value to its string representation
-func anyToString(v any) string {
-	if v == nil {
-		return ""
-	}
-	switch val := v.(type) {
-	case string:
-		return val
-	case int:
-		return strconv.Itoa(val)
-	case int64:
-		return strconv.FormatInt(val, 10)
-	case float64:
-		return strconv.FormatFloat(val, 'f', -1, 64)
-	case bool:
-		return strconv.FormatBool(val)
-	case []byte:
-		return string(val)
-	default:
-		return fmt.Sprintf("%v", val)
-	}
 }
 
 // validateInputType validates that a string value matches the expected type

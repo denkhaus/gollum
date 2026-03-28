@@ -22,7 +22,7 @@ func TestExecutor_CaptureError_SetsErrorContextFields(t *testing.T) {
 	}
 
 	exec := NewExecutor(flow)
-	exec.captureError(&flows.Step{Type: "llm", Name: "test-step"}, "test error")
+	exec.captureError(&flows.Step{Type: "llm", Name: "test-step"}, "test error", 0)
 
 	// Check error context is set via dedicated API
 	errorCtx := exec.ctx.GetError()
@@ -30,4 +30,5 @@ func TestExecutor_CaptureError_SetsErrorContextFields(t *testing.T) {
 	assert.Equal(t, "test-step", errorCtx.StepName)
 	assert.Equal(t, "test error", errorCtx.Message)
 	assert.Equal(t, "llm", errorCtx.StepType)
+	assert.Equal(t, 0, errorCtx.ExitCode)
 }
