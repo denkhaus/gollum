@@ -77,7 +77,7 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 	if step.Result != nil {
 		// Handle simple assign
 		if step.Result.AssignTo != "" {
-			scope, fieldName, err := parseAssignTarget(step.Result.AssignTo)
+			scope, fieldName, err := p.parseAssignTarget(step.Result.AssignTo)
 			if err != nil {
 				return fmt.Errorf("invalid assignTo: %w", err)
 			}
@@ -94,7 +94,7 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 		}
 		// Handle path-based outputs
 		for _, path := range step.Result.Paths {
-			scope, fieldName, err := parseAssignTarget(path.AssignTo)
+			scope, fieldName, err := p.parseAssignTarget(path.AssignTo)
 			if err != nil {
 				return fmt.Errorf("invalid path assignTo: %w", err)
 			}

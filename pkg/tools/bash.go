@@ -166,7 +166,9 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args ToolRequestParam
 
 	t.logService.InfoWithAgent("Command succeeded", t.agentID,
 		zap.Float64("duration_seconds", duration.Seconds()),
-		zap.String("command", command))
+		zap.String("command", command),
+		zap.Int("exit_code", 0),
+		zap.String("stdout", stdoutStr))
 	result[string(shared.KeySuccess)] = true
 	result[string(shared.KeyExitCode)] = 0
 

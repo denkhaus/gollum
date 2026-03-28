@@ -7,8 +7,8 @@ import (
 	"github.com/denkhaus/gollum/pkg/flows"
 )
 
-// Substitution matches ${input.field}, ${context.field}, ${output.field}, ${computed.field}
-var subRegex = regexp.MustCompile(`\$\{(input|context|output|computed)\.([^}]+)\}`)
+// Substitution matches ${input.field}, ${context.field}, ${output.field}, ${computed.field}, ${sys.field}
+var subRegex = regexp.MustCompile(`\$\{(input|context|output|computed|sys)\.([^}]+)\}`)
 
 // substituteTemplate replaces variables in template strings (internal helper)
 // Templates MUST use ${} notation (e.g., ${input.field}, ${context.field})
@@ -46,6 +46,9 @@ func substituteTemplate(ctx ExecutionContext, tmpl string) string {
 			if err != nil {
 				value = nil
 			}
+		case flows.FlowVariableScopeSys:
+			// sys scope provides system variables like error context
+			value = ctx.GetSysField(field)
 		}
 
 		if value == nil {

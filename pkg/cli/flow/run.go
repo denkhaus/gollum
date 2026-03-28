@@ -136,28 +136,7 @@ func displayOutputs(w writer, result *executor.FlowResult) {
 
 	fmt.Fprintf(w, "\nOutputs:\n")
 	for name, value := range result.Outputs {
-		fmt.Fprintf(w, "  %s: %s\n", name, anyToString(value))
-	}
-}
-
-// anyToString converts any value to string for display
-func anyToString(v any) string {
-	if v == nil {
-		return ""
-	}
-	switch val := v.(type) {
-	case string:
-		return val
-	case int:
-		return fmt.Sprintf("%d", val)
-	case int64:
-		return fmt.Sprintf("%d", val)
-	case float64:
-		return fmt.Sprintf("%f", val)
-	case bool:
-		return fmt.Sprintf("%t", val)
-	default:
-		return fmt.Sprintf("%v", val)
+		fmt.Fprintf(w, "  %s: %s\n", name, shared.AnyToString(value))
 	}
 }
 
