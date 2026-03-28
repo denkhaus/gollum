@@ -8,35 +8,34 @@
     </input>
 
     <output>
-        <int name="score" />
+        <float name="score" />
     </output>
 
     <context>
         <string name="target_dir" required="true" />
-        <int name="score" />
-        <string name="cyclomatic_output" />
-        <int name="exit_code" />
+        <float name="score" />
     </context>
 
     <states>
         <state name="calculate" initial="true">
             <steps>
                 <step type="shell" name="run-gocyclo">
-                    <cmd><![CDATA[gocyclo -avg ${input.target_dir}]]></cmd>
+                    <cmd><![CDATA[gocyclo -avg ${input.target_dir} | awk '/Average/{print $2}']]></cmd>
                     <result>
-                        <string name="stdout" assignTo="context.cyclomatic_output" />
-                        <int name="exit_code" assignTo="context.exit_code" />
+                        <string path="stdout" assignTo="output.score" />
                     </result>
-                    <timeout>60s</timeout>
+                    <timeout>5s</timeout>
                     <on-error state="error" />
                 </step>
 
-                <step type="func" function="Atoi">
+                <!--
+                This is not needed since we have buildin type conversion between assignments
+                <step type="func" function="Atof64">
                     <params>
                         <param name="s" assignFrom="context.cyclomatic_output" />
                     </params>
                     <result assignTo="output.score" />
-                </step>
+                </step> -->
             </steps>
 
             <transitions>
@@ -50,6 +49,7 @@
                     <prompt><![CDATA[
                         Complexity check failed:
                         Error: ${sys.error.message}
+                        ExitCode: ${sys.error.exitCode}
 
                         Use emit_log to report the error.
                     ]]></prompt>

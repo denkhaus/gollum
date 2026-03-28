@@ -18,7 +18,7 @@ Demonstrates: Conditional execution, module calls (main.xml entry point), sub-fl
     <output>
         <string name="status" />
         <string name="summary" />
-        <int name="complexity_score" />
+        <float name="complexity_score" />
     </output>
 
     <context>
@@ -27,7 +27,7 @@ Demonstrates: Conditional execution, module calls (main.xml entry point), sub-fl
             <string name="summary" />
         </object>
 
-        <int name="complexity_score" />
+        <float name="complexity_score" />
     </context>
 
     <computed>
@@ -77,7 +77,7 @@ Demonstrates: Conditional execution, module calls (main.xml entry point), sub-fl
                         <string name="scan_type" assignFrom="input.scan_type" />
                     </input>
                     <output>
-                        <int name="complexity_score" assignTo="context.complexity_score" />
+                        <float name="complexity_score" assignTo="context.complexity_score" />
                     </output>
                     <on-error state="error" />
                 </call>
@@ -88,7 +88,7 @@ Demonstrates: Conditional execution, module calls (main.xml entry point), sub-fl
                         <string name="target_dir" assignFrom="input.target_dir" />
                     </input>
                     <output>
-                        <int name="score" assignTo="context.complexity_score" />
+                        <float name="score" assignTo="context.complexity_score" />
                     </output>
                     <on-error state="error" />
                 </call>

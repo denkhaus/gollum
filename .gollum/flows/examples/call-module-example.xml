@@ -13,7 +13,7 @@
     </input>
 
     <output>
-        <int name="complexity_score" />
+        <float name="complexity_score" />
         <string name="security_status" />
         <string name="summary" />
     </output>
@@ -21,7 +21,7 @@
     <context>
         <int name="line_count" />
         <object name="analysis">
-            <int name="complexity" />
+            <float name="complexity" />
             <int name="security_issues" />
             <string name="summary" />
         </object>
@@ -44,7 +44,7 @@
                         <string name="target_dir" assignFrom="input.working_dir" />
                     </input>
                     <output>
-                        <int name="score" assignTo="context.analysis.complexity" />
+                        <float name="score" assignTo="context.analysis.complexity" />
                     </output>
                     <on-error state="error" />
                 </call>

@@ -12,13 +12,13 @@
     </input>
 
     <output>
-        <int name="complexity_score" />
+        <float name="complexity_score" />
         <int name="security_issues" />
         <string name="summary" />
     </output>
 
     <context>
-        <int name="complexity_score" />
+        <float name="complexity_score" />
         <int name="security_issues" />
     </context>
 
@@ -31,7 +31,7 @@
                         <string name="target_dir" assignFrom="input.target_dir" />
                     </input>
                     <output>
-                        <int name="score" assignTo="context.complexity_score" />
+                        <float name="score" assignTo="context.complexity_score" />
                     </output>
                     <on-error state="error" />
                 </call>

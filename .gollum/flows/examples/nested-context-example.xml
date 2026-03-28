@@ -23,7 +23,6 @@ Demonstr: Nested objects, computed fields, expression syntax
         <!-- Simple fields -->
         <int name="line_count" />
         <int name="function_count" />
-        <int name="exit_code" />
 
         <!-- Nested object for organization) -->
         <object name="metrics">
@@ -59,9 +58,9 @@ Demonstr: Nested objects, computed fields, expression syntax
             <steps>
                 <!-- Calculate metrics -->
                 <step type="shell">
-                    <cmd><![CDATA[wc -l ${input.target} | awk -1 | tail -1]]></cmd>
+                    <cmd><![CDATA[wc -l ${input.target} | awk '{print $1}' | tail -1]]></cmd>
                     <result>
-                        <int path="exit_code" assignTo="context.exit_code" />
+                        <string path="stdout" assignTo="context.line_count_output" />
                     </result>
                     <timeout>60s</timeout>
                     <on-error state="error" />
@@ -104,7 +103,7 @@ Demonstr: Nested objects, computed fields, expression syntax
                 <step type="llm" agent="analyzer">
                     <prompt><![CDATA[
                         Analysis failed for target: ${input.target}
-                        Error: ${context.last_error}
+                        Error: ${sys.error.message}
 
                         Provide error assessment.
                     ]]></prompt>
