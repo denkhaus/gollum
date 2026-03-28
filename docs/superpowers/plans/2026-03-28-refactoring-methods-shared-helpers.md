@@ -14,7 +14,7 @@
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `pkg/shared/conversions.go` | CREATE | Type-checking helpers (IsInt, IsFloat, IsNumeric, IsWholeNumber) |
+| `pkg/shared/conversions.go` | CREATE | Type-checking helpers (IsInt, IsActualIntType, IsWholeNumber) |
 | `pkg/shared/conversions_test.go` | CREATE | Tests for new helpers |
 | `pkg/shared/char_helpers.go` | CREATE | Character classification (IsIdentStart, IsIdentPart, IsDigit) |
 | `pkg/shared/char_helpers_test.go` | CREATE | Tests for char helpers |
@@ -30,6 +30,8 @@
 **Files:**
 - Create: `pkg/shared/conversions.go`
 - Create: `pkg/shared/conversions_test.go`
+
+> **Note:** `ConvertToBool` and `ConvertToFloat` already exist in `pkg/shared/flow_result.go`. This task adds only the type-checking helpers (IsInt, IsActualIntType, IsWholeNumber).
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -285,12 +287,12 @@ Expected: All tests PASS
 In `pkg/flows/ast/evaluator.go`, replace:
 
 ```go
-// DELETE these functions (lines 181-206):
-func toFloat64(v any) (float64, error) { ... }
-func toBool(v any) (bool, error) { ... }
-func isWholeNumber(f float64) bool { ... }
-func isInt(v any) bool { ... }
-func isActualIntType(v any) bool { ... }
+// DELETE these functions (lines 181-297):
+func toFloat64(v any) (float64, error) { ... }       // line 181
+func toBool(v any) (bool, error) { ... }            // line 198
+func isWholeNumber(f float64) bool { ... }          // line 271
+func isInt(v any) bool { ... }                      // line 276
+func isActualIntType(v any) bool { ... }            // line 290
 ```
 
 Replace calls in `compare()`, `logicalAnd()`, `logicalOr()`, `logicalNot()`, `arithmetic()`, `divide()`:
@@ -353,15 +355,33 @@ git commit -m "refactor(ast): use shared type conversion helpers in evaluator"
 Run: `cd /home/denkhaus/dev/gomodules/gollum && go test ./pkg/flows/ast/... -run TestLex -v`
 Expected: All tests PASS
 
-- [ ] **Step 2: Replace local helpers with shared functions**
+- [ ] **Step 2: Add shared import**
+
+In `pkg/flows/ast/lexer.go`, add the shared import:
+
+```go
+// Before:
+import (
+	"unicode"
+)
+
+// After:
+import (
+	"unicode"
+
+	"github.com/denkhaus/gollum/pkg/shared"
+)
+```
+
+- [ ] **Step 3: Replace local helpers with shared functions**
 
 In `pkg/flows/ast/lexer.go`, delete the local functions and update calls:
 
 ```go
-// DELETE these functions (lines 124-137):
-func isIdentStart(ch byte) bool { ... }
-func isIdentPart(ch byte) bool { ... }
-func isDigit(ch byte) bool { ... }
+// DELETE these functions (lines 125-137):
+func isIdentStart(ch byte) bool { ... }  // line 125
+func isIdentPart(ch byte) bool { ... }   // line 130
+func isDigit(ch byte) bool { ... }       // line 135
 ```
 
 Update all calls from `isIdentStart(ch)` to `shared.IsIdentStart(ch)`, etc.
@@ -394,12 +414,12 @@ for pos < len(input) && shared.IsDigit(input[pos]) ...
 
 Also delete the `unicode` import since it's no longer needed (line 4).
 
-- [ ] **Step 3: Run tests to verify no regression**
+- [ ] **Step 4: Run tests to verify no regression**
 
 Run: `cd /home/denkhaus/dev/gomodules/gollum && go test ./pkg/flows/ast/... -v`
 Expected: All tests PASS
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add pkg/flows/ast/lexer.go
