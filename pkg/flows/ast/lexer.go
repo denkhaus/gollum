@@ -2,6 +2,8 @@ package ast
 
 import (
 	"unicode"
+
+	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 // TokenType represents a token type
@@ -42,10 +44,10 @@ func Lex(input string) ([]Token, error) {
 		}
 
 		// Identifiers and keywords
-		if isIdentStart(ch) {
+		if shared.IsIdentStart(ch) {
 			start := pos
 			pos++
-			for pos < len(input) && isIdentPart(input[pos]) {
+			for pos < len(input) && shared.IsIdentPart(input[pos]) {
 				pos++
 			}
 			tokens = append(tokens, Token{
@@ -79,17 +81,17 @@ func Lex(input string) ([]Token, error) {
 		}
 
 		// Numbers
-		if isDigit(ch) || (ch == '-' && pos+1 < len(input) && isDigit(input[pos+1])) {
+		if shared.IsDigit(ch) || (ch == '-' && pos+1 < len(input) && shared.IsDigit(input[pos+1])) {
 			start := pos
 			if ch == '-' {
 				pos++
 			}
-			for pos < len(input) && isDigit(input[pos]) {
+			for pos < len(input) && shared.IsDigit(input[pos]) {
 				pos++
 			}
 			if pos < len(input) && input[pos] == '.' {
 				pos++
-				for pos < len(input) && isDigit(input[pos]) {
+				for pos < len(input) && shared.IsDigit(input[pos]) {
 					pos++
 				}
 			}
@@ -119,21 +121,6 @@ func Lex(input string) ([]Token, error) {
 
 	tokens = append(tokens, Token{Type: TokenEOF, Pos: pos})
 	return tokens, nil
-}
-
-// isIdentStart returns true if ch can start an identifier
-func isIdentStart(ch byte) bool {
-	return ch == '_' || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')
-}
-
-// isIdentPart returns true if ch can be part of an identifier
-func isIdentPart(ch byte) bool {
-	return isIdentStart(ch) || isDigit(ch)
-}
-
-// isDigit returns true if ch is a digit
-func isDigit(ch byte) bool {
-	return ch >= '0' && ch <= '9'
 }
 
 // LexError represents a lexing error
