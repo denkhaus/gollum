@@ -2,7 +2,8 @@ package ast
 
 import (
 	"fmt"
-	"strconv"
+
+	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 // Evaluate evaluates an expression against a context
@@ -106,7 +107,7 @@ func compareEqual(args []any) (bool, error) {
 	}
 
 	// Type coercion for EQ
-	a, b := coerceToString(args[0]), coerceToString(args[1])
+	a, b := shared.AnyToString(args[0]), shared.AnyToString(args[1])
 	return a == b, nil
 }
 
@@ -115,12 +116,12 @@ func compare(args []any, cmp func(a, b float64) bool) (bool, error) {
 		return false, fmt.Errorf("comparison requires 2 arguments, got %d", len(args))
 	}
 
-	a, err := toFloat64(args[0])
+	a, err := shared.ConvertToFloat(args[0])
 	if err != nil {
 		return false, fmt.Errorf("first argument: %w", err)
 	}
 
-	b, err := toFloat64(args[1])
+	b, err := shared.ConvertToFloat(args[1])
 	if err != nil {
 		return false, fmt.Errorf("second argument: %w", err)
 	}
@@ -134,7 +135,7 @@ func logicalAnd(args []any) (bool, error) {
 	}
 
 	for _, arg := range args {
-		b, err := toBool(arg)
+		b, err := shared.ConvertToBool(arg)
 		if err != nil {
 			return false, err
 		}
@@ -151,7 +152,7 @@ func logicalOr(args []any) (bool, error) {
 	}
 
 	for _, arg := range args {
-		b, err := toBool(arg)
+		b, err := shared.ConvertToBool(arg)
 		if err != nil {
 			return false, err
 		}
@@ -167,48 +168,11 @@ func logicalNot(args []any) (bool, error) {
 		return false, fmt.Errorf("NOT requires 1 argument, got %d", len(args))
 	}
 
-	b, err := toBool(args[0])
+	b, err := shared.ConvertToBool(args[0])
 	if err != nil {
 		return false, err
 	}
 	return !b, nil
-}
-
-// Type coercion helpers
-
-func toFloat64(v any) (float64, error) {
-	switch val := v.(type) {
-	case float64:
-		return val, nil
-	case float32:
-		return float64(val), nil
-	case int:
-		return float64(val), nil
-	case int64:
-		return float64(val), nil
-	case string:
-		return strconv.ParseFloat(val, 64)
-	default:
-		return 0, fmt.Errorf("cannot convert %T to float64", v)
-	}
-}
-
-func toBool(v any) (bool, error) {
-	switch val := v.(type) {
-	case bool:
-		return val, nil
-	case string:
-		return strconv.ParseBool(val)
-	default:
-		return false, fmt.Errorf("cannot convert %T to bool", v)
-	}
-}
-
-func coerceToString(v any) string {
-	if v == nil {
-		return ""
-	}
-	return fmt.Sprintf("%v", v)
 }
 
 // arithmetic performs arithmetic operations on two arguments
@@ -217,12 +181,12 @@ func arithmetic(args []any, op func(a, b float64) float64) (any, error) {
 		return nil, fmt.Errorf("arithmetic operation requires 2 arguments, got %d", len(args))
 	}
 
-	a, err := toFloat64(args[0])
+	a, err := shared.ConvertToFloat(args[0])
 	if err != nil {
 		return nil, fmt.Errorf("first argument: %w", err)
 	}
 
-	b, err := toFloat64(args[1])
+	b, err := shared.ConvertToFloat(args[1])
 	if err != nil {
 		return nil, fmt.Errorf("second argument: %w", err)
 	}
@@ -230,7 +194,7 @@ func arithmetic(args []any, op func(a, b float64) float64) (any, error) {
 	result := op(a, b)
 
 	// Return int64 if result is a whole number and both inputs were integers
-	if isWholeNumber(result) && isInt(args[0]) && isInt(args[1]) {
+	if shared.IsWholeNumber(result) && shared.IsInt(args[0]) && shared.IsInt(args[1]) {
 		return int64(result), nil
 	}
 
@@ -243,12 +207,12 @@ func divide(args []any) (any, error) {
 		return nil, fmt.Errorf("DIV requires 2 arguments, got %d", len(args))
 	}
 
-	a, err := toFloat64(args[0])
+	a, err := shared.ConvertToFloat(args[0])
 	if err != nil {
 		return nil, fmt.Errorf("first argument: %w", err)
 	}
 
-	b, err := toFloat64(args[1])
+	b, err := shared.ConvertToFloat(args[1])
 	if err != nil {
 		return nil, fmt.Errorf("second argument: %w", err)
 	}
@@ -258,45 +222,16 @@ func divide(args []any) (any, error) {
 	}
 
 	// Integer division truncates - return int64 when both inputs are actual integer types
-	if isActualIntType(args[0]) && isActualIntType(args[1]) {
+	if shared.IsActualIntType(args[0]) && shared.IsActualIntType(args[1]) {
 		return int64(a / b), nil
 	}
 
 	result := a / b
 
 	// Return int64 if result is a whole number
-	if isWholeNumber(result) {
+	if shared.IsWholeNumber(result) {
 		return int64(result), nil
 	}
 
 	return result, nil
-}
-
-// isWholeNumber checks if a float64 is a whole number
-func isWholeNumber(f float64) bool {
-	return f == float64(int64(f))
-}
-
-// isInt checks if a value is an integer type (int, int64) or a float representing a whole number
-func isInt(v any) bool {
-	switch val := v.(type) {
-	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8:
-		return true
-	case float64:
-		return isWholeNumber(val)
-	case float32:
-		return isWholeNumber(float64(val))
-	default:
-		return false
-	}
-}
-
-// isActualIntType checks if the value's actual type is an integer (not a float that happens to be whole)
-func isActualIntType(v any) bool {
-	switch v.(type) {
-	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8:
-		return true
-	default:
-		return false
-	}
 }
