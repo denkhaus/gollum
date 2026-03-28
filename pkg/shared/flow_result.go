@@ -67,9 +67,18 @@ func ConvertToString(v any) (string, error) {
 		return strconv.FormatFloat(val, 'f', -1, 64), nil
 	case bool:
 		return strconv.FormatBool(val), nil
+	case []byte:
+		return string(val), nil
 	default:
 		return fmt.Sprintf("%v", val), nil
 	}
+}
+
+// AnyToString converts any value to string (non-error version for convenience)
+// Returns empty string for nil, uses fmt.Sprintf as fallback for unknown types
+func AnyToString(v any) string {
+	s, _ := ConvertToString(v)
+	return s
 }
 
 // ConvertToInt converts any value to int
