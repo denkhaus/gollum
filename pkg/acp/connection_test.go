@@ -27,6 +27,8 @@ func TestNewConnection_CreatesValidConnection(t *testing.T) {
 	injector := do.New()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 	do.ProvideValue[channel.ChannelFacade](injector, mockFacade)
+	// Register ACP service provider
+	do.Provide(injector, NewAcpService)
 
 	reader := bytes.NewReader([]byte{})
 	writer := &bytes.Buffer{}
@@ -49,6 +51,8 @@ func TestNewConnection_ImplementsConnectionInterface(t *testing.T) {
 	injector := do.New()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 	do.ProvideValue[channel.ChannelFacade](injector, mockFacade)
+	// Register ACP service provider
+	do.Provide(injector, NewAcpService)
 
 	reader := bytes.NewReader([]byte{})
 	writer := &bytes.Buffer{}
@@ -73,6 +77,8 @@ func TestConnectionImpl_DoneReturnsChannel(t *testing.T) {
 	injector := do.New()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 	do.ProvideValue[channel.ChannelFacade](injector, mockFacade)
+	// Register ACP service provider
+	do.Provide(injector, NewAcpService)
 
 	reader := bytes.NewReader([]byte{})
 	writer := &bytes.Buffer{}
@@ -97,6 +103,8 @@ func TestConnectionImpl_ConnectionCreatedSuccessfully(t *testing.T) {
 	injector := do.New()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 	do.ProvideValue[channel.ChannelFacade](injector, mockFacade)
+	// Register ACP service provider
+	do.Provide(injector, NewAcpService)
 
 	reader := bytes.NewReader([]byte{})
 	writer := &bytes.Buffer{}

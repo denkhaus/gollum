@@ -33,11 +33,8 @@ func NewConnection(injector do.Injector, reader io.Reader, writer io.Writer) Con
 	// Create session store
 	store := acppkg.NewMemoryStore[*AcpSession]()
 
-	// Create ACP service via its DI constructor
-	acpService, err := NewAcpService(injector)
-	if err != nil {
-		panic(err)
-	}
+	// Invoke ACP service from DI container
+	acpService := do.MustInvoke[Service](injector)
 
 	// Set ACP-specific fields
 	acpService.SetClient(nil) // Will be set after connection creation
