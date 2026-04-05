@@ -2,14 +2,14 @@ package acp
 
 import (
 	"context"
+	"fmt"
 
 	acppkg "github.com/ironpark/go-acp"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 
-	"github.com/denkhaus/gollum/pkg/flows/registry"
+	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 // Service defines the public interface for ACP agent operations
@@ -29,11 +29,10 @@ type Service interface {
 
 // acpServiceImpl implements Service (PRIVATE)
 type acpServiceImpl struct {
-	agent        shared.Agent
-	flowRegistry registry.FlowRegistry
-	logger       logger.LoggerService
-	client       acppkg.Client
-	store        acppkg.SessionStore[*AcpSession]
+	facade channel.ChannelFacade
+	logger logger.LoggerService
+	client acppkg.Client
+	store  acppkg.SessionStore[*AcpSession]
 }
 
 // Ensure acpServiceImpl implements Service at compile time
@@ -41,14 +40,14 @@ var _ Service = (*acpServiceImpl)(nil)
 
 // NewAcpService creates a new ACP service with DI
 func NewAcpService(injector do.Injector) (Service, error) {
-	agent := do.MustInvoke[shared.Agent](injector)
-	flowRegistry := do.MustInvoke[registry.FlowRegistry](injector)
 	logger := do.MustInvoke[logger.LoggerService](injector)
+	facade := do.MustInvoke[channel.ChannelFacade](injector)
+
+	logger.Debug("startup ACP service")
 
 	return &acpServiceImpl{
-		agent:        agent,
-		flowRegistry: flowRegistry,
-		logger:       logger,
+		logger: logger,
+		facade:  facade,
 	}, nil
 }
 
@@ -106,11 +105,25 @@ func (s *acpServiceImpl) SetSessionConfigOption(ctx context.Context, params *acp
 	return nil, nil
 }
 
-// Prompt implements acp.Agent.Prompt
-// TODO: Connect to shared.Agent.Execute in Task 6
+// Prompt implements acp.Agent.Prompt - core agent execution loop
+// TODO: Task 6 - Integrate with channel facade SubmitInput
 func (s *acpServiceImpl) Prompt(ctx context.Context, params *acppkg.PromptRequest) (*acppkg.PromptResponse, error) {
-	s.logger.Debug("prompt request", zap.Int("num_blocks", len(params.Prompt)))
-	return nil, nil
+	session, ok := s.store.Get(params.SessionID)
+	if !ok {
+		return nil, fmt.Errorf("session %s not found", params.SessionID)
+	}
+
+	session.CancelFunc()
+	sessionCtx, cancelFunc := context.WithCancel(context.Background())
+	session.Context = sessionCtx
+	session.CancelFunc = cancelFunc
+
+	// TODO: Task 6 - Submit prompt to agent via facade
+	// result, err := s.facade.SubmitInput(sessionCtx, promptContent)
+
+	return &acppkg.PromptResponse{
+		StopReason: acppkg.StopReasonEndTurn,
+	}, nil
 }
 
 // Cancel implements acp.Agent.Cancel

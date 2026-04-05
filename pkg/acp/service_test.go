@@ -10,24 +10,21 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	"github.com/denkhaus/gollum/pkg/flows/registry"
+	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 func TestNewAcpService_DICompliant(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockAgent := shared.NewMockAgent(ctrl)
-	mockFlowRegistry := registry.NewMockFlowRegistry(ctrl)
+	mockFacade := channel.NewMockChannelFacadeService(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 	injector := do.New()
-	do.Provide(injector, func(i do.Injector) (shared.Agent, error) { return mockAgent, nil })
-	do.Provide(injector, func(i do.Injector) (registry.FlowRegistry, error) { return mockFlowRegistry, nil })
+	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
 
 	svc, err := NewAcpService(injector)
@@ -39,15 +36,13 @@ func TestAcpService_Initialize_ReturnsCorrectCapabilities(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockAgent := shared.NewMockAgent(ctrl)
-	mockFlowRegistry := registry.NewMockFlowRegistry(ctrl)
+	mockFacade := channel.NewMockChannelFacadeService(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 	injector := do.New()
-	do.Provide(injector, func(i do.Injector) (shared.Agent, error) { return mockAgent, nil })
-	do.Provide(injector, func(i do.Injector) (registry.FlowRegistry, error) { return mockFlowRegistry, nil })
+	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
 
 	svc, err := NewAcpService(injector)
@@ -67,15 +62,13 @@ func TestAcpService_Authenticate_NotImplemented(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockAgent := shared.NewMockAgent(ctrl)
-	mockFlowRegistry := registry.NewMockFlowRegistry(ctrl)
+	mockFacade := channel.NewMockChannelFacadeService(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 	injector := do.New()
-	do.Provide(injector, func(i do.Injector) (shared.Agent, error) { return mockAgent, nil })
-	do.Provide(injector, func(i do.Injector) (registry.FlowRegistry, error) { return mockFlowRegistry, nil })
+	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
 
 	svc, err := NewAcpService(injector)
@@ -91,15 +84,13 @@ func TestAcpService_SetSessionMode_NotImplemented(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockAgent := shared.NewMockAgent(ctrl)
-	mockFlowRegistry := registry.NewMockFlowRegistry(ctrl)
+	mockFacade := channel.NewMockChannelFacadeService(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 	injector := do.New()
-	do.Provide(injector, func(i do.Injector) (shared.Agent, error) { return mockAgent, nil })
-	do.Provide(injector, func(i do.Injector) (registry.FlowRegistry, error) { return mockFlowRegistry, nil })
+	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
 
 	svc, err := NewAcpService(injector)
@@ -115,15 +106,13 @@ func TestAcpService_SetSessionConfigOption_NotImplemented(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockAgent := shared.NewMockAgent(ctrl)
-	mockFlowRegistry := registry.NewMockFlowRegistry(ctrl)
+	mockFacade := channel.NewMockChannelFacadeService(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 	injector := do.New()
-	do.Provide(injector, func(i do.Injector) (shared.Agent, error) { return mockAgent, nil })
-	do.Provide(injector, func(i do.Injector) (registry.FlowRegistry, error) { return mockFlowRegistry, nil })
+	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
 
 	svc, err := NewAcpService(injector)
@@ -139,39 +128,77 @@ func TestAcpService_Prompt_NotImplemented(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockAgent := shared.NewMockAgent(ctrl)
-	mockFlowRegistry := registry.NewMockFlowRegistry(ctrl)
+	mockFacade := channel.NewMockChannelFacadeService(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 	injector := do.New()
-	do.Provide(injector, func(i do.Injector) (shared.Agent, error) { return mockAgent, nil })
-	do.Provide(injector, func(i do.Injector) (registry.FlowRegistry, error) { return mockFlowRegistry, nil })
+	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
 
 	svc, err := NewAcpService(injector)
 	require.NoError(t, err)
 
-	resp, err := svc.Prompt(context.Background(), &acppkg.PromptRequest{})
+	// Create a simple in-memory session store for testing
+	sessionID := acppkg.SessionID("test-session")
+	session := NewAcpSession(context.Background(), func(){})
+	session.SessionID = sessionID
+
+	// Create a simple mock session store
+	store := &mockSessionStore{
+		sessions: map[acppkg.SessionID]*AcpSession{
+			sessionID: session,
+		},
+	}
+	svc.SetSessionStore(store)
+
+	resp, err := svc.Prompt(context.Background(), &acppkg.PromptRequest{
+		SessionID: sessionID,
+	})
 
 	require.NoError(t, err)
-	assert.Nil(t, resp)
+	assert.NotNil(t, resp)
+	assert.Equal(t, acppkg.StopReasonEndTurn, resp.StopReason)
+}
+
+// mockSessionStore is a simple in-memory session store for testing
+type mockSessionStore struct {
+	sessions map[acppkg.SessionID]*AcpSession
+}
+
+func (m *mockSessionStore) Get(id acppkg.SessionID) (*AcpSession, bool) {
+	sess, ok := m.sessions[id]
+	return sess, ok
+}
+
+func (m *mockSessionStore) Set(id acppkg.SessionID, sess *AcpSession) {
+	m.sessions[id] = sess
+}
+
+func (m *mockSessionStore) Delete(id acppkg.SessionID) {
+	delete(m.sessions, id)
+}
+
+func (m *mockSessionStore) List() []acppkg.SessionID {
+	ids := make([]acppkg.SessionID, 0, len(m.sessions))
+	for id := range m.sessions {
+		ids = append(ids, id)
+	}
+	return ids
 }
 
 func TestAcpService_Cancel_NotImplemented(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockAgent := shared.NewMockAgent(ctrl)
-	mockFlowRegistry := registry.NewMockFlowRegistry(ctrl)
+	mockFacade := channel.NewMockChannelFacadeService(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 	injector := do.New()
-	do.Provide(injector, func(i do.Injector) (shared.Agent, error) { return mockAgent, nil })
-	do.Provide(injector, func(i do.Injector) (registry.FlowRegistry, error) { return mockFlowRegistry, nil })
+	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
 
 	svc, err := NewAcpService(injector)
@@ -185,15 +212,13 @@ func TestAcpService_SetClient(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockAgent := shared.NewMockAgent(ctrl)
-	mockFlowRegistry := registry.NewMockFlowRegistry(ctrl)
+	mockFacade := channel.NewMockChannelFacadeService(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 	injector := do.New()
-	do.Provide(injector, func(i do.Injector) (shared.Agent, error) { return mockAgent, nil })
-	do.Provide(injector, func(i do.Injector) (registry.FlowRegistry, error) { return mockFlowRegistry, nil })
+	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
 
 	svc, err := NewAcpService(injector)
@@ -208,15 +233,13 @@ func TestAcpService_SetSessionStore(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockAgent := shared.NewMockAgent(ctrl)
-	mockFlowRegistry := registry.NewMockFlowRegistry(ctrl)
+	mockFacade := channel.NewMockChannelFacadeService(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 	injector := do.New()
-	do.Provide(injector, func(i do.Injector) (shared.Agent, error) { return mockAgent, nil })
-	do.Provide(injector, func(i do.Injector) (registry.FlowRegistry, error) { return mockFlowRegistry, nil })
+	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
 
 	svc, err := NewAcpService(injector)
