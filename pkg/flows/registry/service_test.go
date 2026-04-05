@@ -222,3 +222,36 @@ func TestFlowRegistryService_NewFlowRegistryService_LoadsWorkspaceFlows(t *testi
 		assert.Contains(t, err.Error(), "flow not found")
 	}
 }
+
+func TestFlowRegistryService_ListFlows_ReturnsAllFlows(t *testing.T) {
+	svc := &flowRegistryServiceImpl{
+		flows:  make(map[string]*flows.Flow),
+		logger: nil,
+	}
+
+	testFlow := &flows.Flow{
+		Name:    "test-flow",
+		Version: "1.0",
+		States: []flows.State{
+			{Name: "init", Initial: true},
+		},
+		Input: &flows.InputBlock{
+			Strings: []flows.FieldDef{
+				{Name: "url", Required: true},
+			},
+		},
+		Output: &flows.OutputBlock{
+			Strings: []flows.FieldDef{
+				{Name: "result"},
+			},
+		},
+	}
+	svc.flows["test-flow"] = testFlow
+
+	infos, err := svc.ListFlows()
+
+	require.NoError(t, err)
+	assert.Len(t, infos, 1)
+	assert.Equal(t, "test-flow", infos[0].Name)
+	assert.Equal(t, "1.0", infos[0].Version)
+}
