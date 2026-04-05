@@ -1,6 +1,6 @@
 module github.com/denkhaus/gollum
 
-go 1.25.0
+go 1.26.1
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
@@ -8,11 +8,13 @@ require (
 	github.com/charmbracelet/bubbles v1.0.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
+	github.com/form3tech-oss/go-xsd-validate v1.0.3
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/git-hulk/langfuse-go v0.1.0
 	github.com/google/uuid v1.6.0
+	github.com/ironpark/go-acp v0.0.0-20260314150148-fe3f8bc41143
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/m-mizutani/gollem v0.23.1
+	github.com/m-mizutani/gollem v0.24.0
 	github.com/samber/do/v2 v2.0.0
 	github.com/stretchr/testify v1.11.1
 	github.com/traefik/yaegi v0.16.1
@@ -21,13 +23,14 @@ require (
 	go.uber.org/zap v1.27.1
 )
 
+replace github.com/ironpark/go-acp => github.com/ironpark/acp-go v0.0.0-20260314150148-fe3f8bc41143
+
 require (
 	github.com/alecthomas/chroma/v2 v2.23.1 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/charmbracelet/x/exp/slice v0.0.0-20260315003922-bbd79dac4a98 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
-	github.com/form3tech-oss/go-xsd-validate v1.0.3 // indirect
 	github.com/go-resty/resty/v2 v2.17.2 // indirect
 	github.com/gofrs/uuid/v5 v5.4.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
@@ -105,7 +108,7 @@ require (
 	google.golang.org/api v0.271.0 // indirect
 	google.golang.org/genai v1.50.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260311181403-84a4fc48630c // indirect
-	google.golang.org/grpc v1.79.2 // indirect
+	google.golang.org/grpc v1.79.3 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 )
