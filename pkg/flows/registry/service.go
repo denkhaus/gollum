@@ -22,6 +22,8 @@ type FlowRegistry interface {
 	Register(name string, flow *flows.Flow)
 	// GetFlow retrieves a flow by reference name
 	GetFlow(ref string) (*flows.Flow, error)
+	// GetFlowInfo returns information about a specific flow
+	GetFlowInfo(name string) (*FlowInfo, error)
 	// ListFlows returns information about all registered flows
 	ListFlows() ([]*FlowInfo, error)
 }
@@ -101,6 +103,15 @@ func (s *flowRegistryServiceImpl) GetFlow(ref string) (*flows.Flow, error) {
 		return nil, fmt.Errorf("flow not found: %s", ref)
 	}
 	return flow, nil
+}
+
+// GetFlowInfo returns information about a specific flow
+func (s *flowRegistryServiceImpl) GetFlowInfo(name string) (*FlowInfo, error) {
+	flow, err := s.GetFlow(name)
+	if err != nil {
+		return nil, err
+	}
+	return s.flowToFlowInfo(flow), nil
 }
 
 // LoadFromMap loads flows from a map (for initialization)
