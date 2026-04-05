@@ -11,7 +11,7 @@ import (
 // Channel is the interface that all channel implementations must satisfy
 type Channel interface {
 	// ID returns a unique identifier for this channel
-	ID() string
+	ID() uuid.UUID
 
 	// OnMessage is called when a new message should be displayed
 	OnMessage(msg Message)
@@ -69,7 +69,7 @@ type ChannelFacade interface {
 	RegisterChannel(channel Channel) error
 
 	// UnregisterChannel removes a channel
-	UnregisterChannel(channelID string) error
+	UnregisterChannel(channelID uuid.UUID) error
 
 	// NotifyAgentLifecycle broadcasts agent lifecycle event
 	NotifyAgentLifecycle(agentID uuid.UUID, role string, added bool)

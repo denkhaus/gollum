@@ -18,7 +18,7 @@ func TestTUIChannel_OnMessage(t *testing.T) {
 	// Create TUIChannel
 	ch := NewTUIChannel(msgChan)
 	require.NotNil(t, ch)
-	assert.Equal(t, "tui", ch.ID())
+	assert.NotEqual(t, uuid.Nil, ch.ID())
 
 	// Create a test message
 	testMsg := channel.Message{
@@ -179,6 +179,17 @@ func TestTUIChannel_SetAgentInfo(t *testing.T) {
 	// Verify agent info is set (we can't access private fields directly,
 	// but we can verify it doesn't panic)
 	assert.NotNil(t, ch)
+}
+
+// TestTUIChannel_ID_ReturnsUUID tests that TUIChannel returns a valid UUID.
+func TestTUIChannel_ID_ReturnsUUID(t *testing.T) {
+	channel := NewTUIChannel(nil)
+
+	id := channel.ID()
+
+	assert.NotEqual(t, uuid.Nil, id)
+	// Should be a valid UUID v4
+	assert.Equal(t, uuid.Version(4), id.Version())
 }
 
 // TestTUIChannel_ImplementsChannelInterface tests that TUIChannel implements channel.Channel.

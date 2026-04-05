@@ -11,7 +11,7 @@ import (
 // TUIChannel implements the channel.Channel interface for the TUI.
 // It forwards messages to the TUI model via the message channel for display.
 type TUIChannel struct {
-	id          string
+	id          uuid.UUID
 	messageChan chan<- channel.Message
 	agentID     uuid.UUID
 	agentRole   string
@@ -22,7 +22,7 @@ type TUIChannel struct {
 // If messageChan is nil, messages will be logged instead.
 func NewTUIChannel(messageChan chan<- channel.Message) *TUIChannel {
 	return &TUIChannel{
-		id:          "tui",
+		id:          uuid.New(),
 		messageChan: messageChan,
 		agentID:     uuid.Nil, // Will be set by SetAgentInfo
 		agentRole:   "assistant",
@@ -36,7 +36,7 @@ func (c *TUIChannel) SetAgentInfo(id uuid.UUID, role string) {
 }
 
 // ID returns the unique identifier for this channel.
-func (c *TUIChannel) ID() string {
+func (c *TUIChannel) ID() uuid.UUID {
 	return c.id
 }
 

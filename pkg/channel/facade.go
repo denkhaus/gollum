@@ -4,14 +4,17 @@ package channel
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/registry"
+	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 // ChannelFacadeService defines the channel facade service interface for DI
@@ -22,7 +25,7 @@ type ChannelFacadeService interface {
 // channelFacadeImpl implements ChannelFacade
 type channelFacadeImpl struct {
 	mu             sync.RWMutex
-	channels       map[string]Channel
+	channels       map[uuid.UUID]Channel
 	commandManager CommandManager
 	registry       registry.AgentRegistry
 	logs           []LogEntry
@@ -44,7 +47,7 @@ func NewChannelFacade(injector do.Injector) (ChannelFacadeService, error) {
 	return &channelFacadeImpl{
 		commandManager: cm,
 		registry:       reg,
-		channels:       make(map[string]Channel),
+		channels:       make(map[uuid.UUID]Channel),
 		logs:           make([]LogEntry, 0, maxLogs),
 		maxLogs:        maxLogs,
 	}, nil
@@ -58,13 +61,12 @@ func (p *channelFacadeImpl) RegisterChannel(channel Channel) error {
 	if _, exists := p.channels[channel.ID()]; exists {
 		return fmt.Errorf("channel %s already registered", channel.ID())
 	}
-
 	p.channels[channel.ID()] = channel
 	return nil
 }
 
-// UnregisterChannel removes a channel
-func (p *channelFacadeImpl) UnregisterChannel(channelID string) error {
+// UnregisterChannel removes a channel from the registry
+func (p *channelFacadeImpl) UnregisterChannel(channelID uuid.UUID) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -121,10 +123,40 @@ func (p *channelFacadeImpl) SubmitInput(ctx context.Context, input string) (Inpu
 		}, nil
 	}
 
-	// Not a command - route through agent executor
-	// Note: GetAgentBySenderID doesn't exist yet in the registry interface
-	// For now, return an error. This will be implemented when the registry is updated.
-	return InputResult{}, fmt.Errorf("agent not found: GetAgentBySenderID not implemented in registry yet")
+	// Not a command - route to agent
+	// Get all registered agents
+	agents := p.registry.ListAll()
+	if len(agents) == 0 {
+		return InputResult{}, fmt.Errorf("no agents registered")
+	}
+
+	// For now, use the first available agent
+	// TODO: Add support for routing to specific agents via sender/channel context
+	var agent shared.Agent
+	for _, a := range agents {
+		agent = a
+		break
+	}
+
+	// Execute agent with input
+	resp, err := agent.Execute(ctx, gollem.Text(input))
+	if err != nil {
+		return InputResult{
+			Handled: true,
+			Error:   err,
+		}, nil
+	}
+
+	// Extract response content
+	var content string
+	if resp != nil && len(resp.Texts) > 0 {
+		content = strings.Join(resp.Texts, "\n")
+	}
+
+	return InputResult{
+		Handled:  true,
+		Response: content,
+	}, nil
 }
 
 // GetLogs returns recent log entries for channels to poll

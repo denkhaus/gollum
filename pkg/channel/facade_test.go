@@ -21,14 +21,14 @@ import (
 
 // mockChannel is a test double for Channel interface
 type mockChannel struct {
-	id       string
+	id       uuid.UUID
 	messages []Message
 	logs     []LogEntry
 	events   []AgentLifecycleEvent
 	mu       sync.Mutex
 }
 
-func newMockChannel(id string) *mockChannel {
+func newMockChannel(id uuid.UUID) *mockChannel {
 	return &mockChannel{
 		id:       id,
 		messages: make([]Message, 0),
@@ -37,7 +37,7 @@ func newMockChannel(id string) *mockChannel {
 	}
 }
 
-func (m *mockChannel) ID() string {
+func (m *mockChannel) ID() uuid.UUID {
 	return m.id
 }
 
@@ -291,7 +291,7 @@ func TestChannelFacade_RegisterChannel_Success(t *testing.T) {
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
 
-	channel := newMockChannel("test-channel")
+	channel := newMockChannel(uuid.New())
 	err = service.RegisterChannel(channel)
 
 	assert.NoError(t, err)
@@ -307,7 +307,7 @@ func TestChannelFacade_RegisterChannel_Duplicate(t *testing.T) {
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
 
-	channel := newMockChannel("test-channel")
+	channel := newMockChannel(uuid.New())
 
 	// Register first time - should succeed
 	err = service.RegisterChannel(channel)
@@ -317,7 +317,7 @@ func TestChannelFacade_RegisterChannel_Duplicate(t *testing.T) {
 	err = service.RegisterChannel(channel)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "already registered")
-	assert.Contains(t, err.Error(), "test-channel")
+	assert.Contains(t, err.Error(), channel.ID().String())
 }
 
 // TestChannelFacade_UnregisterChannel_Success tests successful channel unregistration
@@ -330,12 +330,12 @@ func TestChannelFacade_UnregisterChannel_Success(t *testing.T) {
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
 
-	channel := newMockChannel("test-channel")
+	channel := newMockChannel(uuid.New())
 	err = service.RegisterChannel(channel)
 	require.NoError(t, err)
 
 	// Unregister channel
-	err = service.UnregisterChannel("test-channel")
+	err = service.UnregisterChannel(channel.ID())
 	assert.NoError(t, err)
 }
 
@@ -350,7 +350,7 @@ func TestChannelFacade_UnregisterChannel_NonExistent(t *testing.T) {
 	require.NoError(t, err)
 
 	// Unregister non-existent channel - should not error
-	err = service.UnregisterChannel("non-existent")
+	err = service.UnregisterChannel(uuid.New())
 	assert.NoError(t, err)
 }
 
@@ -366,9 +366,9 @@ func TestChannelFacade_DisplayMessage_BroadcastsToAllChannels(t *testing.T) {
 
 	// Register multiple channels
 	channels := []*mockChannel{
-		newMockChannel("channel-1"),
-		newMockChannel("channel-2"),
-		newMockChannel("channel-3"),
+		newMockChannel(uuid.New()),
+		newMockChannel(uuid.New()),
+		newMockChannel(uuid.New()),
 	}
 
 	for _, ch := range channels {
@@ -406,8 +406,8 @@ func TestChannelFacade_DisplayLog_StoresAndBroadcasts(t *testing.T) {
 
 	// Register multiple channels
 	channels := []*mockChannel{
-		newMockChannel("channel-1"),
-		newMockChannel("channel-2"),
+		newMockChannel(uuid.New()),
+		newMockChannel(uuid.New()),
 	}
 
 	for _, ch := range channels {
@@ -520,7 +520,7 @@ func TestChannelFacade_SubmitInput_NonCommand_NoAgentRouting(t *testing.T) {
 
 	// Since GetAgentBySenderID doesn't exist yet, this should return an error
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "agent not found")
+	assert.Contains(t, err.Error(), "no agents registered")
 	assert.Empty(t, result)
 }
 
@@ -630,9 +630,9 @@ func TestChannelFacade_NotifyAgentLifecycle_BroadcastsToAllChannels(t *testing.T
 
 	// Register multiple channels
 	channels := []*mockChannel{
-		newMockChannel("channel-1"),
-		newMockChannel("channel-2"),
-		newMockChannel("channel-3"),
+		newMockChannel(uuid.New()),
+		newMockChannel(uuid.New()),
+		newMockChannel(uuid.New()),
 	}
 
 	for _, ch := range channels {
@@ -670,7 +670,7 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 	// Register channels concurrently
 	for i := 0; i < 5; i++ {
 		go func(idx int) {
-			ch := newMockChannel(fmt.Sprintf("channel-%d", idx))
+			ch := newMockChannel(uuid.New())
 			_ = service.RegisterChannel(ch)
 			done <- true
 		}(i)
