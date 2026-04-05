@@ -273,6 +273,7 @@ func (p *defaultAgentFactory) CreateSupervisorAgent(ctx context.Context, opts ..
 
 	// Create agent config
 	agentConfig := &shared.AgentConfig{
+		IsSupervisor:    true,
 		AllowCompaction: true,
 		SystemPrompt:    systemPrompt,
 		AllowedTools:    allowedTools,

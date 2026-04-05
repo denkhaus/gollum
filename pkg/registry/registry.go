@@ -57,6 +57,8 @@ type (
 		SetCancelFunc(agentID uuid.UUID, cancel context.CancelFunc) error
 		// DeleteAgentResult removes a stored agent result
 		DeleteAgentResult(agentID uuid.UUID) error
+		// GetSupervisorAgent returns the singleton supervisor agent
+		GetSupervisorAgent() (shared.Agent, error)
 	}
 
 	agentHandle struct {
@@ -633,4 +635,18 @@ func (r *agentRegistry) DeleteAgentResult(agentID uuid.UUID) error {
 
 	delete(r.agentResults, agentID)
 	return nil
+}
+
+// GetSupervisorAgent returns the singleton supervisor agent
+func (r *agentRegistry) GetSupervisorAgent() (shared.Agent, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	for _, handle := range r.agents {
+		if handle.config != nil && handle.config.IsSupervisor {
+			return handle.agent, nil
+		}
+	}
+
+	return nil, errs.NotFoundf("no supervisor agent registered")
 }

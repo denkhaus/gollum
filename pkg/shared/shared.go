@@ -259,6 +259,7 @@ type AgentConfig struct {
 	OutputMode      OutputMode       `json:"output_mode"`
 	AllowCompaction bool             `json:"allow_compaction"`
 	History         *gollem.History  `json:"history,omitempty"` // Optional parent message history for context awareness
+	IsSupervisor    bool             `json:"is_supervisor"`     // Indicates this is the singleton supervisor agent
 
 	// AllowedTools specifies which tools the agent can access.
 	// Built-in tools use ToolName constants (e.g., "bash", "current_time").

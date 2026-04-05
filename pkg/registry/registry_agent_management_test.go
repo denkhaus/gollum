@@ -628,3 +628,148 @@ func setupTestInjector() do.Injector {
 		MaxSubAgentsPerParent: 50,
 	})
 }
+
+func TestAgentRegistry_GetSupervisorAgent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector()
+
+	registry, err := NewAgentRegistry(injector)
+	require.NoError(t, err)
+
+	t.Run("ReturnsSupervisorWhenRegistered", func(t *testing.T) {
+		supervisorID := uuid.New()
+
+		// Create mock supervisor
+		mockSupervisor := shared.NewMockAgent(ctrl)
+		mockSupervisor.EXPECT().GetID().Return(supervisorID).AnyTimes()
+		mockSupervisor.EXPECT().GetConfig().Return(&shared.AgentConfig{
+			ID:           supervisorID,
+			IsSupervisor: true,
+			Role:         "Supervisor Agent",
+		}).AnyTimes()
+
+		// Register supervisor
+		supervisorConfig := &shared.AgentConfig{
+			ID:           supervisorID,
+			IsSupervisor: true,
+			Role:         "Supervisor Agent",
+		}
+		err = registry.Register(mockSupervisor, supervisorConfig)
+		require.NoError(t, err)
+
+		// Get supervisor
+		supervisor, err := registry.GetSupervisorAgent()
+		require.NoError(t, err)
+		require.NotNil(t, supervisor)
+		assert.Equal(t, supervisorID, supervisor.GetID())
+	})
+
+	t.Run("ReturnsErrorWhenNoSupervisorRegistered", func(t *testing.T) {
+		// Create new registry with no agents
+		emptyRegistry, err := NewAgentRegistry(setupTestInjector())
+		require.NoError(t, err)
+
+		// Try to get supervisor
+		supervisor, err := emptyRegistry.GetSupervisorAgent()
+		require.Error(t, err)
+		require.Nil(t, supervisor)
+		assert.Contains(t, err.Error(), "no supervisor agent registered")
+	})
+
+	t.Run("ReturnsSupervisorWhenMultipleAgentsRegistered", func(t *testing.T) {
+		// Create fresh registry for this test
+		testRegistry, err := NewAgentRegistry(setupTestInjector())
+		require.NoError(t, err)
+
+		supervisorID := uuid.New()
+		regularID := uuid.New()
+
+		// Create mock supervisor
+		mockSupervisor := shared.NewMockAgent(ctrl)
+		mockSupervisor.EXPECT().GetID().Return(supervisorID).AnyTimes()
+		mockSupervisor.EXPECT().GetConfig().Return(&shared.AgentConfig{
+			ID:           supervisorID,
+			IsSupervisor: true,
+			Role:         "Supervisor Agent",
+		}).AnyTimes()
+
+		// Create mock regular agent
+		mockRegular := shared.NewMockAgent(ctrl)
+		mockRegular.EXPECT().GetID().Return(regularID).AnyTimes()
+		mockRegular.EXPECT().GetConfig().Return(&shared.AgentConfig{
+			ID:           regularID,
+			IsSupervisor: false,
+			Role:         "Regular Agent",
+			LLMClientConfig: &shared.LLMClientConfig{
+				Model: "anthropic/claude-3-5-sonnet-20241022",
+			},
+		}).AnyTimes()
+
+		// Register both agents
+		supervisorConfig := &shared.AgentConfig{
+			ID:           supervisorID,
+			IsSupervisor: true,
+			Role:         "Supervisor Agent",
+		}
+		err = testRegistry.Register(mockSupervisor, supervisorConfig)
+		require.NoError(t, err)
+
+		regularConfig := &shared.AgentConfig{
+			ID:           regularID,
+			IsSupervisor: false,
+			Role:         "Regular Agent",
+			LLMClientConfig: &shared.LLMClientConfig{
+				Model: "anthropic/claude-3-5-sonnet-20241022",
+			},
+		}
+		err = testRegistry.Register(mockRegular, regularConfig)
+		require.NoError(t, err)
+
+		// Get supervisor - should return supervisor, not regular agent
+		supervisor, err := testRegistry.GetSupervisorAgent()
+		require.NoError(t, err)
+		require.NotNil(t, supervisor)
+		assert.Equal(t, supervisorID, supervisor.GetID())
+		assert.NotEqual(t, regularID, supervisor.GetID())
+	})
+
+	t.Run("ReturnsErrorWhenOnlyRegularAgentsRegistered", func(t *testing.T) {
+		// Create new registry with only regular agents
+		testRegistry, err := NewAgentRegistry(setupTestInjector())
+		require.NoError(t, err)
+
+		regularID := uuid.New()
+
+		// Create mock regular agent
+		mockRegular := shared.NewMockAgent(ctrl)
+		mockRegular.EXPECT().GetID().Return(regularID).AnyTimes()
+		mockRegular.EXPECT().GetConfig().Return(&shared.AgentConfig{
+			ID:           regularID,
+			IsSupervisor: false,
+			Role:         "Regular Agent",
+			LLMClientConfig: &shared.LLMClientConfig{
+				Model: "anthropic/claude-3-5-sonnet-20241022",
+			},
+		}).AnyTimes()
+
+		// Register regular agent
+		regularConfig := &shared.AgentConfig{
+			ID:           regularID,
+			IsSupervisor: false,
+			Role:         "Regular Agent",
+			LLMClientConfig: &shared.LLMClientConfig{
+				Model: "anthropic/claude-3-5-sonnet-20241022",
+			},
+		}
+		err = testRegistry.Register(mockRegular, regularConfig)
+		require.NoError(t, err)
+
+		// Try to get supervisor - should fail
+		supervisor, err := testRegistry.GetSupervisorAgent()
+		require.Error(t, err)
+		require.Nil(t, supervisor)
+		assert.Contains(t, err.Error(), "no supervisor agent registered")
+	})
+}
