@@ -31,6 +31,7 @@ func RootCommand() *cli.Command {
 		Action: r.run,
 		Commands: []*cli.Command{
 			flow.FlowCommandGroup(),
+			ACPCommand(),
 		},
 	}
 }
