@@ -2,10 +2,7 @@ package cli
 
 import (
 	"context"
-	"log"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/denkhaus/gollum/pkg/acp"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -16,7 +13,7 @@ import (
 func ACPCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "acp",
-		Usage: "Start Gollum ACP server (Agent Client Protocol)",
+	Usage: "Start Gollum ACP server (Agent Client Protocol)",
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			return runACPServer(ctx, cmd)
 		},
@@ -28,19 +25,10 @@ func runACPServer(ctx context.Context, cmd *cli.Command) error {
 	injector := shared.MustGetInjectorFromRoot(cmd)
 
 	// Create ACP connection via factory
-	conn := acp.NewConnection(injector, os.Stdin, os.Stdout)
-
-	// Handle shutdown gracefully
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-sigCh
-		log.Println("ACP server shutting down...")
-		cancel()
-	}()
+	conn, err := acp.NewConnection(injector, os.Stdin, os.Stdout)
+	if err != nil {
+		return err
+	}
 
 	// Start connection
 	if err := conn.Start(ctx); err != nil {

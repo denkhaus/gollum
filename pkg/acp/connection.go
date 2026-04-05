@@ -2,6 +2,8 @@ package acp
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 
 	acppkg "github.com/ironpark/go-acp"
@@ -21,20 +23,23 @@ type connectionImpl struct {
 }
 
 // NewConnection creates a new ACP connection with DI
-func NewConnection(injector do.Injector, reader io.Reader, writer io.Writer) Connection {
+func NewConnection(injector do.Injector, reader io.Reader, writer io.Writer) (Connection, error) {
 	// Validate parameters
 	if reader == nil {
-		panic("reader cannot be nil")
+		return nil, errors.New("reader cannot be nil")
 	}
 	if writer == nil {
-		panic("writer io.Writer cannot be nil")
+		return nil, errors.New("writer cannot be nil")
 	}
 
 	// Create session store
 	store := acppkg.NewMemoryStore[*AcpSession]()
 
 	// Invoke ACP service from DI container
-	acpService := do.MustInvoke[Service](injector)
+	acpService, err := do.Invoke[Service](injector)
+	if err != nil {
+		return nil, fmt.Errorf("ACP service not found in DI container: %w", err)
+	}
 
 	// Set ACP-specific fields
 	acpService.SetClient(nil) // Will be set after connection creation
@@ -52,7 +57,7 @@ func NewConnection(injector do.Injector, reader io.Reader, writer io.Writer) Con
 	// Set client on service
 	acpService.SetClient(conn.Client())
 
-	return &connectionImpl{conn: conn}
+	return &connectionImpl{conn: conn}, nil
 }
 
 func (p *connectionImpl) Start(ctx context.Context) error {
