@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
+	"go.uber.org/zap"
 )
 
 type (
@@ -495,8 +496,13 @@ func (t *executeFlowTool) runExecuteFlow(ctx context.Context, args ToolRequestPa
 	// Get flow name
 	flowName, errResp := args.MustGetString(shared.ParamFlowName)
 	if errResp != nil {
-		return nil, fmt.Errorf("flowName is required")
+		return errResp, nil
 	}
+
+	// Log operation start
+	t.logService.Info("ExecuteFlow operation started",
+		zap.String("agent_id", t.agentID.String()),
+		zap.String("flow_name", flowName))
 
 	// Get inputs (optional)
 	inputs := args.GetStringMap(shared.ParamInputs)
@@ -512,14 +518,28 @@ func (t *executeFlowTool) runExecuteFlow(ctx context.Context, args ToolRequestPa
 	// Get flow from registry
 	flow, err := t.flowRegistry.GetFlow(flowName)
 	if err != nil {
-		return nil, fmt.Errorf("flow not found: %w", err)
+		t.logService.Error("Flow not found",
+			zap.String("agent_id", t.agentID.String()),
+			zap.String("flow_name", flowName),
+			zap.Error(err))
+		return ErrorResponse("flow not found: %s", flowName), nil
 	}
 
 	// Execute the flow
 	result, err := t.executor.Execute(ctx, flow, inputsAny)
 	if err != nil {
-		return nil, fmt.Errorf("flow execution failed: %w", err)
+		t.logService.Error("Flow execution failed",
+			zap.String("agent_id", t.agentID.String()),
+			zap.String("flow_name", flowName),
+			zap.Error(err))
+		return ErrorResponse("flow execution failed: %v", err), nil
 	}
+
+	// Log success
+	t.logService.Info("ExecuteFlow operation completed successfully",
+		zap.String("agent_id", t.agentID.String()),
+		zap.String("flow_name", flowName),
+		zap.Int("output_count", len(result.Outputs)))
 
 	// Return success with outputs
 	return SuccessResponse(map[string]any{

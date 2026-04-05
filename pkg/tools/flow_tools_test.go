@@ -52,6 +52,10 @@ func TestExecuteFlowTool_Run_Success(t *testing.T) {
 	// Expect flow lookup
 	mockRegistry.EXPECT().GetFlow("test-flow").Return(testFlow, nil)
 
+	// Expect logging calls
+	mockLogger.EXPECT().Info("ExecuteFlow operation started", gomock.Any()).Times(1)
+	mockLogger.EXPECT().Info("ExecuteFlow operation completed successfully", gomock.Any()).Times(1)
+
 	// Setup executor to return success
 	mockExecutor.executeFunc = func(ctx context.Context, flow *flows.Flow, inputs map[string]any) (*flows.FlowExecutionResult, error) {
 		return &flows.FlowExecutionResult{
@@ -85,14 +89,15 @@ func TestExecuteFlowTool_Run_MissingFlowName(t *testing.T) {
 
 	tool := NewExecuteFlowTool(mockRegistry, mockExecutor, mockLogger)
 
-	// Run without flowName
+	// Run without flowName - now returns error response map, not Go error
 	result, err := tool.Run(context.Background(), map[string]any{
 		"inputs": map[string]any{},
 	})
 
-	require.Error(t, err)
-	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "flowName is required")
+	require.NoError(t, err) // No Go error, error is in response map
+	assert.NotNil(t, result)
+	assert.Equal(t, false, result[string(shared.KeySuccess)])
+	assert.Contains(t, result[string(shared.KeyError)], "flowName")
 }
 
 func TestExecuteFlowTool_Run_FlowNotFound(t *testing.T) {
@@ -108,15 +113,20 @@ func TestExecuteFlowTool_Run_FlowNotFound(t *testing.T) {
 	// Expect flow lookup to fail
 	mockRegistry.EXPECT().GetFlow("non-existent").Return(nil, assert.AnError)
 
-	// Run the tool
+	// Expect logging calls
+	mockLogger.EXPECT().Info("ExecuteFlow operation started", gomock.Any()).Times(1)
+	mockLogger.EXPECT().Error("Flow not found", gomock.Any()).Times(1)
+
+	// Run the tool - now returns error response map, not Go error
 	result, err := tool.Run(context.Background(), map[string]any{
 		"flowName": "non-existent",
 		"inputs":   map[string]any{},
 	})
 
-	require.Error(t, err)
-	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "flow not found")
+	require.NoError(t, err) // No Go error, error is in response map
+	assert.NotNil(t, result)
+	assert.Equal(t, false, result[string(shared.KeySuccess)])
+	assert.Contains(t, result[string(shared.KeyError)], "flow not found")
 }
 
 func TestExecuteFlowTool_Run_NilInputs(t *testing.T) {
@@ -135,6 +145,10 @@ func TestExecuteFlowTool_Run_NilInputs(t *testing.T) {
 
 	// Expect flow lookup
 	mockRegistry.EXPECT().GetFlow("test-flow").Return(testFlow, nil)
+
+	// Expect logging calls
+	mockLogger.EXPECT().Info("ExecuteFlow operation started", gomock.Any()).Times(1)
+	mockLogger.EXPECT().Info("ExecuteFlow operation completed successfully", gomock.Any()).Times(1)
 
 	// Run the tool with nil inputs
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -162,20 +176,25 @@ func TestExecuteFlowTool_Run_ExecutionError(t *testing.T) {
 	// Expect flow lookup
 	mockRegistry.EXPECT().GetFlow("test-flow").Return(testFlow, nil)
 
+	// Expect logging calls
+	mockLogger.EXPECT().Info("ExecuteFlow operation started", gomock.Any()).Times(1)
+	mockLogger.EXPECT().Error("Flow execution failed", gomock.Any()).Times(1)
+
 	// Setup executor to return error
 	mockExecutor.executeFunc = func(ctx context.Context, flow *flows.Flow, inputs map[string]any) (*flows.FlowExecutionResult, error) {
 		return nil, assert.AnError
 	}
 
-	// Run the tool
+	// Run the tool - now returns error response map, not Go error
 	result, err := tool.Run(context.Background(), map[string]any{
 		"flowName": "test-flow",
 		"inputs":   map[string]any{},
 	})
 
-	require.Error(t, err)
-	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "flow execution failed")
+	require.NoError(t, err) // No Go error, error is in response map
+	assert.NotNil(t, result)
+	assert.Equal(t, false, result[string(shared.KeySuccess)])
+	assert.Contains(t, result[string(shared.KeyError)], "flow execution failed")
 }
 
 func TestExecuteFlowTool_Spec(t *testing.T) {
