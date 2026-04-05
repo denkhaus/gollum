@@ -170,101 +170,16 @@ func (s *flowRegistryServiceImpl) ListFlows() ([]*FlowInfo, error) {
 	return result, nil
 }
 
-// flowToFlowInfo converts a Flow to FlowInfo
+// flowToFlowInfo converts a Flow to FlowInfo for tool discovery.
+// It extracts metadata about the flow's inputs, outputs, and states.
 func (s *flowRegistryServiceImpl) flowToFlowInfo(flow *flows.Flow) *FlowInfo {
-	var inputFields []FieldInfo
-	if flow.Input != nil {
-		inputFields = make([]FieldInfo, 0, len(flow.Input.Strings)+len(flow.Input.Ints)+len(flow.Input.Bools)+len(flow.Input.Floats)+len(flow.Input.Arrays)+len(flow.Input.Maps)+len(flow.Input.Objects))
-		for _, f := range flow.Input.Strings {
-			inputFields = append(inputFields, FieldInfo{
-				Name:     f.Name,
-				Type:     string(flows.TypeString),
-				Required: f.Required,
-			})
-		}
-		for _, f := range flow.Input.Ints {
-			inputFields = append(inputFields, FieldInfo{
-				Name:     f.Name,
-				Type:     string(flows.TypeInt),
-				Required: f.Required,
-			})
-		}
-		for _, f := range flow.Input.Bools {
-			inputFields = append(inputFields, FieldInfo{
-				Name:     f.Name,
-				Type:     string(flows.TypeBool),
-				Required: f.Required,
-			})
-		}
-		for _, f := range flow.Input.Floats {
-			inputFields = append(inputFields, FieldInfo{
-				Name:     f.Name,
-				Type:     string(flows.TypeFloat),
-				Required: f.Required,
-			})
-		}
-		for _, f := range flow.Input.Arrays {
-			inputFields = append(inputFields, FieldInfo{
-				Name:     f.Name,
-				Type:     string(flows.TypeArray),
-				Required: f.Required,
-			})
-		}
-		for _, f := range flow.Input.Maps {
-			inputFields = append(inputFields, FieldInfo{
-				Name:     f.Name,
-				Type:     string(flows.TypeMap),
-				Required: f.Required,
-			})
-		}
-		for _, f := range flow.Input.Objects {
-			inputFields = append(inputFields, FieldInfo{
-				Name:     f.Name,
-				Type:     string(flows.TypeObject),
-				Required: false,
-			})
-		}
+	if flow == nil {
+		return nil
 	}
 
-	var outputFields []FieldInfo
-	if flow.Output != nil {
-		outputFields = make([]FieldInfo, 0, len(flow.Output.Strings)+len(flow.Output.Ints)+len(flow.Output.Bools)+len(flow.Output.Floats)+len(flow.Output.Objects))
-		for _, f := range flow.Output.Strings {
-			outputFields = append(outputFields, FieldInfo{
-				Name: f.Name,
-				Type: string(flows.TypeString),
-			})
-		}
-		for _, f := range flow.Output.Ints {
-			outputFields = append(outputFields, FieldInfo{
-				Name: f.Name,
-				Type: string(flows.TypeInt),
-			})
-		}
-		for _, f := range flow.Output.Bools {
-			outputFields = append(outputFields, FieldInfo{
-				Name: f.Name,
-				Type: string(flows.TypeBool),
-			})
-		}
-		for _, f := range flow.Output.Floats {
-			outputFields = append(outputFields, FieldInfo{
-				Name: f.Name,
-				Type: string(flows.TypeFloat),
-			})
-		}
-		for _, f := range flow.Output.Objects {
-			outputFields = append(outputFields, FieldInfo{
-				Name: f.Name,
-				Type: string(flows.TypeObject),
-			})
-		}
-	}
-
-	states := make([]string, 0, len(flow.States))
-	for _, s := range flow.States {
-		states = append(states, s.Name)
-	}
+	inputFields := s.convertInputFields(flow.Input)
+	outputFields := s.convertOutputFields(flow.Output)
+	states := s.extractStateNames(flow.States)
 
 	return &FlowInfo{
 		Name:         flow.Name,
@@ -274,4 +189,93 @@ func (s *flowRegistryServiceImpl) flowToFlowInfo(flow *flows.Flow) *FlowInfo {
 		OutputFields: outputFields,
 		States:       states,
 	}
+}
+
+// convertInputFields converts an InputBlock to a slice of FieldInfo.
+func (s *flowRegistryServiceImpl) convertInputFields(input *flows.InputBlock) []FieldInfo {
+	if input == nil {
+		return nil
+	}
+
+	result := make([]FieldInfo, 0,
+		len(input.Strings)+len(input.Ints)+len(input.Bools)+
+			len(input.Floats)+len(input.Arrays)+len(input.Maps)+len(input.Objects))
+
+	// Convert each field type using the helper
+	appendInputField := func(fields []flows.FieldDef, fieldType flows.ValueType) {
+		for _, f := range fields {
+			result = append(result, FieldInfo{
+				Name:     f.Name,
+				Type:     string(fieldType),
+				Required: f.Required,
+			})
+		}
+	}
+
+	appendInputField(input.Strings, flows.TypeString)
+	appendInputField(input.Ints, flows.TypeInt)
+	appendInputField(input.Bools, flows.TypeBool)
+	appendInputField(input.Floats, flows.TypeFloat)
+	appendInputField(input.Arrays, flows.TypeArray)
+	appendInputField(input.Maps, flows.TypeMap)
+
+	// Objects don't have Required field
+	for _, f := range input.Objects {
+		result = append(result, FieldInfo{
+			Name:     f.Name,
+			Type:     string(flows.TypeObject),
+			Required: false,
+		})
+	}
+
+	return result
+}
+
+// convertOutputFields converts an OutputBlock to a slice of FieldInfo.
+func (s *flowRegistryServiceImpl) convertOutputFields(output *flows.OutputBlock) []FieldInfo {
+	if output == nil {
+		return nil
+	}
+
+	result := make([]FieldInfo, 0,
+		len(output.Strings)+len(output.Ints)+len(output.Bools)+
+			len(output.Floats)+len(output.Objects))
+
+	// Output fields don't have Required field
+	appendOutputField := func(fields []flows.FieldDef, fieldType flows.ValueType) {
+		for _, f := range fields {
+			result = append(result, FieldInfo{
+				Name: f.Name,
+				Type: string(fieldType),
+			})
+		}
+	}
+
+	appendOutputField(output.Strings, flows.TypeString)
+	appendOutputField(output.Ints, flows.TypeInt)
+	appendOutputField(output.Bools, flows.TypeBool)
+	appendOutputField(output.Floats, flows.TypeFloat)
+
+	// Objects have a different type
+	for _, f := range output.Objects {
+		result = append(result, FieldInfo{
+			Name: f.Name,
+			Type: string(flows.TypeObject),
+		})
+	}
+
+	return result
+}
+
+// extractStateNames extracts state names from a slice of State.
+func (s *flowRegistryServiceImpl) extractStateNames(states []flows.State) []string {
+	if states == nil {
+		return nil
+	}
+
+	result := make([]string, 0, len(states))
+	for _, s := range states {
+		result = append(result, s.Name)
+	}
+	return result
 }
