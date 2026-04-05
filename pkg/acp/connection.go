@@ -22,6 +22,14 @@ type connectionImpl struct {
 
 // NewConnection creates a new ACP connection with DI
 func NewConnection(injector do.Injector, reader io.Reader, writer io.Writer) Connection {
+	// Validate parameters
+	if reader == nil {
+		panic("reader cannot be nil")
+	}
+	if writer == nil {
+		panic("writer io.Writer cannot be nil")
+	}
+
 	// Create session store
 	store := acppkg.NewMemoryStore[*AcpSession]()
 
