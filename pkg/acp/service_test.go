@@ -2,6 +2,7 @@ package acp
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	acppkg "github.com/ironpark/go-acp"
@@ -124,7 +125,7 @@ func TestAcpService_SetSessionConfigOption_NotImplemented(t *testing.T) {
 	assert.Nil(t, resp)
 }
 
-func TestAcpService_Prompt_NotImplemented(t *testing.T) {
+func TestAcpService_Prompt_IntegratesWithFacade(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -132,6 +133,14 @@ func TestAcpService_Prompt_NotImplemented(t *testing.T) {
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+
+	// Mock the facade.SubmitInput call
+	expectedResult := channel.InputResult{
+		Handled:   true,
+		Response:  "Test response from agent",
+		IsCommand: false,
+	}
+	mockFacade.EXPECT().SubmitInput(gomock.Any(), "test prompt").Return(expectedResult, nil)
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
@@ -153,13 +162,55 @@ func TestAcpService_Prompt_NotImplemented(t *testing.T) {
 	}
 	svc.SetSessionStore(store)
 
+	// Create a mock ACP client for testing stream operations
+	mockClient := &mockACPClient{}
+	svc.SetClient(mockClient)
+
 	resp, err := svc.Prompt(context.Background(), &acppkg.PromptRequest{
 		SessionID: sessionID,
+		Prompt:    []acppkg.ContentBlock{acppkg.NewContentBlockText("test prompt")},
 	})
 
 	require.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, acppkg.StopReasonEndTurn, resp.StopReason)
+	assert.Equal(t, "Test response from agent", mockClient.lastSentText)
+}
+
+// mockACPClient is a simple mock for testing ACP client operations
+type mockACPClient struct {
+	acppkg.Client
+	lastSentText string
+}
+
+func (m *mockACPClient) SessionUpdate(ctx context.Context, params *acppkg.SessionNotification) error {
+	// Extract content from AgentMessageChunk update
+	if update, ok := params.Update.AsAgentMessageChunk(); ok {
+		if textContent, ok := update.Content.AsText(); ok {
+			m.lastSentText = textContent.Text
+		}
+	}
+	return nil
+}
+
+func (m *mockACPClient) RequestPermission(ctx context.Context, params *acppkg.RequestPermissionRequest) (*acppkg.RequestPermissionResponse, error) {
+	return &acppkg.RequestPermissionResponse{}, nil
+}
+
+func (m *mockACPClient) ReadTextFile(ctx context.Context, params *acppkg.ReadTextFileRequest) (*acppkg.ReadTextFileResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockACPClient) WriteTextFile(ctx context.Context, params *acppkg.WriteTextFileRequest) (*acppkg.WriteTextFileResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockACPClient) CreateTerminal(ctx context.Context, params *acppkg.CreateTerminalRequest) (*acppkg.CreateTerminalResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockACPClient) TerminalOutput(ctx context.Context, params *acppkg.TerminalOutputRequest) (*acppkg.TerminalOutputResponse, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 // mockSessionStore is a simple in-memory session store for testing

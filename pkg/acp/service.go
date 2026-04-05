@@ -106,20 +106,47 @@ func (s *acpServiceImpl) SetSessionConfigOption(ctx context.Context, params *acp
 }
 
 // Prompt implements acp.Agent.Prompt - core agent execution loop
-// TODO: Task 6 - Integrate with channel facade SubmitInput
 func (s *acpServiceImpl) Prompt(ctx context.Context, params *acppkg.PromptRequest) (*acppkg.PromptResponse, error) {
 	session, ok := s.store.Get(params.SessionID)
 	if !ok {
 		return nil, fmt.Errorf("session %s not found", params.SessionID)
 	}
 
+	// Cancel previous turn and create new context
 	session.CancelFunc()
 	sessionCtx, cancelFunc := context.WithCancel(context.Background())
 	session.Context = sessionCtx
 	session.CancelFunc = cancelFunc
 
-	// TODO: Task 6 - Submit prompt to agent via facade
-	// result, err := s.facade.SubmitInput(sessionCtx, promptContent)
+	// Extract prompt content from params
+	if len(params.Prompt) == 0 {
+		return nil, fmt.Errorf("prompt content is empty")
+	}
+	contentBlock := params.Prompt[0]
+	textContent, ok := contentBlock.AsText()
+	if !ok {
+		return nil, fmt.Errorf("prompt content is not text")
+	}
+	promptContent := textContent.Text
+
+	// Submit to agent via channel facade
+	result, err := s.facade.SubmitInput(sessionCtx, promptContent)
+	if err != nil {
+		if sessionCtx.Err() == context.Canceled {
+			return &acppkg.PromptResponse{
+				StopReason: acppkg.StopReasonCancelled,
+			}, nil
+		}
+		return nil, err
+	}
+
+	// Send result back to client
+	stream := acppkg.NewSessionStream(s.client, params.SessionID)
+	if result.Response != "" {
+		if err := stream.SendText(sessionCtx, result.Response); err != nil {
+			return nil, fmt.Errorf("failed to send response: %w", err)
+		}
+	}
 
 	return &acppkg.PromptResponse{
 		StopReason: acppkg.StopReasonEndTurn,
