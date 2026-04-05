@@ -24,6 +24,23 @@ type FlowRegistry interface {
 	GetFlow(ref string) (*flows.Flow, error)
 }
 
+// FlowInfo holds metadata about a flow for tool discovery
+type FlowInfo struct {
+	Name         string
+	Description  string
+	Version      string
+	InputFields  []FieldInfo
+	OutputFields []FieldInfo
+	States       []string
+}
+
+// FieldInfo describes a flow field
+type FieldInfo struct {
+	Name     string
+	Type     string
+	Required bool
+}
+
 // flowRegistryServiceImpl is the private implementation
 type flowRegistryServiceImpl struct {
 	flows  map[string]*flows.Flow
