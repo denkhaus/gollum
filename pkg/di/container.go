@@ -94,7 +94,6 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 
 	// Channel Abstraction Layer
 	do.Provide(p.injector, channel.NewCommandManager)
-	do.Provide(p.injector, channel.NewChannelFacade)
 	do.Provide[channel.ChannelFacade](p.injector, func(injector do.Injector) (channel.ChannelFacade, error) {
 		return channel.NewChannelFacade(injector)
 	})
