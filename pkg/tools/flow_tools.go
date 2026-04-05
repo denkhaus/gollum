@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/gollum/pkg/flows"
+	"github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -80,7 +81,11 @@ func NewFlowToolsProvider(injector do.Injector) (FlowToolsProvider, error) {
 }
 
 // CreateTool creates a flow executor tool with the given context
-func (p *flowToolsProvider) CreateTool(agentID uuid.UUID, flowCtx flows.FlowContext, toolName shared.ToolName) (gollem.Tool, error) {
+func (p *flowToolsProvider) CreateTool(
+	agentID uuid.UUID,
+	flowCtx flows.FlowContext,
+	toolName shared.ToolName,
+) (gollem.Tool, error) {
 	switch toolName {
 	case shared.ToolNameSetOutputField:
 		return &setOutputFieldTool{
@@ -395,4 +400,129 @@ func (t *transitionToTool) runTransitionTo(ctx context.Context, args ToolRequest
 		"from":    fromState,
 		"to":      toState,
 	}, nil
+}
+
+// executeFlowTool executes a Gollum flow with the given inputs
+// This is an AGENT tool (not flow-internal) - it follows the edit.go pattern
+type executeFlowTool struct {
+	logService   logger.LoggerService
+	hookManager  hooks.HookManager
+	agentID      uuid.UUID
+	flowRegistry registry.FlowRegistry
+	executor     flows.Executor
+}
+
+// ExecuteFlowToolProvider creates ExecuteFlowTool instances via DI
+type ExecuteFlowToolProvider interface {
+	CreateTool(agentID uuid.UUID) gollem.Tool
+}
+
+type executeFlowToolProvider struct {
+	logService   logger.LoggerService
+	hookManager  hooks.HookManager
+	flowRegistry registry.FlowRegistry
+	executor     flows.Executor
+}
+
+// NewExecuteFlowToolProvider creates a provider for ExecuteFlow tools
+func NewExecuteFlowToolProvider(injector do.Injector) (ExecuteFlowToolProvider, error) {
+	logService := do.MustInvoke[logger.LoggerService](injector)
+	hookManager := do.MustInvoke[hooks.HookManager](injector)
+	flowRegistry := do.MustInvoke[registry.FlowRegistry](injector)
+	executor := do.MustInvoke[flows.Executor](injector)
+
+	return &executeFlowToolProvider{
+		logService:   logService,
+		hookManager:  hookManager,
+		flowRegistry: flowRegistry,
+		executor:     executor,
+	}, nil
+}
+
+// NewExecuteFlowTool creates a new ExecuteFlowTool for testing
+func NewExecuteFlowTool(flowRegistry registry.FlowRegistry, executor flows.Executor, logService logger.LoggerService) *executeFlowTool {
+	return &executeFlowTool{
+		logService:   logService,
+		hookManager:  nil, // No hook manager in tests
+		flowRegistry: flowRegistry,
+		executor:     executor,
+	}
+}
+
+// CreateTool creates a new ExecuteFlowTool with agent ID
+func (p *executeFlowToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+	return &executeFlowTool{
+		logService:   p.logService,
+		hookManager:  p.hookManager,
+		agentID:      agentID,
+		flowRegistry: p.flowRegistry,
+		executor:     p.executor,
+	}
+}
+
+// Spec returns the tool specification for the ExecuteFlow tool
+func (t *executeFlowTool) Spec() gollem.ToolSpec {
+	return gollem.ToolSpec{
+		Name:        shared.ToolNameExecuteFlow.String(),
+		Description: "Executes a Gollum flow by name with the provided inputs. Returns the flow's output fields upon completion.",
+		Parameters: map[string]*gollem.Parameter{
+			"flowName": {
+				Type:        gollem.TypeString,
+				Description: "The name of the flow to execute",
+			},
+			"inputs": {
+				Type:        gollem.TypeObject,
+				Description: "Optional input parameters for the flow (map of field names to values)",
+			},
+		},
+	}
+}
+
+// Run executes the ExecuteFlow tool
+func (t *executeFlowTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+	if t.hookManager != nil {
+		return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameExecuteFlow, args,
+			func() (map[string]any, error) {
+				return t.runExecuteFlow(ctx, args)
+			})
+	}
+	// For tests without hook manager
+	return t.runExecuteFlow(ctx, args)
+}
+
+// runExecuteFlow implements the core execute flow logic
+func (t *executeFlowTool) runExecuteFlow(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
+	// Get flow name
+	flowName, errResp := args.MustGetString(shared.ParamFlowName)
+	if errResp != nil {
+		return nil, fmt.Errorf("flowName is required")
+	}
+
+	// Get inputs (optional)
+	inputs := args.GetStringMap(shared.ParamInputs)
+	if inputs == nil {
+		inputs = make(map[string]string)
+	}
+	// Convert map[string]string to map[string]any
+	inputsAny := make(map[string]any, len(inputs))
+	for k, v := range inputs {
+		inputsAny[k] = v
+	}
+
+	// Get flow from registry
+	flow, err := t.flowRegistry.GetFlow(flowName)
+	if err != nil {
+		return nil, fmt.Errorf("flow not found: %w", err)
+	}
+
+	// Execute the flow
+	result, err := t.executor.Execute(ctx, flow, inputsAny)
+	if err != nil {
+		return nil, fmt.Errorf("flow execution failed: %w", err)
+	}
+
+	// Return success with outputs
+	return SuccessResponse(map[string]any{
+		"outputs": result.Outputs,
+	}), nil
 }

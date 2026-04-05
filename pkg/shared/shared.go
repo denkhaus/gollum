@@ -183,6 +183,10 @@ const (
     ParamFields ToolParamKeys = "fields"
     // ParamMessage is a message (string).
     ParamMessage ToolParamKeys = "message"
+    // ParamFlowName is the name of the flow to execute (string).
+    ParamFlowName ToolParamKeys = "flowName"
+    // ParamInputs is the input parameters for the flow (map[string]any).
+    ParamInputs ToolParamKeys = "inputs"
 )// ToolResult is a type alias for tool execution result maps.
 type ToolResult map[string]any
 
