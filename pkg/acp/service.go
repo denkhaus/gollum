@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	acppkg "github.com/ironpark/go-acp"
+	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 
@@ -130,7 +131,7 @@ func (s *acpServiceImpl) Prompt(ctx context.Context, params *acppkg.PromptReques
 	promptContent := textContent.Text
 
 	// Submit to agent via channel facade
-	result, err := s.facade.SubmitInput(sessionCtx, promptContent)
+	result, err := s.facade.SubmitInput(sessionCtx, uuid.Nil, promptContent)
 	if err != nil {
 		if sessionCtx.Err() == context.Canceled {
 			return &acppkg.PromptResponse{

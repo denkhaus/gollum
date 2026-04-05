@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -139,6 +140,140 @@ func (m *mockAgentRegistry) Register(agent shared.Agent, config *shared.AgentCon
 	return nil
 }
 
+// mockAgentFactory is a test double for shared.AgentFactory
+type mockAgentFactory struct{}
+
+func (m *mockAgentFactory) CreateAgent(ctx context.Context, config *shared.AgentConfig) (shared.Agent, error) {
+	return nil, nil
+}
+
+func (m *mockAgentFactory) CreateSupervisorAgent(ctx context.Context, opts ...shared.SupervisorAgentOption) (shared.Agent, *shared.AgentConfig, error) {
+	return nil, nil, nil
+}
+
+// mockAgentRegistryWithSupervisor is a configurable mock that can return a supervisor agent
+type mockAgentRegistryWithSupervisor struct {
+	supervisor shared.Agent
+	err        error
+}
+
+func (m *mockAgentRegistryWithSupervisor) Register(agent shared.Agent, config *shared.AgentConfig, cancel ...context.CancelFunc) error {
+	return nil
+}
+
+func (m *mockAgentRegistryWithSupervisor) Unregister(agentID uuid.UUID) error {
+	return nil
+}
+
+func (m *mockAgentRegistryWithSupervisor) GetAgent(agentID uuid.UUID) (shared.Agent, bool) {
+	return nil, false
+}
+
+func (m *mockAgentRegistryWithSupervisor) GetChildren(parentID uuid.UUID) []shared.Agent {
+	return nil
+}
+
+func (m *mockAgentRegistryWithSupervisor) GetParent(agentID uuid.UUID) (shared.Agent, bool) {
+	return nil, false
+}
+
+func (m *mockAgentRegistryWithSupervisor) IsDirectParent(callerID, targetID uuid.UUID) bool {
+	return false
+}
+
+func (m *mockAgentRegistryWithSupervisor) ListAll() map[uuid.UUID]shared.Agent {
+	return nil
+}
+
+func (m *mockAgentRegistryWithSupervisor) Cleanup(agentID uuid.UUID) error {
+	return nil
+}
+
+func (m *mockAgentRegistryWithSupervisor) GetTotalAgentCount() int {
+	return 0
+}
+
+func (m *mockAgentRegistryWithSupervisor) GetSubAgentCount(parentID uuid.UUID) int {
+	return 0
+}
+
+func (m *mockAgentRegistryWithSupervisor) StoreAgentResult(result shared.AgentResult) error {
+	return nil
+}
+
+func (m *mockAgentRegistryWithSupervisor) GetAgentResult(agentID uuid.UUID) (*shared.AgentResult, bool) {
+	return nil, false
+}
+
+func (m *mockAgentRegistryWithSupervisor) WaitForAgent(ctx context.Context, agentID uuid.UUID, timeout time.Duration) (*shared.AgentResult, error) {
+	return nil, nil
+}
+
+func (m *mockAgentRegistryWithSupervisor) SetCancelFunc(agentID uuid.UUID, cancel context.CancelFunc) error {
+	return nil
+}
+
+func (m *mockAgentRegistryWithSupervisor) DeleteAgentResult(agentID uuid.UUID) error {
+	return nil
+}
+
+func (m *mockAgentRegistryWithSupervisor) GetSupervisorAgent() (shared.Agent, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.supervisor, nil
+}
+
+// mockAgent is a test double for shared.Agent
+type mockAgent struct {
+	id uuid.UUID
+}
+
+func newMockAgent(id uuid.UUID) *mockAgent {
+	return &mockAgent{id: id}
+}
+
+func (m *mockAgent) GetID() uuid.UUID {
+	return m.id
+}
+
+func (m *mockAgent) GetConfig() *shared.AgentConfig {
+	return &shared.AgentConfig{}
+}
+
+func (m *mockAgent) Session() gollem.Session {
+	return nil
+}
+
+func (m *mockAgent) Execute(ctx context.Context, input ...gollem.Input) (*gollem.ExecuteResponse, error) {
+	return &gollem.ExecuteResponse{
+		Texts: []string{"Supervisor response"},
+	}, nil
+}
+
+func (m *mockAgent) GetMessageHistory(ctx context.Context) (*gollem.History, error) {
+	return nil, nil
+}
+
+func (m *mockAgent) UpdateSystemPrompt(ctx context.Context, newPrompt string) error {
+	return nil
+}
+
+func (m *mockAgent) UpdateHistory(ctx context.Context, modifier func(*gollem.History) (*gollem.History, error)) error {
+	return nil
+}
+
+// setupTestInjector creates an injector with all mock dependencies for testing
+func setupTestInjector() do.Injector {
+	injector := do.New()
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
+	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
+	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	return injector
+}
+
+
 func (m *mockAgentRegistry) Unregister(agentID uuid.UUID) error {
 	return nil
 }
@@ -193,6 +328,10 @@ func (m *mockAgentRegistry) SetCancelFunc(agentID uuid.UUID, cancel context.Canc
 
 func (m *mockAgentRegistry) DeleteAgentResult(agentID uuid.UUID) error {
 	return nil
+}
+
+func (m *mockAgentRegistry) GetSupervisorAgent() (shared.Agent, error) {
+	return nil, fmt.Errorf("no supervisor agent registered")
 }
 
 // mockConfigService is a test double for config.ConfigService
@@ -264,12 +403,7 @@ func (m *mockConfigService) GetMCPConfig() *config.MCPConfig {
 
 // TestNewChannelFacade tests that NewChannelFacade creates a valid instance
 func TestNewChannelFacade(t *testing.T) {
-	injector := do.New()
-
-	// Register mock dependencies
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	injector := setupTestInjector()
 
 	service, err := NewChannelFacade(injector)
 
@@ -283,10 +417,7 @@ func TestNewChannelFacade(t *testing.T) {
 
 // TestChannelFacade_RegisterChannel_Success tests successful channel registration
 func TestChannelFacade_RegisterChannel_Success(t *testing.T) {
-	injector := do.New()
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	injector := setupTestInjector()
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -299,10 +430,7 @@ func TestChannelFacade_RegisterChannel_Success(t *testing.T) {
 
 // TestChannelFacade_RegisterChannel_Duplicate tests that registering a duplicate channel returns an error
 func TestChannelFacade_RegisterChannel_Duplicate(t *testing.T) {
-	injector := do.New()
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	injector := setupTestInjector()
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -322,10 +450,7 @@ func TestChannelFacade_RegisterChannel_Duplicate(t *testing.T) {
 
 // TestChannelFacade_UnregisterChannel_Success tests successful channel unregistration
 func TestChannelFacade_UnregisterChannel_Success(t *testing.T) {
-	injector := do.New()
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	injector := setupTestInjector()
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -341,10 +466,7 @@ func TestChannelFacade_UnregisterChannel_Success(t *testing.T) {
 
 // TestChannelFacade_UnregisterChannel_NonExistent tests that unregistering a non-existent channel doesn't error
 func TestChannelFacade_UnregisterChannel_NonExistent(t *testing.T) {
-	injector := do.New()
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	injector := setupTestInjector()
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -356,10 +478,7 @@ func TestChannelFacade_UnregisterChannel_NonExistent(t *testing.T) {
 
 // TestChannelFacade_DisplayMessage_BroadcastsToAllChannels tests that DisplayMessage broadcasts to all registered channels
 func TestChannelFacade_DisplayMessage_BroadcastsToAllChannels(t *testing.T) {
-	injector := do.New()
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	injector := setupTestInjector()
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -396,10 +515,7 @@ func TestChannelFacade_DisplayMessage_BroadcastsToAllChannels(t *testing.T) {
 
 // TestChannelFacade_DisplayLog_StoresAndBroadcasts tests that DisplayLog stores entry and broadcasts to all channels
 func TestChannelFacade_DisplayLog_StoresAndBroadcasts(t *testing.T) {
-	injector := do.New()
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	injector := setupTestInjector()
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -443,6 +559,7 @@ func TestChannelFacade_DisplayLog_RingBufferBehavior(t *testing.T) {
 	injector := do.New()
 	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
+	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 5})
 
 	service, err := NewChannelFacade(injector)
@@ -482,13 +599,15 @@ func TestChannelFacade_SubmitInput_SlashCommand(t *testing.T) {
 	}
 	do.ProvideValue[CommandManagerService](injector, cmdMgr)
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
+	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	result, err := service.SubmitInput(ctx, "/test args")
+	channelID := uuid.New()
+	result, err := service.SubmitInput(ctx, channelID, "/test args")
 
 	require.NoError(t, err)
 	assert.True(t, result.Handled, "Slash command should be handled")
@@ -510,17 +629,19 @@ func TestChannelFacade_SubmitInput_NonCommand_NoAgentRouting(t *testing.T) {
 
 	do.ProvideValue[CommandManagerService](injector, cmdMgr)
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
+	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	result, err := service.SubmitInput(ctx, "hello world")
+	channelID := uuid.New()
+	result, err := service.SubmitInput(ctx, channelID, "hello world")
 
-	// Since GetAgentBySenderID doesn't exist yet, this should return an error
+	// Since no supervisor agent is available, this should return an error
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "no agents registered")
+	assert.Contains(t, err.Error(), "supervisor agent not available")
 	assert.Empty(t, result)
 }
 
@@ -537,13 +658,15 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 
 	do.ProvideValue[CommandManagerService](injector, cmdMgr)
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
+	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	result, err := service.SubmitInput(ctx, "/test")
+	channelID := uuid.New()
+	result, err := service.SubmitInput(ctx, channelID, "/test")
 
 	require.NoError(t, err)
 	assert.True(t, result.Handled)
@@ -554,10 +677,7 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 
 // TestChannelFacade_GetLogs_ReturnsEntriesAfterSpecifiedTime tests that GetLogs returns entries after specified time
 func TestChannelFacade_GetLogs_ReturnsEntriesAfterSpecifiedTime(t *testing.T) {
-	injector := do.New()
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	injector := setupTestInjector()
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -590,10 +710,7 @@ func TestChannelFacade_GetLogs_ReturnsEntriesAfterSpecifiedTime(t *testing.T) {
 
 // TestChannelFacade_GetLogs_RespectsLimitParameter tests that GetLogs respects limit parameter
 func TestChannelFacade_GetLogs_RespectsLimitParameter(t *testing.T) {
-	injector := do.New()
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	injector := setupTestInjector()
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -620,10 +737,7 @@ func TestChannelFacade_GetLogs_RespectsLimitParameter(t *testing.T) {
 
 // TestChannelFacade_NotifyAgentLifecycle_BroadcastsToAllChannels tests that NotifyAgentLifecycle broadcasts event to all channels
 func TestChannelFacade_NotifyAgentLifecycle_BroadcastsToAllChannels(t *testing.T) {
-	injector := do.New()
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	injector := setupTestInjector()
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -657,10 +771,7 @@ func TestChannelFacade_NotifyAgentLifecycle_BroadcastsToAllChannels(t *testing.T
 
 // TestChannelFacade_Concurrency tests that concurrent access is safe
 func TestChannelFacade_Concurrency(t *testing.T) {
-	injector := do.New()
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	injector := setupTestInjector()
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -718,4 +829,79 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 	// Verify final state is consistent
 	logs := service.GetLogs(time.Time{}, 100)
 	assert.Greater(t, len(logs), 0, "Should have logs stored")
+}
+
+// TestChannelFacade_SubmitInput_RoutesToSupervisorAgent tests that SubmitInput routes to the singleton Supervisor-Agent
+func TestChannelFacade_SubmitInput_RoutesToSupervisorAgent(t *testing.T) {
+	injector := do.New()
+
+	// Mock command manager that doesn't handle the input
+	cmdMgr := &mockCommandManager{
+		executeFunc: func(ctx context.Context, input string) (bool, string, error) {
+			return false, "", nil
+		},
+	}
+	do.ProvideValue[CommandManagerService](injector, cmdMgr)
+
+	// Create a supervisor agent
+	supervisorID := uuid.New()
+	supervisor := newMockAgent(supervisorID)
+
+	// Mock registry that returns the supervisor
+	mockRegistry := &mockAgentRegistryWithSupervisor{
+		supervisor: supervisor,
+		err:        nil,
+	}
+	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
+
+	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+
+	service, err := NewChannelFacade(injector)
+	require.NoError(t, err)
+
+	// Submit input
+	ctx := context.Background()
+	channelID := uuid.New()
+	result, err := service.SubmitInput(ctx, channelID, "test input")
+
+	require.NoError(t, err)
+	assert.True(t, result.Handled)
+	assert.Equal(t, "Supervisor response", result.Response)
+	assert.NoError(t, result.Error)
+}
+
+// TestChannelFacade_SubmitInput_NoSupervisorError tests that SubmitInput returns error when supervisor not available
+func TestChannelFacade_SubmitInput_NoSupervisorError(t *testing.T) {
+	injector := do.New()
+
+	// Mock command manager that doesn't handle the input
+	cmdMgr := &mockCommandManager{
+		executeFunc: func(ctx context.Context, input string) (bool, string, error) {
+			return false, "", nil
+		},
+	}
+	do.ProvideValue[CommandManagerService](injector, cmdMgr)
+
+	// Mock registry that returns error for supervisor
+	mockRegistry := &mockAgentRegistryWithSupervisor{
+		supervisor: nil,
+		err:        fmt.Errorf("no supervisor agent registered"),
+	}
+	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
+
+	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+
+	service, err := NewChannelFacade(injector)
+	require.NoError(t, err)
+
+	// Submit input should return error
+	ctx := context.Background()
+	channelID := uuid.New()
+	result, err := service.SubmitInput(ctx, channelID, "test input")
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "supervisor agent not available")
+	assert.Empty(t, result)
 }

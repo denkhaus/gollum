@@ -28,6 +28,7 @@ type channelFacadeImpl struct {
 	channels       map[uuid.UUID]Channel
 	commandManager CommandManager
 	registry       registry.AgentRegistry
+	agentFactory   shared.AgentFactory
 	logs           []LogEntry
 	maxLogs        int
 }
@@ -39,6 +40,7 @@ var _ ChannelFacade = (*channelFacadeImpl)(nil)
 func NewChannelFacade(injector do.Injector) (ChannelFacadeService, error) {
 	cm := do.MustInvoke[CommandManagerService](injector)
 	reg := do.MustInvoke[registry.AgentRegistry](injector)
+	af := do.MustInvoke[shared.AgentFactory](injector)
 	cfg := do.MustInvoke[config.ConfigService](injector)
 
 	// Use existing LoggingConfig.SessionLogBufferSize for display log buffer
@@ -47,6 +49,7 @@ func NewChannelFacade(injector do.Injector) (ChannelFacadeService, error) {
 	return &channelFacadeImpl{
 		commandManager: cm,
 		registry:       reg,
+		agentFactory:   af,
 		channels:       make(map[uuid.UUID]Channel),
 		logs:           make([]LogEntry, 0, maxLogs),
 		maxLogs:        maxLogs,
@@ -111,7 +114,9 @@ func (p *channelFacadeImpl) DisplayLog(entry LogEntry) {
 }
 
 // SubmitInput handles user input from any channel
-func (p *channelFacadeImpl) SubmitInput(ctx context.Context, input string) (InputResult, error) {
+// channelID is kept for future use (e.g., logging, tracking which channel sent input)
+// Routes to the singleton Supervisor-Agent
+func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID, input string) (InputResult, error) {
 	// First check if it's a slash command
 	handled, response, err := p.commandManager.Execute(ctx, input)
 	if handled {
@@ -123,23 +128,14 @@ func (p *channelFacadeImpl) SubmitInput(ctx context.Context, input string) (Inpu
 		}, nil
 	}
 
-	// Not a command - route to agent
-	// Get all registered agents
-	agents := p.registry.ListAll()
-	if len(agents) == 0 {
-		return InputResult{}, fmt.Errorf("no agents registered")
+	// Get the singleton Supervisor-Agent from registry
+	supervisor, err := p.registry.GetSupervisorAgent()
+	if err != nil {
+		return InputResult{}, fmt.Errorf("supervisor agent not available: %w", err)
 	}
 
-	// For now, use the first available agent
-	// TODO: Add support for routing to specific agents via sender/channel context
-	var agent shared.Agent
-	for _, a := range agents {
-		agent = a
-		break
-	}
-
-	// Execute agent with input
-	resp, err := agent.Execute(ctx, gollem.Text(input))
+	// Execute supervisor agent
+	resp, err := supervisor.Execute(ctx, gollem.Text(input))
 	if err != nil {
 		return InputResult{
 			Handled: true,
@@ -147,7 +143,7 @@ func (p *channelFacadeImpl) SubmitInput(ctx context.Context, input string) (Inpu
 		}, nil
 	}
 
-	// Extract response content
+	// Extract response
 	var content string
 	if resp != nil && len(resp.Texts) > 0 {
 		content = strings.Join(resp.Texts, "\n")
