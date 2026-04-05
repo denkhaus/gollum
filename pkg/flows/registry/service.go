@@ -22,6 +22,8 @@ type FlowRegistry interface {
 	Register(name string, flow *flows.Flow)
 	// GetFlow retrieves a flow by reference name
 	GetFlow(ref string) (*flows.Flow, error)
+	// ListFlows returns information about all registered flows
+	ListFlows() ([]*FlowInfo, error)
 }
 
 // FlowInfo holds metadata about a flow for tool discovery
@@ -156,4 +158,120 @@ func (s *flowRegistryServiceImpl) LoadFromDirectory(dir string) error {
 	}
 
 	return nil
+}
+
+// ListFlows returns information about all registered flows
+func (s *flowRegistryServiceImpl) ListFlows() ([]*FlowInfo, error) {
+	result := make([]*FlowInfo, 0, len(s.flows))
+	for _, flow := range s.flows {
+		info := s.flowToFlowInfo(flow)
+		result = append(result, info)
+	}
+	return result, nil
+}
+
+// flowToFlowInfo converts a Flow to FlowInfo
+func (s *flowRegistryServiceImpl) flowToFlowInfo(flow *flows.Flow) *FlowInfo {
+	var inputFields []FieldInfo
+	if flow.Input != nil {
+		inputFields = make([]FieldInfo, 0, len(flow.Input.Strings)+len(flow.Input.Ints)+len(flow.Input.Bools)+len(flow.Input.Floats)+len(flow.Input.Arrays)+len(flow.Input.Maps)+len(flow.Input.Objects))
+		for _, f := range flow.Input.Strings {
+			inputFields = append(inputFields, FieldInfo{
+				Name:     f.Name,
+				Type:     string(flows.TypeString),
+				Required: f.Required,
+			})
+		}
+		for _, f := range flow.Input.Ints {
+			inputFields = append(inputFields, FieldInfo{
+				Name:     f.Name,
+				Type:     string(flows.TypeInt),
+				Required: f.Required,
+			})
+		}
+		for _, f := range flow.Input.Bools {
+			inputFields = append(inputFields, FieldInfo{
+				Name:     f.Name,
+				Type:     string(flows.TypeBool),
+				Required: f.Required,
+			})
+		}
+		for _, f := range flow.Input.Floats {
+			inputFields = append(inputFields, FieldInfo{
+				Name:     f.Name,
+				Type:     string(flows.TypeFloat),
+				Required: f.Required,
+			})
+		}
+		for _, f := range flow.Input.Arrays {
+			inputFields = append(inputFields, FieldInfo{
+				Name:     f.Name,
+				Type:     string(flows.TypeArray),
+				Required: f.Required,
+			})
+		}
+		for _, f := range flow.Input.Maps {
+			inputFields = append(inputFields, FieldInfo{
+				Name:     f.Name,
+				Type:     string(flows.TypeMap),
+				Required: f.Required,
+			})
+		}
+		for _, f := range flow.Input.Objects {
+			inputFields = append(inputFields, FieldInfo{
+				Name:     f.Name,
+				Type:     string(flows.TypeObject),
+				Required: false,
+			})
+		}
+	}
+
+	var outputFields []FieldInfo
+	if flow.Output != nil {
+		outputFields = make([]FieldInfo, 0, len(flow.Output.Strings)+len(flow.Output.Ints)+len(flow.Output.Bools)+len(flow.Output.Floats)+len(flow.Output.Objects))
+		for _, f := range flow.Output.Strings {
+			outputFields = append(outputFields, FieldInfo{
+				Name: f.Name,
+				Type: string(flows.TypeString),
+			})
+		}
+		for _, f := range flow.Output.Ints {
+			outputFields = append(outputFields, FieldInfo{
+				Name: f.Name,
+				Type: string(flows.TypeInt),
+			})
+		}
+		for _, f := range flow.Output.Bools {
+			outputFields = append(outputFields, FieldInfo{
+				Name: f.Name,
+				Type: string(flows.TypeBool),
+			})
+		}
+		for _, f := range flow.Output.Floats {
+			outputFields = append(outputFields, FieldInfo{
+				Name: f.Name,
+				Type: string(flows.TypeFloat),
+			})
+		}
+		for _, f := range flow.Output.Objects {
+			outputFields = append(outputFields, FieldInfo{
+				Name: f.Name,
+				Type: string(flows.TypeObject),
+			})
+		}
+	}
+
+	states := make([]string, 0, len(flow.States))
+	for _, s := range flow.States {
+		states = append(states, s.Name)
+	}
+
+	return &FlowInfo{
+		Name:         flow.Name,
+		Description:  flow.Description,
+		Version:      flow.Version,
+		InputFields:  inputFields,
+		OutputFields: outputFields,
+		States:       states,
+	}
 }
