@@ -137,6 +137,9 @@ type testFlowRegistry struct {
 }
 
 func (m *testFlowRegistry) Register(name string, flow *flows.Flow) {
+	if m.flows == nil {
+		m.flows = make(map[string]*flows.Flow)
+	}
 	m.flows[name] = flow
 }
 
@@ -146,6 +149,30 @@ func (m *testFlowRegistry) GetFlow(name string) (*flows.Flow, error) {
 		return nil, flowregistry.ErrFlowNotFound
 	}
 	return flow, nil
+}
+
+func (m *testFlowRegistry) GetFlowInfo(name string) (*flowregistry.FlowInfo, error) {
+	flow, err := m.GetFlow(name)
+	if err != nil {
+		return nil, err
+	}
+	return &flowregistry.FlowInfo{
+		Name:        name,
+		Description: flow.Description,
+		States:      []string{},
+	}, nil
+}
+
+func (m *testFlowRegistry) ListFlows() ([]*flowregistry.FlowInfo, error) {
+	var infos []*flowregistry.FlowInfo
+	for name := range m.flows {
+		info, err := m.GetFlowInfo(name)
+		if err != nil {
+			continue
+		}
+		infos = append(infos, info)
+	}
+	return infos, nil
 }
 
 type testFlowToolsProvider struct{}

@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/denkhaus/gollum/pkg/agents"
+	"github.com/denkhaus/gollum/pkg/acp"
 	"github.com/denkhaus/gollum/pkg/app"
 	"github.com/denkhaus/gollum/pkg/builtin"
 	"github.com/denkhaus/gollum/pkg/channel"
@@ -94,6 +95,9 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	// Channel Abstraction Layer
 	do.Provide(p.injector, channel.NewCommandManager)
 	do.Provide(p.injector, channel.NewChannelFacade)
+	do.Provide[channel.ChannelFacade](p.injector, func(injector do.Injector) (channel.ChannelFacade, error) {
+		return channel.NewChannelFacade(injector)
+	})
 
 	// State
 	do.Provide(p.injector, state.NewFileStateManager)
@@ -114,6 +118,9 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	// Flows
 	do.Provide(p.injector, flowregistry.NewFlowRegistryService)
 	do.Provide(p.injector, executor.NewFlowExecutor)
+
+	// ACP (Agent Client Protocol) services
+	do.Provide(p.injector, acp.NewAcpService)
 
 	// Extensions
 	do.Provide(p.injector, extensions.NewGatewayService)
