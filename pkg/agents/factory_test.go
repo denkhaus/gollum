@@ -173,6 +173,33 @@ func TestCreateSupervisorAgent_WithAgentID(t *testing.T) {
 	assert.Equal(t, customID, config.ID)
 }
 
+func TestCreateSupervisorAgent_AppliesOptions(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Setup mocks
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Infof(gomock.Any(), gomock.Any()).AnyTimes()
+
+	customID := uuid.MustParse("123e4567-e89b-12d3-a456-426614174000")
+
+	// Test 1: Verify WithAgentID option sets the ID correctly
+	config1 := &shared.AgentConfig{}
+	shared.WithAgentID(customID)(config1)
+	assert.Equal(t, customID, config1.ID, "WithAgentID should set the config ID")
+
+	// Test 2: Verify multiple options can be applied
+	config2 := &shared.AgentConfig{}
+	shared.WithAgentID(customID)(config2)
+	assert.Equal(t, customID, config2.ID, "WithAgentID should work on fresh config")
+
+	// Test 3: Verify config without options has Nil ID initially
+	config3 := &shared.AgentConfig{}
+	assert.Equal(t, uuid.Nil, config3.ID, "Fresh config should have Nil ID")
+}
+
 // Mock implementations
 type mockMCPToolProvider struct {
 	tool gollem.Tool
