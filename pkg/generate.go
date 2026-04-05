@@ -42,4 +42,6 @@ package pkg
 
 //go:generate go run go.uber.org/mock/mockgen -source=flows/registry/service.go -destination=flows/registry/registry_mock.go -package=registry github.com/denkhaus/gollum/pkg/flows/registry FlowRegistry
 
+//go:generate go run go.uber.org/mock/mockgen -source=acp/service.go -destination=acp/service_mock.go -package=acp github.com/denkhaus/gollum/pkg/acp Service
+
 //go:generate go run go.uber.org/mock/mockgen -source=extensions/service.go -destination=extensions/service_mock.go -package=extensions github.com/denkhaus/gollum/pkg/extensions ExtensionService
