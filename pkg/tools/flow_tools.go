@@ -546,3 +546,102 @@ func (t *executeFlowTool) runExecuteFlow(ctx context.Context, args ToolRequestPa
 		"outputs": result.Outputs,
 	}), nil
 }
+
+// listFlowsTool lists all available flows
+// This is an AGENT tool (not flow-internal) - it follows the edit.go pattern
+type listFlowsTool struct {
+	logService   logger.LoggerService
+	hookManager  hooks.HookManager
+	agentID      uuid.UUID
+	flowRegistry registry.FlowRegistry
+}
+
+// ListFlowsToolProvider creates ListFlowsTool instances via DI
+type ListFlowsToolProvider interface {
+	CreateTool(agentID uuid.UUID) gollem.Tool
+}
+
+type listFlowsToolProvider struct {
+	logService   logger.LoggerService
+	hookManager  hooks.HookManager
+	flowRegistry registry.FlowRegistry
+}
+
+// NewListFlowsToolProvider creates a provider for ListFlows tools
+func NewListFlowsToolProvider(injector do.Injector) (ListFlowsToolProvider, error) {
+	logService := do.MustInvoke[logger.LoggerService](injector)
+	hookManager := do.MustInvoke[hooks.HookManager](injector)
+	flowRegistry := do.MustInvoke[registry.FlowRegistry](injector)
+
+	return &listFlowsToolProvider{
+		logService:   logService,
+		hookManager:  hookManager,
+		flowRegistry: flowRegistry,
+	}, nil
+}
+
+// NewListFlowsTool creates a new ListFlowsTool for testing
+func NewListFlowsTool(flowRegistry registry.FlowRegistry, logService logger.LoggerService) *listFlowsTool {
+	return &listFlowsTool{
+		logService:   logService,
+		hookManager:  nil, // No hook manager in tests
+		flowRegistry: flowRegistry,
+	}
+}
+
+// CreateTool creates a new ListFlowsTool with agent ID
+func (p *listFlowsToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+	return &listFlowsTool{
+		logService:   p.logService,
+		hookManager:  p.hookManager,
+		agentID:      agentID,
+		flowRegistry: p.flowRegistry,
+	}
+}
+
+// Spec returns the tool specification for the ListFlows tool
+func (t *listFlowsTool) Spec() gollem.ToolSpec {
+	return gollem.ToolSpec{
+		Name:        shared.ToolNameListFlows.String(),
+		Description: "Lists all available flows in the registry with their metadata including input/output fields and states.",
+		Parameters:  map[string]*gollem.Parameter{},
+	}
+}
+
+// Run executes the ListFlows tool
+func (t *listFlowsTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
+	if t.hookManager != nil {
+		return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameListFlows, args,
+			func() (map[string]any, error) {
+				return t.runListFlows(ctx, args)
+			})
+	}
+	// For tests without hook manager
+	return t.runListFlows(ctx, args)
+}
+
+// runListFlows implements the core list flows logic
+func (t *listFlowsTool) runListFlows(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
+	// Log operation start
+	t.logService.Info("ListFlows operation started",
+		zap.String("agent_id", t.agentID.String()))
+
+	// Get all flows from registry
+	flows, err := t.flowRegistry.ListFlows()
+	if err != nil {
+		t.logService.Error("Failed to list flows",
+			zap.String("agent_id", t.agentID.String()),
+			zap.Error(err))
+		return ErrorResponse("failed to list flows: %v", err), nil
+	}
+
+	// Log success
+	t.logService.Info("ListFlows operation completed successfully",
+		zap.String("agent_id", t.agentID.String()),
+		zap.Int("flow_count", len(flows)))
+
+	// Return success with flows array
+	return SuccessResponse(map[string]any{
+		"flows": flows,
+	}), nil
+}
