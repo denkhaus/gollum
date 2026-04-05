@@ -215,3 +215,93 @@ func TestExecuteFlowTool_Spec(t *testing.T) {
 	assert.Contains(t, spec.Parameters, "flowName")
 	assert.Contains(t, spec.Parameters, "inputs")
 }
+
+func TestListFlowsTool_Run_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRegistry := flowregistry.NewMockFlowRegistry(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
+
+	tool := NewListFlowsTool(mockRegistry, mockLogger)
+
+	// Create test flow info
+	testFlows := []*flowregistry.FlowInfo{
+		{
+			Name:         "test-flow-1",
+			Description:  "First test flow",
+			Version:      "1.0.0",
+			InputFields:  []flowregistry.FieldInfo{{Name: "url", Type: "string", Required: true}},
+			OutputFields: []flowregistry.FieldInfo{{Name: "result", Type: "string"}},
+			States:       []string{"start", "end"},
+		},
+		{
+			Name:         "test-flow-2",
+			Description:  "Second test flow",
+			Version:      "2.0.0",
+			InputFields:  []flowregistry.FieldInfo{{Name: "data", Type: "int", Required: false}},
+			OutputFields: []flowregistry.FieldInfo{{Name: "output", Type: "int"}},
+			States:       []string{"process"},
+		},
+	}
+
+	// Expect ListFlows call
+	mockRegistry.EXPECT().ListFlows().Return(testFlows, nil)
+
+	// Expect logging calls
+	mockLogger.EXPECT().Info("ListFlows operation started", gomock.Any()).Times(1)
+	mockLogger.EXPECT().Info("ListFlows operation completed successfully", gomock.Any()).Times(1)
+
+	// Run the tool
+	result, err := tool.Run(context.Background(), map[string]any{})
+
+	require.NoError(t, err)
+	assert.NotNil(t, result["flows"])
+	flows := result["flows"].([]*flowregistry.FlowInfo)
+	assert.Len(t, flows, 2)
+	assert.Equal(t, "test-flow-1", flows[0].Name)
+	assert.Equal(t, "test-flow-2", flows[1].Name)
+}
+
+func TestListFlowsTool_Run_ListFlowsError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRegistry := flowregistry.NewMockFlowRegistry(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
+
+	tool := NewListFlowsTool(mockRegistry, mockLogger)
+
+	// Expect ListFlows to fail
+	mockRegistry.EXPECT().ListFlows().Return(nil, assert.AnError)
+
+	// Expect logging calls
+	mockLogger.EXPECT().Info("ListFlows operation started", gomock.Any()).Times(1)
+	mockLogger.EXPECT().Error("Failed to list flows", gomock.Any()).Times(1)
+
+	// Run the tool - should return error response map
+	result, err := tool.Run(context.Background(), map[string]any{})
+
+	require.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, false, result[string(shared.KeySuccess)])
+	assert.Contains(t, result[string(shared.KeyError)], "failed to list flows")
+}
+
+func TestListFlowsTool_Spec(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRegistry := flowregistry.NewMockFlowRegistry(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
+
+	tool := NewListFlowsTool(mockRegistry, mockLogger)
+
+	spec := tool.Spec()
+
+	assert.Equal(t, shared.ToolNameListFlows.String(), spec.Name)
+	assert.Contains(t, spec.Description, "Lists all available flows")
+	assert.NotNil(t, spec.Parameters)
+	// ListFlows should have no required parameters
+	assert.Empty(t, spec.Parameters)
+}
