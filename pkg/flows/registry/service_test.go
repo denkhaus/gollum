@@ -255,3 +255,39 @@ func TestFlowRegistryService_ListFlows_ReturnsAllFlows(t *testing.T) {
 	assert.Equal(t, "test-flow", infos[0].Name)
 	assert.Equal(t, "1.0", infos[0].Version)
 }
+
+func TestFlowRegistryService_GetFlowInfo_ReturnsFlowInfo(t *testing.T) {
+	svc := &flowRegistryServiceImpl{
+		flows:  make(map[string]*flows.Flow),
+		logger: nil,
+	}
+
+	testFlow := &flows.Flow{
+		Name:        "test-flow",
+		Version:     "1.0",
+		Description: "Test flow description",
+		States: []flows.State{
+			{Name: "init", Initial: true},
+		},
+		Input: &flows.InputBlock{
+			Strings: []flows.FieldDef{
+				{Name: "url", Required: true},
+			},
+		},
+		Output: &flows.OutputBlock{
+			Strings: []flows.FieldDef{
+				{Name: "result"},
+			},
+		},
+	}
+	svc.flows["test-flow"] = testFlow
+
+	info, err := svc.GetFlowInfo("test-flow")
+
+	require.NoError(t, err)
+	assert.Equal(t, "test-flow", info.Name)
+	assert.Equal(t, "1.0", info.Version)
+	assert.Equal(t, "Test flow description", info.Description)
+	assert.Len(t, info.InputFields, 1)
+	assert.Equal(t, "url", info.InputFields[0].Name)
+}
