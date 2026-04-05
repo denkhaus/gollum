@@ -2,18 +2,17 @@
 package agents
 
 import (
-
 	"context"
 	"fmt"
-	"github.com/denkhaus/gollum/pkg/logger"
 	"testing"
 
+	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
-
 )
 
 func TestDefaultAgentFactory_ResolveTools_Empty(t *testing.T) {
@@ -155,6 +154,25 @@ func TestDefaultAgentFactory_ResolveTools_InvalidMCPFormat(t *testing.T) {
 	assert.Len(t, tools, 0)
 }
 
+func TestCreateSupervisorAgent_WithAgentID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Setup minimal mocks - same as other tests in this file
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
+
+	customID := uuid.MustParse("123e4567-e89b-12d3-a456-426614174000")
+
+	// Test that WithAgentID option correctly sets the ID
+	config := &shared.AgentConfig{}
+	shared.WithAgentID(customID)(config)
+
+	// Verify the ID was set correctly on the config
+	assert.Equal(t, customID, config.ID)
+}
+
 // Mock implementations
 type mockMCPToolProvider struct {
 	tool gollem.Tool
@@ -201,7 +219,3 @@ func (m *mockBashToolWithSpec) Spec() gollem.ToolSpec {
 func (m *mockBashToolWithSpec) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return map[string]any{}, nil
 }
-
-// Note: CreateAgent integration tests require extensive mocking of multiple dependencies.
-// The core resolveTools functionality is well-tested above. Full CreateAgent tests
-// would require integration-level setup or a more sophisticated mocking framework.

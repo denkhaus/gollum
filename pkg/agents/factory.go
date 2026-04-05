@@ -243,7 +243,7 @@ func (f *defaultAgentFactory) resolveTools(ctx context.Context, agentID uuid.UUI
 	return tools, nil
 }
 
-func (p *defaultAgentFactory) CreateSupervisorAgent(ctx context.Context) (shared.Agent, *shared.AgentConfig, error) {
+func (p *defaultAgentFactory) CreateSupervisorAgent(ctx context.Context, opts ...shared.SupervisorAgentOption) (shared.Agent, *shared.AgentConfig, error) {
 
 	// Get supervisor prompt from PromptManager
 	systemPrompt, err := p.promptManager.GetPromptWithContext(ctx,
@@ -280,6 +280,11 @@ func (p *defaultAgentFactory) CreateSupervisorAgent(ctx context.Context) (shared
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/glm-4.7",
 		},
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(agentConfig)
 	}
 
 	// Create agent
