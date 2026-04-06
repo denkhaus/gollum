@@ -65,6 +65,7 @@
     </xs:choice>
     <xs:attribute name="name" type="xs:string" use="required"/>
     <xs:attribute name="default" type="xs:string"/>
+    <xs:attribute name="description" type="xs:string"/>
   </xs:complexType>
 
   <!-- Computed block - TOP LEVEL ONLY -->
@@ -83,6 +84,7 @@
     <xs:attribute name="required" type="xs:boolean"/>
     <xs:attribute name="default" type="xs:string"/>
     <xs:attribute name="enum" type="xs:string"/>
+    <xs:attribute name="description" type="xs:string"/>
   </xs:complexType>
 
   <xs:complexType name="OutputField">
@@ -90,18 +92,21 @@
     <xs:attribute name="assignFrom" type="xs:string"/>
     <xs:attribute name="eval" type="xs:string"/>
     <xs:attribute name="required" type="xs:boolean"/>
+    <xs:attribute name="description" type="xs:string"/>
   </xs:complexType>
 
   <xs:complexType name="ContextField">
     <xs:attribute name="name" type="xs:string" use="required"/>
     <xs:attribute name="default" type="xs:string"/>
     <xs:attribute name="required" type="xs:boolean"/>
+    <xs:attribute name="description" type="xs:string"/>
   </xs:complexType>
 
   <!-- Computed field definition -->
   <xs:complexType name="ComputedFieldDef">
     <xs:attribute name="name" type="xs:string" use="required"/>
     <xs:attribute name="eval" type="xs:string" use="required"/>
+    <xs:attribute name="description" type="xs:string"/>
   </xs:complexType>
 
   <!-- Object definition -->
@@ -114,10 +119,12 @@
     </xs:choice>
     <xs:attribute name="name" type="xs:string" use="required"/>
     <xs:attribute name="default" type="xs:string"/>
+    <xs:attribute name="description" type="xs:string"/>
   </xs:complexType>
 
   <xs:complexType name="FieldDef">
     <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="description" type="xs:string"/>
   </xs:complexType>
 
   <!-- Extensions block - allows arbitrary extension elements -->
@@ -250,11 +257,13 @@
   <xs:complexType name="CallInputFieldType">
     <xs:attribute name="name" type="xs:string" use="required"/>
     <xs:attribute name="assignFrom" type="xs:string" use="required"/>
+    <xs:attribute name="description" type="xs:string"/>
   </xs:complexType>
 
   <xs:complexType name="CallOutputFieldType">
     <xs:attribute name="name" type="xs:string" use="required"/>
     <xs:attribute name="assignTo" type="xs:string" use="required"/>
+    <xs:attribute name="description" type="xs:string"/>
   </xs:complexType>
 
   <xs:complexType name="TransitionsBlock">

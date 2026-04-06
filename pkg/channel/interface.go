@@ -5,6 +5,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 )
 
@@ -23,8 +24,8 @@ type Channel interface {
 	OnAgentLifecycle(event AgentLifecycleEvent)
 }
 
-// CommandHandler is a function that executes a slash command
-type CommandHandler func(ctx context.Context, args string) (string, error)
+// CommandHandler is a function that executes a slash command in the context of a session
+type CommandHandler func(ctx context.Context, session *shared.Session, args string) (string, error)
 
 // Command represents a registered slash command
 type Command struct {
@@ -42,7 +43,7 @@ type CommandManager interface {
 	Unregister(name string) error
 
 	// Execute parses input and executes command if it starts with "/"
-	Execute(ctx context.Context, input string) (handled bool, response string, err error)
+	Execute(ctx context.Context, sessionID string, input string) (handled bool, response string, err error)
 
 	// List returns all available commands
 	List() []Command

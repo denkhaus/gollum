@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Simplified Flow Example -->
+<flow name="simplified-flow-example" version="1.0">
+    <description>
+        Minimal flow demonstrating core concepts calling a llm step.
+    </description>
+
+    <input>
+        <string name="target" required="true"
+            description="A filepath to the codebase the complexity calulation should run in" />
+    </input>
+
+    <output>
+        <float name="complexity_score" />
+    </output>
+
+    <agents>
+        <agent name="analyzer" model="anthropic/claude-opus-4-6">
+            <prompt>You are a skilled code complexity analyzer.</prompt>
+            <temperature>0.3</temperature>
+        </agent>
+    </agents>
+
+    <states>
+        <state name="analyze" initial="true">
+            <steps>
+                <!-- Analyze complexity -->
+                <step type="llm" agent="analyzer">
+                    <prompt><![CDATA[
+                        Analyze the codebase in the `${input.target}` path and provide a complexity score.
+                        Use the gocyclo executable as `gocyclo -avg ${input.target} | grep Average`.
+                        Then use the `set_output_field` tool like `set_output_field("complexity_score", <score>)` to provide the output as float value.
+                        Then use the `emit_log` tool to give the user feedback about how well you were doing the job.
+                    ]]></prompt>
+                    <tools>set_output_field,bash,emit_log</tools>
+                    <timeout>60s</timeout>
+                </step>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="done" />
+    </states>
+</flow>

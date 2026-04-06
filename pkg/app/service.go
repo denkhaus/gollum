@@ -67,7 +67,7 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 	markdownRenderer := do.MustInvoke[markdown.Renderer](injector)
 	workspaceService := do.MustInvoke[workspace.Service](injector)
 	mcpRegistry := do.MustInvoke[mcpregistry.MCPRegistry](injector)
-	channelFacade := do.MustInvoke[channel.ChannelFacadeService](injector)
+	channelFacade := do.MustInvoke[channel.ChannelFacade](injector)
 	flowExecutorService := do.MustInvoke[executor.FlowExecutorService](injector)
 	flowRegistry := do.MustInvoke[flowregistry.FlowRegistry](injector)
 

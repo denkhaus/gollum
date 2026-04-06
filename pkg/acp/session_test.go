@@ -5,13 +5,15 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 func TestAcpSession_NewSession_HasRequiredFields(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	session := NewAcpSession(ctx, cancel)
+	session := shared.NewAcpSession(ctx, cancel)
 
 	assert.NotNil(t, session)
 	assert.NotNil(t, session.Context)

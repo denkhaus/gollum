@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/samber/do/v2"
 )
 
@@ -17,17 +18,20 @@ type CommandManagerService interface {
 
 // commandManagerImpl implements CommandManager
 type commandManagerImpl struct {
-	mu       sync.RWMutex
-	commands map[string]Command
+	mu             sync.RWMutex
+	commands       map[string]Command
+	sessionManager shared.SessionManager
 }
 
 // Ensure commandManagerImpl implements CommandManager at compile time
 var _ CommandManager = (*commandManagerImpl)(nil)
 
 // NewCommandManager creates a new command manager service
-func NewCommandManager(_ do.Injector) (CommandManagerService, error) {
+func NewCommandManager(injector do.Injector) (CommandManagerService, error) {
+	sessionManager := do.MustInvoke[shared.SessionManager](injector)
 	return &commandManagerImpl{
-		commands: make(map[string]Command),
+		commands:       make(map[string]Command),
+		sessionManager: sessionManager,
 	}, nil
 }
 
@@ -54,7 +58,7 @@ func (p *commandManagerImpl) Unregister(name string) error {
 }
 
 // Execute parses input and executes command if it begins with "/"
-func (p *commandManagerImpl) Execute(ctx context.Context, input string) (bool, string, error) {
+func (p *commandManagerImpl) Execute(ctx context.Context, sessionID string, input string) (bool, string, error) {
 	if input == "" {
 		return false, "", nil
 	}
@@ -79,14 +83,20 @@ func (p *commandManagerImpl) Execute(ctx context.Context, input string) (bool, s
 		return false, "", nil
 	}
 
+	// Get session
+	session, ok := p.sessionManager.GetSession(sessionID)
+	if !ok {
+		return false, "", fmt.Errorf("session not found: %s", sessionID)
+	}
+
 	// Get args if present
 	args := ""
 	if len(parts) > 1 {
 		args = parts[1]
 	}
 
-	// Execute command
-	response, err := cmd.Handler(ctx, args)
+	// Execute command with session
+	response, err := cmd.Handler(ctx, session, args)
 	return true, response, err
 }
 

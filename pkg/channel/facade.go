@@ -121,7 +121,7 @@ func (p *channelFacadeImpl) DisplayLog(entry LogEntry) {
 // sessionID is used to get or create a session for this interaction
 func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID, sessionID string, input string) (InputResult, error) {
 	// First check if it's a slash command
-	handled, response, err := p.commandManager.Execute(ctx, input)
+	handled, response, err := p.commandManager.Execute(ctx, sessionID, input)
 	if handled {
 		return InputResult{
 			Handled:   true,

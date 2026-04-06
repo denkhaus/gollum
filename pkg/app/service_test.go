@@ -482,7 +482,7 @@ func TestRun_NoDefaultFlowRunsTUI(t *testing.T) {
 	mockMCPRegistry := &mockMCPRegistry{toolSets: []gollem.ToolSet{}}
 
 	// Mock channel facade - TUI channel registration will fail without TUI setup
-	mockChannelFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockChannelFacade := channel.NewMockChannelFacade(ctrl)
 	mockChannelFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).Times(1)
 
 	p := &applicationServiceImpl{

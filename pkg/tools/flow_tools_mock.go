@@ -57,3 +57,79 @@ func (mr *MockFlowToolsProviderMockRecorder) CreateTool(agentID, flowCtx, toolNa
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTool", reflect.TypeOf((*MockFlowToolsProvider)(nil).CreateTool), agentID, flowCtx, toolName)
 }
+
+// MockExecuteFlowToolProvider is a mock of ExecuteFlowToolProvider interface.
+type MockExecuteFlowToolProvider struct {
+	ctrl     *gomock.Controller
+	recorder *MockExecuteFlowToolProviderMockRecorder
+	isgomock struct{}
+}
+
+// MockExecuteFlowToolProviderMockRecorder is the mock recorder for MockExecuteFlowToolProvider.
+type MockExecuteFlowToolProviderMockRecorder struct {
+	mock *MockExecuteFlowToolProvider
+}
+
+// NewMockExecuteFlowToolProvider creates a new mock instance.
+func NewMockExecuteFlowToolProvider(ctrl *gomock.Controller) *MockExecuteFlowToolProvider {
+	mock := &MockExecuteFlowToolProvider{ctrl: ctrl}
+	mock.recorder = &MockExecuteFlowToolProviderMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockExecuteFlowToolProvider) EXPECT() *MockExecuteFlowToolProviderMockRecorder {
+	return m.recorder
+}
+
+// CreateTool mocks base method.
+func (m *MockExecuteFlowToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTool", agentID)
+	ret0, _ := ret[0].(gollem.Tool)
+	return ret0
+}
+
+// CreateTool indicates an expected call of CreateTool.
+func (mr *MockExecuteFlowToolProviderMockRecorder) CreateTool(agentID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTool", reflect.TypeOf((*MockExecuteFlowToolProvider)(nil).CreateTool), agentID)
+}
+
+// MockListFlowsToolProvider is a mock of ListFlowsToolProvider interface.
+type MockListFlowsToolProvider struct {
+	ctrl     *gomock.Controller
+	recorder *MockListFlowsToolProviderMockRecorder
+	isgomock struct{}
+}
+
+// MockListFlowsToolProviderMockRecorder is the mock recorder for MockListFlowsToolProvider.
+type MockListFlowsToolProviderMockRecorder struct {
+	mock *MockListFlowsToolProvider
+}
+
+// NewMockListFlowsToolProvider creates a new mock instance.
+func NewMockListFlowsToolProvider(ctrl *gomock.Controller) *MockListFlowsToolProvider {
+	mock := &MockListFlowsToolProvider{ctrl: ctrl}
+	mock.recorder = &MockListFlowsToolProviderMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockListFlowsToolProvider) EXPECT() *MockListFlowsToolProviderMockRecorder {
+	return m.recorder
+}
+
+// CreateTool mocks base method.
+func (m *MockListFlowsToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTool", agentID)
+	ret0, _ := ret[0].(gollem.Tool)
+	return ret0
+}
+
+// CreateTool indicates an expected call of CreateTool.
+func (mr *MockListFlowsToolProviderMockRecorder) CreateTool(agentID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTool", reflect.TypeOf((*MockListFlowsToolProvider)(nil).CreateTool), agentID)
+}

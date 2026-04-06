@@ -110,7 +110,7 @@ func (m *mockChannel) getLastEvent() AgentLifecycleEvent {
 
 // mockCommandManager is a test double for CommandManager
 type mockCommandManager struct {
-	executeFunc func(ctx context.Context, input string) (handled bool, response string, err error)
+	executeFunc func(ctx context.Context, sessionID string, input string) (handled bool, response string, err error)
 }
 
 func (m *mockCommandManager) Register(cmd Command) error {
@@ -121,9 +121,9 @@ func (m *mockCommandManager) Unregister(name string) error {
 	return nil
 }
 
-func (m *mockCommandManager) Execute(ctx context.Context, input string) (bool, string, error) {
+func (m *mockCommandManager) Execute(ctx context.Context, sessionID string, input string) (bool, string, error) {
 	if m.executeFunc != nil {
-		return m.executeFunc(ctx, input)
+		return m.executeFunc(ctx, sessionID, input)
 	}
 	return false, "", nil
 }
@@ -162,56 +162,6 @@ func (m *mockAgentFactory) CreateSupervisorAgent(ctx context.Context, opts ...sh
 		return m.supervisor, m.config, nil
 	}
 	return nil, nil, fmt.Errorf("mock agent factory: no supervisor available")
-}
-
-// mockSessionManager is a test double for shared.SessionManager
-type mockSessionManager struct {
-	sessions sync.Map // Use sync.Map for concurrent access
-}
-
-func newMockSessionManager() *mockSessionManager {
-	return &mockSessionManager{}
-}
-
-func (m *mockSessionManager) CreateSession(sessionID string, channelID uuid.UUID) (*shared.Session, error) {
-	session := &shared.Session{
-		ID:        sessionID,
-		ChannelID: channelID,
-	}
-	m.sessions.Store(sessionID, session)
-	return session, nil
-}
-
-func (m *mockSessionManager) GetOrCreateSession(sessionID string, channelID uuid.UUID) (*shared.Session, error) {
-	if val, ok := m.sessions.Load(sessionID); ok {
-		return val.(*shared.Session), nil
-	}
-	return m.CreateSession(sessionID, channelID)
-}
-
-func (m *mockSessionManager) GetSession(sessionID string) (*shared.Session, bool) {
-	val, ok := m.sessions.Load(sessionID)
-	if !ok {
-		return nil, false
-	}
-	return val.(*shared.Session), true
-}
-
-func (m *mockSessionManager) CloseSession(sessionID string) error {
-	m.sessions.Delete(sessionID)
-	return nil
-}
-
-func (m *mockSessionManager) GetSessionsByChannel(channelID uuid.UUID) []*shared.Session {
-	var result []*shared.Session
-	m.sessions.Range(func(key, value any) bool {
-		session := value.(*shared.Session)
-		if session.ChannelID == channelID {
-			result = append(result, session)
-		}
-		return true
-	})
-	return result
 }
 
 // mockAgentRegistryWithSupervisor is a configurable mock that can return a supervisor agent
@@ -787,7 +737,7 @@ func TestChannelFacade_SubmitInput_SlashCommand(t *testing.T) {
 
 	// Mock command manager that handles the command
 	cmdMgr := &mockCommandManager{
-		executeFunc: func(ctx context.Context, input string) (bool, string, error) {
+		executeFunc: func(ctx context.Context, sessionID string, input string) (bool, string, error) {
 			if input == "/test args" {
 				return true, "command executed", nil
 			}
@@ -826,7 +776,7 @@ func TestChannelFacade_SubmitInput_NonCommand_NoAgentRouting(t *testing.T) {
 
 	// Mock command manager that doesn't handle the input
 	cmdMgr := &mockCommandManager{
-		executeFunc: func(ctx context.Context, input string) (bool, string, error) {
+		executeFunc: func(ctx context.Context, sessionID string, input string) (bool, string, error) {
 			return false, "", nil
 		},
 	}
@@ -862,7 +812,7 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 
 	// Mock command manager that returns an error
 	cmdMgr := &mockCommandManager{
-		executeFunc: func(ctx context.Context, input string) (bool, string, error) {
+		executeFunc: func(ctx context.Context, sessionID string, input string) (bool, string, error) {
 			return true, "", errors.New("command failed")
 		},
 	}
@@ -1082,7 +1032,7 @@ func TestChannelFacade_SubmitInput_RoutesToSupervisorAgent(t *testing.T) {
 
 	// Mock command manager that doesn't handle the input
 	cmdMgr := &mockCommandManager{
-		executeFunc: func(ctx context.Context, input string) (bool, string, error) {
+		executeFunc: func(ctx context.Context, sessionID string, input string) (bool, string, error) {
 			return false, "", nil
 		},
 	}
@@ -1135,7 +1085,7 @@ func TestChannelFacade_SubmitInput_NoSupervisorError(t *testing.T) {
 
 	// Mock command manager that doesn't handle the input
 	cmdMgr := &mockCommandManager{
-		executeFunc: func(ctx context.Context, input string) (bool, string, error) {
+		executeFunc: func(ctx context.Context, sessionID string, input string) (bool, string, error) {
 			return false, "", nil
 		},
 	}

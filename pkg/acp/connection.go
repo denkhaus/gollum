@@ -3,9 +3,9 @@ package acp
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	acppkg "github.com/ironpark/go-acp"
 	"github.com/samber/do/v2"
 )
@@ -19,7 +19,8 @@ type Connection interface {
 
 // connectionImpl implements Connection (PRIVATE)
 type connectionImpl struct {
-	conn *acppkg.AgentSideConnection
+	conn    *acppkg.AgentSideConnection
+	service shared.ACPService
 }
 
 // NewConnection creates a new ACP connection with DI
@@ -33,13 +34,8 @@ func NewConnection(injector do.Injector, reader io.Reader, writer io.Writer) (Co
 	}
 
 	// Create session store
-	store := acppkg.NewMemoryStore[*AcpSession]()
-
-	// Invoke ACP service from DI container
-	acpService, err := do.Invoke[Service](injector)
-	if err != nil {
-		return nil, fmt.Errorf("ACP service not found in DI container: %w", err)
-	}
+	store := acppkg.NewMemoryStore[*shared.ACPSession]()
+	acpService := do.MustInvoke[shared.ACPService](injector)
 
 	// Set ACP-specific fields
 	acpService.SetClient(nil) // Will be set after connection creation
@@ -47,9 +43,9 @@ func NewConnection(injector do.Injector, reader io.Reader, writer io.Writer) (Co
 
 	// Create connection with session store and middleware
 	conn := acppkg.NewAgentSideConnection(acpService, reader, writer,
-		acppkg.WithSessionStore(store, func(ctx context.Context, params *acppkg.NewSessionRequest) (acppkg.SessionID, *AcpSession, error) {
+		acppkg.WithSessionStore(store, func(ctx context.Context, params *acppkg.NewSessionRequest) (acppkg.SessionID, *shared.ACPSession, error) {
 			ctx, cancel := context.WithCancel(context.Background())
-			return acppkg.GenerateSessionID(), NewAcpSession(ctx, cancel), nil
+			return acppkg.GenerateSessionID(), shared.NewAcpSession(ctx, cancel), nil
 		}),
 		acppkg.WithMiddleware(acppkg.RecoveryMiddleware()),
 	)
@@ -57,7 +53,10 @@ func NewConnection(injector do.Injector, reader io.Reader, writer io.Writer) (Co
 	// Set client on service
 	acpService.SetClient(conn.Client())
 
-	return &connectionImpl{conn: conn}, nil
+	return &connectionImpl{
+		conn:    conn,
+		service: acpService,
+	}, nil
 }
 
 func (p *connectionImpl) Start(ctx context.Context) error {
@@ -65,6 +64,7 @@ func (p *connectionImpl) Start(ctx context.Context) error {
 }
 
 func (p *connectionImpl) Close() error {
+	// Note: Channel unregistration is handled by the service lifecycle
 	return p.conn.Close()
 }
 

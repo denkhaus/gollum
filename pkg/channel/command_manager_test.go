@@ -4,6 +4,9 @@ package channel
 import (
 	"context"
 	"errors"
+	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/google/uuid"
+	"sync"
 	"testing"
 
 	"github.com/samber/do/v2"
@@ -14,6 +17,7 @@ import (
 // TestNewCommandManager tests that NewCommandManager creates a valid instance
 func TestNewCommandManager(t *testing.T) {
 	injector := do.New()
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 
 	service, err := NewCommandManager(injector)
 
@@ -28,13 +32,16 @@ func TestNewCommandManager(t *testing.T) {
 // TestCommandManager_Register_Success tests successful command registration
 func TestCommandManager_Register_Success(t *testing.T) {
 	injector := do.New()
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	service, err := NewCommandManager(injector)
 	require.NoError(t, err)
 
 	cmd := Command{
 		Name:        "/test",
 		Description: "A test command",
-		Handler:     func(ctx context.Context, args string) (string, error) { return "test response", nil },
+		Handler: func(ctx context.Context, session *shared.Session, args string) (string, error) {
+			return "test response", nil
+		},
 	}
 
 	err = service.Register(cmd)
@@ -51,13 +58,16 @@ func TestCommandManager_Register_Success(t *testing.T) {
 // TestCommandManager_Register_Duplicate tests that registering a duplicate command returns an error
 func TestCommandManager_Register_Duplicate(t *testing.T) {
 	injector := do.New()
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	service, err := NewCommandManager(injector)
 	require.NoError(t, err)
 
 	cmd := Command{
 		Name:        "/test",
 		Description: "A test command",
-		Handler:     func(ctx context.Context, args string) (string, error) { return "test response", nil },
+		Handler: func(ctx context.Context, session *shared.Session, args string) (string, error) {
+			return "test response", nil
+		},
 	}
 
 	// Register first time - should succeed
@@ -74,13 +84,16 @@ func TestCommandManager_Register_Duplicate(t *testing.T) {
 // TestCommandManager_Unregister_Success tests successful command unregistration
 func TestCommandManager_Unregister_Success(t *testing.T) {
 	injector := do.New()
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	service, err := NewCommandManager(injector)
 	require.NoError(t, err)
 
 	cmd := Command{
 		Name:        "/test",
 		Description: "A test command",
-		Handler:     func(ctx context.Context, args string) (string, error) { return "test response", nil },
+		Handler: func(ctx context.Context, session *shared.Session, args string) (string, error) {
+			return "test response", nil
+		},
 	}
 
 	// Register command
@@ -103,6 +116,7 @@ func TestCommandManager_Unregister_Success(t *testing.T) {
 // TestCommandManager_Unregister_NonExistent tests that unregistering a non-existent command doesn't error
 func TestCommandManager_Unregister_NonExistent(t *testing.T) {
 	injector := do.New()
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	service, err := NewCommandManager(injector)
 	require.NoError(t, err)
 
@@ -114,11 +128,12 @@ func TestCommandManager_Unregister_NonExistent(t *testing.T) {
 // TestCommandManager_Execute_EmptyInput tests that empty input returns (false, "", nil)
 func TestCommandManager_Execute_EmptyInput(t *testing.T) {
 	injector := do.New()
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	service, err := NewCommandManager(injector)
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	handled, response, err := service.Execute(ctx, "")
+	handled, response, err := service.Execute(ctx, "test-session", "")
 
 	assert.False(t, handled)
 	assert.Empty(t, response)
@@ -128,6 +143,7 @@ func TestCommandManager_Execute_EmptyInput(t *testing.T) {
 // TestCommandManager_Execute_NonCommandInput tests that non-command input (no "/") returns (false, "", nil)
 func TestCommandManager_Execute_NonCommandInput(t *testing.T) {
 	injector := do.New()
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	service, err := NewCommandManager(injector)
 	require.NoError(t, err)
 
@@ -144,7 +160,7 @@ func TestCommandManager_Execute_NonCommandInput(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			handled, response, err := service.Execute(ctx, tc.input)
+			handled, response, err := service.Execute(ctx, "test-session", tc.input)
 
 			assert.False(t, handled)
 			assert.Empty(t, response)
@@ -156,11 +172,12 @@ func TestCommandManager_Execute_NonCommandInput(t *testing.T) {
 // TestCommandManager_Execute_UnknownCommand tests that unknown command returns (false, "", nil)
 func TestCommandManager_Execute_UnknownCommand(t *testing.T) {
 	injector := do.New()
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	service, err := NewCommandManager(injector)
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	handled, response, err := service.Execute(ctx, "/unknown")
+	handled, response, err := service.Execute(ctx, "test-session", "/unknown")
 
 	assert.False(t, handled)
 	assert.Empty(t, response)
@@ -170,15 +187,23 @@ func TestCommandManager_Execute_UnknownCommand(t *testing.T) {
 // TestCommandManager_Execute_ParseCommandNameAndArgs tests command parsing with various inputs
 func TestCommandManager_Execute_ParseCommandNameAndArgs(t *testing.T) {
 	injector := do.New()
+	mockSM := newMockSessionManager()
+	do.ProvideValue[shared.SessionManager](injector, mockSM)
 	service, err := NewCommandManager(injector)
 	require.NoError(t, err)
+
+	// Create a test session
+	_, _ = mockSM.CreateSession("test-session", uuid.New())
 
 	// Track what args were passed to the handler
 	var capturedArgs string
 	cmd := Command{
 		Name:        "/test",
 		Description: "A test command",
-		Handler:     func(ctx context.Context, args string) (string, error) { capturedArgs = args; return "response", nil },
+		Handler: func(ctx context.Context, session *shared.Session, args string) (string, error) {
+			capturedArgs = args
+			return "response", nil
+		},
 	}
 
 	err = service.Register(cmd)
@@ -187,8 +212,8 @@ func TestCommandManager_Execute_ParseCommandNameAndArgs(t *testing.T) {
 	ctx := context.Background()
 
 	testCases := []struct {
-		name        string
-		input       string
+		name         string
+		input        string
 		expectedArgs string
 	}{
 		{"command without args", "/test", ""},
@@ -200,7 +225,7 @@ func TestCommandManager_Execute_ParseCommandNameAndArgs(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			capturedArgs = ""
-			handled, response, err := service.Execute(ctx, tc.input)
+			handled, response, err := service.Execute(ctx, "test-session", tc.input)
 
 			assert.True(t, handled)
 			assert.Equal(t, "response", response)
@@ -213,10 +238,14 @@ func TestCommandManager_Execute_ParseCommandNameAndArgs(t *testing.T) {
 // TestCommandManager_Execute_CallsHandler tests that Execute calls the handler and returns results
 func TestCommandManager_Execute_CallsHandler(t *testing.T) {
 	injector := do.New()
+	mockSM := newMockSessionManager()
+	do.ProvideValue[shared.SessionManager](injector, mockSM)
 	service, err := NewCommandManager(injector)
 	require.NoError(t, err)
 
 	ctx := context.Background()
+	// Create a test session
+	_, _ = mockSM.CreateSession("test-session", uuid.New())
 
 	testCases := []struct {
 		name            string
@@ -257,13 +286,15 @@ func TestCommandManager_Execute_CallsHandler(t *testing.T) {
 			cmd := Command{
 				Name:        "/test",
 				Description: "A test command",
-				Handler:     func(ctx context.Context, args string) (string, error) { return tc.handlerResponse, tc.handlerError },
+				Handler: func(ctx context.Context, session *shared.Session, args string) (string, error) {
+					return tc.handlerResponse, tc.handlerError
+				},
 			}
 
 			err = service.Register(cmd)
 			require.NoError(t, err)
 
-			handled, response, err := service.Execute(ctx, "/test args")
+			handled, response, err := service.Execute(ctx, "test-session", "/test args")
 
 			assert.Equal(t, tc.expectedHandled, handled)
 			assert.Equal(t, tc.expectedResp, response)
@@ -283,6 +314,7 @@ func TestCommandManager_Execute_CallsHandler(t *testing.T) {
 // TestCommandManager_List_ReturnsAllCommands tests that List returns all registered commands
 func TestCommandManager_List_ReturnsAllCommands(t *testing.T) {
 	injector := do.New()
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	service, err := NewCommandManager(injector)
 	require.NoError(t, err)
 
@@ -292,9 +324,9 @@ func TestCommandManager_List_ReturnsAllCommands(t *testing.T) {
 
 	// Add multiple commands
 	cmds := []Command{
-		{Name: "/cmd1", Description: "Command 1", Handler: func(ctx context.Context, args string) (string, error) { return "", nil }},
-		{Name: "/cmd2", Description: "Command 2", Handler: func(ctx context.Context, args string) (string, error) { return "", nil }},
-		{Name: "/cmd3", Description: "Command 3", Handler: func(ctx context.Context, args string) (string, error) { return "", nil }},
+		{Name: "/cmd1", Description: "Command 1", Handler: func(ctx context.Context, session *shared.Session, args string) (string, error) { return "", nil }},
+		{Name: "/cmd2", Description: "Command 2", Handler: func(ctx context.Context, session *shared.Session, args string) (string, error) { return "", nil }},
+		{Name: "/cmd3", Description: "Command 3", Handler: func(ctx context.Context, session *shared.Session, args string) (string, error) { return "", nil }},
 	}
 
 	for _, cmd := range cmds {
@@ -319,13 +351,14 @@ func TestCommandManager_List_ReturnsAllCommands(t *testing.T) {
 // TestCommandManager_IsCommand_RegisteredCommand tests that IsCommand returns true for registered commands
 func TestCommandManager_IsCommand_RegisteredCommand(t *testing.T) {
 	injector := do.New()
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	service, err := NewCommandManager(injector)
 	require.NoError(t, err)
 
 	cmd := Command{
 		Name:        "/test",
 		Description: "A test command",
-		Handler:     func(ctx context.Context, args string) (string, error) { return "", nil },
+		Handler:     func(ctx context.Context, session *shared.Session, args string) (string, error) { return "", nil },
 	}
 
 	err = service.Register(cmd)
@@ -352,6 +385,7 @@ func TestCommandManager_IsCommand_RegisteredCommand(t *testing.T) {
 // TestCommandManager_IsCommand_UnregisteredCommand tests that IsCommand returns false for unregistered commands
 func TestCommandManager_IsCommand_UnregisteredCommand(t *testing.T) {
 	injector := do.New()
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	service, err := NewCommandManager(injector)
 	require.NoError(t, err)
 
@@ -359,7 +393,7 @@ func TestCommandManager_IsCommand_UnregisteredCommand(t *testing.T) {
 	cmd := Command{
 		Name:        "/test",
 		Description: "A test command",
-		Handler:     func(ctx context.Context, args string) (string, error) { return "", nil },
+		Handler:     func(ctx context.Context, session *shared.Session, args string) (string, error) { return "", nil },
 	}
 
 	err = service.Register(cmd)
@@ -388,10 +422,14 @@ func TestCommandManager_IsCommand_UnregisteredCommand(t *testing.T) {
 // TestCommandManager_Concurrency tests that concurrent access is safe
 func TestCommandManager_Concurrency(t *testing.T) {
 	injector := do.New()
+	mockSM := newMockSessionManager()
+	do.ProvideValue[shared.SessionManager](injector, mockSM)
 	service, err := NewCommandManager(injector)
 	require.NoError(t, err)
 
 	ctx := context.Background()
+	// Create a test session for concurrent execution
+	_, _ = mockSM.CreateSession("test-session", uuid.New())
 	done := make(chan bool)
 
 	// Register commands concurrently
@@ -401,7 +439,7 @@ func TestCommandManager_Concurrency(t *testing.T) {
 			cmd := Command{
 				Name:        cmdName,
 				Description: "Concurrent test command",
-				Handler:     func(ctx context.Context, args string) (string, error) { return "", nil },
+				Handler:     func(ctx context.Context, session *shared.Session, args string) (string, error) { return "", nil },
 			}
 			_ = service.Register(cmd)
 			done <- true
@@ -411,7 +449,7 @@ func TestCommandManager_Concurrency(t *testing.T) {
 	// Execute commands concurrently
 	for i := 0; i < 10; i++ {
 		go func() {
-			_, _, _ = service.Execute(ctx, "/cmd0 test")
+			_, _, _ = service.Execute(ctx, "test-session", "/cmd0 test")
 			_ = service.List()
 			_ = service.IsCommand("/cmd0")
 			done <- true
@@ -426,4 +464,65 @@ func TestCommandManager_Concurrency(t *testing.T) {
 	// Verify final state
 	commands := service.List()
 	assert.Greater(t, len(commands), 0)
+}
+
+// mockSessionManager is a test double for shared.SessionManager
+type mockSessionManager struct {
+	sessions sync.Map
+}
+
+func newMockSessionManager() *mockSessionManager {
+	return &mockSessionManager{}
+}
+
+func (m *mockSessionManager) CreateSession(sessionID string, channelID uuid.UUID) (*shared.Session, error) {
+	session := &shared.Session{
+		ID:        sessionID,
+		ChannelID: channelID,
+	}
+	m.sessions.Store(sessionID, session)
+	return session, nil
+}
+
+func (m *mockSessionManager) GetOrCreateSession(sessionID string, channelID uuid.UUID) (*shared.Session, error) {
+	if val, ok := m.sessions.Load(sessionID); ok {
+		return val.(*shared.Session), nil
+	}
+	return m.CreateSession(sessionID, channelID)
+}
+
+func (m *mockSessionManager) GetSession(sessionID string) (*shared.Session, bool) {
+	val, ok := m.sessions.Load(sessionID)
+	if !ok {
+		return nil, false
+	}
+	return val.(*shared.Session), true
+}
+
+func (m *mockSessionManager) CloseSession(sessionID string) error {
+	m.sessions.Delete(sessionID)
+	return nil
+}
+
+func (m *mockSessionManager) GetSessionsByChannel(channelID uuid.UUID) []*shared.Session {
+	var result []*shared.Session
+	m.sessions.Range(func(key, value any) bool {
+		session := value.(*shared.Session)
+		if session.ChannelID == channelID {
+			result = append(result, session)
+		}
+		return true
+	})
+	return result
+}
+
+// setupTestCommandManager creates a command manager with a mock session manager
+func setupTestCommandManager(t *testing.T) (CommandManager, *mockSessionManager) {
+	injector := do.New()
+	sm := newMockSessionManager()
+	_, _ = sm.CreateSession("test-session", uuid.MustParse("00000000-0000-0000-0000-000000000001"))
+	do.ProvideValue[shared.SessionManager](injector, sm)
+	service, err := NewCommandManager(injector)
+	require.NoError(t, err)
+	return service, sm
 }

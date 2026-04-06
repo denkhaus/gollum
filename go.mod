@@ -2,17 +2,19 @@ module github.com/denkhaus/gollum
 
 go 1.26.1
 
+replace github.com/ironpark/go-acp => github.com/ironpark/acp-go v0.0.0-20260314150148-fe3f8bc41143
+
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/aymanbagabas/go-udiff v0.4.1
 	github.com/charmbracelet/bubbles v1.0.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
+	github.com/ironpark/go-acp v0.0.0-00010101000000-000000000000
 	github.com/form3tech-oss/go-xsd-validate v1.0.3
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/git-hulk/langfuse-go v0.1.0
 	github.com/google/uuid v1.6.0
-	github.com/ironpark/go-acp v0.0.0-20260314150148-fe3f8bc41143
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/m-mizutani/gollem v0.24.0
 	github.com/samber/do/v2 v2.0.0
@@ -22,8 +24,6 @@ require (
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.1
 )
-
-replace github.com/ironpark/go-acp => github.com/ironpark/acp-go v0.0.0-20260314150148-fe3f8bc41143
 
 require (
 	github.com/alecthomas/chroma/v2 v2.23.1 // indirect

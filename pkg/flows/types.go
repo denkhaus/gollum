@@ -1,6 +1,7 @@
 package flows
 
 import (
+	"context"
 	"encoding/xml"
 	"fmt"
 
@@ -325,21 +326,23 @@ func (c *ContextBlock) GetAllFields() []ContextField {
 
 // ObjectDef represents nested object fields
 type ObjectDef struct {
-	XMLName xml.Name
-	Name    string     `xml:"name,attr"`
-	Type    ValueType  `xml:"type,attr"`
-	Default string     `xml:"default,attr"`
-	Fields  []FieldDef `xml:",any"`
+	XMLName     xml.Name
+	Name        string     `xml:"name,attr"`
+	Type        ValueType  `xml:"type,attr"`
+	Default     string     `xml:"default,attr"`
+	Description string     `xml:"description,attr,omitempty"`
+	Fields      []FieldDef `xml:",any"`
 }
 
 // FieldDef is a base type for field definitions
 type FieldDef struct {
-	XMLName    xml.Name
-	Name       string    `xml:"name,attr"`
-	Type       ValueType `xml:"type,attr"`
-	Required   bool      `xml:"required,attr"`
-	Default    string    `xml:"default,attr"`
-	AssignFrom string    `xml:"assignFrom,attr,omitempty"` // Source reference for output bindings
+	XMLName     xml.Name
+	Name        string    `xml:"name,attr"`
+	Type        ValueType `xml:"type,attr"`
+	Required    bool      `xml:"required,attr"`
+	Default     string    `xml:"default,attr"`
+	AssignFrom  string    `xml:"assignFrom,attr,omitempty"` // Source reference for output bindings
+	Description string    `xml:"description,attr,omitempty"`
 }
 
 // GetName returns the field name (implements variables.FieldDefinition interface)
@@ -359,10 +362,11 @@ func (f FieldDef) GetDefault() string {
 
 // ContextField represents a regular context field
 type ContextField struct {
-	XMLName xml.Name
-	Name    string    `xml:"name,attr"`
-	Type    ValueType // Set programmatically, not from XML (element name defines type)
-	Default string    `xml:"default,attr"`
+	XMLName     xml.Name
+	Name        string    `xml:"name,attr"`
+	Type        ValueType // Set programmatically, not from XML (element name defines type)
+	Default     string    `xml:"default,attr"`
+	Description string    `xml:"description,attr,omitempty"`
 }
 
 // GetName returns the field name (implements variables.FieldDefinition interface)
@@ -424,9 +428,10 @@ func (c *ComputedBlock) GetAllFields() []ComputedFieldDef {
 
 // ComputedFieldDef defines a computed field with name, type, and evaluation expression
 type ComputedFieldDef struct {
-	Name string    `xml:"name,attr"`
-	Type ValueType // Set programmatically, not from XML (element name defines type)
-	Eval string    `xml:"eval,attr"` // Expression to evaluate
+	Name        string    `xml:"name,attr"`
+	Type        ValueType // Set programmatically, not from XML (element name defines type)
+	Eval        string    `xml:"eval,attr"` // Expression to evaluate
+	Description string    `xml:"description,attr,omitempty"`
 }
 
 // Agent defines an LLM agent
@@ -583,14 +588,16 @@ func (c *CallOutputBlock) GetFields() []CallOutputFieldRef {
 
 // CallInputParam represents a parameter for call input (data from parent context)
 type CallInputParam struct {
-	Name       string `xml:"name,attr"`
-	AssignFrom string `xml:"assignFrom,attr"` // Source reference in parent context
+	Name        string `xml:"name,attr"`
+	AssignFrom  string `xml:"assignFrom,attr"` // Source reference in parent context
+	Description string `xml:"description,attr,omitempty"`
 }
 
 // CallOutputParam represents a parameter for call output (data to parent context)
 type CallOutputParam struct {
-	Name    string `xml:"name,attr"`
-	AssignTo string `xml:"assignTo,attr"` // Target in parent context
+	Name        string `xml:"name,attr"`
+	AssignTo    string `xml:"assignTo,attr"` // Target in parent context
+	Description string `xml:"description,attr,omitempty"`
 }
 
 // CallInputFieldRef is a union wrapper for input field variants (internal use)
@@ -697,6 +704,33 @@ var lintRunner LintRunner
 // RegisterLintRunner registers the linter implementation (called by linter package init)
 func RegisterLintRunner(runner LintRunner) {
 	lintRunner = runner
+}
+
+// FlowExecutionResult holds the result of a flow execution
+type FlowExecutionResult struct {
+	Outputs map[string]any
+}
+
+// Executor is an interface for executing flows (implemented by executor package to avoid circular imports)
+type Executor interface {
+	// Execute executes a flow with the given inputs and returns the result
+	Execute(ctx context.Context, flow *Flow, inputs map[string]any) (*FlowExecutionResult, error)
+}
+
+// executor is set by the executor package to provide the actual implementation
+var executor Executor
+
+// RegisterExecutor registers the executor implementation (called by executor package init)
+func RegisterExecutor(e Executor) {
+	executor = e
+}
+
+// Execute executes a flow using the registered executor
+func (f *Flow) Execute(ctx context.Context, inputs map[string]any) (*FlowExecutionResult, error) {
+	if executor == nil {
+		return nil, fmt.Errorf("executor not initialized - import executor package to enable flow execution")
+	}
+	return executor.Execute(ctx, f, inputs)
 }
 
 // Lint runs all linter phases on a flow

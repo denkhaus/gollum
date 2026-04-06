@@ -117,9 +117,9 @@ func (m *MockCommandManager) EXPECT() *MockCommandManagerMockRecorder {
 }
 
 // Execute mocks base method.
-func (m *MockCommandManager) Execute(ctx context.Context, input string) (bool, string, error) {
+func (m *MockCommandManager) Execute(ctx context.Context, sessionID, input string) (bool, string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Execute", ctx, input)
+	ret := m.ctrl.Call(m, "Execute", ctx, sessionID, input)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(string)
 	ret2, _ := ret[2].(error)
@@ -127,9 +127,9 @@ func (m *MockCommandManager) Execute(ctx context.Context, input string) (bool, s
 }
 
 // Execute indicates an expected call of Execute.
-func (mr *MockCommandManagerMockRecorder) Execute(ctx, input any) *gomock.Call {
+func (mr *MockCommandManagerMockRecorder) Execute(ctx, sessionID, input any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockCommandManager)(nil).Execute), ctx, input)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockCommandManager)(nil).Execute), ctx, sessionID, input)
 }
 
 // IsCommand mocks base method.

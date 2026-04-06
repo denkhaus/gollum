@@ -20,10 +20,12 @@ func TestNewConnection_CreatesValidConnection(t *testing.T) {
 
 	// Create generated mocks
 	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
 
 	// Expect Debug call from NewAcpService
-	mockLogger.EXPECT().Debug(gomock.Any()).Times(1)
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	// Expect RegisterChannel call from NewAcpService
+	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil)
 
 	injector := do.New()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
@@ -45,7 +47,7 @@ func TestNewConnection_NilReader_ReturnsError(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
 
 	injector := do.New()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
@@ -64,7 +66,7 @@ func TestNewConnection_NilWriter_ReturnsError(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
 
 	injector := do.New()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
@@ -83,18 +85,16 @@ func TestNewConnection_ServiceNotInDI_ReturnsError(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
 
 	injector := do.New()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 	do.ProvideValue[channel.ChannelFacade](injector, mockFacade)
-	// Don't register ACP service provider - should fail
+	// Don't register ACP service provider - should panic
 
-	conn, err := NewConnection(injector, bytes.NewReader([]byte{}), &bytes.Buffer{})
-
-	assert.Error(t, err)
-	assert.Nil(t, conn)
-	assert.Contains(t, err.Error(), "ACP service not found")
+	assert.Panics(t, func() {
+		NewConnection(injector, bytes.NewReader([]byte{}), &bytes.Buffer{})
+	})
 }
 
 func TestNewConnection_ImplementsConnectionInterface(t *testing.T) {
@@ -102,10 +102,12 @@ func TestNewConnection_ImplementsConnectionInterface(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
 
 	// Expect Debug call from NewAcpService
-	mockLogger.EXPECT().Debug(gomock.Any()).Times(1)
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	// Expect RegisterChannel call from NewAcpService
+	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil)
 
 	injector := do.New()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
@@ -129,10 +131,12 @@ func TestConnectionImpl_DoneReturnsChannel(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
 
 	// Expect Debug call from NewAcpService
-	mockLogger.EXPECT().Debug(gomock.Any()).Times(1)
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	// Expect RegisterChannel call from NewAcpService
+	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil)
 
 	injector := do.New()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
@@ -156,10 +160,12 @@ func TestConnectionImpl_ConnectionCreatedSuccessfully(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
 
 	// Expect Debug call from NewAcpService
-	mockLogger.EXPECT().Debug(gomock.Any()).Times(1)
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	// Expect RegisterChannel call from NewAcpService
+	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil)
 
 	injector := do.New()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)

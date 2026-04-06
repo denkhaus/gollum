@@ -59,12 +59,12 @@ You are an expert at [specific domain]. Your task is to [specific objective].
 
 For comprehensive documentation on skill creation, refer to:
 
-- **Skill Structure**: See `skill-structure.md` for SKILL.md file format
-- **Skill Types**: See `skill-types.md` for agent, mcp, and workflow types
-- **Tool Configuration**: See `skill-tools.md` for tool access control
-- **Context Modes**: See `skill-context.md` for inherited vs isolated execution
-- **Best Practices**: See `skill-best-practices.md` for authoring guidelines
-- **Templates**: See `templates.md` for ready-to-use skill templates
+- **Skill Structure**: See `references/skill-structure.md` for SKILL.md file format
+- **Skill Types**: See `references/skill-types.md` for agent, mcp, and workflow types
+- **Tool Configuration**: See `references/skill-tools.md` for tool access control
+- **Context Modes**: See `references/skill-context.md` for inherited vs isolated execution
+- **Best Practices**: See `references/skill-best-practices.md` for authoring guidelines
+- **Templates**: See `references/templates.md` for ready-to-use skill templates
 
 ## Your Task
 
