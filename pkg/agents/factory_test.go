@@ -246,3 +246,52 @@ func (m *mockBashToolWithSpec) Spec() gollem.ToolSpec {
 func (m *mockBashToolWithSpec) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	return map[string]any{}, nil
 }
+
+func TestSupervisorAgentOptions_WithSessionContext(t *testing.T) {
+	// Test that new session context options work correctly
+	customID := uuid.MustParse("123e4567-e89b-12d3-a456-426614174000")
+	sessionID := "test-session-123"
+	channelID := uuid.MustParse("987fcdeb-51a2-9f3b-a456-426614174000")
+
+	// Test WithSessionID
+	config1 := &shared.AgentConfig{}
+	shared.WithSessionID(sessionID)(config1)
+	assert.Equal(t, sessionID, config1.SessionID, "WithSessionID should set the config SessionID")
+
+	// Test WithChannelID
+	config2 := &shared.AgentConfig{}
+	shared.WithChannelID(channelID)(config2)
+	assert.Equal(t, channelID, config2.ChannelID, "WithChannelID should set the config ChannelID")
+
+	// Test all options together
+	config3 := &shared.AgentConfig{}
+	shared.WithAgentID(customID)(config3)
+	shared.WithSessionID(sessionID)(config3)
+	shared.WithChannelID(channelID)(config3)
+
+	assert.Equal(t, customID, config3.ID, "WithAgentID should set the config ID")
+	assert.Equal(t, sessionID, config3.SessionID, "WithSessionID should set the config SessionID")
+	assert.Equal(t, channelID, config3.ChannelID, "WithChannelID should set the config ChannelID")
+}
+
+func TestAgentConfig_SessionContextDefaults(t *testing.T) {
+	// Test that empty/nil values are the default
+	config := &shared.AgentConfig{}
+
+	assert.Equal(t, "", config.SessionID, "SessionID should default to empty string")
+	assert.Equal(t, uuid.Nil, config.ChannelID, "ChannelID should default to Nil UUID")
+}
+
+func TestAgentConfig_SessionContextMarshaling(t *testing.T) {
+	// Test that session context fields are properly tagged for JSON
+	sessionID := "session-abc"
+	channelID := uuid.MustParse("11111111-2222-3333-4444-555555555555")
+
+	config := &shared.AgentConfig{
+		SessionID: sessionID,
+		ChannelID: channelID,
+	}
+
+	assert.Equal(t, sessionID, config.SessionID)
+	assert.Equal(t, channelID, config.ChannelID)
+}

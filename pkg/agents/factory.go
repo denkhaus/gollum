@@ -37,6 +37,7 @@ type defaultAgentFactory struct {
 	promptManager    manager.PromptManager
 	workspaceService workspace.Service
 	channelProvider  channel.ChannelMiddlewareProvider
+	channelFacade    channel.ChannelFacade
 	skillsService    skills.SkillService
 	// Tool providers for adding default tools to all agents
 	spawnAgentToolProv      tools.SpawnAgentToolProvider
@@ -67,6 +68,7 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 	mcpRegistry := do.MustInvoke[mcpregistry.MCPRegistry](injector)
 	workspaceService := do.MustInvoke[workspace.Service](injector)
 	channelProvider := do.MustInvoke[channel.ChannelMiddlewareProvider](injector)
+	channelFacade := do.MustInvoke[channel.ChannelFacade](injector)
 	mcpToolProvider := do.MustInvoke[mcp.MCPToolProvider](injector)
 	skillsService := do.MustInvoke[skills.SkillService](injector)
 
@@ -97,6 +99,7 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 		registry:                registry,
 		promptManager:           promptManager,
 		channelProvider:         channelProvider,
+		channelFacade:           channelFacade,
 		spawnAgentToolProv:      spawnAgentToolProv,
 		agentOutputToolProv:     agentOutputToolProv,
 		removeAgentToolProv:     removeAgentToolProv,
@@ -194,7 +197,7 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 
 	// Add channel middleware (always - routes all agent output to channel system)
 	// The channel SDK handles all messaging, replacing the old DisplayMiddleware and SummaryMiddleware
-	channelMiddleware := f.channelProvider.CreateChannelMiddleware(config.ID, config.Role)
+	channelMiddleware := f.channelProvider.CreateChannelMiddleware(f.channelFacade, config.ID, config.Role, config.SessionID, config.ChannelID)
 	baseOptions = append(baseOptions,
 		gollem.WithContentBlockMiddleware(channelMiddleware.ContentBlockMiddleware),
 		gollem.WithToolMiddleware(channelMiddleware.ToolMiddleware),

@@ -16,6 +16,20 @@ func WithAgentID(id uuid.UUID) SupervisorAgentOption {
 	}
 }
 
+// WithSessionID sets the session ID for the agent
+func WithSessionID(sessionID string) SupervisorAgentOption {
+	return func(cfg *AgentConfig) {
+		cfg.SessionID = sessionID
+	}
+}
+
+// WithChannelID sets the channel ID for the agent
+func WithChannelID(channelID uuid.UUID) SupervisorAgentOption {
+	return func(cfg *AgentConfig) {
+		cfg.ChannelID = channelID
+	}
+}
+
 // AgentFactory creates agents in a centralized way
 // This allows both AgentProvider and SpawnAgentTool to use the same logic
 type AgentFactory interface {
