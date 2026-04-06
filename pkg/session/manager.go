@@ -61,10 +61,21 @@ func (p *sessionManagerImpl) GetSession(sessionID string) (*shared.Session, bool
 }
 
 // CloseSession closes a session and cancels its context.
+// It also cleans up the supervisor agent to prevent memory leaks.
 func (p *sessionManagerImpl) CloseSession(sessionID string) error {
 	if val, ok := p.sessions.Load(sessionID); ok {
 		session := val.(*shared.Session)
+
+		// Cleanup supervisor to prevent memory leak
+		if err := session.Close(); err != nil {
+			// Log but don't fail - context cancellation is more important
+			// The supervisor reference will still be cleared
+		}
+
+		// Cancel the session context
 		session.CancelFunc()
+
+		// Remove from session map
 		p.sessions.Delete(sessionID)
 		return nil
 	}

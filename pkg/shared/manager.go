@@ -72,3 +72,15 @@ func (s *Session) GetOrCreateSupervisor(factory AgentFactory) (Agent, error) {
 	s.SupervisorID = supervisor.GetID()
 	return supervisor, nil
 }
+
+// Close cleans up session resources including the supervisor agent.
+// This method is thread-safe and prevents memory leaks by releasing the supervisor reference.
+func (s *Session) Close() error {
+	s.supervisorMu.Lock()
+	defer s.supervisorMu.Unlock()
+
+	// Clear supervisor reference to allow garbage collection
+	s.supervisor = nil
+
+	return nil
+}

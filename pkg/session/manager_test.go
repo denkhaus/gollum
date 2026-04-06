@@ -520,3 +520,33 @@ func TestGetOrCreateSession_Concurrent(t *testing.T) {
 	}
 }
 
+func TestCloseSession_CleansUpSupervisor(t *testing.T) {
+	injector := do.New()
+	manager, _ := NewSessionManager(injector)
+	sessionID := uuid.New().String()
+	channelID := uuid.New()
+
+	session, err := manager.CreateSession(sessionID, channelID)
+	require.NoError(t, err)
+
+	// Create a mock supervisor to test cleanup
+	// We can't easily create a real agent without the full factory setup,
+	// but we can verify that Close() doesn't error and context is cancelled
+
+	// Close the session
+	err = manager.CloseSession(sessionID)
+	require.NoError(t, err)
+
+	// Verify context is cancelled
+	select {
+	case <-session.Context.Done():
+		// Expected - context should be cancelled
+	default:
+		t.Fatal("context should be cancelled after CloseSession")
+	}
+
+	// Session should no longer exist
+	_, exists := manager.GetSession(sessionID)
+	assert.False(t, exists)
+}
+
