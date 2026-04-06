@@ -48,6 +48,8 @@ type Message struct {
 	Type      MessageType
 	AgentID   uuid.UUID
 	AgentRole string
+	SessionID string // Session identifier for multi-session support
+	ChannelID uuid.UUID
 	Content   string
 	Timestamp time.Time
 	Metadata  map[string]any // tool_name, duration, collapsed, etc.

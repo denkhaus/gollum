@@ -14,46 +14,47 @@ import (
 type (
 	// ChannelMiddlewareProvider creates channel middleware instances via DI
 	ChannelMiddlewareProvider interface {
-		CreateChannelMiddleware(agentID uuid.UUID, agentRole string) *ChannelMiddleware
+		CreateChannelMiddleware(facade ChannelFacade, agentID uuid.UUID, agentRole string, sessionID string, channelID uuid.UUID) *ChannelMiddleware
 	}
 
-	channelMiddlewareProvider struct {
-		facade ChannelFacade
-	}
+	channelMiddlewareProvider struct{}
 )
 
 // ChannelMiddleware sends agent outputs to channel facade.
 // This middleware bridges the agent execution pipeline with the channel system.
 type ChannelMiddleware struct {
-	facade    ChannelFacade
-	agentID   uuid.UUID
-	agentRole string
+	facade     ChannelFacade
+	agentID    uuid.UUID
+	agentRole  string
+	sessionID  string
+	channelID  uuid.UUID
 }
 
 // NewChannelMiddleware creates a new channel middleware
-func NewChannelMiddleware(facade ChannelFacade, agentID uuid.UUID, agentRole string) *ChannelMiddleware {
+func NewChannelMiddleware(facade ChannelFacade, agentID uuid.UUID, agentRole string, sessionID string, channelID uuid.UUID) *ChannelMiddleware {
 	return &ChannelMiddleware{
 		facade:    facade,
 		agentID:   agentID,
 		agentRole: agentRole,
+		sessionID: sessionID,
+		channelID: channelID,
 	}
 }
 
 // NewChannelMiddlewareProvider creates a provider for channel middleware
 func NewChannelMiddlewareProvider(injector do.Injector) (ChannelMiddlewareProvider, error) {
-	facade := do.MustInvoke[ChannelFacadeService](injector)
-
-	return &channelMiddlewareProvider{
-		facade: facade,
-	}, nil
+	return &channelMiddlewareProvider{}, nil
 }
 
 // CreateChannelMiddleware creates a new channel middleware for a specific agent
 func (p *channelMiddlewareProvider) CreateChannelMiddleware(
+	facade ChannelFacade,
 	agentID uuid.UUID,
 	agentRole string,
+	sessionID string,
+	channelID uuid.UUID,
 ) *ChannelMiddleware {
-	return NewChannelMiddleware(p.facade, agentID, agentRole)
+	return NewChannelMiddleware(facade, agentID, agentRole, sessionID, channelID)
 }
 
 // ContentBlockMiddleware processes text content blocks and sends to channel
@@ -79,6 +80,8 @@ func (p *ChannelMiddleware) ContentBlockMiddleware(next gollem.ContentBlockHandl
 					Type:      MessageTypeAgentChat,
 					AgentID:   p.agentID,
 					AgentRole: p.agentRole,
+					SessionID: p.sessionID,
+					ChannelID: p.channelID,
 					Content:   combinedText,
 					Timestamp: time.Now(),
 				})
@@ -98,6 +101,8 @@ func (p *ChannelMiddleware) ToolMiddleware(next gollem.ToolHandler) gollem.ToolH
 			Type:      MessageTypeToolRequest,
 			AgentID:   p.agentID,
 			AgentRole: p.agentRole,
+			SessionID: p.sessionID,
+			ChannelID: p.channelID,
 			Content:   fmt.Sprintf("Tool use: %s", req.Tool.Name),
 			Timestamp: time.Now(),
 			Metadata: map[string]any{
@@ -116,6 +121,8 @@ func (p *ChannelMiddleware) ToolMiddleware(next gollem.ToolHandler) gollem.ToolH
 				Type:      MessageTypeToolResponse,
 				AgentID:   p.agentID,
 				AgentRole: p.agentRole,
+				SessionID: p.sessionID,
+				ChannelID: p.channelID,
 				Content:   fmt.Sprintf("Tool result: %s", req.Tool.Name),
 				Timestamp: time.Now(),
 				Metadata: map[string]any{
