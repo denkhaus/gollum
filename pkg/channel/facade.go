@@ -16,6 +16,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/registry"
+	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 // channelFacadeImpl implements ChannelFacade
@@ -24,12 +25,14 @@ type channelFacadeImpl struct {
 	channels       map[uuid.UUID]Channel
 	commandManager CommandManager
 	registry       registry.AgentRegistry
+	agentFactory   shared.AgentFactory
+	sessionManager shared.SessionManager
 	logs           []LogEntry
 	maxLogs        int
 	logger         logger.LoggerService
 
 	// Track active inputs per channel for cancellation
-	activeInputs   map[uuid.UUID]context.CancelFunc
+	activeInputs map[uuid.UUID]context.CancelFunc
 }
 
 // Ensure channelFacadeImpl implements ChannelFacade at compile time
@@ -39,6 +42,8 @@ var _ ChannelFacade = (*channelFacadeImpl)(nil)
 func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 	cm := do.MustInvoke[CommandManagerService](injector)
 	reg := do.MustInvoke[registry.AgentRegistry](injector)
+	af := do.MustInvoke[shared.AgentFactory](injector)
+	sm := do.MustInvoke[shared.SessionManager](injector)
 	cfg := do.MustInvoke[config.ConfigService](injector)
 	log := do.MustInvoke[logger.LoggerService](injector)
 
@@ -48,6 +53,8 @@ func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 	return &channelFacadeImpl{
 		commandManager: cm,
 		registry:       reg,
+		agentFactory:   af,
+		sessionManager: sm,
 		channels:       make(map[uuid.UUID]Channel),
 		logs:           make([]LogEntry, 0, maxLogs),
 		maxLogs:        maxLogs,
@@ -114,9 +121,9 @@ func (p *channelFacadeImpl) DisplayLog(entry LogEntry) {
 }
 
 // SubmitInput handles user input from any channel
-// channelID is kept for future use (e.g., logging, tracking which channel sent input)
-// Routes to the singleton Supervisor-Agent
-func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID, input string) (InputResult, error) {
+// channelID is used to assign each agent message to a channel
+// sessionID is used to get or create a session for this interaction
+func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID, sessionID string, input string) (InputResult, error) {
 	// First check if it's a slash command
 	handled, response, err := p.commandManager.Execute(ctx, input)
 	if handled {
@@ -126,6 +133,12 @@ func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID
 			Response:  response,
 			Error:     err,
 		}, nil
+	}
+
+	// Get or create session for this interaction
+	_, err = p.sessionManager.GetOrCreateSession(sessionID, channelID)
+	if err != nil {
+		return InputResult{}, fmt.Errorf("failed to get/create session: %w", err)
 	}
 
 	// Create cancellable context for this input
@@ -144,10 +157,14 @@ func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID
 		cancelFunc()
 	}()
 
-	// Get the singleton Supervisor-Agent from registry
-	supervisor, err := p.registry.GetSupervisorAgent()
+	// Get or create supervisor for this session
+	supervisor, _, err := p.agentFactory.CreateSupervisorAgent(
+		ctx,
+		shared.WithSessionID(sessionID),
+		shared.WithChannelID(channelID),
+	)
 	if err != nil {
-		return InputResult{}, fmt.Errorf("supervisor agent not available: %w", err)
+		return InputResult{}, fmt.Errorf("failed to create supervisor: %w", err)
 	}
 
 	// Execute supervisor agent

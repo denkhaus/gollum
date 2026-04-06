@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
@@ -446,3 +447,76 @@ func TestConcurrentCloseAndGet(t *testing.T) {
 		<-done
 	}
 }
+
+func TestGetOrCreateSession_ExistingSession(t *testing.T) {
+	injector := do.New()
+	manager, _ := NewSessionManager(injector)
+	sessionID := uuid.New().String()
+	channelID := uuid.New()
+
+	// Create initial session
+	originalSession, err := manager.CreateSession(sessionID, channelID)
+	require.NoError(t, err)
+
+	// GetOrCreate should return the existing session
+	retrievedSession, err := manager.GetOrCreateSession(sessionID, channelID)
+	require.NoError(t, err)
+
+	// Should be the same session
+	assert.Equal(t, originalSession.ID, retrievedSession.ID)
+	assert.Equal(t, originalSession.ChannelID, retrievedSession.ChannelID)
+	assert.Same(t, originalSession.Context, retrievedSession.Context)
+}
+
+func TestGetOrCreateSession_NewSession(t *testing.T) {
+	injector := do.New()
+	manager, _ := NewSessionManager(injector)
+	sessionID := uuid.New().String()
+	channelID := uuid.New()
+
+	// GetOrCreate should create a new session
+	session, err := manager.GetOrCreateSession(sessionID, channelID)
+	require.NoError(t, err)
+
+	assert.Equal(t, sessionID, session.ID)
+	assert.Equal(t, channelID, session.ChannelID)
+	assert.NotNil(t, session.Context)
+	assert.NotNil(t, session.CancelFunc)
+
+	// Verify session can be retrieved
+	retrieved, exists := manager.GetSession(sessionID)
+	assert.True(t, exists)
+	assert.Equal(t, sessionID, retrieved.ID)
+}
+
+func TestGetOrCreateSession_Concurrent(t *testing.T) {
+	injector := do.New()
+	manager, _ := NewSessionManager(injector)
+	sessionID := uuid.New().String()
+	channelID := uuid.New()
+
+	// Call GetOrCreateSession concurrently
+	done := make(chan bool)
+	sessions := make([]*shared.Session, 0, 10)
+
+	for i := 0; i < 10; i++ {
+		go func() {
+			session, err := manager.GetOrCreateSession(sessionID, channelID)
+			assert.NoError(t, err)
+			sessions = append(sessions, session)
+			done <- true
+		}()
+	}
+
+	// Wait for all goroutines
+	for i := 0; i < 10; i++ {
+		<-done
+	}
+
+	// All sessions should have the same ID
+	for _, sess := range sessions {
+		assert.Equal(t, sessionID, sess.ID)
+		assert.Equal(t, channelID, sess.ChannelID)
+	}
+}
+

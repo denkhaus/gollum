@@ -144,14 +144,74 @@ func (m *mockAgentRegistry) Register(agent shared.Agent, config *shared.AgentCon
 }
 
 // mockAgentFactory is a test double for shared.AgentFactory
-type mockAgentFactory struct{}
+type mockAgentFactory struct {
+	supervisor shared.Agent
+	config     *shared.AgentConfig
+	err        error
+}
 
 func (m *mockAgentFactory) CreateAgent(ctx context.Context, config *shared.AgentConfig) (shared.Agent, error) {
 	return nil, nil
 }
 
 func (m *mockAgentFactory) CreateSupervisorAgent(ctx context.Context, opts ...shared.SupervisorAgentOption) (shared.Agent, *shared.AgentConfig, error) {
-	return nil, nil, nil
+	if m.err != nil {
+		return nil, nil, m.err
+	}
+	if m.supervisor != nil {
+		return m.supervisor, m.config, nil
+	}
+	return nil, nil, fmt.Errorf("mock agent factory: no supervisor available")
+}
+
+// mockSessionManager is a test double for shared.SessionManager
+type mockSessionManager struct {
+	sessions sync.Map // Use sync.Map for concurrent access
+}
+
+func newMockSessionManager() *mockSessionManager {
+	return &mockSessionManager{}
+}
+
+func (m *mockSessionManager) CreateSession(sessionID string, channelID uuid.UUID) (*shared.Session, error) {
+	session := &shared.Session{
+		ID:        sessionID,
+		ChannelID: channelID,
+	}
+	m.sessions.Store(sessionID, session)
+	return session, nil
+}
+
+func (m *mockSessionManager) GetOrCreateSession(sessionID string, channelID uuid.UUID) (*shared.Session, error) {
+	if val, ok := m.sessions.Load(sessionID); ok {
+		return val.(*shared.Session), nil
+	}
+	return m.CreateSession(sessionID, channelID)
+}
+
+func (m *mockSessionManager) GetSession(sessionID string) (*shared.Session, bool) {
+	val, ok := m.sessions.Load(sessionID)
+	if !ok {
+		return nil, false
+	}
+	return val.(*shared.Session), true
+}
+
+func (m *mockSessionManager) CloseSession(sessionID string) error {
+	m.sessions.Delete(sessionID)
+	return nil
+}
+
+func (m *mockSessionManager) GetSessionsByChannel(channelID uuid.UUID) []*shared.Session {
+	var result []*shared.Session
+	m.sessions.Range(func(key, value any) bool {
+		session := value.(*shared.Session)
+		if session.ChannelID == channelID {
+			result = append(result, session)
+		}
+		return true
+	})
+	return result
 }
 
 // mockAgentRegistryWithSupervisor is a configurable mock that can return a supervisor agent
@@ -272,6 +332,7 @@ func setupTestInjector() do.Injector {
 	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
 	// Add a mock logger
@@ -288,6 +349,7 @@ func setupTestInjectorWithLogger(logService logger.LoggerService) do.Injector {
 	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 	do.ProvideValue[logger.LoggerService](injector, logService)
 
@@ -300,6 +362,7 @@ func setupTestInjectorWithConfig(cfg config.ConfigService) do.Injector {
 	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	do.ProvideValue[config.ConfigService](injector, cfg)
 
 	// Add a mock logger
@@ -734,6 +797,7 @@ func TestChannelFacade_SubmitInput_SlashCommand(t *testing.T) {
 	do.ProvideValue[CommandManagerService](injector, cmdMgr)
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 	
 	// Add mock logger
@@ -747,7 +811,7 @@ func TestChannelFacade_SubmitInput_SlashCommand(t *testing.T) {
 
 	ctx := context.Background()
 	channelID := uuid.New()
-	result, err := service.SubmitInput(ctx, channelID, "/test args")
+	result, err := service.SubmitInput(ctx, channelID, "test-session", "/test args")
 
 	require.NoError(t, err)
 	assert.True(t, result.Handled, "Slash command should be handled")
@@ -770,6 +834,7 @@ func TestChannelFacade_SubmitInput_NonCommand_NoAgentRouting(t *testing.T) {
 	do.ProvideValue[CommandManagerService](injector, cmdMgr)
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 	
 	// Add mock logger
@@ -783,11 +848,11 @@ func TestChannelFacade_SubmitInput_NonCommand_NoAgentRouting(t *testing.T) {
 
 	ctx := context.Background()
 	channelID := uuid.New()
-	result, err := service.SubmitInput(ctx, channelID, "hello world")
+	result, err := service.SubmitInput(ctx, channelID, "test-session", "hello world")
 
 	// Since no supervisor agent is available, this should return an error
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "supervisor agent not available")
+	assert.Contains(t, err.Error(), "failed to create supervisor")
 	assert.Empty(t, result)
 }
 
@@ -805,6 +870,7 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 	do.ProvideValue[CommandManagerService](injector, cmdMgr)
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 	
 	// Add mock logger
@@ -818,7 +884,7 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 
 	ctx := context.Background()
 	channelID := uuid.New()
-	result, err := service.SubmitInput(ctx, channelID, "/test")
+	result, err := service.SubmitInput(ctx, channelID, "test-session", "/test")
 
 	require.NoError(t, err)
 	assert.True(t, result.Handled)
@@ -1026,14 +1092,21 @@ func TestChannelFacade_SubmitInput_RoutesToSupervisorAgent(t *testing.T) {
 	supervisorID := uuid.New()
 	supervisor := newMockAgent(supervisorID)
 
-	// Mock registry that returns the supervisor
+	// Mock registry (no longer used for supervisor routing)
 	mockRegistry := &mockAgentRegistryWithSupervisor{
 		supervisor: supervisor,
 		err:        nil,
 	}
 	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
 
-	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	// Mock agent factory that returns the supervisor
+	mockAgentFactory := &mockAgentFactory{
+		supervisor: supervisor,
+		config:     &shared.AgentConfig{ID: supervisorID},
+		err:        nil,
+	}
+	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 	
 	// Add mock logger
@@ -1048,7 +1121,7 @@ func TestChannelFacade_SubmitInput_RoutesToSupervisorAgent(t *testing.T) {
 	// Submit input
 	ctx := context.Background()
 	channelID := uuid.New()
-	result, err := service.SubmitInput(ctx, channelID, "test input")
+	result, err := service.SubmitInput(ctx, channelID, "test-session", "test input")
 
 	require.NoError(t, err)
 	assert.True(t, result.Handled)
@@ -1076,6 +1149,7 @@ func TestChannelFacade_SubmitInput_NoSupervisorError(t *testing.T) {
 	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
 
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	do.ProvideValue[shared.SessionManager](injector, newMockSessionManager())
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 	
 	// Add mock logger
@@ -1090,9 +1164,9 @@ func TestChannelFacade_SubmitInput_NoSupervisorError(t *testing.T) {
 	// Submit input should return error
 	ctx := context.Background()
 	channelID := uuid.New()
-	result, err := service.SubmitInput(ctx, channelID, "test input")
+	result, err := service.SubmitInput(ctx, channelID, "test-session", "test input")
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "supervisor agent not available")
+	assert.Contains(t, err.Error(), "failed to create supervisor")
 	assert.Empty(t, result)
 }

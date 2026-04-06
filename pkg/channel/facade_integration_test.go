@@ -42,7 +42,7 @@ func TestChannelFacade_Integration_SupervisorRouting(t *testing.T) {
 		channelID := uuid.New()
 
 		// Submit non-command input - should fail without supervisor
-		result, err := facade.SubmitInput(ctx, channelID, "test input")
+		result, err := facade.SubmitInput(ctx, channelID, "test-session", "test input")
 		assert.Error(t, err, "should error without supervisor")
 		assert.False(t, result.Handled, "should not be handled without supervisor")
 	})

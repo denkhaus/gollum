@@ -11,51 +11,29 @@ import (
 	"sync"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 )
 
-// SessionManager manages active sessions with their associated contexts.
-type SessionManager interface {
-	// CreateSession creates a new session with the given ID (from ACP request).
-	// The sessionID is provided by the caller, not generated internally.
-	CreateSession(sessionID string, channelID uuid.UUID) (*Session, error)
-	// GetSession retrieves a session by its ID.
-	GetSession(sessionID string) (*Session, bool)
-	// CloseSession closes a session and cancels its context.
-	CloseSession(sessionID string) error
-	// GetSessionsByChannel returns all sessions for a given channel ID.
-	GetSessionsByChannel(channelID uuid.UUID) []*Session
-}
-
-// Session represents an active session with a supervisor agent.
-type Session struct {
-	ID           string
-	ChannelID    uuid.UUID
-	SupervisorID uuid.UUID
-	Context      context.Context
-	CancelFunc   context.CancelFunc
-	CreatedAt    time.Time
-}
-
-// sessionManagerImpl implements SessionManager with in-memory storage.
+// sessionManagerImpl implements shared.SessionManager with in-memory storage.
 type sessionManagerImpl struct {
 	sessions sync.Map
 }
 
-// Ensure sessionManagerImpl implements SessionManager at compile time
-var _ SessionManager = (*sessionManagerImpl)(nil)
+// Ensure sessionManagerImpl implements shared.SessionManager at compile time
+var _ shared.SessionManager = (*sessionManagerImpl)(nil)
 
 // NewSessionManager creates a new SessionManager (DI constructor).
-func NewSessionManager(injector do.Injector) (SessionManager, error) {
+func NewSessionManager(injector do.Injector) (shared.SessionManager, error) {
 	return &sessionManagerImpl{}, nil
 }
 
 // CreateSession creates a new session with the given ID from ACP request.
-func (p *sessionManagerImpl) CreateSession(sessionID string, channelID uuid.UUID) (*Session, error) {
+func (p *sessionManagerImpl) CreateSession(sessionID string, channelID uuid.UUID) (*shared.Session, error) {
 	// ID is provided from ACP request, not generated here
 	sessionCtx, cancel := context.WithCancel(context.Background())
-	session := &Session{
+	session := &shared.Session{
 		ID:         sessionID,
 		ChannelID:  channelID,
 		Context:    sessionCtx,
@@ -66,10 +44,18 @@ func (p *sessionManagerImpl) CreateSession(sessionID string, channelID uuid.UUID
 	return session, nil
 }
 
+// GetOrCreateSession retrieves an existing session or creates a new one.
+func (p *sessionManagerImpl) GetOrCreateSession(sessionID string, channelID uuid.UUID) (*shared.Session, error) {
+	if session, ok := p.GetSession(sessionID); ok {
+		return session, nil
+	}
+	return p.CreateSession(sessionID, channelID)
+}
+
 // GetSession retrieves a session by its ID.
-func (p *sessionManagerImpl) GetSession(sessionID string) (*Session, bool) {
+func (p *sessionManagerImpl) GetSession(sessionID string) (*shared.Session, bool) {
 	if val, ok := p.sessions.Load(sessionID); ok {
-		return val.(*Session), true
+		return val.(*shared.Session), true
 	}
 	return nil, false
 }
@@ -77,7 +63,7 @@ func (p *sessionManagerImpl) GetSession(sessionID string) (*Session, bool) {
 // CloseSession closes a session and cancels its context.
 func (p *sessionManagerImpl) CloseSession(sessionID string) error {
 	if val, ok := p.sessions.Load(sessionID); ok {
-		session := val.(*Session)
+		session := val.(*shared.Session)
 		session.CancelFunc()
 		p.sessions.Delete(sessionID)
 		return nil
@@ -86,10 +72,10 @@ func (p *sessionManagerImpl) CloseSession(sessionID string) error {
 }
 
 // GetSessionsByChannel returns all sessions for a given channel ID.
-func (p *sessionManagerImpl) GetSessionsByChannel(channelID uuid.UUID) []*Session {
-	var result []*Session
+func (p *sessionManagerImpl) GetSessionsByChannel(channelID uuid.UUID) []*shared.Session {
+	var result []*shared.Session
 	p.sessions.Range(func(key, value any) bool {
-		session := value.(*Session)
+		session := value.(*shared.Session)
 		if session.ChannelID == channelID {
 			result = append(result, session)
 		}

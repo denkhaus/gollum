@@ -13,16 +13,18 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 func TestNewAcpService_DICompliant(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
@@ -37,10 +39,11 @@ func TestAcpService_Initialize_ReturnsCorrectCapabilities(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
@@ -63,10 +66,11 @@ func TestAcpService_Authenticate_NotImplemented(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
@@ -85,10 +89,11 @@ func TestAcpService_SetSessionMode_NotImplemented(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
@@ -107,10 +112,11 @@ func TestAcpService_SetSessionConfigOption_NotImplemented(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
@@ -129,10 +135,11 @@ func TestAcpService_Prompt_IntegratesWithFacade(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
 
 	// Mock the facade.SubmitInput call
 	expectedResult := channel.InputResult{
@@ -140,7 +147,7 @@ func TestAcpService_Prompt_IntegratesWithFacade(t *testing.T) {
 		Response:  "Test response from agent",
 		IsCommand: false,
 	}
-	mockFacade.EXPECT().SubmitInput(gomock.Any(), "test prompt").Return(expectedResult, nil)
+	mockFacade.EXPECT().SubmitInput(gomock.Any(), gomock.Any(), gomock.Any(), "test prompt").Return(expectedResult, nil)
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
@@ -151,12 +158,12 @@ func TestAcpService_Prompt_IntegratesWithFacade(t *testing.T) {
 
 	// Create a simple in-memory session store for testing
 	sessionID := acppkg.SessionID("test-session")
-	session := NewAcpSession(context.Background(), func(){})
+	session := shared.NewAcpSession(context.Background(), func(){})
 	session.SessionID = sessionID
 
 	// Create a simple mock session store
 	store := &mockSessionStore{
-		sessions: map[acppkg.SessionID]*AcpSession{
+		sessions: map[acppkg.SessionID]*shared.ACPSession{
 			sessionID: session,
 		},
 	}
@@ -215,15 +222,15 @@ func (m *mockACPClient) TerminalOutput(ctx context.Context, params *acppkg.Termi
 
 // mockSessionStore is a simple in-memory session store for testing
 type mockSessionStore struct {
-	sessions map[acppkg.SessionID]*AcpSession
+	sessions map[acppkg.SessionID]*shared.ACPSession
 }
 
-func (m *mockSessionStore) Get(id acppkg.SessionID) (*AcpSession, bool) {
+func (m *mockSessionStore) Get(id acppkg.SessionID) (*shared.ACPSession, bool) {
 	sess, ok := m.sessions[id]
 	return sess, ok
 }
 
-func (m *mockSessionStore) Set(id acppkg.SessionID, sess *AcpSession) {
+func (m *mockSessionStore) Set(id acppkg.SessionID, sess *shared.ACPSession) {
 	m.sessions[id] = sess
 }
 
@@ -243,10 +250,13 @@ func TestAcpService_Cancel_NotImplemented(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
+	// Expect CancelInput call when canceling
+	mockFacade.EXPECT().CancelInput(gomock.Any()).Return(nil)
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
@@ -255,7 +265,22 @@ func TestAcpService_Cancel_NotImplemented(t *testing.T) {
 	svc, err := NewAcpService(injector)
 	require.NoError(t, err)
 
-	err = svc.Cancel(context.Background(), &acppkg.CancelNotification{})
+	// Create a session store with a session for testing
+	sessionID := acppkg.SessionID("test-session")
+	session := shared.NewAcpSession(context.Background(), func(){})
+	session.SessionID = sessionID
+
+	store := &mockSessionStore{
+		sessions: map[acppkg.SessionID]*shared.ACPSession{
+			sessionID: session,
+		},
+	}
+	svc.SetSessionStore(store)
+
+	// Cancel should find the session and cancel it
+	err = svc.Cancel(context.Background(), &acppkg.CancelNotification{
+		SessionID: sessionID,
+	})
 	require.NoError(t, err)
 }
 
@@ -263,10 +288,11 @@ func TestAcpService_SetClient(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
@@ -284,10 +310,11 @@ func TestAcpService_SetSessionStore(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockFacade := channel.NewMockChannelFacadeService(ctrl)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
