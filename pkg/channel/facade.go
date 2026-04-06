@@ -30,9 +30,6 @@ type channelFacadeImpl struct {
 	logs           []LogEntry
 	maxLogs        int
 	logger         logger.LoggerService
-
-	// Track active inputs per channel for cancellation
-	activeInputs map[uuid.UUID]context.CancelFunc
 }
 
 // Ensure channelFacadeImpl implements ChannelFacade at compile time
@@ -59,7 +56,6 @@ func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 		logs:           make([]LogEntry, 0, maxLogs),
 		maxLogs:        maxLogs,
 		logger:         log,
-		activeInputs:   make(map[uuid.UUID]context.CancelFunc),
 	}, nil
 }
 
@@ -136,39 +132,19 @@ func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID
 	}
 
 	// Get or create session for this interaction
-	_, err = p.sessionManager.GetOrCreateSession(sessionID, channelID)
+	session, err := p.sessionManager.GetOrCreateSession(sessionID, channelID)
 	if err != nil {
 		return InputResult{}, fmt.Errorf("failed to get/create session: %w", err)
 	}
 
-	// Create cancellable context for this input
-	inputCtx, cancelFunc := context.WithCancel(ctx)
-
-	// Track this active input for cancellation
-	p.mu.Lock()
-	p.activeInputs[channelID] = cancelFunc
-	p.mu.Unlock()
-
-	// Clean up tracking when done
-	defer func() {
-		p.mu.Lock()
-		delete(p.activeInputs, channelID)
-		p.mu.Unlock()
-		cancelFunc()
-	}()
-
-	// Get or create supervisor for this session
-	supervisor, _, err := p.agentFactory.CreateSupervisorAgent(
-		ctx,
-		shared.WithSessionID(sessionID),
-		shared.WithChannelID(channelID),
-	)
+	// Get or create supervisor for this session (lazy, thread-safe)
+	supervisor, err := session.GetOrCreateSupervisor(p.agentFactory)
 	if err != nil {
-		return InputResult{}, fmt.Errorf("failed to create supervisor: %w", err)
+		return InputResult{}, fmt.Errorf("failed to get/create supervisor: %w", err)
 	}
 
-	// Execute supervisor agent
-	resp, err := supervisor.Execute(inputCtx, gollem.Text(input))
+	// Execute supervisor agent with session context
+	resp, err := supervisor.Execute(session.Context, gollem.Text(input))
 	if err != nil {
 		return InputResult{
 			Handled: true,
@@ -188,18 +164,15 @@ func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID
 	}, nil
 }
 
-// CancelInput cancels an in-flight input for the given channel
-func (p *channelFacadeImpl) CancelInput(channelID uuid.UUID) error {
-	p.mu.Lock()
-	cancelFunc, exists := p.activeInputs[channelID]
-	p.mu.Unlock()
-
-	if !exists {
-		return fmt.Errorf("no active input for channel %s", channelID)
+// CancelInput cancels an in-flight input for the given session
+func (p *channelFacadeImpl) CancelInput(sessionID string) error {
+	session, ok := p.sessionManager.GetSession(sessionID)
+	if !ok {
+		return fmt.Errorf("session %s not found", sessionID)
 	}
 
-	// Cancel the input context
-	cancelFunc()
+	// Cancel the session context
+	session.CancelFunc()
 
 	return nil
 }

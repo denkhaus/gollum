@@ -3,6 +3,7 @@ package shared
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,4 +32,43 @@ type Session struct {
 	Context      context.Context
 	CancelFunc   context.CancelFunc
 	CreatedAt    time.Time
+
+	// Session-owned supervisor (lazy initialized)
+	supervisor   Agent
+	supervisorMu sync.RWMutex
+}
+
+// GetOrCreateSupervisor lazily creates and returns the session's supervisor agent.
+// This method is thread-safe and uses double-checked locking.
+func (s *Session) GetOrCreateSupervisor(factory AgentFactory) (Agent, error) {
+	// Fast path: read lock to check if supervisor already exists
+	s.supervisorMu.RLock()
+	if s.supervisor != nil {
+		s.supervisorMu.RUnlock()
+		return s.supervisor, nil
+	}
+	s.supervisorMu.RUnlock()
+
+	// Slow path: acquire write lock for creation
+	s.supervisorMu.Lock()
+	defer s.supervisorMu.Unlock()
+
+	// Double-check: another goroutine might have created it while we waited
+	if s.supervisor != nil {
+		return s.supervisor, nil
+	}
+
+	// Create supervisor for this session
+	supervisor, _, err := factory.CreateSupervisorAgent(
+		s.Context,
+		WithSessionID(s.ID),
+		WithChannelID(s.ChannelID),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	s.supervisor = supervisor
+	s.SupervisorID = supervisor.GetID()
+	return supervisor, nil
 }

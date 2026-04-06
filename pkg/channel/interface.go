@@ -62,8 +62,8 @@ type ChannelFacade interface {
 	// SubmitInput handles user input from any channel
 	SubmitInput(ctx context.Context, channelID uuid.UUID, sessionID string, input string) (InputResult, error)
 
-	// CancelInput cancels an in-flight input for the given channel
-	CancelInput(channelID uuid.UUID) error
+	// CancelInput cancels an in-flight input for the given session
+	CancelInput(sessionID string) error
 
 	// GetLogs returns recent log entries for channels to poll
 	GetLogs(since time.Time, limit int) []LogEntry

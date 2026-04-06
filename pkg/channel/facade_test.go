@@ -852,7 +852,7 @@ func TestChannelFacade_SubmitInput_NonCommand_NoAgentRouting(t *testing.T) {
 
 	// Since no supervisor agent is available, this should return an error
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to create supervisor")
+	assert.Contains(t, err.Error(), "failed to get/create supervisor")
 	assert.Empty(t, result)
 }
 
@@ -1167,6 +1167,6 @@ func TestChannelFacade_SubmitInput_NoSupervisorError(t *testing.T) {
 	result, err := service.SubmitInput(ctx, channelID, "test-session", "test input")
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to create supervisor")
+	assert.Contains(t, err.Error(), "failed to get/create supervisor")
 	assert.Empty(t, result)
 }

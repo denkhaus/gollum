@@ -281,10 +281,11 @@ func (s *acpServiceImpl) Cancel(ctx context.Context, params *acppkg.CancelNotifi
 	// Cancel the session context (this will cancel the in-flight prompt)
 	session.CancelFunc()
 
-	// Also notify facade about the cancellation (for future tracking)
-	if err := s.facade.CancelInput(s.id); err != nil {
+	// Also notify facade about the cancellation via session ID
+	if err := s.facade.CancelInput(string(params.SessionID)); err != nil {
 		s.logger.Warn("failed to cancel input in facade",
 			zap.String("channel_id", s.id.String()),
+			zap.String("session_id", string(params.SessionID)),
 			zap.Error(err),
 		)
 	}
