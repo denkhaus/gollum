@@ -1,6 +1,6 @@
 package pkg
 
-//go:generate go run go.uber.org/mock/mockgen -source=channel/facade.go -destination=channel/facade_mock.go -package=channel github.com/denkhaus/gollum/pkg/channel ChannelFacadeService
+//go:generate go run go.uber.org/mock/mockgen -source=channel/interface.go -destination=channel/facade_mock.go -package=channel github.com/denkhaus/gollum/pkg/channel ChannelFacade
 
 //go:generate go run go.uber.org/mock/mockgen -source=config/service.go -destination=config/service_mock.go -package=config github.com/denkhaus/gollum/pkg/config Service
 
@@ -32,7 +32,7 @@ package pkg
 
 //go:generate go run go.uber.org/mock/mockgen -source=tui/model_types.go -destination=tui/model_mock.go -package=tui github.com/denkhaus/gollum/pkg/tui AgentExecutor
 
-//go:generate go run go.uber.org/mock/mockgen -source=flows/executor/executor.go -destination=flows/executor/mock.go -package=executor github.com/denkhaus/gollum/pkg/flows/executor FlowExecutorService
+//go:generate go run go.uber.org/mock/mockgen -source=flows/executor/executor.go -destination=flows/executor/executor_mock.go -package=executor github.com/denkhaus/gollum/pkg/flows/executor FlowExecutorService
 
 //go:generate go run go.uber.org/mock/mockgen -source=mcp/registry/registry.go -destination=mcp/registry/registry_mock.go -package=registry github.com/denkhaus/gollum/pkg/mcp/registry MCPRegistry
 
@@ -42,6 +42,10 @@ package pkg
 
 //go:generate go run go.uber.org/mock/mockgen -source=flows/registry/service.go -destination=flows/registry/registry_mock.go -package=registry github.com/denkhaus/gollum/pkg/flows/registry FlowRegistry
 
-//go:generate go run go.uber.org/mock/mockgen -source=acp/service.go -destination=acp/service_mock.go -package=acp github.com/denkhaus/gollum/pkg/acp Service
+//go:generate go run go.uber.org/mock/mockgen -source=shared/acp.go -destination=acp/service_mock.go -package=acp github.com/denkhaus/gollum/pkg/shared ACPService
+
+//go:generate go run go.uber.org/mock/mockgen -source=acp/connection.go -destination=acp/connection_mock.go -package=acp github.com/denkhaus/gollum/pkg/acp Connection
 
 //go:generate go run go.uber.org/mock/mockgen -source=extensions/service.go -destination=extensions/service_mock.go -package=extensions github.com/denkhaus/gollum/pkg/extensions ExtensionService
+
+//go:generate go run go.uber.org/mock/mockgen -source=session/manager.go -destination=session/manager_mock.go -package=session github.com/denkhaus/gollum/pkg/session SessionManager

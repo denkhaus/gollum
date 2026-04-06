@@ -4,8 +4,8 @@ package di
 import (
 	"context"
 
-	"github.com/denkhaus/gollum/pkg/agents"
 	"github.com/denkhaus/gollum/pkg/acp"
+	"github.com/denkhaus/gollum/pkg/agents"
 	"github.com/denkhaus/gollum/pkg/app"
 	"github.com/denkhaus/gollum/pkg/builtin"
 	"github.com/denkhaus/gollum/pkg/channel"
@@ -18,15 +18,16 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/markdown"
 	mcp "github.com/denkhaus/gollum/pkg/mcp"
 	mcpconfig "github.com/denkhaus/gollum/pkg/mcp/config"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
-	"github.com/denkhaus/gollum/pkg/markdown"
 	"github.com/denkhaus/gollum/pkg/profiling"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/prompt/optimizer"
 	"github.com/denkhaus/gollum/pkg/prompt/store"
 	"github.com/denkhaus/gollum/pkg/registry"
+	"github.com/denkhaus/gollum/pkg/session"
 	"github.com/denkhaus/gollum/pkg/skills"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/denkhaus/gollum/pkg/tools"
@@ -94,9 +95,7 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 
 	// Channel Abstraction Layer
 	do.Provide(p.injector, channel.NewCommandManager)
-	do.Provide[channel.ChannelFacade](p.injector, func(injector do.Injector) (channel.ChannelFacade, error) {
-		return channel.NewChannelFacade(injector)
-	})
+	do.Provide(p.injector, channel.NewChannelFacade)
 
 	// State
 	do.Provide(p.injector, state.NewFileStateManager)
@@ -120,6 +119,9 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 
 	// ACP (Agent Client Protocol) services
 	do.Provide(p.injector, acp.NewAcpService)
+
+	// Session management
+	do.Provide(p.injector, session.NewSessionManager)
 
 	// Extensions
 	do.Provide(p.injector, extensions.NewGatewayService)
