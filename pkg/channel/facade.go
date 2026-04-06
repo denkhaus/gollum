@@ -16,6 +16,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/registry"
+	"github.com/denkhaus/gollum/pkg/session"
 	"github.com/denkhaus/gollum/pkg/shared"
 )
 
@@ -26,7 +27,7 @@ type channelFacadeImpl struct {
 	commandManager CommandManager
 	registry       registry.AgentRegistry
 	agentFactory   shared.AgentFactory
-	sessionManager shared.SessionManager
+	sessionManager session.SessionManager
 	logs           []LogEntry
 	maxLogs        int
 	logger         logger.LoggerService
@@ -40,7 +41,7 @@ func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 	cm := do.MustInvoke[CommandManagerService](injector)
 	reg := do.MustInvoke[registry.AgentRegistry](injector)
 	af := do.MustInvoke[shared.AgentFactory](injector)
-	sm := do.MustInvoke[shared.SessionManager](injector)
+	sm := do.MustInvoke[session.SessionManager](injector)
 	cfg := do.MustInvoke[config.ConfigService](injector)
 	log := do.MustInvoke[logger.LoggerService](injector)
 

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/session"
 	"github.com/samber/do/v2"
 )
 
@@ -20,7 +20,7 @@ type CommandManagerService interface {
 type commandManagerImpl struct {
 	mu             sync.RWMutex
 	commands       map[string]Command
-	sessionManager shared.SessionManager
+	sessionManager session.SessionManager
 }
 
 // Ensure commandManagerImpl implements CommandManager at compile time
@@ -28,7 +28,7 @@ var _ CommandManager = (*commandManagerImpl)(nil)
 
 // NewCommandManager creates a new command manager service
 func NewCommandManager(injector do.Injector) (CommandManagerService, error) {
-	sessionManager := do.MustInvoke[shared.SessionManager](injector)
+	sessionManager := do.MustInvoke[session.SessionManager](injector)
 	return &commandManagerImpl{
 		commands:       make(map[string]Command),
 		sessionManager: sessionManager,

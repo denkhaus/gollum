@@ -16,16 +16,31 @@ import (
 	"github.com/samber/do/v2"
 )
 
-// sessionManagerImpl implements shared.SessionManager with in-memory storage.
+// SessionManager manages active sessions
+type SessionManager interface {
+	// CreateSession creates a new session with the given ID (from ACP request).
+	// The sessionID is provided by the caller, not generated internally.
+	CreateSession(sessionID string, channelID uuid.UUID) (*shared.Session, error)
+	// GetOrCreateSession retrieves an existing session or creates a new one.
+	GetOrCreateSession(sessionID string, channelID uuid.UUID) (*shared.Session, error)
+	// GetSession retrieves a session by its ID.
+	GetSession(sessionID string) (*shared.Session, bool)
+	// CloseSession closes a session and cancels its context.
+	CloseSession(sessionID string) error
+	// GetSessionsByChannel returns all sessions for a given channel ID.
+	GetSessionsByChannel(channelID uuid.UUID) []*shared.Session
+}
+
+// sessionManagerImpl implements SessionManager with in-memory storage.
 type sessionManagerImpl struct {
 	sessions sync.Map
 }
 
-// Ensure sessionManagerImpl implements shared.SessionManager at compile time
-var _ shared.SessionManager = (*sessionManagerImpl)(nil)
+// Ensure sessionManagerImpl implements SessionManager at compile time
+var _ SessionManager = (*sessionManagerImpl)(nil)
 
 // NewSessionManager creates a new SessionManager (DI constructor).
-func NewSessionManager(injector do.Injector) (shared.SessionManager, error) {
+func NewSessionManager(injector do.Injector) (SessionManager, error) {
 	return &sessionManagerImpl{}, nil
 }
 
