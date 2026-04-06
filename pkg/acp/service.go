@@ -32,11 +32,10 @@
 // SESSION MANAGEMENT:
 //
 // - Each Gollum-ACP process creates ONE connection via NewConnection()
-// - The connection creates ONE session that lives for the entire process lifetime
+// - The connection can create MULTIPLE sessions (multi-session support)
 // - Session is created by the ACP framework via NewSession callback (in connection.go)
 // - TODO: Determine when NewSession callback fires (Initialize/SetSessionMode/Prompt?)
-// - Session is tracked as "activeSession" since there's only one per connection
-// - All messages received via OnMessage() are destined for this single active session
+// - Each OnMessage() call includes the target SessionID for routing
 //
 // PROTOCOL BEHAVIOR:
 //
@@ -48,7 +47,6 @@ package acp
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/google/uuid"
 	acppkg "github.com/ironpark/go-acp"
@@ -67,10 +65,6 @@ type acpServiceImpl struct {
 	client acppkg.Client
 	store  acppkg.SessionStore[*shared.ACPSession]
 	id     uuid.UUID // Channel ID
-
-	// activeSession tracks the current ACP session (one per connection)
-	activeSessionMu sync.RWMutex
-	activeSession   *shared.ACPSession
 }
 
 // Ensure acpServiceImpl implements Service and channel.Channel at compile time
@@ -124,23 +118,25 @@ func (s *acpServiceImpl) ID() uuid.UUID {
 
 // OnMessage receives messages from the agent system and streams them to the ACP client
 func (s *acpServiceImpl) OnMessage(msg channel.Message) {
-	s.activeSessionMu.RLock()
-	session := s.activeSession
-	s.activeSessionMu.RUnlock()
+	// Convert string SessionID to acppkg.SessionID
+	sessionID := acppkg.SessionID(msg.SessionID)
 
-	if session == nil {
-		s.logger.Warn("received message but no active session",
+	// Get session from store using SessionID from message
+	session, ok := s.store.Get(sessionID)
+	if !ok {
+		s.logger.Warn("received message but session not found",
 			zap.String("channel_id", s.id.String()),
+			zap.String("session_id", msg.SessionID),
 			zap.String("message_content", msg.Content),
 		)
 		return
 	}
 
 	// Stream message to ACP client
-	stream := acppkg.NewSessionStream(s.client, session.SessionID)
+	stream := acppkg.NewSessionStream(s.client, sessionID)
 	if err := stream.SendText(session.Context, msg.Content); err != nil {
 		s.logger.Error("failed to stream message to ACP client",
-			zap.String("session_id", string(session.SessionID)),
+			zap.String("session_id", msg.SessionID),
 			zap.Error(err),
 		)
 	}
@@ -167,22 +163,8 @@ func (s *acpServiceImpl) OnAgentLifecycle(event channel.AgentLifecycleEvent) {
 }
 
 // =============================================================================
-// Session Management Helpers
+// ACP Protocol Implementation
 // =============================================================================
-
-// setActiveSession sets the given session as active for OnMessage callbacks
-func (s *acpServiceImpl) setActiveSession(session *shared.ACPSession) {
-	s.activeSessionMu.Lock()
-	s.activeSession = session
-	s.activeSessionMu.Unlock()
-}
-
-// clearActiveSession clears the active session
-func (s *acpServiceImpl) clearActiveSession() {
-	s.activeSessionMu.Lock()
-	s.activeSession = nil
-	s.activeSessionMu.Unlock()
-}
 
 // Initialize implements acp.Agent.Initialize
 func (s *acpServiceImpl) Initialize(ctx context.Context, params *acppkg.InitializeRequest) (*acppkg.InitializeResponse, error) {
@@ -240,10 +222,6 @@ func (s *acpServiceImpl) Prompt(ctx context.Context, params *acppkg.PromptReques
 	if !ok {
 		return nil, fmt.Errorf("session %s not found", params.SessionID)
 	}
-
-	// Set as active session for OnMessage callbacks
-	s.setActiveSession(session)
-	defer s.clearActiveSession()
 
 	// Cancel previous turn and create new context
 	session.CancelFunc()
