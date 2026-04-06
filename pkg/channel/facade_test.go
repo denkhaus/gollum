@@ -14,8 +14,11 @@ import (
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+	"go.uber.org/zap"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 )
@@ -270,6 +273,40 @@ func setupTestInjector() do.Injector {
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+
+	// Add a mock logger
+	ctrl := gomock.NewController(&testing.T{})
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+
+	return injector
+}
+
+// setupTestInjectorWithLogger creates an injector with a specific logger mock
+func setupTestInjectorWithLogger(logService logger.LoggerService) do.Injector {
+	injector := do.New()
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
+	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
+	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	do.ProvideValue[logger.LoggerService](injector, logService)
+
+	return injector
+}
+
+// setupTestInjectorWithConfig creates an injector with a specific config
+func setupTestInjectorWithConfig(cfg config.ConfigService) do.Injector {
+	injector := do.New()
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
+	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
+	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	do.ProvideValue[config.ConfigService](injector, cfg)
+
+	// Add a mock logger
+	ctrl := gomock.NewController(&testing.T{})
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+
 	return injector
 }
 
@@ -476,9 +513,13 @@ func TestChannelFacade_UnregisterChannel_NonExistent(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestChannelFacade_DisplayMessage_BroadcastsToAllChannels tests that DisplayMessage broadcasts to all registered channels
-func TestChannelFacade_DisplayMessage_BroadcastsToAllChannels(t *testing.T) {
-	injector := setupTestInjector()
+// TestChannelFacade_DisplayMessage_RoutesToTargetChannel tests that DisplayMessage routes to the specific channel by ID
+func TestChannelFacade_DisplayMessage_RoutesToTargetChannel(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockLogger := logger.NewMockLoggerService(ctrl)
+
+	injector := setupTestInjectorWithLogger(mockLogger)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -495,21 +536,117 @@ func TestChannelFacade_DisplayMessage_BroadcastsToAllChannels(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	// Send a message
+	// Send a message to the second channel only
+	targetChannel := channels[1]
 	msg := Message{
 		ID:        uuid.New(),
 		Type:      MessageTypeAgentChat,
+		ChannelID: targetChannel.id,
 		Content:   "Test message",
 		Timestamp: time.Now(),
 	}
+
+	mockLogger.EXPECT().Warn(gomock.Any(), gomock.Any()).Times(0) // No warning expected
 	service.DisplayMessage(msg)
 
-	// Verify all channels received the message
+	// Verify only the target channel received the message
+	for i, ch := range channels {
+		if i == 1 {
+			assert.Equal(t, 1, ch.getMessageCount(), "Target channel should receive exactly one message")
+			received := ch.getLastMessage()
+			assert.Equal(t, msg.ID, received.ID)
+			assert.Equal(t, msg.Content, received.Content)
+		} else {
+			assert.Equal(t, 0, ch.getMessageCount(), "Non-target channels should not receive the message")
+		}
+	}
+}
+
+// TestChannelFacade_DisplayMessage_ChannelNotFound tests that DisplayMessage logs warning when channel not found
+func TestChannelFacade_DisplayMessage_ChannelNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockLogger := logger.NewMockLoggerService(ctrl)
+
+	injector := setupTestInjectorWithLogger(mockLogger)
+
+	service, err := NewChannelFacade(injector)
+	require.NoError(t, err)
+
+	// Register one channel
+	channel := newMockChannel(uuid.New())
+	err = service.RegisterChannel(channel)
+	require.NoError(t, err)
+
+	// Send a message to a non-existent channel
+	nonExistentChannelID := uuid.New()
+	msg := Message{
+		ID:        uuid.New(),
+		Type:      MessageTypeAgentChat,
+		ChannelID: nonExistentChannelID,
+		Content:   "Test message",
+		Timestamp: time.Now(),
+	}
+
+	// Expect a warning log with the channel ID
+	mockLogger.EXPECT().Warn("channel not found", gomock.Any()).
+		Do(func(msg string, fields ...zap.Field) {
+			// Verify the channel ID field matches
+			found := false
+			for _, field := range fields {
+				if field.Key == "channel_id" && field.String == nonExistentChannelID.String() {
+					found = true
+				}
+			}
+			assert.True(t, found, "Should log warning with correct channel_id")
+		})
+
+	service.DisplayMessage(msg)
+
+	// Verify no channel received the message
+	assert.Equal(t, 0, channel.getMessageCount(), "Registered channel should not receive message for different channel ID")
+}
+
+// TestChannelFacade_DisplayMessage_NoBroadcast tests that DisplayMessage does not broadcast to all channels
+func TestChannelFacade_DisplayMessage_NoBroadcast(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockLogger := logger.NewMockLoggerService(ctrl)
+
+	injector := setupTestInjectorWithLogger(mockLogger)
+
+	service, err := NewChannelFacade(injector)
+	require.NoError(t, err)
+
+	// Register multiple channels
+	channels := []*mockChannel{
+		newMockChannel(uuid.New()),
+		newMockChannel(uuid.New()),
+		newMockChannel(uuid.New()),
+	}
+
 	for _, ch := range channels {
-		assert.Equal(t, 1, ch.getMessageCount(), "Channel should receive exactly one message")
+		err = service.RegisterChannel(ch)
+		require.NoError(t, err)
+	}
+
+	// Send messages to different channels
+	for i, ch := range channels {
+		msg := Message{
+			ID:        uuid.New(),
+			Type:      MessageTypeAgentChat,
+			ChannelID: ch.id,
+			Content:   fmt.Sprintf("Message %d", i),
+			Timestamp: time.Now(),
+		}
+		service.DisplayMessage(msg)
+	}
+
+	// Verify each channel received exactly one message (the one addressed to it)
+	for i, ch := range channels {
+		assert.Equal(t, 1, ch.getMessageCount(), "Channel %d should receive exactly one message", i)
 		received := ch.getLastMessage()
-		assert.Equal(t, msg.ID, received.ID)
-		assert.Equal(t, msg.Content, received.Content)
+		assert.Equal(t, fmt.Sprintf("Message %d", i), received.Content)
 	}
 }
 
@@ -556,11 +693,8 @@ func TestChannelFacade_DisplayLog_StoresAndBroadcasts(t *testing.T) {
 
 // TestChannelFacade_DisplayLog_RingBufferBehavior tests that DisplayLog implements ring buffer behavior
 func TestChannelFacade_DisplayLog_RingBufferBehavior(t *testing.T) {
-	injector := do.New()
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 5})
+	cfg := &mockConfigService{logBufferSize: 5}
+	injector := setupTestInjectorWithConfig(cfg)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -601,6 +735,12 @@ func TestChannelFacade_SubmitInput_SlashCommand(t *testing.T) {
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	
+	// Add mock logger
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -631,6 +771,12 @@ func TestChannelFacade_SubmitInput_NonCommand_NoAgentRouting(t *testing.T) {
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	
+	// Add mock logger
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -660,6 +806,12 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	
+	// Add mock logger
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -771,59 +923,86 @@ func TestChannelFacade_NotifyAgentLifecycle_BroadcastsToAllChannels(t *testing.T
 
 // TestChannelFacade_Concurrency tests that concurrent access is safe
 func TestChannelFacade_Concurrency(t *testing.T) {
-	injector := setupTestInjector()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockLogger := logger.NewMockLoggerService(ctrl)
+
+	injector := setupTestInjectorWithLogger(mockLogger)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
 
-	done := make(chan bool)
-
-	// Register channels concurrently
+	// Create channels first and get their IDs
+	channels := make([]*mockChannel, 5)
 	for i := 0; i < 5; i++ {
-		go func(idx int) {
+		channels[i] = newMockChannel(uuid.New())
+		_ = service.RegisterChannel(channels[i])
+	}
+
+	wg := sync.WaitGroup{}
+
+	// Register channels concurrently (these will fail as duplicates, but that's OK for testing)
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
 			ch := newMockChannel(uuid.New())
 			_ = service.RegisterChannel(ch)
-			done <- true
 		}(i)
 	}
 
-	// Send messages concurrently
+	// Send messages concurrently to specific channels
 	for i := 0; i < 10; i++ {
-		go func(idx int) {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			// Send to one of the registered channels
+			targetChannel := channels[i%len(channels)]
 			msg := Message{
 				ID:        uuid.New(),
-				Content:   fmt.Sprintf("message %d", idx),
+				ChannelID: targetChannel.id,
+				Content:   fmt.Sprintf("message %d", i),
 				Timestamp: time.Now(),
 			}
 			service.DisplayMessage(msg)
-			done <- true
 		}(i)
 	}
 
 	// Send logs concurrently
 	for i := 0; i < 10; i++ {
-		go func(idx int) {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
 			entry := LogEntry{
 				Level:     "info",
-				Message:   fmt.Sprintf("log %d", idx),
+				Message:   fmt.Sprintf("log %d", i),
 				Timestamp: time.Now(),
 			}
 			service.DisplayLog(entry)
-			done <- true
 		}(i)
 	}
 
 	// Get logs concurrently
 	for i := 0; i < 5; i++ {
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			_ = service.GetLogs(time.Time{}, 10)
-			done <- true
 		}()
 	}
 
-	// Wait for all goroutines
-	for i := 0; i < 30; i++ {
-		<-done
+	// Wait for all goroutines with timeout
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// All goroutines completed
+	case <-time.After(5 * time.Second):
+		t.Fatal("Test timed out waiting for concurrent operations")
 	}
 
 	// Verify final state is consistent
@@ -856,6 +1035,12 @@ func TestChannelFacade_SubmitInput_RoutesToSupervisorAgent(t *testing.T) {
 
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	
+	// Add mock logger
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -892,6 +1077,12 @@ func TestChannelFacade_SubmitInput_NoSupervisorError(t *testing.T) {
 
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+	
+	// Add mock logger
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)

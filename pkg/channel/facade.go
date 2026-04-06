@@ -11,16 +11,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
+	"go.uber.org/zap"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/registry"
-	"github.com/denkhaus/gollum/pkg/shared"
 )
-
-// ChannelFacadeService defines the channel facade service interface for DI
-type ChannelFacadeService interface {
-	ChannelFacade
-}
 
 // channelFacadeImpl implements ChannelFacade
 type channelFacadeImpl struct {
@@ -28,20 +24,23 @@ type channelFacadeImpl struct {
 	channels       map[uuid.UUID]Channel
 	commandManager CommandManager
 	registry       registry.AgentRegistry
-	agentFactory   shared.AgentFactory
 	logs           []LogEntry
 	maxLogs        int
+	logger         logger.LoggerService
+
+	// Track active inputs per channel for cancellation
+	activeInputs   map[uuid.UUID]context.CancelFunc
 }
 
 // Ensure channelFacadeImpl implements ChannelFacade at compile time
 var _ ChannelFacade = (*channelFacadeImpl)(nil)
 
 // NewChannelFacade creates a new channel facade service
-func NewChannelFacade(injector do.Injector) (ChannelFacadeService, error) {
+func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 	cm := do.MustInvoke[CommandManagerService](injector)
 	reg := do.MustInvoke[registry.AgentRegistry](injector)
-	af := do.MustInvoke[shared.AgentFactory](injector)
 	cfg := do.MustInvoke[config.ConfigService](injector)
+	log := do.MustInvoke[logger.LoggerService](injector)
 
 	// Use existing LoggingConfig.SessionLogBufferSize for display log buffer
 	maxLogs := cfg.GetLoggingConfig().SessionLogBufferSize
@@ -49,10 +48,11 @@ func NewChannelFacade(injector do.Injector) (ChannelFacadeService, error) {
 	return &channelFacadeImpl{
 		commandManager: cm,
 		registry:       reg,
-		agentFactory:   af,
 		channels:       make(map[uuid.UUID]Channel),
 		logs:           make([]LogEntry, 0, maxLogs),
 		maxLogs:        maxLogs,
+		logger:         log,
+		activeInputs:   make(map[uuid.UUID]context.CancelFunc),
 	}, nil
 }
 
@@ -77,18 +77,18 @@ func (p *channelFacadeImpl) UnregisterChannel(channelID uuid.UUID) error {
 	return nil
 }
 
-// DisplayMessage sends a message to all registered channels
+// DisplayMessage sends a message to the specific channel by ID
 func (p *channelFacadeImpl) DisplayMessage(msg Message) {
 	p.mu.RLock()
-	channels := make([]Channel, 0, len(p.channels))
-	for _, c := range p.channels {
-		channels = append(channels, c)
-	}
+	channel, exists := p.channels[msg.ChannelID]
 	p.mu.RUnlock()
 
-	for _, channel := range channels {
-		channel.OnMessage(msg)
+	if !exists {
+		p.logger.Warn("channel not found", zap.String("channel_id", msg.ChannelID.String()))
+		return
 	}
+
+	channel.OnMessage(msg)
 }
 
 // DisplayLog sends a log entry to all registered channels
@@ -128,6 +128,22 @@ func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID
 		}, nil
 	}
 
+	// Create cancellable context for this input
+	inputCtx, cancelFunc := context.WithCancel(ctx)
+
+	// Track this active input for cancellation
+	p.mu.Lock()
+	p.activeInputs[channelID] = cancelFunc
+	p.mu.Unlock()
+
+	// Clean up tracking when done
+	defer func() {
+		p.mu.Lock()
+		delete(p.activeInputs, channelID)
+		p.mu.Unlock()
+		cancelFunc()
+	}()
+
 	// Get the singleton Supervisor-Agent from registry
 	supervisor, err := p.registry.GetSupervisorAgent()
 	if err != nil {
@@ -135,7 +151,7 @@ func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID
 	}
 
 	// Execute supervisor agent
-	resp, err := supervisor.Execute(ctx, gollem.Text(input))
+	resp, err := supervisor.Execute(inputCtx, gollem.Text(input))
 	if err != nil {
 		return InputResult{
 			Handled: true,
@@ -153,6 +169,22 @@ func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID
 		Handled:  true,
 		Response: content,
 	}, nil
+}
+
+// CancelInput cancels an in-flight input for the given channel
+func (p *channelFacadeImpl) CancelInput(channelID uuid.UUID) error {
+	p.mu.Lock()
+	cancelFunc, exists := p.activeInputs[channelID]
+	p.mu.Unlock()
+
+	if !exists {
+		return fmt.Errorf("no active input for channel %s", channelID)
+	}
+
+	// Cancel the input context
+	cancelFunc()
+
+	return nil
 }
 
 // GetLogs returns recent log entries for channels to poll
