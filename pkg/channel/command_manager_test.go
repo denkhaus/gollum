@@ -198,14 +198,22 @@ func TestCommandManager_Execute_UnknownCommand(t *testing.T) {
 // TestCommandManager_Execute_ParseCommandNameAndArgs tests command parsing with various inputs
 func TestCommandManager_Execute_ParseCommandNameAndArgs(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := do.New()
 	mockSM := session.NewMockSessionManager(ctrl)
+
+	// Set up mock expectations for GetSession
+	testSession := &shared.Session{
+		ID:        "test-session",
+		ChannelID: uuid.New(),
+		Context:   context.Background(),
+	}
+	mockSM.EXPECT().GetSession("test-session").Return(testSession, true).AnyTimes()
+
 	do.ProvideValue[session.SessionManager](injector, mockSM)
 	service, err := NewCommandManager(injector)
 	require.NoError(t, err)
-
-	// Create a test session
-	_, _ = mockSM.CreateSession("test-session", uuid.New())
 
 	// Track what args were passed to the handler
 	var capturedArgs string
@@ -250,15 +258,24 @@ func TestCommandManager_Execute_ParseCommandNameAndArgs(t *testing.T) {
 // TestCommandManager_Execute_CallsHandler tests that Execute calls the handler and returns results
 func TestCommandManager_Execute_CallsHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := do.New()
 	mockSM := session.NewMockSessionManager(ctrl)
+
+	// Set up mock expectations for GetSession
+	testSession := &shared.Session{
+		ID:        "test-session",
+		ChannelID: uuid.New(),
+		Context:   context.Background(),
+	}
+	mockSM.EXPECT().GetSession("test-session").Return(testSession, true).AnyTimes()
+
 	do.ProvideValue[session.SessionManager](injector, mockSM)
 	service, err := NewCommandManager(injector)
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	// Create a test session
-	_, _ = mockSM.CreateSession("test-session", uuid.New())
 
 	testCases := []struct {
 		name            string
@@ -438,15 +455,24 @@ func TestCommandManager_IsCommand_UnregisteredCommand(t *testing.T) {
 // TestCommandManager_Concurrency tests that concurrent access is safe
 func TestCommandManager_Concurrency(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := do.New()
 	mockSM := session.NewMockSessionManager(ctrl)
+
+	// Set up mock expectations for GetSession
+	testSession := &shared.Session{
+		ID:        "test-session",
+		ChannelID: uuid.New(),
+		Context:   context.Background(),
+	}
+	mockSM.EXPECT().GetSession("test-session").Return(testSession, true).AnyTimes()
+
 	do.ProvideValue[session.SessionManager](injector, mockSM)
 	service, err := NewCommandManager(injector)
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	// Create a test session for concurrent execution
-	_, _ = mockSM.CreateSession("test-session", uuid.New())
 	done := make(chan bool)
 
 	// Register commands concurrently

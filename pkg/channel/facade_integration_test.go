@@ -7,6 +7,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 // TestChannelFacade_Integration_SupervisorRouting verifies the complete
@@ -17,13 +19,16 @@ func TestChannelFacade_Integration_SupervisorRouting(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	injector := setupTestInjector()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjectorWithSessionManager(ctrl)
+
+	// Create test session expectations are already set in setupTestInjectorWithSessionManager
 
 	// Create facade
 	facade, err := NewChannelFacade(injector)
-	if err != nil {
-		t.Fatalf("should create facade: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Get registry from injector
 	mockReg := &mockAgentRegistry{}

@@ -793,14 +793,23 @@ func TestChannelFacade_SubmitInput_NonCommand_NoAgentRouting(t *testing.T) {
 	do.ProvideValue[CommandManagerService](injector, cmdMgr)
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(t)))
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
-	// Add mock logger
+	// Set up mocks
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockSessionManager := session.NewMockSessionManager(ctrl)
+	testSession := &shared.Session{
+		ID:        "test-session",
+		ChannelID: uuid.New(),
+		Context:   context.Background(),
+	}
+	mockSessionManager.EXPECT().GetOrCreateSession("test-session", gomock.Any()).Return(testSession, nil)
+
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+	do.ProvideValue[session.SessionManager](injector, mockSessionManager)
+	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -1065,22 +1074,31 @@ func TestChannelFacade_SubmitInput_RoutesToSupervisorAgent(t *testing.T) {
 		err:        nil,
 	}
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
-	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(t)))
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
-	// Add mock logger
+	// Set up mocks
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockSessionManager := session.NewMockSessionManager(ctrl)
+	testChannelID := uuid.New()
+	testSession := &shared.Session{
+		ID:        "test-session",
+		ChannelID: testChannelID,
+		Context:   context.Background(),
+	}
+	mockSessionManager.EXPECT().GetOrCreateSession("test-session", testChannelID).Return(testSession, nil)
+
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+	do.ProvideValue[session.SessionManager](injector, mockSessionManager)
+	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
 
 	// Submit input
 	ctx := context.Background()
-	channelID := uuid.New()
-	result, err := service.SubmitInput(ctx, channelID, "test-session", "test input")
+	result, err := service.SubmitInput(ctx, testChannelID, "test-session", "test input")
 
 	require.NoError(t, err)
 	assert.True(t, result.Handled)
@@ -1108,14 +1126,23 @@ func TestChannelFacade_SubmitInput_NoSupervisorError(t *testing.T) {
 	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
 
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(t)))
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
-	// Add mock logger
+	// Set up mocks
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockSessionManager := session.NewMockSessionManager(ctrl)
+	testSession := &shared.Session{
+		ID:        "test-session",
+		ChannelID: uuid.New(),
+		Context:   context.Background(),
+	}
+	mockSessionManager.EXPECT().GetOrCreateSession("test-session", gomock.Any()).Return(testSession, nil)
+
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+	do.ProvideValue[session.SessionManager](injector, mockSessionManager)
+	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -1153,7 +1180,6 @@ func TestChannelFacade_CancelInput_Success(t *testing.T) {
 
 	// Setup mock expectations
 	mockSM.EXPECT().GetSession(sessionID).Return(testSession, true)
-	mockSM.EXPECT().CloseSession(sessionID).Return(nil).Times(1)
 
 	// Replace the session manager in the service
 	serviceImpl := service.(*channelFacadeImpl)
@@ -1168,7 +1194,23 @@ func TestChannelFacade_CancelInput_Success(t *testing.T) {
 
 // TestChannelFacade_CancelInput_SessionNotFound tests that CancelInput returns error for non-existent session
 func TestChannelFacade_CancelInput_SessionNotFound(t *testing.T) {
-	injector := setupTestInjector()
+	injector := do.New()
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
+	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
+	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+
+	// Set up mocks
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockSessionManager := session.NewMockSessionManager(ctrl)
+	// Expect GetSession to return not found
+	mockSessionManager.EXPECT().GetSession("non-existent-session").Return(nil, false)
+
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+	do.ProvideValue[session.SessionManager](injector, mockSessionManager)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -1212,14 +1254,23 @@ func TestChannelFacade_SubmitInput_ExecuteError(t *testing.T) {
 		err:        nil,
 	})
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
-	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(t)))
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
-	// Add mock logger
+	// Set up mocks
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockSessionManager := session.NewMockSessionManager(ctrl)
+	testSession := &shared.Session{
+		ID:        "test-session",
+		ChannelID: uuid.New(),
+		Context:   context.Background(),
+	}
+	mockSessionManager.EXPECT().GetOrCreateSession("test-session", gomock.Any()).Return(testSession, nil)
+
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+	do.ProvideValue[session.SessionManager](injector, mockSessionManager)
+	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -1269,14 +1320,23 @@ func TestChannelFacade_SubmitInput_ExecuteEmptyResponse(t *testing.T) {
 		err:        nil,
 	})
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
-	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(t)))
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
-	// Add mock logger
+	// Set up mocks
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockSessionManager := session.NewMockSessionManager(ctrl)
+	testSession := &shared.Session{
+		ID:        "test-session",
+		ChannelID: uuid.New(),
+		Context:   context.Background(),
+	}
+	mockSessionManager.EXPECT().GetOrCreateSession("test-session", gomock.Any()).Return(testSession, nil)
+
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+	do.ProvideValue[session.SessionManager](injector, mockSessionManager)
+	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -1324,14 +1384,23 @@ func TestChannelFacade_SubmitInput_ExecuteNilResponse(t *testing.T) {
 		err:        nil,
 	})
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
-	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(t)))
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
-	// Add mock logger
+	// Set up mocks
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockSessionManager := session.NewMockSessionManager(ctrl)
+	testSession := &shared.Session{
+		ID:        "test-session",
+		ChannelID: uuid.New(),
+		Context:   context.Background(),
+	}
+	mockSessionManager.EXPECT().GetOrCreateSession("test-session", gomock.Any()).Return(testSession, nil)
+
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+	do.ProvideValue[session.SessionManager](injector, mockSessionManager)
+	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -1381,14 +1450,23 @@ func TestChannelFacade_SubmitInput_MultipleTextsInResponse(t *testing.T) {
 		err:        nil,
 	})
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
-	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(t)))
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
-	// Add mock logger
+	// Set up mocks
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockSessionManager := session.NewMockSessionManager(ctrl)
+	testSession := &shared.Session{
+		ID:        "test-session",
+		ChannelID: uuid.New(),
+		Context:   context.Background(),
+	}
+	mockSessionManager.EXPECT().GetOrCreateSession("test-session", gomock.Any()).Return(testSession, nil)
+
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+	do.ProvideValue[session.SessionManager](injector, mockSessionManager)
+	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
