@@ -484,22 +484,3 @@ func TestCommandManager_Concurrency(t *testing.T) {
 }
 
 // setupTestCommandManager creates a command manager with a mock session manager
-func setupTestCommandManager(t *testing.T) (CommandManager, *session.MockSessionManager) {
-	ctrl := gomock.NewController(t)
-	injector := do.New()
-	sm := session.NewMockSessionManager(ctrl)
-
-	// Setup default mock behavior
-	testSession := &shared.Session{
-		ID:        "test-session",
-		ChannelID: uuid.MustParse("00000000-0000-0000-0000-000000000001"),
-	}
-	sm.EXPECT().CreateSession("test-session", uuid.MustParse("00000000-0000-0000-0000-000000000001")).
-		Return(testSession, nil).AnyTimes()
-	sm.EXPECT().GetSession("test-session").Return(testSession, true).AnyTimes()
-
-	do.ProvideValue[session.SessionManager](injector, sm)
-	service, err := NewCommandManager(injector)
-	require.NoError(t, err)
-	return service, sm
-}

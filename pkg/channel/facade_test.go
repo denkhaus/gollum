@@ -311,7 +311,7 @@ func setupTestInjectorWithLogger(logService logger.LoggerService) do.Injector {
 	mockSM := session.NewMockSessionManager(ctrl)
 	do.ProvideValue[session.SessionManager](injector, mockSM)
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
-	do.ProvideValue[logger.LoggerService](injector, logService)
+	do.ProvideValue(injector, logService)
 
 	return injector
 }
@@ -322,8 +322,8 @@ func setupTestInjectorWithConfig(cfg config.ConfigService) do.Injector {
 	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(t)))
-	do.ProvideValue[config.ConfigService](injector, cfg)
+	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(&testing.T{})))
+	do.ProvideValue(injector, cfg)
 
 	// Add a mock logger
 	ctrl := gomock.NewController(&testing.T{})
@@ -722,7 +722,7 @@ func TestChannelFacade_DisplayLog_RingBufferBehavior(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add 10 log entries (buffer size is 5)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		entry := LogEntry{
 			Level:     "info",
 			Message:   fmt.Sprintf("Log entry %d", i),
@@ -959,7 +959,7 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 
 	// Create channels first and get their IDs
 	channels := make([]*mockChannel, 5)
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		channels[i] = newMockChannel(uuid.New())
 		_ = service.RegisterChannel(channels[i])
 	}
@@ -967,7 +967,7 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 	wg := sync.WaitGroup{}
 
 	// Register channels concurrently (these will fail as duplicates, but that's OK for testing)
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -977,7 +977,7 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 	}
 
 	// Send messages concurrently to specific channels
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -994,7 +994,7 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 	}
 
 	// Send logs concurrently
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -1008,7 +1008,7 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 	}
 
 	// Get logs concurrently
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -1153,7 +1153,7 @@ func TestChannelFacade_CancelInput_Success(t *testing.T) {
 
 	// Setup mock expectations
 	mockSM.EXPECT().GetSession(sessionID).Return(testSession, true)
-	mockSM.EXPECT().CloseSession(sessionID).Return(nil)
+	mockSM.EXPECT().CloseSession(sessionID).Return(nil).Times(1)
 
 	// Replace the session manager in the service
 	serviceImpl := service.(*channelFacadeImpl)
@@ -1402,4 +1402,29 @@ func TestChannelFacade_SubmitInput_MultipleTextsInResponse(t *testing.T) {
 	assert.True(t, result.Handled)
 	assert.Equal(t, "Line 1\nLine 2\nLine 3", result.Response, "Multiple texts should be joined with newlines")
 	assert.NoError(t, result.Error)
+}
+
+// setupTestInjectorWithSessionManager creates an injector with a session manager mock with proper expectations
+func setupTestInjectorWithSessionManager(ctrl *gomock.Controller) do.Injector {
+	injector := do.New()
+	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
+	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
+	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
+
+	// Add a mock logger
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	do.ProvideValue[logger.LoggerService](injector, mockLogger)
+
+	// Add a mock session manager with expectations
+	mockSM := session.NewMockSessionManager(ctrl)
+	// Setup default expectations for session creation/retrieval
+	testSession := &shared.Session{
+		ID:        "test-session",
+		ChannelID: uuid.New(),
+	}
+	mockSM.EXPECT().GetOrCreateSession(gomock.Any(), gomock.Any()).Return(testSession, nil).AnyTimes()
+	do.ProvideValue[session.SessionManager](injector, mockSM)
+
+	return injector
 }
