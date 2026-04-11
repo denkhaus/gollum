@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/channel"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 )
 
