@@ -3,9 +3,7 @@ package channel
 
 import (
 	"context"
-	"time"
 
-	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 )
 
@@ -24,40 +22,12 @@ type Channel interface {
 	OnAgentLifecycle(event AgentLifecycleEvent)
 }
 
-// CommandHandler is a function that executes a slash command in the context of a session
-type CommandHandler func(ctx context.Context, session *shared.Session, args string) (string, error)
-
-// Command represents a registered slash command
-type Command struct {
-	Name        string
-	Description string
-	Handler     CommandHandler
-}
-
-// CommandManager handles slash command registration and execution
-type CommandManager interface {
-	// Register adds a new slash command
-	Register(cmd Command) error
-
-	// Unregister removes a command
-	Unregister(name string) error
-
-	// Execute parses input and executes command if it starts with "/"
-	Execute(ctx context.Context, sessionID string, input string) (handled bool, response string, err error)
-
-	// List returns all available commands
-	List() []Command
-
-	// IsCommand checks if input starts with "/"
-	IsCommand(input string) bool
-}
-
 // ChannelFacade is the central coordinator for all channels
 type ChannelFacade interface {
 	// DisplayMessage sends a message to all registered channels
 	DisplayMessage(msg Message)
 
-	// DisplayLog sends a log entry to all registered channels
+	// DisplayLog sends a log entry to channels (entry.SessionID and entry.ChannelID control routing)
 	DisplayLog(entry LogEntry)
 
 	// SubmitInput handles user input from any channel
@@ -65,9 +35,6 @@ type ChannelFacade interface {
 
 	// CancelInput cancels an in-flight input for the given session
 	CancelInput(sessionID string) error
-
-	// GetLogs returns recent log entries for channels to poll
-	GetLogs(since time.Time, limit int) []LogEntry
 
 	// RegisterChannel adds a channel to receive events
 	RegisterChannel(channel Channel) error

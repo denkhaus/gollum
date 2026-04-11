@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
@@ -14,7 +13,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/denkhaus/gollum/pkg/command"
-	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/session"
@@ -29,8 +27,6 @@ type channelFacadeImpl struct {
 	registry       registry.AgentRegistry
 	agentFactory   shared.AgentFactory
 	sessionManager session.SessionManager
-	logs           []LogEntry
-	maxLogs        int
 	logger         logger.LoggerService
 }
 
@@ -43,11 +39,7 @@ func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 	reg := do.MustInvoke[registry.AgentRegistry](injector)
 	af := do.MustInvoke[shared.AgentFactory](injector)
 	sm := do.MustInvoke[session.SessionManager](injector)
-	cfg := do.MustInvoke[config.ConfigService](injector)
 	log := do.MustInvoke[logger.LoggerService](injector)
-
-	// Use existing LoggingConfig.SessionLogBufferSize for display log buffer
-	maxLogs := cfg.GetLoggingConfig().SessionLogBufferSize
 
 	return &channelFacadeImpl{
 		commandManager: cm,
@@ -55,8 +47,6 @@ func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 		agentFactory:   af,
 		sessionManager: sm,
 		channels:       make(map[uuid.UUID]Channel),
-		logs:           make([]LogEntry, 0, maxLogs),
-		maxLogs:        maxLogs,
 		logger:         log,
 	}, nil
 }
@@ -96,27 +86,22 @@ func (p *channelFacadeImpl) DisplayMessage(msg Message) {
 	channel.OnMessage(msg)
 }
 
-// DisplayLog sends a log entry to channels (entry.SessionID and entry.ChannelID control routing)
-// TODO make this method session and channel aware
+// DisplayLog sends a log entry to the specific channel identified by ChannelID.
 func (p *channelFacadeImpl) DisplayLog(entry LogEntry) {
-	p.mu.Lock()
+	p.mu.RLock()
+	targetChannel, exists := p.channels[entry.ChannelID]
+	p.mu.RUnlock()
 
-	// Store log entry with ring buffer behavior
-	p.logs = append(p.logs, entry)
-	if len(p.logs) > p.maxLogs {
-		p.logs = p.logs[1:]
+	if !exists {
+		p.logger.Warn("channel not found for log entry",
+			zap.String("channel_id", entry.ChannelID.String()),
+			zap.String("session_id", entry.SessionID),
+		)
+		return
 	}
 
-	channels := make([]Channel, 0, len(p.channels))
-	for _, c := range p.channels {
-		channels = append(channels, c)
-	}
-	p.mu.Unlock()
-
-	// Send to all channels (each channel decides how to handle routing based on SessionID/ChannelID)
-	for _, channel := range channels {
-		channel.OnLog(entry)
-	}
+	// Forward to specific channel only
+	targetChannel.OnLog(entry)
 }
 
 // SubmitInput handles user input from any channel
@@ -178,24 +163,6 @@ func (p *channelFacadeImpl) CancelInput(sessionID string) error {
 	session.CancelFunc()
 
 	return nil
-}
-
-// GetLogs returns recent log entries for channels to poll
-func (p *channelFacadeImpl) GetLogs(since time.Time, limit int) []LogEntry {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
-	var result []LogEntry
-	for _, entry := range p.logs {
-		if entry.Timestamp.After(since) {
-			result = append(result, entry)
-			if len(result) >= limit {
-				break
-			}
-		}
-	}
-
-	return result
 }
 
 // NotifyAgentLifecycle broadcasts agent lifecycle event

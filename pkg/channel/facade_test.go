@@ -672,8 +672,8 @@ func TestChannelFacade_DisplayMessage_NoBroadcast(t *testing.T) {
 	}
 }
 
-// TestChannelFacade_DisplayLog_StoresAndBroadcasts tests that DisplayLog stores entry and broadcasts to all channels
-func TestChannelFacade_DisplayLog_StoresAndBroadcasts(t *testing.T) {
+// TestChannelFacade_DisplayLog_RoutesToSpecificChannel tests that DisplayLog routes to specific channel by ChannelID
+func TestChannelFacade_DisplayLog_RoutesToSpecificChannel(t *testing.T) {
 	injector := setupTestInjector()
 
 	service, err := NewChannelFacade(injector)
@@ -690,54 +690,48 @@ func TestChannelFacade_DisplayLog_StoresAndBroadcasts(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	// Send a log entry
+	// Send a log entry to first channel only
 	entry := LogEntry{
 		Level:     "info",
 		Message:   "Test log message",
 		Timestamp: time.Now(),
 		Fields:    map[string]any{"key": "value"},
+		SessionID: "test-session",
+		ChannelID: channels[0].id,
 	}
 	service.DisplayLog(entry)
 
-	// Verify all channels received the log
-	for _, ch := range channels {
-		assert.Equal(t, 1, ch.getLogCount(), "Channel should receive exactly one log entry")
-		received := ch.getLastLog()
-		assert.Equal(t, entry.Level, received.Level)
-		assert.Equal(t, entry.Message, received.Message)
-	}
+	// Verify only the first channel received the log
+	assert.Equal(t, 1, channels[0].getLogCount(), "First channel should receive exactly one log entry")
+	assert.Equal(t, 0, channels[1].getLogCount(), "Second channel should not receive the log entry")
 
-	// Verify log is stored
-	logs := service.GetLogs(time.Time{}, 100)
-	assert.Len(t, logs, 1)
-	assert.Equal(t, entry.Message, logs[0].Message)
+	received := channels[0].getLastLog()
+	assert.Equal(t, entry.Level, received.Level)
+	assert.Equal(t, entry.Message, received.Message)
+	assert.Equal(t, entry.ChannelID, received.ChannelID)
 }
 
-// TestChannelFacade_DisplayLog_RingBufferBehavior tests that DisplayLog implements ring buffer behavior
-func TestChannelFacade_DisplayLog_RingBufferBehavior(t *testing.T) {
-	cfg := &mockConfigService{logBufferSize: 5}
-	injector := setupTestInjectorWithConfig(cfg)
+// TestChannelFacade_DisplayLog_ChannelNotFound tests that DisplayLog logs warning when channel not found
+func TestChannelFacade_DisplayLog_ChannelNotFound(t *testing.T) {
+	mockLogger := &logger.MockLoggerService{}
+	injector := setupTestInjectorWithLogger(mockLogger)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
 
-	// Add 10 log entries (buffer size is 5)
-	for i := range 10 {
-		entry := LogEntry{
-			Level:     "info",
-			Message:   fmt.Sprintf("Log entry %d", i),
-			Timestamp: time.Now().Add(time.Duration(i) * time.Second),
-		}
-		service.DisplayLog(entry)
+	// Send a log entry to non-existent channel
+	entry := LogEntry{
+		Level:     "info",
+		Message:   "Test log message",
+		Timestamp: time.Now(),
+		Fields:    map[string]any{"key": "value"},
+		SessionID: "test-session",
+		ChannelID: uuid.New(),
 	}
+	service.DisplayLog(entry)
 
-	// Verify only the last 5 entries are stored
-	logs := service.GetLogs(time.Time{}, 100)
-	assert.Len(t, logs, 5, "Ring buffer should only keep maxLogs entries")
-
-	// Verify the oldest entry is entry 5 (0-4 were evicted)
-	assert.Equal(t, "Log entry 5", logs[0].Message)
-	assert.Equal(t, "Log entry 9", logs[4].Message)
+	// Verify warning was logged
+	assert.True(t, mockLogger.WarnCalled(), "Should log warning when channel not found")
 }
 
 // TestChannelFacade_SubmitInput_SlashCommand tests that SubmitInput routes slash commands to CommandManager
@@ -861,65 +855,6 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 	assert.Contains(t, result.Error.Error(), "command failed")
 }
 
-// TestChannelFacade_GetLogs_ReturnsEntriesAfterSpecifiedTime tests that GetLogs returns entries after specified time
-func TestChannelFacade_GetLogs_ReturnsEntriesAfterSpecifiedTime(t *testing.T) {
-	injector := setupTestInjector()
-
-	service, err := NewChannelFacade(injector)
-	require.NoError(t, err)
-
-	baseTime := time.Now()
-
-	// Add log entries with different timestamps
-	entries := []LogEntry{
-		{Level: "info", Message: "entry 1", Timestamp: baseTime.Add(1 * time.Second)},
-		{Level: "info", Message: "entry 2", Timestamp: baseTime.Add(2 * time.Second)},
-		{Level: "info", Message: "entry 3", Timestamp: baseTime.Add(3 * time.Second)},
-		{Level: "info", Message: "entry 4", Timestamp: baseTime.Add(4 * time.Second)},
-		{Level: "info", Message: "entry 5", Timestamp: baseTime.Add(5 * time.Second)},
-	}
-
-	for _, entry := range entries {
-		service.DisplayLog(entry)
-	}
-
-	// Get logs after entry 2's timestamp
-	since := baseTime.Add(2 * time.Second)
-	logs := service.GetLogs(since, 100)
-
-	// Should return entries 3, 4, 5 (after entry 2, not including entry 2)
-	assert.Len(t, logs, 3)
-	assert.Equal(t, "entry 3", logs[0].Message)
-	assert.Equal(t, "entry 4", logs[1].Message)
-	assert.Equal(t, "entry 5", logs[2].Message)
-}
-
-// TestChannelFacade_GetLogs_RespectsLimitParameter tests that GetLogs respects limit parameter
-func TestChannelFacade_GetLogs_RespectsLimitParameter(t *testing.T) {
-	injector := setupTestInjector()
-
-	service, err := NewChannelFacade(injector)
-	require.NoError(t, err)
-
-	baseTime := time.Now()
-
-	// Add 10 log entries
-	for i := 1; i <= 10; i++ {
-		entry := LogEntry{
-			Level:     "info",
-			Message:   fmt.Sprintf("entry %d", i),
-			Timestamp: baseTime.Add(time.Duration(i) * time.Second),
-		}
-		service.DisplayLog(entry)
-	}
-
-	// Get logs with limit of 5
-	logs := service.GetLogs(time.Time{}, 5)
-
-	assert.Len(t, logs, 5, "GetLogs should respect limit parameter")
-	assert.Equal(t, "entry 1", logs[0].Message)
-	assert.Equal(t, "entry 5", logs[4].Message)
-}
 
 // TestChannelFacade_NotifyAgentLifecycle_BroadcastsToAllChannels tests that NotifyAgentLifecycle broadcasts event to all channels
 func TestChannelFacade_NotifyAgentLifecycle_BroadcastsToAllChannels(t *testing.T) {
@@ -1002,28 +937,45 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 		}(i)
 	}
 
-	// Send logs concurrently
-	for i := range 10 {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
-			entry := LogEntry{
-				Level:     "info",
-				Message:   fmt.Sprintf("log %d", i),
-				Timestamp: time.Now(),
-			}
-			service.DisplayLog(entry)
-		}(i)
-	}
+		// Send logs concurrently to specific channels to specific channels
+		for i := range 10 {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				// Send to one of the registered channels
+				targetChannel := channels[i%len(channels)]
+				entry := LogEntry{
+					Level:     "info",
+					Message:   fmt.Sprintf("log %d", i),
+					Timestamp: time.Now(),
+					SessionID: "test-session",
+					ChannelID: targetChannel.id,
+				}
+				service.DisplayLog(entry)
+			}(i)
+		}
 
-	// Get logs concurrently
-	for range 5 {
-		wg.Add(1)
+		// Wait for all goroutines with timeout
+		done := make(chan struct{})
 		go func() {
-			defer wg.Done()
-			_ = service.GetLogs(time.Time{}, 10)
+			wg.Wait()
+			close(done)
 		}()
-	}
+
+		select {
+		case <-done:
+			// All goroutines completed
+		case <-time.After(5 * time.Second):
+			t.Fatal("Test timed out waiting for concurrent operations")
+		}
+
+		// Verify channels received their logs
+		totalLogs := 0
+		for _, ch := range channels {
+			totalLogs += ch.getLogCount()
+		}
+		assert.Greater(t, totalLogs, 0, "Channels should have received logs")
+
 
 	// Wait for all goroutines with timeout
 	done := make(chan struct{})
@@ -1040,7 +992,11 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 	}
 
 	// Verify final state is consistent
-	logs := service.GetLogs(time.Time{}, 100)
+		// Verify channels received their logs
+		totalLogs := 0
+		for _, ch := range channels {
+			totalLogs += ch.getLogCount()
+		}
 	assert.Greater(t, len(logs), 0, "Should have logs stored")
 }
 
