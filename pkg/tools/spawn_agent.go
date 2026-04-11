@@ -29,16 +29,17 @@ type (
 		configService   config.ConfigService
 		hookManager     hooks.HookManager
 		toolRegistry    shared.ToolRegistry
-		senderID        uuid.UUID
+		agent           shared.Agent
 	}
 
 	// SpawnAgentToolProvider creates SpawnAgentTool instances via DI
 	SpawnAgentToolProvider interface {
-		CreateTool(senderID uuid.UUID, agentFactory shared.AgentFactory) gollem.Tool
+		CreateTool(agent shared.Agent, agentFactory shared.AgentFactory) gollem.Tool
 	}
 
 	spawnAgentToolProvider struct {
 		logService      logger.LoggerService
+		agentFactory    shared.AgentFactory
 		registry        registry.AgentRegistry
 		promptManager   manager.PromptManager
 		executionHelper AgentExecutionHelper
@@ -51,6 +52,7 @@ type (
 // NewSpawnAgentToolProvider creates a provider for SpawnAgent tools
 func NewSpawnAgentToolProvider(injector do.Injector) (SpawnAgentToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
+	agentFactory := do.MustInvoke[shared.AgentFactory](injector)
 	agentRegistry := do.MustInvoke[registry.AgentRegistry](injector)
 	promptManager := do.MustInvoke[manager.PromptManager](injector)
 	executionHelper := do.MustInvoke[AgentExecutionHelper](injector)
@@ -60,6 +62,7 @@ func NewSpawnAgentToolProvider(injector do.Injector) (SpawnAgentToolProvider, er
 
 	return &spawnAgentToolProvider{
 		logService:      logService,
+		agentFactory:    agentFactory,
 		registry:        agentRegistry,
 		promptManager:   promptManager,
 		executionHelper: executionHelper,
@@ -70,7 +73,7 @@ func NewSpawnAgentToolProvider(injector do.Injector) (SpawnAgentToolProvider, er
 }
 
 // CreateSpawnAgentTool creates a new SpawnAgentTool for a specific sender
-func (p *spawnAgentToolProvider) CreateTool(senderID uuid.UUID, agentFactory shared.AgentFactory) gollem.Tool {
+func (p *spawnAgentToolProvider) CreateTool(agent shared.Agent, agentFactory shared.AgentFactory) gollem.Tool {
 	return &spawnAgentToolImpl{
 		logService:      p.logService,
 		agentFactory:    agentFactory,
@@ -80,7 +83,7 @@ func (p *spawnAgentToolProvider) CreateTool(senderID uuid.UUID, agentFactory sha
 		configService:   p.configService,
 		hookManager:     p.hookManager,
 		toolRegistry:    p.toolRegistry,
-		senderID:        senderID,
+		agent:           agent,
 	}
 }
 
@@ -147,7 +150,7 @@ func (t *spawnAgentToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the SpawnAgent tool to create and run subagents
 func (t *spawnAgentToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.senderID, shared.ToolNameSpawnAgent, args,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameSpawnAgent, args,
 		func() (map[string]any, error) {
 			return t.runSpawnAgent(ctx, args)
 		})
@@ -185,14 +188,16 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 		if !strings.Contains(toolName, "/") {
 			// Check against tool registry (spawn_agent is allowed when explicitly specified)
 			if !t.toolRegistry.IsValidTool(shared.ToolName(toolName)) {
-				t.logService.WarnWithAgent("Invalid built-in tool name in allowed_tools", t.senderID,
+				t.logService.WarnWithContext("Invalid built-in tool name in allowed_tools",
+				t.agent.ToLoggingContext(),
 					zap.String("tool_name", toolName))
 				return t.executionHelper.ErrorResponse(fmt.Sprintf("invalid built-in tool name: %s", toolName)), nil
 			}
 		}
 	}
 
-	t.logService.InfoWithAgent("Spawning subagent", t.senderID,
+	t.logService.InfoWithContext("Spawning subagent",
+			t.agent.ToLoggingContext(),
 		zap.String("role", role),
 		zap.String("description", description),
 		zap.Bool("background", runInBackground),
@@ -201,40 +206,33 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 	// Get specialized subagent prompt from PromptManager (includes role, description, and tool names)
 	systemPrompt, err := t.promptManager.GetSubagentTaskPrompt(role, description)
 	if err != nil {
-		t.logService.ErrorWithAgent("Failed to get subagent prompt", t.senderID, zap.Error(err))
+		t.logService.ErrorWithContext("Failed to get subagent prompt",
+			t.agent.ToLoggingContext(), zap.Error(err))
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to get subagent prompt: %v", err)), nil
 	}
 
-	// Get parent agent to inherit LLM client config and optionally message history
-	parentAgent, hasParent := t.registry.GetAgent(t.senderID)
-	var llmClientConfig *shared.LLMClientConfig
-	if hasParent {
-		llmClientConfig = parentAgent.GetConfig().LLMClientConfig
-		t.logService.DebugWithAgent("Inheriting LLM config from parent", t.senderID,
-			zap.String("parent_agent_id", t.senderID.String()))
-	} else {
-		// TODO : define the default Subagent Model in the ConfigService
-		llmClientConfig = &shared.LLMClientConfig{
-			Model: "anthropic/claude-3-5-sonnet-20241022",
-		}
-		t.logService.DebugWithAgent("Using default LLM config", t.senderID)
-	}
+	// Get LLM client config from parent agent
+	llmClientConfig := t.agent.GetConfig().LLMClientConfig
+	t.logService.DebugWithContext("Inheriting LLM config from parent", t.agent.ToLoggingContext(),
+		zap.String("parent_agent_id", t.agent.GetID().String()))
 
+	// Get message history if share_context is enabled
 	var history *gollem.History
-	if shareContext && hasParent {
-		history, err = parentAgent.GetMessageHistory(ctx)
+	if shareContext {
+		history, err = t.agent.GetMessageHistory(ctx)
 		if err != nil {
-			t.logService.WarnWithAgent("Failed to get message history from parent", t.senderID, zap.Error(err))
+			t.logService.WarnWithContext("Failed to get message history from parent", t.agent.ToLoggingContext(), zap.Error(err))
 			// Continue without history - non-fatal error
 		}
 	}
 
 	// Create subagent configuration
 	taskID := uuid.New()
+	parentID := t.agent.GetID()
 	subagentConfig := &shared.AgentConfig{
 		AllowCompaction: false, // Don't allow compaction in Sub-agents
 		ID:              taskID,
-		ParentID:        &t.senderID,
+		ParentID:        &parentID,
 		SystemPrompt:    systemPrompt,
 		Role:            role,
 		Description:     description,
@@ -247,11 +245,13 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 	// Create the subagent using the factory (which now adds default tools)
 	subagent, err := t.agentFactory.CreateAgent(ctx, subagentConfig)
 	if err != nil {
-		t.logService.ErrorWithAgent("Failed to create subagent", t.senderID, zap.Error(err))
+		t.logService.ErrorWithContext("Failed to create subagent",
+			t.agent.ToLoggingContext(), zap.Error(err))
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to create subagent: %v", err)), nil
 	}
 
-	t.logService.InfoWithAgent("Created subagent", t.senderID,
+	t.logService.InfoWithContext("Created subagent",
+			t.agent.ToLoggingContext(),
 		zap.String("subagent_id", subagent.GetID().String()),
 		zap.String("role", role))
 
@@ -263,7 +263,8 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 		StartedAt: time.Now().Unix(),
 	}
 	if err := t.registry.StoreAgentResult(agentResult); err != nil {
-		t.logService.ErrorWithAgent("Failed to store agent result", t.senderID, zap.Error(err))
+		t.logService.ErrorWithContext("Failed to store agent result",
+			t.agent.ToLoggingContext(), zap.Error(err))
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to store agent result: %v", err)), nil
 	}
 

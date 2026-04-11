@@ -126,14 +126,7 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 		config.ID = uuid.New()
 	}
 
-	// Resolve tools from AllowedTools
-	tools, err := f.resolveTools(ctx, config.ID, config.AllowedTools)
-	if err != nil {
-		return nil, errs.Wrap(err, errs.TypeInternal, "failed to resolve tools").
-			WithContext("agent_id", config.ID)
-	}
-
-	// Create the base agent
+	// Create the base agent first (without tools)
 	defAgent := &DefaultAgent{
 		clientProvider: f.clientProvider,
 		configService:  f.configService,
@@ -142,8 +135,17 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 		id:             config.ID,
 		config:         config,
 		promptManager:  f.promptManager,
-		tools:          tools, // Store resolved tools for recreation
 	}
+
+	// Resolve tools from AllowedTools (now we have the agent for tools that need it)
+	tools, err := f.resolveTools(ctx, defAgent, config.AllowedTools)
+	if err != nil {
+		return nil, errs.Wrap(err, errs.TypeInternal, "failed to resolve tools").
+			WithContext("agent_id", config.ID)
+	}
+
+	// Store resolved tools on the agent
+	defAgent.tools = tools
 
 	// Get LLM client
 	client, err := f.clientProvider.GetClient(ctx, config.LLMClientConfig)
@@ -209,7 +211,7 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 	return defAgent, nil
 }
 
-func (f *defaultAgentFactory) resolveTools(ctx context.Context, agentID uuid.UUID, allowedTools []string) ([]gollem.Tool, error) {
+func (f *defaultAgentFactory) resolveTools(ctx context.Context, agent *DefaultAgent, allowedTools []string) ([]gollem.Tool, error) {
 	if allowedTools == nil {
 		return nil, nil
 	}
@@ -220,7 +222,7 @@ func (f *defaultAgentFactory) resolveTools(ctx context.Context, agentID uuid.UUI
 	for _, toolName := range allowedTools {
 		// Check if MCP tool (format: "server_name/tool_name")
 		if strings.Contains(toolName, "/") {
-			tool, err := f.mcpToolProvider.CreateTool(agentID, toolName)
+			tool, err := f.mcpToolProvider.CreateTool(agent.GetID(), toolName)
 			if err != nil {
 				// MCP tool not found - warn, don't fail
 				warnings = append(warnings, fmt.Sprintf("MCP tool '%s': %v", toolName, err))
@@ -229,7 +231,7 @@ func (f *defaultAgentFactory) resolveTools(ctx context.Context, agentID uuid.UUI
 			tools = append(tools, tool)
 		} else {
 			// Built-in tool
-			tool, err := f.resolveBuiltinTool(agentID, toolName)
+			tool, err := f.resolveBuiltinTool(agent, toolName)
 			if err != nil {
 				return nil, err
 			}
@@ -306,38 +308,38 @@ func (p *defaultAgentFactory) CreateSupervisorAgent(ctx context.Context, opts ..
 	return agent, agentConfig, nil
 }
 
-func (f *defaultAgentFactory) resolveBuiltinTool(agentID uuid.UUID, name string) (gollem.Tool, error) {
+func (f *defaultAgentFactory) resolveBuiltinTool(agent *DefaultAgent, name string) (gollem.Tool, error) {
 	switch shared.ToolName(name) {
 	case shared.ToolNameBash:
-		return f.bashToolProv.CreateTool(agentID), nil
+		return f.bashToolProv.CreateTool(agent), nil
 	case shared.ToolNameCurrentTime:
-		return f.currentTimeToolProv.CreateTool(agentID), nil
+		return f.currentTimeToolProv.CreateTool(agent.GetID()), nil
 	case shared.ToolNameWriteFile:
-		return f.writeFileToolProv.CreateTool(agentID), nil
+		return f.writeFileToolProv.CreateTool(agent), nil
 	case shared.ToolNameReadFile:
-		return f.readFileToolProv.CreateTool(agentID), nil
+		return f.readFileToolProv.CreateTool(agent), nil
 	case shared.ToolNameGlob:
-		return f.globToolProv.CreateTool(agentID), nil
+		return f.globToolProv.CreateTool(agent), nil
 	case shared.ToolNameGrep:
-		return f.grepToolProv.CreateTool(agentID), nil
+		return f.grepToolProv.CreateTool(agent), nil
 	case shared.ToolNameEdit:
-		return f.editToolProv.CreateTool(agentID), nil
+		return f.editToolProv.CreateTool(agent), nil
 	case shared.ToolNameSpawnAgent:
-		return f.spawnAgentToolProv.CreateTool(agentID, f), nil
+		return f.spawnAgentToolProv.CreateTool(agent, f), nil
 	case shared.ToolNameAgentOutput:
-		return f.agentOutputToolProv.CreateTool(agentID), nil
+		return f.agentOutputToolProv.CreateTool(agent.GetID()), nil
 	case shared.ToolNameRemoveAgent:
-		return f.removeAgentToolProv.CreateTool(agentID), nil
+		return f.removeAgentToolProv.CreateTool(agent), nil
 	case shared.ToolNameResumeAgent:
-		return f.resumeAgentToolProv.CreateTool(agentID), nil
+		return f.resumeAgentToolProv.CreateTool(agent), nil
 	case shared.ToolNameListAgents:
-		return f.listAgentsToolProv.CreateTool(agentID), nil
+		return f.listAgentsToolProv.CreateTool(agent.GetID()), nil
 	case shared.ToolNameSessionLogs:
-		return f.sessionLogsToolProv.CreateTool(agentID), nil
+		return f.sessionLogsToolProv.CreateTool(agent.GetID()), nil
 	case shared.ToolNameChangeDirectory:
-		return f.changeDirectoryToolProv.CreateTool(agentID), nil
+		return f.changeDirectoryToolProv.CreateTool(agent.GetID()), nil
 	case shared.ToolNameInvokeSkill:
-		return f.invokeSkillToolProv.CreateTool(agentID, f), nil
+		return f.invokeSkillToolProv.CreateTool(agent.GetID(), f), nil
 	default:
 		return nil, fmt.Errorf("unknown built-in tool: %s", name)
 	}
