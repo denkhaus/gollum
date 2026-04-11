@@ -23,10 +23,13 @@ func TestAgentOutputTool_Spec(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(uuid.New()).AnyTimes()
+
 	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
-		senderID:    uuid.New(),
+		agent:       mockAgent,
 	}
 
 	spec := tool.Spec()
@@ -58,10 +61,13 @@ func TestAgentOutputTool_Run_MissingAgentID(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(uuid.New()).AnyTimes()
+
 	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
-		senderID:    uuid.New(),
+		agent:       mockAgent,
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{})
@@ -80,10 +86,13 @@ func TestAgentOutputTool_Run_EmptyAgentID(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(uuid.New()).AnyTimes()
+
 	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
-		senderID:    uuid.New(),
+		agent:       mockAgent,
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -103,10 +112,13 @@ func TestAgentOutputTool_Run_InvalidUUID(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(uuid.New()).AnyTimes()
+
 	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
-		senderID:    uuid.New(),
+		agent:       mockAgent,
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -129,6 +141,9 @@ func TestAgentOutputTool_Run_AgentNotFound(t *testing.T) {
 	senderID := uuid.New()
 	agentID := uuid.New()
 
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+
 	// Permission check: sender is direct parent
 	mockRegistry.EXPECT().
 		IsDirectParent(senderID, agentID).
@@ -141,7 +156,7 @@ func TestAgentOutputTool_Run_AgentNotFound(t *testing.T) {
 	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
-		senderID:    senderID,
+		agent:       mockAgent,
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{

@@ -24,6 +24,10 @@ func TestAgentOutputTool_Run_TimeoutClamping_Int(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
+
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+
 	agentID := uuid.New()
 
 	tests := []struct {
@@ -63,7 +67,7 @@ func TestAgentOutputTool_Run_TimeoutClamping_Int(t *testing.T) {
 			tool := &agentOutputToolImpl{
 				hookManager: mockHookManager,
 				registry:    mockRegistry,
-				senderID:    senderID,
+				agent:       mockAgent,
 			}
 
 			result, err := tool.Run(context.Background(), map[string]any{
@@ -88,6 +92,10 @@ func TestAgentOutputTool_Run_TimeoutClamping_Float(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
+
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+
 	agentID := uuid.New()
 
 	tests := []struct {
@@ -124,7 +132,7 @@ func TestAgentOutputTool_Run_TimeoutClamping_Float(t *testing.T) {
 			tool := &agentOutputToolImpl{
 				hookManager: mockHookManager,
 				registry:    mockRegistry,
-				senderID:    senderID,
+				agent:       mockAgent,
 			}
 
 			result, err := tool.Run(context.Background(), map[string]any{
@@ -149,6 +157,10 @@ func TestAgentOutputTool_Run_DefaultBlockValue(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
+
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+
 	agentID := uuid.New()
 	startedAt := time.Now().Unix()
 
@@ -175,7 +187,7 @@ func TestAgentOutputTool_Run_DefaultBlockValue(t *testing.T) {
 	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
-		senderID:    senderID,
+		agent:       mockAgent,
 	}
 
 	// No "block" parameter provided - should default to blocking mode
@@ -195,18 +207,21 @@ func TestAgentOutputToolProvider(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	senderID := uuid.New()
 
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+
 	provider := &agentOutputToolProvider{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
 	}
 
-	tool := provider.CreateTool(senderID)
+	tool := provider.CreateTool(mockAgent)
 	toolImpl := tool.(*agentOutputToolImpl)
 
 	assert.NotNil(t, tool)
 	assert.Equal(t, mockRegistry, toolImpl.registry)
 	assert.Equal(t, mockHookManager, toolImpl.hookManager)
-	assert.Equal(t, senderID, toolImpl.senderID)
+	assert.Equal(t, senderID, toolImpl.agent.GetID())
 }
 
 // TestAgentOutputTool_Run_PermissionDenied tests permission check when caller is not direct parent
@@ -219,6 +234,10 @@ func TestAgentOutputTool_Run_PermissionDenied(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
+
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+
 	agentID := uuid.New()
 
 	// Permission check: sender is NOT direct parent
@@ -229,7 +248,7 @@ func TestAgentOutputTool_Run_PermissionDenied(t *testing.T) {
 	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
-		senderID:    senderID,
+		agent:       mockAgent,
 	}
 
 	result, err := tool.Run(context.Background(), map[string]any{

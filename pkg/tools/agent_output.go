@@ -19,12 +19,12 @@ type (
 	agentOutputToolImpl struct {
 		hookManager hooks.HookManager
 		registry    registry.AgentRegistry
-		senderID    uuid.UUID
+		agent       shared.Agent
 	}
 
 	// AgentOutputToolProvider creates AgentOutputTool instances via DI
 	AgentOutputToolProvider interface {
-		CreateTool(senderID uuid.UUID) gollem.Tool
+		CreateTool(agent shared.Agent) gollem.Tool
 	}
 
 	agentOutputToolProvider struct {
@@ -45,11 +45,11 @@ func NewAgentOutputToolProvider(injector do.Injector) (AgentOutputToolProvider, 
 }
 
 // CreateAgentOutputTool creates a new AgentOutputTool for a specific sender
-func (p *agentOutputToolProvider) CreateTool(senderID uuid.UUID) gollem.Tool {
+func (p *agentOutputToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	return &agentOutputToolImpl{
 		hookManager: p.hookManager,
 		registry:    p.registry,
-		senderID:    senderID,
+		agent:       agent,
 	}
 }
 
@@ -77,7 +77,7 @@ func (t *agentOutputToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the AgentOutput tool to retrieve results from background agents
 func (t *agentOutputToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.senderID, shared.ToolNameAgentOutput, args,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameAgentOutput, args,
 		func() (map[string]any, error) {
 			return t.runAgentOutput(ctx, args)
 		})
@@ -108,7 +108,7 @@ func (t *agentOutputToolImpl) runAgentOutput(ctx context.Context, args ToolReque
 
 	// PERMISSION CHECK: Verify caller is DIRECT parent of target agent
 	// Separation of concerns: each agent can only access outputs from their direct children
-	if !t.registry.IsDirectParent(t.senderID, agentID) {
+	if !t.registry.IsDirectParent(t.agent.GetID(), agentID) {
 		return errorResponseAgentOutput(
 			fmt.Sprintf("permission denied: you can only get output from your direct subagents (not grandchildren or other agents). Agent %s is not your direct child.", agentID.String()),
 		), nil
