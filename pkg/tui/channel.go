@@ -60,7 +60,7 @@ func (c *TUIChannel) OnMessage(msg channel.Message) {
 
 // OnLog handles log entries from the channel.
 // Log entries are converted to system messages and sent to the TUI.
-func (c *TUIChannel) OnLog(entry channel.LogEntry) {
+func (c *TUIChannel) OnLog(entry shared.LogEntry) {
 	if c.messageChan == nil {
 		log.Printf("[TUIChannel] No message channel configured, log entry not displayed: %+v", entry)
 		return
@@ -109,7 +109,7 @@ func (c *TUIChannel) OnAgentLifecycle(event channel.AgentLifecycleEvent) {
 }
 
 // formatLogEntry formats a log entry for display as a message.
-func formatLogEntry(entry channel.LogEntry) string {
+func formatLogEntry(entry shared.LogEntry) string {
 	// Format: [LEVEL] message
 	prefix := "[" + entry.Level + "] "
 
