@@ -21,12 +21,12 @@ type (
 		hookManager     hooks.HookManager
 		registry        registry.AgentRegistry
 		executionHelper AgentExecutionHelper
-		senderID        uuid.UUID
+		agent           shared.Agent
 	}
 
 	// ResumeAgentToolProvider creates ResumeAgentTool instances via DI
 	ResumeAgentToolProvider interface {
-		CreateTool(senderID uuid.UUID) gollem.Tool
+		CreateTool(agent shared.Agent) gollem.Tool
 	}
 
 	resumeAgentToolProvider struct {
@@ -52,14 +52,14 @@ func NewResumeAgentToolProvider(injector do.Injector) (ResumeAgentToolProvider, 
 	}, nil
 }
 
-// CreateTool creates a new ResumeAgentTool for a specific sender
-func (p *resumeAgentToolProvider) CreateTool(senderID uuid.UUID) gollem.Tool {
+// CreateTool creates a new ResumeAgentTool with agent reference
+func (p *resumeAgentToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	return &resumeAgentToolImpl{
 		logService:      p.logService,
 		hookManager:     p.hookManager,
 		registry:        p.registry,
 		executionHelper: p.executionHelper,
-		senderID:        senderID,
+		agent:           agent,
 	}
 }
 
@@ -91,7 +91,7 @@ func (t *resumeAgentToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the ResumeAgent tool to resume and run existing agents
 func (t *resumeAgentToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.senderID, shared.ToolNameResumeAgent, args,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameResumeAgent, args,
 		func() (map[string]any, error) {
 			return t.runResumeAgent(ctx, args)
 		})
@@ -120,8 +120,8 @@ func (t *resumeAgentToolImpl) runResumeAgent(ctx context.Context, args ToolReque
 	runInBackground := args.GetBool(shared.ParamRunInBackground, false)
 
 	// PERMISSION CHECK: Verify caller is DIRECT parent of target agent
-	if !t.registry.IsDirectParent(t.senderID, agentID) {
-		t.logService.WarnWithAgent("Permission denied: not direct parent", t.senderID,
+	if !t.registry.IsDirectParent(t.agent.GetID(), agentID) {
+		t.logService.WarnWithContext("Permission denied: not direct parent", t.agent.ToLoggingContext(),
 			zap.String("target_agent_id", agentID.String()))
 
 		return t.executionHelper.ErrorResponse(
@@ -129,7 +129,7 @@ func (t *resumeAgentToolImpl) runResumeAgent(ctx context.Context, args ToolReque
 		), nil
 	}
 
-	t.logService.InfoWithAgent("Resuming agent", t.senderID,
+	t.logService.InfoWithContext("Resuming agent", t.agent.ToLoggingContext(),
 		zap.String("target_agent_id", agentID.String()),
 		zap.Bool("background", runInBackground))
 
@@ -144,13 +144,13 @@ func (t *resumeAgentToolImpl) runResumeAgent(ctx context.Context, args ToolReque
 	// Get agent config from the agent itself
 	agentConfig := agent.GetConfig()
 
-	t.logService.InfoWithAgent("Found agent to resume", t.senderID,
+	t.logService.InfoWithContext("Found agent to resume", t.agent.ToLoggingContext(),
 		zap.String("target_agent_id", agentID.String()),
 		zap.String("role", agentConfig.Role))
 
 	// Delete any previous agent result to prevent returning stale results
 	if err := t.registry.DeleteAgentResult(agentID); err != nil {
-		t.logService.WarnWithAgent("Failed to delete previous agent result", t.senderID,
+		t.logService.WarnWithContext("Failed to delete previous agent result", t.agent.ToLoggingContext(),
 			zap.String("target_agent_id", agentID.String()),
 			zap.Error(err))
 		// Continue anyway - this is not a critical error
@@ -164,30 +164,30 @@ func (t *resumeAgentToolImpl) runResumeAgent(ctx context.Context, args ToolReque
 
 		// Store cancel function in registry for this agent
 		if err := t.registry.SetCancelFunc(agentID, cancel); err != nil {
-			t.logService.WarnWithAgent("Failed to store cancel function", t.senderID,
+			t.logService.WarnWithContext("Failed to store cancel function", t.agent.ToLoggingContext(),
 				zap.String("target_agent_id", agentID.String()),
 				zap.Error(err))
 			// Continue anyway - the agent will still run, just won't be cancellable
 		}
 
-		t.logService.InfoWithAgent("Starting background execution for agent", t.senderID,
+		t.logService.InfoWithContext("Starting background execution for agent", t.agent.ToLoggingContext(),
 			zap.String("target_agent_id", agentID.String()))
 		go t.executionHelper.ExecuteInBackground(bgCtx, agent, prompt)
 		return t.executionHelper.SuccessResponseResumeAsync(agentID, agentConfig.Role, agentConfig.Description), nil
 	}
 
 	// Synchronous execution
-	t.logService.InfoWithAgent("Executing agent synchronously", t.senderID,
+	t.logService.InfoWithContext("Executing agent synchronously", t.agent.ToLoggingContext(),
 		zap.String("target_agent_id", agentID.String()))
 	response, err := t.executionHelper.ExecuteSynchronously(ctx, agent, prompt)
 	if err != nil {
-		t.logService.ErrorWithAgent("Agent execution failed", t.senderID,
+		t.logService.ErrorWithContext("Agent execution failed", t.agent.ToLoggingContext(),
 			zap.String("target_agent_id", agentID.String()),
 			zap.Error(err))
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("execution failed: %v", err)), nil
 	}
 
-	t.logService.InfoWithAgent("Agent completed successfully", t.senderID,
+	t.logService.InfoWithContext("Agent completed successfully", t.agent.ToLoggingContext(),
 		zap.String("target_agent_id", agentID.String()))
 	return response, nil
 }
