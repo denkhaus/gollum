@@ -25,7 +25,7 @@ type (
 	// bashToolImpl executes bash commands
 	bashToolImpl struct {
 		logService   logger.LoggerService
-		agentID      uuid.UUID
+		agent        shared.Agent
 		bashCfg      *config.BashConfig
 		fileState    state.FileStateManager
 		hookManager  hooks.HookManager
@@ -36,7 +36,7 @@ type (
 
 	// BashToolProvider creates BashTool instances via DI
 	BashToolProvider interface {
-		CreateTool(agentID uuid.UUID) gollem.Tool
+		CreateTool(agent shared.Agent) gollem.Tool
 	}
 
 	bashToolProvider struct {
@@ -65,11 +65,11 @@ func NewBashToolProvider(injector do.Injector) (BashToolProvider, error) {
 	}, nil
 }
 
-// CreateBashTool creates a new BashTool with agent ID
-func (p *bashToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+// CreateBashTool creates a new BashTool with agent
+func (p *bashToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	return &bashToolImpl{
 		logService:   p.logService,
-		agentID:      agentID,
+		agent:        agent,
 		bashCfg:      p.bashCfg,
 		fileState:    p.fileState,
 		hookManager:  p.hookManager,
@@ -97,7 +97,7 @@ func (t *bashToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the Bash tool to run shell commands
 func (t *bashToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameBash, args,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameBash, args,
 		func() (map[string]any, error) {
 			return t.runBashCommand(ctx, args)
 		})
@@ -124,7 +124,7 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args ToolRequestParam
 	cmdCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	t.logService.InfoWithAgent("Executing bash command", t.agentID, zap.String("command", command))
+	t.logService.InfoWithContext("Executing bash command", t.agent.ToLoggingContext(), zap.String("command", command))
 
 	cmd := exec.CommandContext(cmdCtx, "bash", "-c", command)
 
@@ -147,14 +147,14 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args ToolRequestParam
 
 	if err != nil {
 		if cmdCtx.Err() == context.DeadlineExceeded {
-			t.logService.WarnWithAgent("Command timed out", t.agentID,
+			t.logService.WarnWithContext("Command timed out", t.agent.ToLoggingContext(),
 				zap.Float64("timeout_seconds", timeout.Seconds()),
 				zap.String("command", command))
 			result[string(shared.KeySuccess)] = false
 			result[string(shared.KeyError)] = fmt.Sprintf("command timed out after %.2fs", timeout.Seconds())
 			result[string(shared.KeyExitCode)] = -1
 		} else {
-			t.logService.ErrorWithAgent("Command failed", t.agentID,
+			t.logService.ErrorWithContext("Command failed", t.agent.ToLoggingContext(),
 				zap.String("command", command),
 				zap.Error(err))
 			result[string(shared.KeySuccess)] = false
@@ -164,7 +164,7 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args ToolRequestParam
 		return result, nil
 	}
 
-	t.logService.InfoWithAgent("Command succeeded", t.agentID,
+	t.logService.InfoWithContext("Command succeeded", t.agent.ToLoggingContext(),
 		zap.Float64("duration_seconds", duration.Seconds()),
 		zap.String("command", command),
 		zap.Int("exit_code", 0),
@@ -183,11 +183,11 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args ToolRequestParam
 		// Detect changes
 		changes, detectErr := t.fileState.DetectChanges(beforeStats)
 		if detectErr != nil {
-			t.logService.WarnWithAgent("Failed to detect file changes", t.agentID, zap.Error(detectErr))
+			t.logService.WarnWithContext("Failed to detect file changes", t.agent.ToLoggingContext(), zap.Error(detectErr))
 			result[string(shared.KeyWarning)] = fmt.Sprintf("Failed to detect file changes: %v", detectErr)
 		} else if len(changes) > 0 {
 			// Log detected changes
-			t.logService.InfoWithAgent("Bash command modified files", t.agentID,
+			t.logService.InfoWithContext("Bash command modified files", t.agent.ToLoggingContext(),
 				zap.Int("count", len(changes)),
 				zap.String("command", command))
 
@@ -198,7 +198,7 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args ToolRequestParam
 					// Get the current content of the file
 					currentContent, err := os.ReadFile(change.Path)
 					if err != nil {
-						t.logService.WarnWithAgent("Failed to get current content for diff", t.agentID,
+						t.logService.WarnWithContext("Failed to get current content for diff", t.agent.ToLoggingContext(),
 							zap.String("path", change.Path),
 							zap.Error(err))
 						continue
@@ -217,7 +217,7 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args ToolRequestParam
 					}
 
 					if err != nil {
-						t.logService.WarnWithAgent("Failed to generate diff", t.agentID,
+						t.logService.WarnWithContext("Failed to generate diff", t.agent.ToLoggingContext(),
 							zap.String("path", change.Path),
 							zap.Error(err))
 						continue
