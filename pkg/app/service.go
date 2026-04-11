@@ -71,6 +71,11 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 	flowExecutorService := do.MustInvoke[executor.FlowExecutorService](injector)
 	flowRegistry := do.MustInvoke[flowregistry.FlowRegistry](injector)
 
+	// Wire logger forwarder to channel facade for session/channel-aware log routing
+	if forwarder, ok := channelFacade.(shared.LogForwarder); ok {
+		logService.SetLogForwarder(forwarder)
+	}
+
 	return &applicationServiceImpl{
 		sessionID:        uuid.New(),
 		logService:       logService,

@@ -57,6 +57,8 @@ type LoggerService interface {
 	GetLogStats() map[string]interface{}
 	// SetTUIMode disables stdout logging when TUI is active
 	SetTUIMode(enabled bool)
+	// SetLogForwarder sets the log forwarder for channel-based log routing
+	SetLogForwarder(forwarder shared.LogForwarder)
 	// IsTUIMode returns whether TUI mode is enabled
 	IsTUIMode() bool
 	// EnableFileLogging enables file logging to .gollum/logs/<sessionID>.log
@@ -224,39 +226,27 @@ func (s *service) Warnf(template string, args ...any) {
 }
 
 // InfoWithAgent logs an info message with agent ID included as a structured field.
-// Backward compatible - creates minimal LoggingContext with AgentID only.
-// Note: SessionID and ChannelID will be empty, so logs won't be routed to channels.
 func (s *service) InfoWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
-	ctx := shared.LoggingContext{
-		AgentID: agentID,
-		// SessionID and ChannelID left empty for backward compatibility
-	}
-	s.logWithContext("info", msg, ctx, fields...)
+	allFields := append([]zap.Field{zap.String("agent_id", agentID.String())}, fields...)
+	s.Info(msg, allFields...)
 }
 
 // ErrorWithAgent logs an error message with agent ID included as a structured field.
-// Backward compatible - creates minimal LoggingContext with AgentID only.
 func (s *service) ErrorWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
-	ctx := shared.LoggingContext{
-		AgentID: agentID,
-	}
-	s.logWithContext("error", msg, ctx, fields...)
+	allFields := append([]zap.Field{zap.String("agent_id", agentID.String())}, fields...)
+	s.Error(msg, allFields...)
 }
 
 // DebugWithAgent logs a debug message with agent ID included as a structured field.
 func (s *service) DebugWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
-	ctx := shared.LoggingContext{
-		AgentID: agentID,
-	}
-	s.logWithContext("debug", msg, ctx, fields...)
+	allFields := append([]zap.Field{zap.String("agent_id", agentID.String())}, fields...)
+	s.Debug(msg, allFields...)
 }
 
 // WarnWithAgent logs a warning message with agent ID included as a structured field.
 func (s *service) WarnWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
-	ctx := shared.LoggingContext{
-		AgentID: agentID,
-	}
-	s.logWithContext("warn", msg, ctx, fields...)
+	allFields := append([]zap.Field{zap.String("agent_id", agentID.String())}, fields...)
+	s.Warn(msg, allFields...)
 }
 
 // InfoWithFlowStep logs an info message with flow and step context included as structured fields.
@@ -346,24 +336,46 @@ func (s *service) storeInBuffer(level string, msg string, fields []zap.Field) {
 
 // logWithContext is the internal implementation for context-aware logging.
 // It validates the context, logs to zap, stores in buffer, and forwards to channels.
-// Supports partial contexts for backward compatibility (e.g., AgentID only).
+// REQUIRES: Complete LoggingContext (all fields valid). Use IsValid() to validate.
 func (s *service) logWithContext(level string, msg string, ctx shared.LoggingContext, fields ...zap.Field) {
-	// Build zap fields conditionally based on what's provided
-	var allFields []zap.Field
+	// STRICT VALIDATION: Reject incomplete contexts per Task 3 spec
+	if !ctx.IsValid() {
+		// Log error but still record locally - just don't forward to channels
+		s.logger.Error("incomplete logging context",
+			zap.String("level", level),
+			zap.String("message", msg),
+			zap.Bool("has_session_id", ctx.SessionID != ""),
+			zap.Bool("has_channel_id", ctx.ChannelID != uuid.Nil),
+			zap.Bool("has_agent_id", ctx.AgentID != uuid.Nil),
+		)
 
-	// Only add non-empty context fields to avoid cluttering logs with empty values
-	if ctx.SessionID != "" {
-		allFields = append(allFields, zap.String("session_id", ctx.SessionID))
-	}
-	if ctx.ChannelID != uuid.Nil {
-		allFields = append(allFields, zap.String("channel_id", ctx.ChannelID.String()))
-	}
-	if ctx.AgentID != uuid.Nil {
-		allFields = append(allFields, zap.String("agent_id", ctx.AgentID.String()))
+		// Still log locally with whatever context we have
+		allFields := append([]zap.Field{
+			zap.String("agent_id", ctx.AgentID.String()),
+		}, fields...)
+
+		switch level {
+		case "debug":
+			s.logger.Debug(msg, allFields...)
+		case "info":
+			s.logger.Info(msg, allFields...)
+		case "warn":
+			s.logger.Warn(msg, allFields...)
+		case "error":
+			s.logger.Error(msg, allFields...)
+		}
+
+		// Store in buffer but don't forward
+		s.storeInBuffer(level, msg, allFields)
+		return
 	}
 
-	// Add user-provided fields
-	allFields = append(allFields, fields...)
+	// Context is valid - proceed with full logging and forwarding
+	allFields := append([]zap.Field{
+		zap.String("session_id", ctx.SessionID),
+		zap.String("channel_id", ctx.ChannelID.String()),
+		zap.String("agent_id", ctx.AgentID.String()),
+	}, fields...)
 
 	// Log to zap (stdout/file)
 	switch level {
@@ -405,8 +417,8 @@ func (s *service) logWithContext(level string, msg string, ctx shared.LoggingCon
 	}
 	s.logBuffer.add(entry)
 
-	// Forward to channel facade via LogForwarder (only if context is complete)
-	if s.forwarder != nil && ctx.IsValid() {
+	// Forward to channel facade via LogForwarder
+	if s.forwarder != nil {
 		channelEntry := shared.LogEntry{
 			Level:     level,
 			Message:   msg,
