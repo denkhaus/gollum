@@ -53,8 +53,8 @@ func TestExecuteFlowTool_Run_Success(t *testing.T) {
 	mockRegistry.EXPECT().GetFlow("test-flow").Return(testFlow, nil)
 
 	// Expect logging calls
-	mockLogger.EXPECT().Info("ExecuteFlow operation started", gomock.Any()).Times(1)
-	mockLogger.EXPECT().Info("ExecuteFlow operation completed successfully", gomock.Any()).Times(1)
+	mockLogger.EXPECT().InfoWithContext("ExecuteFlow operation started", gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().InfoWithContext("ExecuteFlow operation completed successfully", gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 
 	// Setup executor to return success
 	mockExecutor.executeFunc = func(ctx context.Context, flow *flows.Flow, inputs map[string]any) (*flows.FlowExecutionResult, error) {
@@ -114,8 +114,8 @@ func TestExecuteFlowTool_Run_FlowNotFound(t *testing.T) {
 	mockRegistry.EXPECT().GetFlow("non-existent").Return(nil, assert.AnError)
 
 	// Expect logging calls
-	mockLogger.EXPECT().Info("ExecuteFlow operation started", gomock.Any()).Times(1)
-	mockLogger.EXPECT().Error("Flow not found", gomock.Any()).Times(1)
+	mockLogger.EXPECT().InfoWithContext("ExecuteFlow operation started", gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().ErrorWithContext("Flow not found", gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 
 	// Run the tool - now returns error response map, not Go error
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -147,8 +147,8 @@ func TestExecuteFlowTool_Run_NilInputs(t *testing.T) {
 	mockRegistry.EXPECT().GetFlow("test-flow").Return(testFlow, nil)
 
 	// Expect logging calls
-	mockLogger.EXPECT().Info("ExecuteFlow operation started", gomock.Any()).Times(1)
-	mockLogger.EXPECT().Info("ExecuteFlow operation completed successfully", gomock.Any()).Times(1)
+	mockLogger.EXPECT().InfoWithContext("ExecuteFlow operation started", gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().InfoWithContext("ExecuteFlow operation completed successfully", gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 
 	// Run the tool with nil inputs
 	result, err := tool.Run(context.Background(), map[string]any{
@@ -177,8 +177,8 @@ func TestExecuteFlowTool_Run_ExecutionError(t *testing.T) {
 	mockRegistry.EXPECT().GetFlow("test-flow").Return(testFlow, nil)
 
 	// Expect logging calls
-	mockLogger.EXPECT().Info("ExecuteFlow operation started", gomock.Any()).Times(1)
-	mockLogger.EXPECT().Error("Flow execution failed", gomock.Any()).Times(1)
+	mockLogger.EXPECT().InfoWithContext("ExecuteFlow operation started", gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().ErrorWithContext("Flow execution failed", gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 
 	// Setup executor to return error
 	mockExecutor.executeFunc = func(ctx context.Context, flow *flows.Flow, inputs map[string]any) (*flows.FlowExecutionResult, error) {
@@ -249,8 +249,8 @@ func TestListFlowsTool_Run_Success(t *testing.T) {
 	mockRegistry.EXPECT().ListFlows().Return(testFlows, nil)
 
 	// Expect logging calls
-	mockLogger.EXPECT().Info("ListFlows operation started", gomock.Any()).Times(1)
-	mockLogger.EXPECT().Info("ListFlows operation completed successfully", gomock.Any()).Times(1)
+	mockLogger.EXPECT().InfoWithContext("ListFlows operation started", gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().InfoWithContext("ListFlows operation completed successfully", gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 
 	// Run the tool
 	result, err := tool.Run(context.Background(), map[string]any{})
@@ -276,8 +276,8 @@ func TestListFlowsTool_Run_ListFlowsError(t *testing.T) {
 	mockRegistry.EXPECT().ListFlows().Return(nil, assert.AnError)
 
 	// Expect logging calls
-	mockLogger.EXPECT().Info("ListFlows operation started", gomock.Any()).Times(1)
-	mockLogger.EXPECT().Error("Failed to list flows", gomock.Any()).Times(1)
+	mockLogger.EXPECT().InfoWithContext("ListFlows operation started", gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().ErrorWithContext("Failed to list flows", gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 
 	// Run the tool - should return error response map
 	result, err := tool.Run(context.Background(), map[string]any{})

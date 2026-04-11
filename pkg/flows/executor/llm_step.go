@@ -167,11 +167,9 @@ func (p *flowExecutorImpl) separateFlowTools(toolNames []string) (flowTools []st
 // addFlowToolsToAgent creates flow tools and adds them to the agent
 // This is a workaround because flow tools require special handling (FlowContext)
 func (p *flowExecutorImpl) addFlowToolsToAgent(ctx context.Context, agent shared.Agent, toolNames []string) error {
-	agentID := agent.GetID()
-
 	var flowTools []gollem.Tool
 	for _, toolName := range toolNames {
-		tool, err := p.flowToolsProvider.CreateTool(agentID, p, shared.ToolName(toolName))
+		tool, err := p.flowToolsProvider.CreateTool(agent, p, shared.ToolName(toolName))
 		if err != nil {
 			return fmt.Errorf("failed to create flow tool '%s': %w", toolName, err)
 		}

@@ -313,7 +313,7 @@ func (f *defaultAgentFactory) resolveBuiltinTool(agent *DefaultAgent, name strin
 	case shared.ToolNameBash:
 		return f.bashToolProv.CreateTool(agent), nil
 	case shared.ToolNameCurrentTime:
-		return f.currentTimeToolProv.CreateTool(agent.GetID()), nil
+		return f.currentTimeToolProv.CreateTool(agent), nil
 	case shared.ToolNameWriteFile:
 		return f.writeFileToolProv.CreateTool(agent), nil
 	case shared.ToolNameReadFile:
@@ -335,9 +335,9 @@ func (f *defaultAgentFactory) resolveBuiltinTool(agent *DefaultAgent, name strin
 	case shared.ToolNameListAgents:
 		return f.listAgentsToolProv.CreateTool(agent.GetID()), nil
 	case shared.ToolNameSessionLogs:
-		return f.sessionLogsToolProv.CreateTool(agent.GetID()), nil
+		return f.sessionLogsToolProv.CreateTool(agent), nil
 	case shared.ToolNameChangeDirectory:
-		return f.changeDirectoryToolProv.CreateTool(agent.GetID()), nil
+		return f.changeDirectoryToolProv.CreateTool(agent), nil
 	case shared.ToolNameInvokeSkill:
 		return f.invokeSkillToolProv.CreateTool(agent.GetID(), f), nil
 	default:

@@ -9,7 +9,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/tools"
-	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 )
 
@@ -69,7 +68,7 @@ func NewExecutorWithProvider(flow *flows.Flow, provider tools.BashToolProvider) 
 
 type testBashToolProvider struct{}
 
-func (m *testBashToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+func (m *testBashToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	return &testBashTool{}
 }
 
@@ -177,7 +176,7 @@ func (m *testFlowRegistry) ListFlows() ([]*flowregistry.FlowInfo, error) {
 
 type testFlowToolsProvider struct{}
 
-func (m *testFlowToolsProvider) CreateTool(agentID uuid.UUID, flowCtx flows.FlowContext, toolName shared.ToolName) (gollem.Tool, error) {
+func (m *testFlowToolsProvider) CreateTool(agent shared.Agent, flowCtx flows.FlowContext, toolName shared.ToolName) (gollem.Tool, error) {
 	// Return a mock tool that does nothing
 	return &testFlowTool{}, nil
 }

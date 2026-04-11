@@ -24,7 +24,7 @@ type (
 	setOutputFieldTool struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
-		agentID     uuid.UUID
+		agent       shared.Agent
 		flowCtx     flows.FlowContext
 	}
 
@@ -32,7 +32,7 @@ type (
 	setContextFieldTool struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
-		agentID     uuid.UUID
+		agent       shared.Agent
 		flowCtx     flows.FlowContext
 	}
 
@@ -40,7 +40,7 @@ type (
 	getContextTool struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
-		agentID     uuid.UUID
+		agent       shared.Agent
 		flowCtx     flows.FlowContext
 	}
 
@@ -48,7 +48,7 @@ type (
 	emitLogTool struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
-		agentID     uuid.UUID
+		agent       shared.Agent
 		flowCtx     flows.FlowContext
 	}
 
@@ -56,7 +56,7 @@ type (
 	transitionToTool struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
-		agentID     uuid.UUID
+		agent       shared.Agent
 		flowCtx     flows.FlowContext
 	}
 
@@ -67,7 +67,7 @@ type (
 
 	// FlowToolsProvider creates flow executor tools via DI
 	FlowToolsProvider interface {
-		CreateTool(agentID uuid.UUID, flowCtx flows.FlowContext, toolName shared.ToolName) (gollem.Tool, error)
+		CreateTool(agent shared.Agent, flowCtx flows.FlowContext, toolName shared.ToolName) (gollem.Tool, error)
 	}
 )
 
@@ -83,7 +83,7 @@ func NewFlowToolsProvider(injector do.Injector) (FlowToolsProvider, error) {
 
 // CreateTool creates a flow executor tool with the given context
 func (p *flowToolsProvider) CreateTool(
-	agentID uuid.UUID,
+	agent shared.Agent,
 	flowCtx flows.FlowContext,
 	toolName shared.ToolName,
 ) (gollem.Tool, error) {
@@ -92,35 +92,35 @@ func (p *flowToolsProvider) CreateTool(
 		return &setOutputFieldTool{
 			logService:  p.logService,
 			hookManager: p.hookManager,
-			agentID:     agentID,
+			agent:       agent,
 			flowCtx:     flowCtx,
 		}, nil
 	case shared.ToolNameSetContextField:
 		return &setContextFieldTool{
 			logService:  p.logService,
 			hookManager: p.hookManager,
-			agentID:     agentID,
+			agent:       agent,
 			flowCtx:     flowCtx,
 		}, nil
 	case shared.ToolNameGetContext:
 		return &getContextTool{
 			logService:  p.logService,
 			hookManager: p.hookManager,
-			agentID:     agentID,
+			agent:       agent,
 			flowCtx:     flowCtx,
 		}, nil
 	case shared.ToolNameEmitLog:
 		return &emitLogTool{
 			logService:  p.logService,
 			hookManager: p.hookManager,
-			agentID:     agentID,
+			agent:       agent,
 			flowCtx:     flowCtx,
 		}, nil
 	case shared.ToolNameTransitionTo:
 		return &transitionToTool{
 			logService:  p.logService,
 			hookManager: p.hookManager,
-			agentID:     agentID,
+			agent:       agent,
 			flowCtx:     flowCtx,
 		}, nil
 	default:
@@ -148,7 +148,7 @@ func (t *setOutputFieldTool) Spec() gollem.ToolSpec {
 
 // Run executes the SetOutputField tool
 func (t *setOutputFieldTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameSetOutputField, args,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameSetOutputField, args,
 		func() (map[string]any, error) {
 			return t.runSetOutputField(ctx, args)
 		})
@@ -200,7 +200,7 @@ func (t *setContextFieldTool) Spec() gollem.ToolSpec {
 
 // Run executes the SetContextField tool
 func (t *setContextFieldTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameSetContextField, args,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameSetContextField, args,
 		func() (map[string]any, error) {
 			return t.runSetContextField(ctx, args)
 		})
@@ -248,7 +248,7 @@ func (t *getContextTool) Spec() gollem.ToolSpec {
 
 // Run executes the GetContext tool
 func (t *getContextTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameGetContext, args,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameGetContext, args,
 		func() (map[string]any, error) {
 			return t.runGetContext(ctx, args)
 		})
@@ -299,7 +299,7 @@ func (t *emitLogTool) Spec() gollem.ToolSpec {
 
 // Run executes the EmitLog tool
 func (t *emitLogTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameEmitLog, args,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameEmitLog, args,
 		func() (map[string]any, error) {
 			return t.runEmitLog(ctx, args)
 		})
@@ -364,7 +364,7 @@ func (t *transitionToTool) Spec() gollem.ToolSpec {
 
 // Run executes the TransitionTo tool
 func (t *transitionToTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameTransitionTo, args,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameTransitionTo, args,
 		func() (map[string]any, error) {
 			return t.runTransitionTo(ctx, args)
 		})
@@ -408,14 +408,14 @@ func (t *transitionToTool) runTransitionTo(ctx context.Context, args ToolRequest
 type executeFlowTool struct {
 	logService   logger.LoggerService
 	hookManager  hooks.HookManager
-	agentID      uuid.UUID
+	agent        shared.Agent
 	flowRegistry registry.FlowRegistry
 	executor     flows.Executor
 }
 
 // ExecuteFlowToolProvider creates ExecuteFlowTool instances via DI
 type ExecuteFlowToolProvider interface {
-	CreateTool(agentID uuid.UUID) gollem.Tool
+	CreateTool(agent shared.Agent) gollem.Tool
 }
 
 type executeFlowToolProvider struct {
@@ -450,12 +450,12 @@ func NewExecuteFlowTool(flowRegistry registry.FlowRegistry, executor flows.Execu
 	}
 }
 
-// CreateTool creates a new ExecuteFlowTool with agent ID
-func (p *executeFlowToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+// CreateTool creates a new ExecuteFlowTool with agent
+func (p *executeFlowToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	return &executeFlowTool{
 		logService:   p.logService,
 		hookManager:  p.hookManager,
-		agentID:      agentID,
+		agent:        agent,
 		flowRegistry: p.flowRegistry,
 		executor:     p.executor,
 	}
@@ -482,7 +482,7 @@ func (t *executeFlowTool) Spec() gollem.ToolSpec {
 // Run executes the ExecuteFlow tool
 func (t *executeFlowTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	if t.hookManager != nil {
-		return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameExecuteFlow, args,
+		return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameExecuteFlow, args,
 			func() (map[string]any, error) {
 				return t.runExecuteFlow(ctx, args)
 			})
@@ -500,8 +500,8 @@ func (t *executeFlowTool) runExecuteFlow(ctx context.Context, args ToolRequestPa
 	}
 
 	// Log operation start
-	t.logService.Info("ExecuteFlow operation started",
-		zap.String("agent_id", t.agentID.String()),
+	t.logService.InfoWithContext("ExecuteFlow operation started",
+		t.agent.ToLoggingContext(),
 		zap.String("flow_name", flowName))
 
 	// Get inputs (optional)
@@ -518,8 +518,8 @@ func (t *executeFlowTool) runExecuteFlow(ctx context.Context, args ToolRequestPa
 	// Get flow from registry
 	flow, err := t.flowRegistry.GetFlow(flowName)
 	if err != nil {
-		t.logService.Error("Flow not found",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.ErrorWithContext("Flow not found",
+			t.agent.ToLoggingContext(),
 			zap.String("flow_name", flowName),
 			zap.Error(err))
 		return ErrorResponse("flow not found: %s", flowName), nil
@@ -528,16 +528,16 @@ func (t *executeFlowTool) runExecuteFlow(ctx context.Context, args ToolRequestPa
 	// Execute the flow
 	result, err := t.executor.Execute(ctx, flow, inputsAny)
 	if err != nil {
-		t.logService.Error("Flow execution failed",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.ErrorWithContext("Flow execution failed",
+			t.agent.ToLoggingContext(),
 			zap.String("flow_name", flowName),
 			zap.Error(err))
 		return ErrorResponse("flow execution failed: %v", err), nil
 	}
 
 	// Log success
-	t.logService.Info("ExecuteFlow operation completed successfully",
-		zap.String("agent_id", t.agentID.String()),
+	t.logService.InfoWithContext("ExecuteFlow operation completed successfully",
+		t.agent.ToLoggingContext(),
 		zap.String("flow_name", flowName),
 		zap.Int("output_count", len(result.Outputs)))
 
@@ -552,13 +552,13 @@ func (t *executeFlowTool) runExecuteFlow(ctx context.Context, args ToolRequestPa
 type listFlowsTool struct {
 	logService   logger.LoggerService
 	hookManager  hooks.HookManager
-	agentID      uuid.UUID
+	agent        shared.Agent
 	flowRegistry registry.FlowRegistry
 }
 
 // ListFlowsToolProvider creates ListFlowsTool instances via DI
 type ListFlowsToolProvider interface {
-	CreateTool(agentID uuid.UUID) gollem.Tool
+	CreateTool(agent shared.Agent) gollem.Tool
 }
 
 type listFlowsToolProvider struct {
@@ -589,12 +589,12 @@ func NewListFlowsTool(flowRegistry registry.FlowRegistry, logService logger.Logg
 	}
 }
 
-// CreateTool creates a new ListFlowsTool with agent ID
-func (p *listFlowsToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+// CreateTool creates a new ListFlowsTool with agent
+func (p *listFlowsToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	return &listFlowsTool{
 		logService:   p.logService,
 		hookManager:  p.hookManager,
-		agentID:      agentID,
+		agent:        agent,
 		flowRegistry: p.flowRegistry,
 	}
 }
@@ -611,7 +611,7 @@ func (t *listFlowsTool) Spec() gollem.ToolSpec {
 // Run executes the ListFlows tool
 func (t *listFlowsTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	if t.hookManager != nil {
-		return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameListFlows, args,
+		return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameListFlows, args,
 			func() (map[string]any, error) {
 				return t.runListFlows(ctx, args)
 			})
@@ -623,21 +623,21 @@ func (t *listFlowsTool) Run(ctx context.Context, args map[string]any) (map[strin
 // runListFlows implements the core list flows logic
 func (t *listFlowsTool) runListFlows(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
 	// Log operation start
-	t.logService.Info("ListFlows operation started",
-		zap.String("agent_id", t.agentID.String()))
+	t.logService.InfoWithContext("ListFlows operation started",
+		t.agent.ToLoggingContext())
 
 	// Get all flows from registry
 	flows, err := t.flowRegistry.ListFlows()
 	if err != nil {
-		t.logService.Error("Failed to list flows",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.ErrorWithContext("Failed to list flows",
+			t.agent.ToLoggingContext(),
 			zap.Error(err))
 		return ErrorResponse("failed to list flows: %v", err), nil
 	}
 
 	// Log success
-	t.logService.Info("ListFlows operation completed successfully",
-		zap.String("agent_id", t.agentID.String()),
+	t.logService.InfoWithContext("ListFlows operation completed successfully",
+		t.agent.ToLoggingContext(),
 		zap.Int("flow_count", len(flows)))
 
 	// Return success with flows array

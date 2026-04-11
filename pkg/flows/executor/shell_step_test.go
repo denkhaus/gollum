@@ -48,7 +48,7 @@ type mockBashToolProvider struct {
 	tool *mockBashToolRunner
 }
 
-func (m *mockBashToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+func (m *mockBashToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	if m.tool != nil {
 		return m.tool
 	}

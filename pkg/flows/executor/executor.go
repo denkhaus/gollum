@@ -18,7 +18,48 @@ import (
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
+	"github.com/m-mizutani/gollem"
 )
+
+// dummyShellAgent is a minimal agent implementation for shell steps
+// Shell steps don't have a real agent context, so we use this dummy
+type dummyShellAgent struct {
+	id uuid.UUID
+}
+
+func (d *dummyShellAgent) GetID() uuid.UUID {
+	return d.id
+}
+
+func (d *dummyShellAgent) GetConfig() *shared.AgentConfig {
+	return &shared.AgentConfig{ID: d.id, Role: "shell-step", Description: "Shell step execution"}
+}
+
+func (d *dummyShellAgent) Session() gollem.Session {
+	return nil
+}
+
+func (d *dummyShellAgent) Execute(ctx context.Context, input ...gollem.Input) (*gollem.ExecuteResponse, error) {
+	return nil, fmt.Errorf("shell step agent cannot execute")
+}
+
+func (d *dummyShellAgent) GetMessageHistory(ctx context.Context) (*gollem.History, error) {
+	return &gollem.History{}, nil
+}
+
+func (d *dummyShellAgent) UpdateHistory(ctx context.Context, modifier func(*gollem.History) (*gollem.History, error)) error {
+	return nil
+}
+
+func (d *dummyShellAgent) UpdateSystemPrompt(ctx context.Context, newPrompt string) error {
+	return nil
+}
+
+func (d *dummyShellAgent) ToLoggingContext() shared.LoggingContext {
+	return shared.LoggingContext{
+		AgentID: d.id,
+	}
+}
 
 // FlowResult holds the execution result of a flow
 type FlowResult struct {
@@ -530,9 +571,9 @@ func (p *flowExecutorImpl) executeShellStep(_ context.Context, step *flows.Step,
 	// Substitute template variables in command
 	cmd := p.substituteTemplate(step.Cmd)
 
-	// Create bash tool
-	agentID := uuid.New() // Use a dummy agent ID for shell steps
-	bashTool := p.bashToolProvider.CreateTool(agentID)
+	// Create bash tool with a mock agent (shell steps don't have real agent context)
+	dummyAgent := &dummyShellAgent{id: uuid.New()}
+	bashTool := p.bashToolProvider.CreateTool(dummyAgent)
 
 	// Execute command
 	ctx := context.Background()
