@@ -237,11 +237,26 @@ func (s *acpServiceImpl) OnAgentLifecycle(event channel.AgentLifecycleEvent) {
 
 ## 5. Recommended Implementation Order
 
-### Phase 1: Quick Wins (1-2 days)
+### Phase 1: Quick Wins (1-2 days) ✅ COMPLETE
 
-1. ✅ **Log Forwarding** - Implement `OnLog()` forwarding
-2. ✅ **Document Session Lifecycle** - Add clarifying comments
-3. ✅ **OnAgentLifecycle Notification** - Send client notifications
+1. ✅ **Log Forwarding** - Implemented via LogForwarder interface
+   - Created `shared.LogForwarder` interface for decoupled log routing
+   - Embedded in `channel.ChannelFacade` interface
+   - Integrated with DI container for logger wiring
+   - Added comprehensive tests for session-aware log routing
+   - See: `pkg/shared/log_forwarder.go`, `pkg/acp/service.go:OnLog()`
+
+2. ✅ **Document Session Lifecycle** - Added clarifying comments
+   - Documented session creation on first Prompt() call
+   - Clarified relationship between Initialize and NewSession callback
+   - Added lifecycle documentation in service.go
+   - See: `pkg/acp/service.go:109-123`
+
+3. ✅ **OnAgentLifecycle Notification** - Implemented
+   - Lifecycle events now streamed to ACP client via session/update
+   - Supports agent_added, agent_removed, agent_updated events
+   - Integrated with channel system event propagation
+   - See: `pkg/acp/service.go:159-183`
 
 ### Phase 2: Core Functionality (3-5 days)
 
