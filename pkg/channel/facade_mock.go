@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	shared "github.com/denkhaus/gollum/pkg/shared"
 	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -151,6 +152,18 @@ func (m *MockChannelFacade) DisplayMessage(msg Message) {
 func (mr *MockChannelFacadeMockRecorder) DisplayMessage(msg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisplayMessage", reflect.TypeOf((*MockChannelFacade)(nil).DisplayMessage), msg)
+}
+
+// ForwardLog mocks base method.
+func (m *MockChannelFacade) ForwardLog(entry shared.LogEntry) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ForwardLog", entry)
+}
+
+// ForwardLog indicates an expected call of ForwardLog.
+func (mr *MockChannelFacadeMockRecorder) ForwardLog(entry any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForwardLog", reflect.TypeOf((*MockChannelFacade)(nil).ForwardLog), entry)
 }
 
 // NotifyAgentLifecycle mocks base method.

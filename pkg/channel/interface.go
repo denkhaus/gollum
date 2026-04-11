@@ -4,6 +4,7 @@ package channel
 import (
 	"context"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 )
 
@@ -23,7 +24,10 @@ type Channel interface {
 }
 
 // ChannelFacade is the central coordinator for all channels
+// It also implements shared.LogForwarder for routing logs to channels
 type ChannelFacade interface {
+	shared.LogForwarder
+
 	// DisplayMessage sends a message to all registered channels
 	DisplayMessage(msg Message)
 

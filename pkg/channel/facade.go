@@ -33,6 +33,9 @@ type channelFacadeImpl struct {
 // Ensure channelFacadeImpl implements ChannelFacade at compile time
 var _ ChannelFacade = (*channelFacadeImpl)(nil)
 
+// Ensure channelFacadeImpl implements shared.LogForwarder at compile time
+var _ shared.LogForwarder = (*channelFacadeImpl)(nil)
+
 // NewChannelFacade creates a new channel facade service
 func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 	cm := do.MustInvoke[command.ManagerService](injector)
@@ -187,5 +190,6 @@ func (p *channelFacadeImpl) NotifyAgentLifecycle(agentID uuid.UUID, role string,
 
 // ForwardLog implements shared.LogForwarder for channel-based log routing.
 func (p *channelFacadeImpl) ForwardLog(entry shared.LogEntry) {
-	p.DisplayLog(entry)
+	// Convert shared.LogEntry to channel.LogEntry (they are aliases, so this is a no-op)
+	p.DisplayLog(LogEntry(entry))
 }
