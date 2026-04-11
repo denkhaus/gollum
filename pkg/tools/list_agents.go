@@ -20,12 +20,12 @@ type (
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		registry    registry.AgentRegistry
-		senderID    uuid.UUID
+		agent       shared.Agent
 	}
 
 	// ListAgentsToolProvider creates ListAgentsTool instances via DI
 	ListAgentsToolProvider interface {
-		CreateTool(senderID uuid.UUID) gollem.Tool
+		CreateTool(agent shared.Agent) gollem.Tool
 	}
 
 	listAgentsToolProvider struct {
@@ -48,13 +48,13 @@ func NewListAgentsToolProvider(injector do.Injector) (ListAgentsToolProvider, er
 	}, nil
 }
 
-// CreateListAgentsTool creates a new ListAgentsTool for a specific sender
-func (p *listAgentsToolProvider) CreateTool(senderID uuid.UUID) gollem.Tool {
+// CreateListAgentsTool creates a new ListAgentsTool for a specific agent
+func (p *listAgentsToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	return &listAgentsToolImpl{
 		logService:  p.logService,
 		hookManager: p.hookManager,
 		registry:    p.registry,
-		senderID:    senderID,
+		agent:       agent,
 	}
 }
 
@@ -105,7 +105,7 @@ type descendantInfo struct {
 
 // Run executes the ListAgents tool to list all related agents
 func (t *listAgentsToolImpl) Run(ctx context.Context, params map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.senderID, shared.ToolNameListAgents, params,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameListAgents, params,
 		func() (map[string]any, error) {
 			return t.runListAgents(ctx, params)
 		})
@@ -117,12 +117,12 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 	recursive := params.GetBool(shared.ParamRecursive, false)
 	tree := params.GetBool(shared.ParamTree, false)
 
-	t.logService.InfoWithAgent("Listing related agents", t.senderID,
+	t.logService.InfoWithContext("Listing related agents", t.agent.ToLoggingContext(),
 		zap.Bool("recursive", recursive),
 		zap.Bool("tree", tree))
 
 	// Try to get the parent agent
-	parentAgent, hasParent := t.registry.GetParent(t.senderID)
+	parentAgent, hasParent := t.registry.GetParent(t.agent.GetID())
 
 	if tree {
 		// Tree mode: hierarchical visualization
@@ -151,7 +151,7 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 			"type":        "ParentAgent",
 		}
 		agentList = append(agentList, parentInfo)
-		t.logService.DebugWithAgent("Found parent agent", t.senderID,
+		t.logService.DebugWithContext("Found parent agent", t.agent.ToLoggingContext(),
 			zap.String("parent_id", parentConfig.ID.String()),
 			zap.String("role", parentConfig.Role),
 			zap.String("description", parentConfig.Description))
@@ -161,7 +161,7 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 
 	if recursive {
 		// Get all descendants recursively
-		descendants := t.getAllDescendants(t.senderID, 0)
+		descendants := t.getAllDescendants(t.agent.GetID(), 0)
 		descendantCount = len(descendants)
 
 		for _, desc := range descendants {
@@ -173,14 +173,14 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 				"depth":       desc.depth,
 			}
 			agentList = append(agentList, agentInfo)
-			t.logService.DebugWithAgent("Found descendant", t.senderID,
+			t.logService.DebugWithContext("Found descendant", t.agent.ToLoggingContext(),
 				zap.String("descendant_id", desc.config.ID.String()),
 				zap.Int("depth", desc.depth),
 				zap.String("role", desc.config.Role))
 		}
 	} else {
 		// Default: direct children only
-		children := t.registry.GetChildren(t.senderID)
+		children := t.registry.GetChildren(t.agent.GetID())
 		descendantCount = len(children)
 
 		for _, child := range children {
@@ -192,7 +192,7 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 				"type":        "SubAgent",
 			}
 			agentList = append(agentList, agentInfo)
-			t.logService.DebugWithAgent("Found subagent", t.senderID,
+			t.logService.DebugWithContext("Found subagent", t.agent.ToLoggingContext(),
 				zap.String("subagent_id", config.ID.String()),
 				zap.String("role", config.Role),
 				zap.String("description", config.Description))
@@ -208,12 +208,12 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 		} else {
 			message = fmt.Sprintf("Found 1 parent agent and %d subagent(s)", descendantCount)
 		}
-		t.logService.InfoWithAgent("Found parent and descendants", t.senderID,
+		t.logService.InfoWithContext("Found parent and descendants", t.agent.ToLoggingContext(),
 			zap.Int("parent_count", 1),
 			zap.Int("descendant_count", descendantCount))
 	} else if hasParent {
 		message = "Found 1 parent agent"
-		t.logService.InfoWithAgent("Found parent only", t.senderID,
+		t.logService.InfoWithContext("Found parent only", t.agent.ToLoggingContext(),
 			zap.Int("descendant_count", 0))
 	} else if descendantCount > 0 {
 		if recursive {
@@ -221,11 +221,11 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 		} else {
 			message = fmt.Sprintf("Found %d subagent(s) (no parent agent)", descendantCount)
 		}
-		t.logService.InfoWithAgent("Found descendants only", t.senderID,
+		t.logService.InfoWithContext("Found descendants only", t.agent.ToLoggingContext(),
 			zap.Int("descendant_count", descendantCount))
 	} else {
 		message = "No related agents found (no parent and no subagents)"
-		t.logService.InfoWithAgent("No related agents found", t.senderID)
+		t.logService.InfoWithContext("No related agents found", t.agent.ToLoggingContext())
 	}
 
 	return map[string]any{
@@ -264,7 +264,7 @@ func (t *listAgentsToolImpl) buildTreeOutput(recursive bool, hasParent bool, par
 	var builder string
 
 	// Start with current agent (you are here)
-	builder += fmt.Sprintf("├─ Agent %s (YOU)\n", t.senderID.String()[:8])
+	builder += fmt.Sprintf("├─ Agent %s (YOU)\n", t.agent.GetID().String()[:8])
 
 	// Add parent if exists (above YOU)
 	if hasParent && parentAgent != nil {
@@ -274,7 +274,7 @@ func (t *listAgentsToolImpl) buildTreeOutput(recursive bool, hasParent bool, par
 
 	if recursive {
 		// Recursive tree
-		descendants := t.getAllDescendants(t.senderID, 0)
+		descendants := t.getAllDescendants(t.agent.GetID(), 0)
 		*count = len(descendants)
 
 		for i, desc := range descendants {
@@ -283,7 +283,7 @@ func (t *listAgentsToolImpl) buildTreeOutput(recursive bool, hasParent bool, par
 		}
 	} else {
 		// Direct children only
-		children := t.registry.GetChildren(t.senderID)
+		children := t.registry.GetChildren(t.agent.GetID())
 		*count = len(children)
 
 		for i, child := range children {
