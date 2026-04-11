@@ -24,12 +24,12 @@ type (
 		logService  logger.LoggerService
 		fsm         state.FileStateManager
 		hookManager hooks.HookManager
-		agentID     uuid.UUID
+		agent       shared.Agent
 	}
 
 	// ReadFileToolProvider creates ReadFileTool instances via DI
 	ReadFileToolProvider interface {
-		CreateTool(agentID uuid.UUID) gollem.Tool
+		CreateTool(agent shared.Agent) gollem.Tool
 	}
 
 	readFileToolProvider struct {
@@ -48,13 +48,13 @@ func NewReadFileToolProvider(injector do.Injector) (ReadFileToolProvider, error)
 	return &readFileToolProvider{logService: logService, fsm: fsm, hookManager: hookManager}, nil
 }
 
-// CreateReadFileTool creates a new ReadFileTool with agent ID
-func (p *readFileToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+// CreateTool creates a new ReadFileTool with injected dependencies and agent
+func (p *readFileToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	return &readFileToolImpl{
 		logService:  p.logService,
 		fsm:         p.fsm,
 		hookManager: p.hookManager,
-		agentID:     agentID,
+		agent:       agent,
 	}
 }
 
@@ -82,7 +82,7 @@ func (t *readFileToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the ReadFile tool to read file contents
 func (t *readFileToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameReadFile, args,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameReadFile, args,
 		func() (map[string]any, error) {
 			return t.runFileRead(ctx, args)
 		})
@@ -104,8 +104,8 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 	// Convert relative path to absolute
 	path, err := filepath.Abs(path)
 	if err != nil {
-		t.logService.Error("Failed to resolve absolute path",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.ErrorWithContext("Failed to resolve absolute path",
+			t.agent.ToLoggingContext(),
 			zap.String("file_path", path),
 			zap.Error(err),
 		)
@@ -115,51 +115,51 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 		}, nil
 	}
 
-	t.logService.Info("Reading file",
-		zap.String("agent_id", t.agentID.String()),
+	t.logService.InfoWithContext("Reading file",
+		t.agent.ToLoggingContext(),
 		zap.String("file_path", path),
 		zap.Int("offset", offset),
 		zap.Int("limit", limit),
 	)
 
 	// Execute file read under shared lock with read tracking for race condition detection
-	result, err := t.fsm.DoWorkWithOptions(ctx, path, t.agentID, state.LockModeShared, state.WorkOptions{
+	result, err := t.fsm.DoWorkWithOptions(ctx, path, t.agent.GetID(), state.LockModeShared, state.WorkOptions{
 		TrackRead: true, // Track that this agent read this file (for automatic race condition detection on write)
 	},
 		func(_ context.Context, token *state.LockToken) (any, error) {
 			// Wrap the file read with file read hooks
-			content, err := t.hookManager.WithFileReadHooks(ctx, uuid.Nil, t.agentID, path,
+			content, err := t.hookManager.WithFileReadHooks(ctx, uuid.Nil, t.agent.GetID(), path,
 				func() (string, error) {
 					// Check if file exists
 					_, err := os.Stat(path)
 					if err != nil {
 						if os.IsNotExist(err) {
-							t.logService.Debug("File not found",
-								zap.String("agent_id", t.agentID.String()),
+							t.logService.DebugWithContext("File not found",
+								t.agent.ToLoggingContext(),
 								zap.String("file_path", path),
 							)
 							return "", nil // Return empty content, will be handled below
 						}
-						t.logService.Error("Failed to stat file",
-							zap.String("agent_id", t.agentID.String()),
+						t.logService.ErrorWithContext("Failed to stat file",
+							t.agent.ToLoggingContext(),
 							zap.String("file_path", path),
 							zap.Error(err),
 						)
 						return "", errs.Wrap(err, errs.TypeInternal, "failed to stat file").
-							WithContext("agent_id", t.agentID).
+							WithContext("agent_id", t.agent.GetID()).
 							WithContext("file_path", path)
 					}
 
 					// Read entire file
 					contentBytes, err := os.ReadFile(path)
 					if err != nil {
-						t.logService.Error("Failed to read file",
-							zap.String("agent_id", t.agentID.String()),
+						t.logService.ErrorWithContext("Failed to read file",
+							t.agent.ToLoggingContext(),
 							zap.String("file_path", path),
 							zap.Error(err),
 						)
 						return "", errs.Wrap(err, errs.TypeInternal, "failed to read file").
-							WithContext("agent_id", t.agentID).
+							WithContext("agent_id", t.agent.GetID()).
 							WithContext("file_path", path)
 					}
 
@@ -187,14 +187,14 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 
 			// Validate offset
 			if offset > len(allLines) {
-				t.logService.Warn("Offset exceeds line count",
-					zap.String("agent_id", t.agentID.String()),
+				t.logService.WarnWithContext("Offset exceeds line count",
+					t.agent.ToLoggingContext(),
 					zap.String("file_path", path),
 					zap.Int("offset", offset),
 					zap.Int("total_lines", len(allLines)),
 				)
 				return nil, errs.Validationf("offset (%d) exceeds line count (%d)", offset, len(allLines)).
-					WithContext("agent_id", t.agentID).
+					WithContext("agent_id", t.agent.GetID()).
 					WithContext("offset", offset).
 					WithContext("line_count", len(allLines))
 			}
@@ -214,8 +214,8 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 			// Get/update file stats
 			stats, err := t.fsm.GetFileStats(path)
 			if err != nil {
-				t.logService.Warn("Failed to get file stats",
-					zap.String("agent_id", t.agentID.String()),
+				t.logService.WarnWithContext("Failed to get file stats",
+					t.agent.ToLoggingContext(),
 					zap.String("file_path", path),
 					zap.Error(err),
 				)
@@ -239,8 +239,8 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 				response["modified"] = stats.ModifiedTime
 				response["last_scanned"] = stats.LastScanned
 
-				t.logService.Info("File read successfully",
-					zap.String("agent_id", t.agentID.String()),
+				t.logService.InfoWithContext("File read successfully",
+					t.agent.ToLoggingContext(),
 					zap.String("file_path", path),
 					zap.Int64("size", stats.Size),
 					zap.String("checksum", stats.Checksum),
@@ -248,8 +248,8 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 					zap.Int("total_lines", len(allLines)),
 				)
 			} else {
-				t.logService.Info("File read successfully (no stats)",
-					zap.String("agent_id", t.agentID.String()),
+				t.logService.InfoWithContext("File read successfully (no stats)",
+					t.agent.ToLoggingContext(),
 					zap.String("file_path", path),
 					zap.Int("lines_returned", len(selectedLines)),
 					zap.Int("total_lines", len(allLines)),
@@ -259,8 +259,8 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 			return response, nil
 		})
 	if err != nil {
-		t.logService.Error("File read operation failed",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.ErrorWithContext("File read operation failed",
+			t.agent.ToLoggingContext(),
 			zap.String("file_path", path),
 			zap.Error(err),
 		)
@@ -275,8 +275,8 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 
 // ReadFileLines reads a file and returns lines (helper for common use case)
 func (t *readFileToolImpl) ReadFileLines(ctx context.Context, path string) ([]string, error) {
-	t.logService.Debug("ReadFileLines helper called",
-		zap.String("agent_id", t.agentID.String()),
+	t.logService.DebugWithContext("ReadFileLines helper called",
+		t.agent.ToLoggingContext(),
 		zap.String("file_path", path),
 	)
 
@@ -284,8 +284,8 @@ func (t *readFileToolImpl) ReadFileLines(ctx context.Context, path string) ([]st
 		"path": path,
 	})
 	if err != nil {
-		t.logService.Error("ReadFileLines helper failed",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.ErrorWithContext("ReadFileLines helper failed",
+			t.agent.ToLoggingContext(),
 			zap.String("file_path", path),
 			zap.Error(err),
 		)
@@ -293,32 +293,32 @@ func (t *readFileToolImpl) ReadFileLines(ctx context.Context, path string) ([]st
 	}
 
 	if success, ok := result["success"].(bool); !ok || !success {
-		t.logService.Warn("ReadFileLines helper returned unsuccessful",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.WarnWithContext("ReadFileLines helper returned unsuccessful",
+			t.agent.ToLoggingContext(),
 			zap.String("file_path", path),
 			zap.Any("error", result["error"]),
 		)
 		return nil, errs.Internalf("failed to read file: %v", result["error"]).
-			WithContext("agent_id", t.agentID).
+			WithContext("agent_id", t.agent.GetID()).
 			WithContext("file_path", path)
 	}
 
 	content, ok := result["content"].(string)
 	if !ok {
-		t.logService.Error("ReadFileLines helper: invalid content type in response",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.ErrorWithContext("ReadFileLines helper: invalid content type in response",
+			t.agent.ToLoggingContext(),
 			zap.String("file_path", path),
 			zap.String("content_type", fmt.Sprintf("%T", result["content"])),
 		)
 		return nil, errs.Internal("invalid content type in response").
-			WithContext("agent_id", t.agentID).
+			WithContext("agent_id", t.agent.GetID()).
 			WithContext("file_path", path).
 			WithContext("content_type", fmt.Sprintf("%T", result["content"]))
 	}
 
 	lines := strings.Split(content, "\n")
-	t.logService.Debug("ReadFileLines helper completed",
-		zap.String("agent_id", t.agentID.String()),
+	t.logService.DebugWithContext("ReadFileLines helper completed",
+		t.agent.ToLoggingContext(),
 		zap.String("file_path", path),
 		zap.Int("lines_count", len(lines)),
 	)
