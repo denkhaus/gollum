@@ -23,11 +23,11 @@ type (
 	currentTimeToolImpl struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
-		agentID     uuid.UUID
+		agent       shared.Agent
 	}
 	// CurrentTimeToolProvider creates CurrentTimeTool instances via DI
 	CurrentTimeToolProvider interface {
-		CreateTool(agentID uuid.UUID) gollem.Tool
+		CreateTool(agent shared.Agent) gollem.Tool
 	}
 
 	currentTimeToolProvider struct {
@@ -46,18 +46,18 @@ func NewCurrentTimeToolProvider(injector do.Injector) (CurrentTimeToolProvider, 
 	}, nil
 }
 
-// CreateCurrentTimeTool creates a new CurrentTimeTool with agent ID
-func (p *currentTimeToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+// CreateCurrentTimeTool creates a new CurrentTimeTool with agent reference
+func (p *currentTimeToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	return &currentTimeToolImpl{
 		logService:  p.logService,
 		hookManager: p.hookManager,
-		agentID:     agentID,
+		agent:       agent,
 	}
 }
 
 // Run executes the CurrentTime tool to return the current time
 func (t *currentTimeToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameCurrentTime, args,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameCurrentTime, args,
 		func() (map[string]any, error) {
 			return t.runCurrentTime(ctx, args)
 		})
@@ -101,7 +101,7 @@ func (t *currentTimeToolImpl) runCurrentTime(ctx context.Context, args ToolReque
 	if fc := hooks.GetFlowStepContext(ctx); fc != nil {
 		t.logService.DebugWithFlowStep("current_time() called", fc.FlowName, fc.StateName, fc.StepType, zap.String("timezone", timezone), zap.String("time", timeStr))
 	} else {
-		t.logService.Debug("current_time() called", zap.String("timezone", timezone), zap.String("time", timeStr))
+		t.logService.DebugWithContext("current_time() called", t.agent.ToLoggingContext(), zap.String("timezone", timezone), zap.String("time", timeStr))
 	}
 
 	return result, nil
