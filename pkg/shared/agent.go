@@ -30,6 +30,17 @@ type Agent interface {
 	UpdateHistory(ctx context.Context, modifier func(*gollem.History) (*gollem.History, error)) error
 }
 
+// ToLoggingContext creates a LoggingContext from an Agent's configuration.
+// This provides session, channel, and agent context for unified logging.
+func ToLoggingContext(agent Agent) LoggingContext {
+	config := agent.GetConfig()
+	return LoggingContext{
+		SessionID: config.SessionID,
+		ChannelID: config.ChannelID,
+		AgentID:   agent.GetID(),
+	}
+}
+
 // LLMClientConfig holds configuration for LLM client initialization
 type LLMClientConfig struct {
 	// Model describes a llm-provider/model combination in the format "<provider>/model"
