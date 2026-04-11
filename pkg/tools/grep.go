@@ -33,12 +33,12 @@ type (
 	grepToolImpl struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
-		agentID     uuid.UUID
+		agent       shared.Agent
 	}
 
 	// GrepToolProvider creates GrepTool instances via DI
 	GrepToolProvider interface {
-		CreateTool(agentID uuid.UUID) gollem.Tool
+		CreateTool(agent shared.Agent) gollem.Tool
 	}
 
 	grepToolProvider struct {
@@ -57,12 +57,12 @@ func NewGrepToolProvider(injector do.Injector) (GrepToolProvider, error) {
 	}, nil
 }
 
-// CreateTool creates a new GrepTool with agent ID
-func (p *grepToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+// CreateTool creates a new GrepTool with agent reference
+func (p *grepToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	return &grepToolImpl{
 		logService:  p.logService,
 		hookManager: p.hookManager,
-		agentID:     agentID,
+		agent:       agent,
 	}
 }
 
@@ -122,7 +122,7 @@ func (t *grepToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the Grep tool to search file contents
 func (t *grepToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameGrep, args,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameGrep, args,
 		func() (map[string]any, error) {
 			return t.runGrep(ctx, args)
 		})
@@ -144,8 +144,8 @@ func (t *grepToolImpl) runGrep(ctx context.Context, args ToolRequestParams) (map
 	// Convert relative path to absolute
 	searchPath, err := filepath.Abs(searchPath)
 	if err != nil {
-		t.logService.Error("Grep operation failed: failed to resolve absolute path",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.ErrorWithContext("Grep operation failed: failed to resolve absolute path",
+			t.agent.ToLoggingContext(),
 			zap.String("path", searchPath),
 			zap.Error(err))
 		return ErrorResponse("failed to resolve absolute path: %v", err), nil
@@ -153,14 +153,14 @@ func (t *grepToolImpl) runGrep(ctx context.Context, args ToolRequestParams) (map
 
 	// Get output mode (default: content)
 	outputMode := args.GetString(shared.ParamOutputMode, outputModeContent)
-	if outputMode == ""{
+	if outputMode == "" {
 		outputMode = outputModeContent
 	}
 
 	// Validate output mode
 	if outputMode != outputModeContent && outputMode != outputModeFilesWithMatches && outputMode != outputModeCount {
-		t.logService.Error("Grep operation failed: invalid output_mode",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.ErrorWithContext("Grep operation failed: invalid output_mode",
+			t.agent.ToLoggingContext(),
 			zap.String("output_mode", outputMode))
 		return map[string]any{
 			"success": false,
@@ -192,8 +192,8 @@ func (t *grepToolImpl) runGrep(ctx context.Context, args ToolRequestParams) (map
 	// Compile regex
 	regex, err := regexp.Compile(regexPattern)
 	if err != nil {
-		t.logService.Error("Grep operation failed: invalid regex pattern",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.ErrorWithContext("Grep operation failed: invalid regex pattern",
+			t.agent.ToLoggingContext(),
 			zap.String("pattern", pattern),
 			zap.Error(err))
 		return map[string]any{
@@ -234,8 +234,8 @@ func (t *grepToolImpl) runGrep(ctx context.Context, args ToolRequestParams) (map
 		globPattern = globVal
 	}
 
-	t.logService.Info("Grep search operation started",
-		zap.String("agent_id", t.agentID.String()),
+	t.logService.InfoWithContext("Grep search operation started",
+		t.agent.ToLoggingContext(),
 		zap.String("path", searchPath),
 		zap.String("pattern", pattern),
 		zap.String("output_mode", outputMode),
@@ -264,8 +264,8 @@ func (t *grepToolImpl) runGrep(ctx context.Context, args ToolRequestParams) (map
 	}
 
 	if err != nil {
-		t.logService.Error("Grep search operation failed",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.ErrorWithContext("Grep search operation failed",
+			t.agent.ToLoggingContext(),
 			zap.String("path", searchPath),
 			zap.String("pattern", pattern),
 			zap.Error(err))
@@ -277,14 +277,14 @@ func (t *grepToolImpl) runGrep(ctx context.Context, args ToolRequestParams) (map
 
 	// Log success with results summary
 	if result["success"].(bool) {
-		t.logService.Info("Grep search operation completed successfully",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.InfoWithContext("Grep search operation completed successfully",
+			t.agent.ToLoggingContext(),
 			zap.String("path", searchPath),
 			zap.String("output_mode", outputMode),
 			zap.Any("total_count", result["total_count"]))
 	} else {
-		t.logService.Info("Grep search operation completed with no matches",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.InfoWithContext("Grep search operation completed with no matches",
+			t.agent.ToLoggingContext(),
 			zap.String("path", searchPath),
 			zap.String("pattern", pattern))
 	}
@@ -300,8 +300,8 @@ func (t *grepToolImpl) grepContent(ctx context.Context, searchPath string, regex
 
 	walkErr := filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			t.logService.Debug("Skipping file due to access error",
-				zap.String("agent_id", t.agentID.String()),
+			t.logService.DebugWithContext("Skipping file due to access error",
+				t.agent.ToLoggingContext(),
 				zap.String("path", path),
 				zap.Error(err))
 			return nil // Skip files we can't access
@@ -327,16 +327,16 @@ func (t *grepToolImpl) grepContent(ctx context.Context, searchPath string, regex
 		// Search file
 		matches, err := t.searchFile(ctx, path, regex, contextBefore, contextAfter, showLineNumbers)
 		if err != nil {
-			t.logService.Debug("Error searching file",
-				zap.String("agent_id", t.agentID.String()),
+			t.logService.DebugWithContext("Error searching file",
+				t.agent.ToLoggingContext(),
 				zap.String("path", path),
 				zap.Error(err))
 			return nil // Skip files with errors
 		}
 
 		if len(matches) > 0 {
-			t.logService.Debug("Found matches in file",
-				zap.String("agent_id", t.agentID.String()),
+			t.logService.DebugWithContext("Found matches in file",
+				t.agent.ToLoggingContext(),
 				zap.String("path", path),
 				zap.Int("match_count", len(matches)))
 
@@ -360,14 +360,14 @@ func (t *grepToolImpl) grepContent(ctx context.Context, searchPath string, regex
 	}
 
 	if walkErr != nil && errs.IsType(walkErr, errs.TypeConflict) {
-		t.logService.Info("Grep reached head limit",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.InfoWithContext("Grep reached head limit",
+			t.agent.ToLoggingContext(),
 			zap.Int("limit", headLimit),
 			zap.Int("matches_found", totalMatches))
 	}
 
-	t.logService.Debug("Grep content search completed",
-		zap.String("agent_id", t.agentID.String()),
+	t.logService.DebugWithContext("Grep content search completed",
+		t.agent.ToLoggingContext(),
 		zap.String("search_path", searchPath),
 		zap.Int("files_scanned", filesScanned),
 		zap.Int("total_matches", totalMatches))
@@ -407,16 +407,16 @@ func (t *grepToolImpl) grepFiles(_ context.Context, searchPath string, regex *re
 
 		file, err := os.Open(path)
 		if err != nil {
-			t.logService.Debug("Could not open file for reading",
-				zap.String("agent_id", t.agentID.String()),
+			t.logService.DebugWithContext("Could not open file for reading",
+				t.agent.ToLoggingContext(),
 				zap.String("path", path),
 				zap.Error(err))
 			return nil
 		}
 		defer func() {
 			if err := file.Close(); err != nil {
-				t.logService.Debug("Error closing file",
-					zap.String("agent_id", t.agentID.String()),
+				t.logService.DebugWithContext("Error closing file",
+					t.agent.ToLoggingContext(),
 					zap.String("path", path),
 					zap.Error(err))
 			}
@@ -442,8 +442,8 @@ func (t *grepToolImpl) grepFiles(_ context.Context, searchPath string, regex *re
 		return nil, walkErr
 	}
 
-	t.logService.Debug("Grep files search completed",
-		zap.String("agent_id", t.agentID.String()),
+	t.logService.DebugWithContext("Grep files search completed",
+		t.agent.ToLoggingContext(),
 		zap.String("search_path", searchPath),
 		zap.Int("files_scanned", filesScanned),
 		zap.Int("files_with_matches", len(matchingFiles)))
@@ -487,8 +487,8 @@ func (t *grepToolImpl) grepCount(_ context.Context, searchPath string, regex *re
 		}
 		defer func() {
 			if err := file.Close(); err != nil {
-				t.logService.Debug("Error closing file",
-					zap.String("agent_id", t.agentID.String()),
+				t.logService.DebugWithContext("Error closing file",
+					t.agent.ToLoggingContext(),
 					zap.String("path", path),
 					zap.Error(err))
 			}
@@ -518,8 +518,8 @@ func (t *grepToolImpl) grepCount(_ context.Context, searchPath string, regex *re
 		return nil, walkErr
 	}
 
-	t.logService.Debug("Grep count search completed",
-		zap.String("agent_id", t.agentID.String()),
+	t.logService.DebugWithContext("Grep count search completed",
+		t.agent.ToLoggingContext(),
 		zap.String("search_path", searchPath),
 		zap.Int("files_scanned", filesScanned),
 		zap.Int("files_with_matches", len(counts)))
@@ -535,7 +535,7 @@ func (t *grepToolImpl) grepCount(_ context.Context, searchPath string, regex *re
 // searchFile searches a single file and returns matches with context
 func (t *grepToolImpl) searchFile(ctx context.Context, path string, regex *regexp.Regexp, contextBefore, contextAfter int, showLineNumbers bool) ([]map[string]any, error) {
 	// Wrap the file read operation with file read hooks
-	content, err := t.hookManager.WithFileReadHooks(ctx, uuid.Nil, t.agentID, path,
+	content, err := t.hookManager.WithFileReadHooks(ctx, uuid.Nil, t.agent.GetID(), path,
 		func() (string, error) {
 			file, err := os.Open(path)
 			if err != nil {
@@ -543,8 +543,8 @@ func (t *grepToolImpl) searchFile(ctx context.Context, path string, regex *regex
 			}
 			defer func() {
 				if err := file.Close(); err != nil {
-					t.logService.Debug("Error closing file",
-						zap.String("agent_id", t.agentID.String()),
+					t.logService.DebugWithContext("Error closing file",
+						t.agent.ToLoggingContext(),
 						zap.String("path", path),
 						zap.Error(err))
 				}
