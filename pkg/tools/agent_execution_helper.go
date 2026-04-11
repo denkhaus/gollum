@@ -55,13 +55,13 @@ func NewAgentExecutionHelper(injector do.Injector) (AgentExecutionHelper, error)
 func (h *agentExecutionHelper) ExecuteSynchronously(ctx context.Context, agent shared.Agent, prompt string) (map[string]any, error) {
 	start := time.Now()
 	agentID := agent.GetID()
-	h.logService.DebugWithContext("Starting synchronous execution", shared.ToLoggingContext(agent))
+	h.logService.DebugWithContext("Starting synchronous execution", agent.ToLoggingContext())
 
 	// Execute the prompt
 	response, err := agent.Execute(ctx, gollem.Text(prompt))
 	if err != nil {
 		duration := time.Since(start)
-		h.logService.ErrorWithContext("Agent execution failed", shared.ToLoggingContext(agent),
+		h.logService.ErrorWithContext("Agent execution failed", agent.ToLoggingContext(),
 			zap.Duration("duration", duration),
 			zap.Error(err))
 
@@ -73,7 +73,7 @@ func (h *agentExecutionHelper) ExecuteSynchronously(ctx context.Context, agent s
 			Error:       err.Error(),
 			CompletedAt: &now,
 		}); storeErr != nil {
-			h.logService.WarnWithContext("Failed to store error agent result", shared.ToLoggingContext(agent),
+			h.logService.WarnWithContext("Failed to store error agent result", agent.ToLoggingContext(),
 				zap.Error(storeErr))
 		}
 
@@ -90,7 +90,7 @@ func (h *agentExecutionHelper) ExecuteSynchronously(ctx context.Context, agent s
 	}
 
 	duration := time.Since(start)
-	h.logService.DebugWithContext("Agent execution completed", shared.ToLoggingContext(agent),
+	h.logService.DebugWithContext("Agent execution completed", agent.ToLoggingContext(),
 		zap.Duration("duration", duration))
 
 	// Update agent result with completion
@@ -101,7 +101,7 @@ func (h *agentExecutionHelper) ExecuteSynchronously(ctx context.Context, agent s
 		Output:      map[string]any{"response": responseContent},
 		CompletedAt: &now,
 	}); storeErr != nil {
-		h.logService.WarnWithContext("Failed to store completion agent result", shared.ToLoggingContext(agent),
+		h.logService.WarnWithContext("Failed to store completion agent result", agent.ToLoggingContext(),
 			zap.Error(storeErr))
 	}
 
@@ -112,7 +112,7 @@ func (h *agentExecutionHelper) ExecuteSynchronously(ctx context.Context, agent s
 // ExecuteInBackground runs the agent asynchronously
 func (h *agentExecutionHelper) ExecuteInBackground(ctx context.Context, agent shared.Agent, prompt string) {
 	start := time.Now()
-	h.logService.DebugWithContext("Starting background execution", shared.ToLoggingContext(agent))
+	h.logService.DebugWithContext("Starting background execution", agent.ToLoggingContext())
 
 	response, err := agent.Execute(ctx, gollem.Text(prompt))
 	duration := time.Since(start)
@@ -120,7 +120,7 @@ func (h *agentExecutionHelper) ExecuteInBackground(ctx context.Context, agent sh
 
 	// Check if execution was cancelled
 	if ctx.Err() != nil {
-		h.logService.InfoWithContext("Background agent was cancelled", shared.ToLoggingContext(agent),
+		h.logService.InfoWithContext("Background agent was cancelled", agent.ToLoggingContext(),
 			zap.Duration("duration", duration))
 		_ = h.registry.StoreAgentResult(shared.AgentResult{
 			AgentID:     agent.GetID(),
@@ -132,7 +132,7 @@ func (h *agentExecutionHelper) ExecuteInBackground(ctx context.Context, agent sh
 	}
 
 	if err != nil {
-		h.logService.ErrorWithContext("Background agent failed", shared.ToLoggingContext(agent),
+		h.logService.ErrorWithContext("Background agent failed", agent.ToLoggingContext(),
 			zap.Duration("duration", duration),
 			zap.Error(err))
 		_ = h.registry.StoreAgentResult(shared.AgentResult{
@@ -152,7 +152,7 @@ func (h *agentExecutionHelper) ExecuteInBackground(ctx context.Context, agent sh
 		}
 	}
 
-	h.logService.InfoWithContext("Background agent completed", shared.ToLoggingContext(agent),
+	h.logService.InfoWithContext("Background agent completed", agent.ToLoggingContext(),
 		zap.Duration("duration", duration))
 
 	_ = h.registry.StoreAgentResult(shared.AgentResult{
