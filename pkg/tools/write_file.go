@@ -27,12 +27,12 @@ type (
 		fsm          state.FileStateManager
 		hookManager  hooks.HookManager
 		diffProvider diff.Provider
-		agentID      uuid.UUID
+		agent        shared.Agent
 	}
 
 	// WriteFileToolProvider creates WriteFileTool instances via DI
 	WriteFileToolProvider interface {
-		CreateTool(agentID uuid.UUID) gollem.Tool
+		CreateTool(agent shared.Agent) gollem.Tool
 	}
 
 	writeFileToolProvider struct {
@@ -53,14 +53,14 @@ func NewWriteFileToolProvider(injector do.Injector) (WriteFileToolProvider, erro
 	return &writeFileToolProvider{logService: logService, fsm: fsm, hookManager: hookManager, diffProvider: diffProvider}, nil
 }
 
-// CreateWriteFileTool creates a new WriteFileTool with injected dependencies and agent ID
-func (p *writeFileToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+// CreateWriteFileTool creates a new WriteFileTool with injected dependencies and agent
+func (p *writeFileToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	return &writeFileToolImpl{
 		logService:   p.logService,
 		fsm:          p.fsm,
 		hookManager:  p.hookManager,
 		diffProvider: p.diffProvider,
-		agentID:      agentID,
+		agent:        agent,
 	}
 }
 
@@ -88,7 +88,7 @@ func (t *writeFileToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the WriteFile tool to write content to files
 func (t *writeFileToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameWriteFile, args,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameWriteFile, args,
 		func() (map[string]any, error) {
 			return t.runFileWrite(ctx, args)
 		})
@@ -113,8 +113,8 @@ func (t *writeFileToolImpl) runFileWrite(ctx context.Context, args ToolRequestPa
 	// Convert relative path to absolute
 	path, err := filepath.Abs(path)
 	if err != nil {
-		t.logService.Error("Failed to resolve absolute path",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.ErrorWithContext("Failed to resolve absolute path",
+			shared.ToLoggingContext(t.agent),
 			zap.String("file_path", path),
 			zap.Error(err),
 		)
@@ -124,8 +124,8 @@ func (t *writeFileToolImpl) runFileWrite(ctx context.Context, args ToolRequestPa
 		}, nil
 	}
 
-	t.logService.Info("Writing file",
-		zap.String("agent_id", t.agentID.String()),
+	t.logService.InfoWithContext("Writing file",
+		shared.ToLoggingContext(t.agent),
 		zap.String("file_path", path),
 		zap.Int("content_bytes", len(content)),
 		zap.Bool("create_dirs", createDirs),
@@ -134,14 +134,14 @@ func (t *writeFileToolImpl) runFileWrite(ctx context.Context, args ToolRequestPa
 	// Create parent directories if requested (before acquiring lock)
 	if createDirs {
 		dir := filepath.Dir(path)
-		t.logService.Debug("Creating parent directories",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.DebugWithContext("Creating parent directories",
+			shared.ToLoggingContext(t.agent),
 			zap.String("file_path", path),
 			zap.String("dir", dir),
 		)
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			t.logService.Error("Failed to create directories",
-				zap.String("agent_id", t.agentID.String()),
+			t.logService.ErrorWithContext("Failed to create directories",
+				shared.ToLoggingContext(t.agent),
 				zap.String("file_path", path),
 				zap.String("dir", dir),
 				zap.Error(err),
@@ -158,10 +158,10 @@ func (t *writeFileToolImpl) runFileWrite(ctx context.Context, args ToolRequestPa
 	isNewFile := false
 	if _, err := os.Stat(path); err == nil {
 		// File exists - verify it's not stale for this agent
-		isStale, err := t.fsm.IsFileStaleForAgent(t.agentID, path)
+		isStale, err := t.fsm.IsFileStaleForAgent(t.agent.GetID(), path)
 		if err != nil {
-			t.logService.Error("Failed to check file staleness",
-				zap.String("agent_id", t.agentID.String()),
+			t.logService.ErrorWithContext("Failed to check file staleness",
+				shared.ToLoggingContext(t.agent),
 				zap.String("file_path", path),
 				zap.Error(err))
 			return map[string]any{
@@ -171,8 +171,8 @@ func (t *writeFileToolImpl) runFileWrite(ctx context.Context, args ToolRequestPa
 		}
 
 		if isStale {
-			t.logService.Warn("Write operation failed: file must be read before writing existing file",
-				zap.String("agent_id", t.agentID.String()),
+			t.logService.WarnWithContext("Write operation failed: file must be read before writing existing file",
+				shared.ToLoggingContext(t.agent),
 				zap.String("file_path", path),
 				zap.String("required_tool", shared.ToolNameReadFile.String()))
 			return map[string]any{
@@ -193,41 +193,41 @@ func (t *writeFileToolImpl) runFileWrite(ctx context.Context, args ToolRequestPa
 	// If file doesn't exist, agent can write without reading first (new file)
 
 	// Execute file write under exclusive lock (staleness already checked for existing files)
-	result, err := t.fsm.DoWorkWithOptions(ctx, path, t.agentID, state.LockModeExclusive,
+	result, err := t.fsm.DoWorkWithOptions(ctx, path, t.agent.GetID(), state.LockModeExclusive,
 		state.WorkOptions{
 			UpdateStatsAfter: true, // Immediately update stats after write
 		},
 		func(_ context.Context, token *state.LockToken) (any, error) {
 			// Wrap the actual file write with file write hooks
-			err := t.hookManager.WithFileWriteHooks(ctx, uuid.Nil, t.agentID, path, content,
+			err := t.hookManager.WithFileWriteHooks(ctx, uuid.Nil, t.agent.GetID(), path, content,
 				func(finalContent string) error {
 					// Write the file
 					if err := os.WriteFile(path, []byte(finalContent), 0o644); err != nil {
-						t.logService.Error("Failed to write file",
-							zap.String("agent_id", t.agentID.String()),
+						t.logService.ErrorWithContext("Failed to write file",
+							shared.ToLoggingContext(t.agent),
 							zap.String("file_path", path),
 							zap.Error(err),
 						)
 						return errs.Wrap(err, errs.TypeInternal, "failed to write file").
-							WithContext("agent_id", t.agentID).
+							WithContext("agent_id", t.agent.GetID().String()).
 							WithContext("file_path", path)
 					}
 
 					// Get updated stats (updated by DoWorkWithOptions)
 					stats, err := t.fsm.GetFileStats(path)
 					if err != nil {
-						t.logService.Warn("Failed to get file stats after write",
-							zap.String("agent_id", t.agentID.String()),
+						t.logService.WarnWithContext("Failed to get file stats after write",
+							shared.ToLoggingContext(t.agent),
 							zap.String("file_path", path),
 							zap.Error(err),
 						)
 						return errs.Wrap(err, errs.TypeInternal, "failed to get file stats").
-							WithContext("agent_id", t.agentID).
+							WithContext("agent_id", t.agent.GetID().String()).
 							WithContext("file_path", path)
 					}
 
-					t.logService.Info("File written successfully",
-						zap.String("agent_id", t.agentID.String()),
+					t.logService.InfoWithContext("File written successfully",
+						shared.ToLoggingContext(t.agent),
 						zap.String("file_path", path),
 						zap.Int64("size", stats.Size),
 						zap.String("checksum", stats.Checksum),
@@ -244,13 +244,13 @@ func (t *writeFileToolImpl) runFileWrite(ctx context.Context, args ToolRequestPa
 			// Get stats for the result
 			stats, err := t.fsm.GetFileStats(path)
 			if err != nil {
-				t.logService.Warn("Failed to get file stats after write",
-					zap.String("agent_id", t.agentID.String()),
+				t.logService.WarnWithContext("Failed to get file stats after write",
+					shared.ToLoggingContext(t.agent),
 					zap.String("file_path", path),
 					zap.Error(err),
 				)
 				return nil, errs.Wrap(err, errs.TypeInternal, "failed to get file stats").
-					WithContext("agent_id", t.agentID).
+					WithContext("agent_id", t.agent.GetID().String()).
 					WithContext("file_path", path)
 			}
 
@@ -264,8 +264,8 @@ func (t *writeFileToolImpl) runFileWrite(ctx context.Context, args ToolRequestPa
 			}
 
 			if diffErr != nil {
-				t.logService.Warn("Failed to generate diff",
-					zap.String("agent_id", t.agentID.String()),
+				t.logService.WarnWithContext("Failed to generate diff",
+					shared.ToLoggingContext(t.agent),
 					zap.String("file_path", path),
 					zap.Error(diffErr))
 			}
@@ -290,8 +290,8 @@ func (t *writeFileToolImpl) runFileWrite(ctx context.Context, args ToolRequestPa
 			return result, nil
 		})
 	if err != nil {
-		t.logService.Error("File write operation failed",
-			zap.String("agent_id", t.agentID.String()),
+		t.logService.ErrorWithContext("File write operation failed",
+			shared.ToLoggingContext(t.agent),
 			zap.String("file_path", path),
 			zap.Error(err),
 		)
@@ -307,8 +307,8 @@ func (t *writeFileToolImpl) runFileWrite(ctx context.Context, args ToolRequestPa
 		if errMsg, ok := resultMap["error"].(string); ok {
 			if strings.Contains(errMsg, "modified since you last read it") ||
 				strings.Contains(errMsg, "file has been modified since read") {
-				t.logService.Warn("Race condition detected: file modified since last read",
-					zap.String("agent_id", t.agentID.String()),
+				t.logService.WarnWithContext("Race condition detected: file modified since last read",
+					shared.ToLoggingContext(t.agent),
 					zap.String("file_path", path),
 					zap.String("error", errMsg),
 				)
