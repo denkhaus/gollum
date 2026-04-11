@@ -28,17 +28,10 @@ type Agent interface {
 	// Non-blocking - can be called on-the-fly.
 	// Used by Observed Memory Pattern for compaction.
 	UpdateHistory(ctx context.Context, modifier func(*gollem.History) (*gollem.History, error)) error
-}
 
-// ToLoggingContext creates a LoggingContext from an Agent's configuration.
-// This provides session, channel, and agent context for unified logging.
-func ToLoggingContext(agent Agent) LoggingContext {
-	config := agent.GetConfig()
-	return LoggingContext{
-		SessionID: config.SessionID,
-		ChannelID: config.ChannelID,
-		AgentID:   agent.GetID(),
-	}
+	// ToLoggingContext creates a LoggingContext from the agent's configuration.
+	// This provides session, channel, and agent context for unified logging.
+	ToLoggingContext() LoggingContext
 }
 
 // LLMClientConfig holds configuration for LLM client initialization

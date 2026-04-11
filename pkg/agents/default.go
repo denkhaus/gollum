@@ -53,6 +53,16 @@ func (p *DefaultAgent) GetConfig() *shared.AgentConfig {
 	return p.config
 }
 
+// ToLoggingContext creates a LoggingContext from the agent's configuration.
+// This provides session, channel, and agent context for unified logging.
+func (p *DefaultAgent) ToLoggingContext() shared.LoggingContext {
+	return shared.LoggingContext{
+		SessionID: p.config.SessionID,
+		ChannelID: p.config.ChannelID,
+		AgentID:   p.id,
+	}
+}
+
 // GetMessageHistory retrieves the agent's message history from its session
 func (p *DefaultAgent) GetMessageHistory(ctx context.Context) (*gollem.History, error) {
 	// Handle nil base agent
