@@ -9,12 +9,18 @@ import (
 
 // LogEntry represents a log line for display polling
 type LogEntry struct {
-	Level     string
-	Message   string
+	// Level is the log level (e.g., "info", "error", "debug")
+	Level string
+	// Message is the log message content
+	Message string
+	// Timestamp is when the log entry was created
 	Timestamp time.Time
-	Fields    map[string]any
-	SessionID string    // Session identifier for routing
-	ChannelID uuid.UUID // Channel identifier for routing
+	// Fields contains additional structured data for the log entry
+	Fields map[string]any
+	// SessionID is the session identifier for routing logs to specific sessions
+	SessionID string
+	// ChannelID is the channel identifier for routing logs to specific channels
+	ChannelID uuid.UUID
 }
 
 // LogForwarder defines the interface for forwarding log entries to the channel system.
