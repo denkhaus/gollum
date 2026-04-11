@@ -24,12 +24,12 @@ type (
 	globToolImpl struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
-		agentID     uuid.UUID
+		agent       shared.Agent
 	}
 
 	// GlobToolProvider creates GlobTool instances via DI
 	GlobToolProvider interface {
-		CreateTool(agentID uuid.UUID) gollem.Tool
+		CreateTool(agent shared.Agent) gollem.Tool
 	}
 
 	globToolProvider struct {
@@ -48,12 +48,12 @@ func NewGlobToolProvider(injector do.Injector) (GlobToolProvider, error) {
 	}, nil
 }
 
-// CreateTool creates a new GlobTool with agent ID
-func (p *globToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+// CreateTool creates a new GlobTool with agent reference
+func (p *globToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	return &globToolImpl{
 		logService:  p.logService,
 		hookManager: p.hookManager,
-		agentID:     agentID,
+		agent:       agent,
 	}
 }
 
@@ -77,7 +77,7 @@ func (t *globToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the Glob tool to find files matching a pattern
 func (t *globToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameGlob, args,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameGlob, args,
 		func() (map[string]any, error) {
 			return t.runGlob(ctx, args)
 		})
@@ -96,7 +96,7 @@ func (t *globToolImpl) runGlob(_ context.Context, args ToolRequestParams) (map[s
 	// Convert relative path to absolute
 	searchPath, err := filepath.Abs(searchPath)
 	if err != nil {
-		t.logService.ErrorWithAgent("Failed to resolve absolute path", t.agentID,
+		t.logService.ErrorWithContext("Failed to resolve absolute path", t.agent.ToLoggingContext(),
 			zap.String("search_path", searchPath),
 			zap.Error(err))
 		return map[string]any{
@@ -105,19 +105,19 @@ func (t *globToolImpl) runGlob(_ context.Context, args ToolRequestParams) (map[s
 		}, nil
 	}
 
-	t.logService.InfoWithAgent("Starting glob search", t.agentID,
+	t.logService.InfoWithContext("Starting glob search", t.agent.ToLoggingContext(),
 		zap.String("pattern", pattern),
 		zap.String("search_path", searchPath))
 
 	// Build the full pattern
 	fullPattern := filepath.Join(searchPath, pattern)
-	t.logService.DebugWithAgent("Full glob pattern", t.agentID,
+	t.logService.DebugWithContext("Full glob pattern", t.agent.ToLoggingContext(),
 		zap.String("pattern", fullPattern))
 
 	// Match files
 	matches, err := filepath.Glob(fullPattern)
 	if err != nil {
-		t.logService.ErrorWithAgent("Invalid glob pattern", t.agentID,
+		t.logService.ErrorWithContext("Invalid glob pattern", t.agent.ToLoggingContext(),
 			zap.String("pattern", pattern),
 			zap.Error(err))
 		return map[string]any{
@@ -129,11 +129,11 @@ func (t *globToolImpl) runGlob(_ context.Context, args ToolRequestParams) (map[s
 	// Handle double-star pattern (recursive matching)
 	// filepath.Glob doesn't support **, so we need to handle it manually
 	if len(matches) == 0 && containsDoubleStar(pattern) {
-		t.logService.DebugWithAgent("Pattern contains **, using recursive glob search", t.agentID,
+		t.logService.DebugWithContext("Pattern contains **, using recursive glob search", t.agent.ToLoggingContext(),
 			zap.String("pattern", pattern))
-		matches, err = recursiveGlob(t.logService, t.agentID, searchPath, pattern)
+		matches, err = recursiveGlob(t.logService, t.agent.ToLoggingContext(), searchPath, pattern)
 		if err != nil {
-			t.logService.ErrorWithAgent("Recursive glob failed", t.agentID,
+			t.logService.ErrorWithContext("Recursive glob failed", t.agent.ToLoggingContext(),
 				zap.String("pattern", pattern),
 				zap.Error(err))
 			return map[string]any{
@@ -143,14 +143,14 @@ func (t *globToolImpl) runGlob(_ context.Context, args ToolRequestParams) (map[s
 		}
 	}
 
-	t.logService.InfoWithAgent("Glob search completed", t.agentID,
+	t.logService.InfoWithContext("Glob search completed", t.agent.ToLoggingContext(),
 		zap.String("pattern", pattern),
 		zap.Int("match_count", len(matches)))
 	if len(matches) > 0 {
-		t.logService.DebugWithAgent("Found matches", t.agentID,
+		t.logService.DebugWithContext("Found matches", t.agent.ToLoggingContext(),
 			zap.Any("matches", matches))
 	} else {
-		t.logService.DebugWithAgent("No matches found", t.agentID,
+		t.logService.DebugWithContext("No matches found", t.agent.ToLoggingContext(),
 			zap.String("pattern", pattern))
 	}
 
@@ -174,10 +174,10 @@ func containsDoubleStar(pattern string) bool {
 }
 
 // recursiveGlob handles ** patterns by walking the directory tree
-func recursiveGlob(logService logger.LoggerService, agentID uuid.UUID, root, pattern string) ([]string, error) {
+func recursiveGlob(logService logger.LoggerService, logCtx shared.LoggingContext, root, pattern string) ([]string, error) {
 	var matches []string
 
-	logService.DebugWithAgent("Starting recursive glob", agentID,
+	logService.DebugWithContext("Starting recursive glob", logCtx,
 		zap.String("root", root),
 		zap.String("pattern", pattern))
 
@@ -190,7 +190,7 @@ func recursiveGlob(logService logger.LoggerService, agentID uuid.UUID, root, pat
 
 	walkFn := func(path string, _ os.FileInfo, err error) error { //nolint:unparam
 		if err != nil {
-			logService.DebugWithAgent("Skipping path during walk", agentID,
+			logService.DebugWithContext("Skipping path during walk", logCtx,
 				zap.String("path", path),
 				zap.Error(err))
 			return nil // Continue on error
@@ -199,7 +199,7 @@ func recursiveGlob(logService logger.LoggerService, agentID uuid.UUID, root, pat
 		// Check if path matches the pattern
 		matched, err := filepath.Match(basePattern, path)
 		if err != nil {
-			logService.DebugWithAgent("Pattern match failed", agentID,
+			logService.DebugWithContext("Pattern match failed", logCtx,
 				zap.String("path", path),
 				zap.Error(err))
 			return nil
@@ -207,7 +207,7 @@ func recursiveGlob(logService logger.LoggerService, agentID uuid.UUID, root, pat
 
 		if matched {
 			matches = append(matches, path)
-			logService.DebugWithAgent("Recursive glob matched", agentID,
+			logService.DebugWithContext("Recursive glob matched", logCtx,
 				zap.String("path", path))
 		}
 
@@ -219,13 +219,13 @@ func recursiveGlob(logService logger.LoggerService, agentID uuid.UUID, root, pat
 	if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		return walkFn(path, info, err)
 	}); err != nil {
-		logService.ErrorWithAgent("Directory walk failed", agentID, zap.Error(err))
+		logService.ErrorWithContext("Directory walk failed", logCtx, zap.Error(err))
 		return nil, errs.Wrap(err, errs.TypeInternal, "walk error").
-			WithContext("agent_id", agentID).
+			WithContext("agent_id", logCtx.AgentID).
 			WithContext("root_path", root)
 	}
 
-	logService.DebugWithAgent("Recursive glob completed", agentID,
+	logService.DebugWithContext("Recursive glob completed", logCtx,
 		zap.Int("match_count", len(matches)))
 	return matches, nil
 }
