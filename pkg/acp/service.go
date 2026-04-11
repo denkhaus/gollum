@@ -150,7 +150,7 @@ func (s *acpServiceImpl) OnMessage(msg channel.Message) {
 }
 
 // OnLog receives log entries from the agent system and forwards them to the appropriate ACP session
-func (s *acpServiceImpl) OnLog(entry channel.LogEntry) {
+func (s *acpServiceImpl) OnLog(entry shared.LogEntry) {
 	// Log locally for debugging
 	s.logger.Debug("log entry from agent system",
 		zap.String("level", entry.Level),
