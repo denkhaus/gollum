@@ -42,6 +42,14 @@ type LoggerService interface {
 	DebugWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field)
 	// WarnWithFlowStep logs a warning message with flow and step context
 	WarnWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field)
+	// InfoWithContext logs an info message with session, channel, and agent context.
+	InfoWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field)
+	// ErrorWithContext logs an error message with session, channel, and agent context.
+	ErrorWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field)
+	// DebugWithContext logs a debug message with session, channel, and agent context.
+	DebugWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field)
+	// WarnWithContext logs a warning message with session, channel, and agent context.
+	WarnWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field)
 	GetLogger() *zap.Logger
 	// GetLogs retrieves log entries from the session buffer
 	GetLogs(filter LogFilter) []LogEntry
@@ -277,6 +285,26 @@ func (s *service) WarnWithFlowStep(msg string, flowName, stateName, stepType str
 		zap.String("step", stepType),
 	}, fields...)
 	s.Warn(msg, allFields...)
+}
+
+// InfoWithContext logs an info message with session, channel, and agent context.
+func (s *service) InfoWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {
+	s.logWithContext("info", msg, ctx, fields...)
+}
+
+// ErrorWithContext logs an error message with session, channel, and agent context.
+func (s *service) ErrorWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {
+	s.logWithContext("error", msg, ctx, fields...)
+}
+
+// DebugWithContext logs a debug message with session, channel, and agent context.
+func (s *service) DebugWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {
+	s.logWithContext("debug", msg, ctx, fields...)
+}
+
+// WarnWithContext logs a warning message with session, channel, and agent context.
+func (s *service) WarnWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {
+	s.logWithContext("warn", msg, ctx, fields...)
 }
 
 // storeInBuffer stores a log entry in the session buffer.
