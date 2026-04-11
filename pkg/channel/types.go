@@ -4,6 +4,7 @@ package channel
 import (
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 )
 
@@ -55,13 +56,8 @@ type Message struct {
 	Metadata  map[string]any // tool_name, duration, collapsed, etc.
 }
 
-// LogEntry represents a log line for display polling
-type LogEntry struct {
-	Level     string
-	Message   string
-	Timestamp time.Time
-	Fields    map[string]any
-}
+// LogEntry is an alias for shared.LogEntry for convenience in this package
+type LogEntry = shared.LogEntry
 
 // InputResult represents the result of user input submission
 type InputResult struct {
