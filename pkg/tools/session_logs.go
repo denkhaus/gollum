@@ -25,12 +25,12 @@ type (
 	sessionLogsToolImpl struct {
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
-		agentID     uuid.UUID
+		agent       shared.Agent
 	}
 
 	// SessionLogsToolProvider creates SessionLogsTool instances via DI.
 	SessionLogsToolProvider interface {
-		CreateTool(agentID uuid.UUID) gollem.Tool
+		CreateTool(agent shared.Agent) gollem.Tool
 	}
 
 	sessionLogsToolProvider struct {
@@ -49,18 +49,18 @@ func NewSessionLogsToolProvider(injector do.Injector) (SessionLogsToolProvider, 
 	}, nil
 }
 
-// CreateSessionLogsTool creates a new SessionLogsTool with agent ID.
-func (p *sessionLogsToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+// CreateSessionLogsTool creates a new SessionLogsTool with agent.
+func (p *sessionLogsToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	return &sessionLogsToolImpl{
 		logService:  p.logService,
 		hookManager: p.hookManager,
-		agentID:     agentID,
+		agent:       agent,
 	}
 }
 
 // Run executes the SessionLogs tool to retrieve filtered log entries.
 func (t *sessionLogsToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameSessionLogs, args,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameSessionLogs, args,
 		func() (map[string]any, error) {
 			return t.runSessionLogs(ctx, args)
 		})
