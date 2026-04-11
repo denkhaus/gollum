@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -70,7 +71,8 @@ type service struct {
 	configService  config.ConfigService
 	logFile        *os.File
 	logFilePath    string
-	fileLogger     *zap.Logger // Separate logger that always writes to file
+	fileLogger     *zap.Logger     // Separate logger that always writes to file
+	forwarder      shared.LogForwarder // NEW: for channel log forwarding
 }
 
 // NewService creates a new logger service
@@ -302,6 +304,80 @@ func (s *service) storeInBuffer(level string, msg string, fields []zap.Field) {
 	s.logBuffer.add(entry)
 }
 
+// logWithContext is the internal implementation for context-aware logging.
+// It validates the context, logs to zap, stores in buffer, and forwards to channels.
+func (s *service) logWithContext(level string, msg string, ctx shared.LoggingContext, fields ...zap.Field) {
+	// Validate context strictly
+	if !ctx.IsValid() {
+		s.logger.Error("LoggingContext is incomplete - log not processed",
+			zap.String("session_id", ctx.SessionID),
+			zap.String("channel_id", ctx.ChannelID.String()),
+			zap.String("agent_id", ctx.AgentID.String()),
+		)
+		return
+	}
+
+	// Add context as zap fields for structured logging
+	allFields := append([]zap.Field{
+		zap.String("session_id", ctx.SessionID),
+		zap.String("channel_id", ctx.ChannelID.String()),
+		zap.String("agent_id", ctx.AgentID.String()),
+	}, fields...)
+
+	// Log to zap (stdout/file)
+	switch level {
+	case "debug":
+		s.logger.Debug(msg, allFields...)
+		if s.fileLogger != nil {
+			s.fileLogger.Debug(msg, allFields...)
+			_ = s.fileLogger.Sync()
+		}
+	case "info":
+		s.logger.Info(msg, allFields...)
+		if s.fileLogger != nil {
+			s.fileLogger.Info(msg, allFields...)
+			_ = s.fileLogger.Sync()
+		}
+	case "warn":
+		s.logger.Warn(msg, allFields...)
+		if s.fileLogger != nil {
+			s.fileLogger.Warn(msg, allFields...)
+			_ = s.fileLogger.Sync()
+		}
+	case "error":
+		s.logger.Error(msg, allFields...)
+		if s.fileLogger != nil {
+			s.fileLogger.Error(msg, allFields...)
+			_ = s.fileLogger.Sync()
+		}
+	}
+
+	// Store in buffer with full context
+	entry := LogEntry{
+		Timestamp: time.Now(),
+		Level:     level,
+		Message:   msg,
+		Fields:    zapFieldsToMap(allFields),
+		AgentID:   ctx.AgentID,
+		SessionID: ctx.SessionID,
+		ChannelID: ctx.ChannelID,
+	}
+	s.logBuffer.add(entry)
+
+	// Forward to channel facade via LogForwarder
+	if s.forwarder != nil {
+		channelEntry := shared.LogEntry{
+			Level:     level,
+			Message:   msg,
+			Timestamp: entry.Timestamp,
+			Fields:    entry.Fields,
+			SessionID: ctx.SessionID,
+			ChannelID: ctx.ChannelID,
+		}
+		s.forwarder.ForwardLog(channelEntry)
+	}
+}
+
 func (s *service) GetLogger() *zap.Logger {
 	return s.logger
 }
@@ -314,4 +390,9 @@ func (s *service) GetLogs(filter LogFilter) []LogEntry {
 // GetLogStats returns statistics about the log buffer.
 func (s *service) GetLogStats() map[string]interface{} {
 	return s.logBuffer.getStats()
+}
+
+// SetLogForwarder sets the log forwarder for channel-based log routing.
+func (s *service) SetLogForwarder(forwarder shared.LogForwarder) {
+	s.forwarder = forwarder
 }

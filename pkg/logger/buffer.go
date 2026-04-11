@@ -16,6 +16,8 @@ type LogEntry struct {
 	Message   string                 `json:"message"`
 	Fields    map[string]interface{} `json:"fields,omitempty"`
 	AgentID   uuid.UUID              `json:"agent_id,omitempty"`
+	SessionID string                 `json:"session_id,omitempty"`
+	ChannelID uuid.UUID              `json:"channel_id,omitempty"`
 	Sequence  int64                  `json:"sequence"` // Monotonically increasing sequence number
 }
 
