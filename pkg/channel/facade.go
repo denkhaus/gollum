@@ -13,6 +13,7 @@ import (
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 
+	"github.com/denkhaus/gollum/pkg/command"
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/registry"
@@ -24,7 +25,7 @@ import (
 type channelFacadeImpl struct {
 	mu             sync.RWMutex
 	channels       map[uuid.UUID]Channel
-	commandManager CommandManager
+	commandManager command.Manager
 	registry       registry.AgentRegistry
 	agentFactory   shared.AgentFactory
 	sessionManager session.SessionManager
@@ -38,7 +39,7 @@ var _ ChannelFacade = (*channelFacadeImpl)(nil)
 
 // NewChannelFacade creates a new channel facade service
 func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
-	cm := do.MustInvoke[CommandManagerService](injector)
+	cm := do.MustInvoke[command.ManagerService](injector)
 	reg := do.MustInvoke[registry.AgentRegistry](injector)
 	af := do.MustInvoke[shared.AgentFactory](injector)
 	sm := do.MustInvoke[session.SessionManager](injector)
@@ -95,7 +96,8 @@ func (p *channelFacadeImpl) DisplayMessage(msg Message) {
 	channel.OnMessage(msg)
 }
 
-// DisplayLog sends a log entry to all registered channels
+// DisplayLog sends a log entry to channels (entry.SessionID and entry.ChannelID control routing)
+// TODO make this method session and channel aware
 func (p *channelFacadeImpl) DisplayLog(entry LogEntry) {
 	p.mu.Lock()
 
@@ -111,7 +113,7 @@ func (p *channelFacadeImpl) DisplayLog(entry LogEntry) {
 	}
 	p.mu.Unlock()
 
-	// Send to all channels
+	// Send to all channels (each channel decides how to handle routing based on SessionID/ChannelID)
 	for _, channel := range channels {
 		channel.OnLog(entry)
 	}
@@ -214,4 +216,9 @@ func (p *channelFacadeImpl) NotifyAgentLifecycle(agentID uuid.UUID, role string,
 	for _, channel := range channels {
 		channel.OnAgentLifecycle(event)
 	}
+}
+
+// ForwardLog implements shared.LogForwarder for channel-based log routing.
+func (p *channelFacadeImpl) ForwardLog(entry shared.LogEntry) {
+	p.DisplayLog(entry)
 }
