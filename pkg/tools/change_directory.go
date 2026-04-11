@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
+	"go.uber.org/zap"
 )
 
 type (
@@ -22,12 +23,12 @@ type (
 		logService  logger.LoggerService
 		hookManager hooks.HookManager
 		eventBus    events.Bus
-		agentID     uuid.UUID
+		agent       shared.Agent
 	}
 
 	// ChangeDirectoryToolProvider creates ChangeDirectoryTool instances via DI
 	ChangeDirectoryToolProvider interface {
-		CreateTool(agentID uuid.UUID) gollem.Tool
+		CreateTool(agent shared.Agent) gollem.Tool
 	}
 
 	changeDirectoryToolProvider struct {
@@ -50,19 +51,19 @@ func NewChangeDirectoryToolProvider(injector do.Injector) (ChangeDirectoryToolPr
 	}, nil
 }
 
-// CreateTool creates a new ChangeDirectoryTool with agent ID
-func (p *changeDirectoryToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+// CreateTool creates a new ChangeDirectoryTool with agent
+func (p *changeDirectoryToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	return &changeDirectoryToolImpl{
 		logService:  p.logService,
 		hookManager: p.hookManager,
 		eventBus:    p.eventBus,
-		agentID:     agentID,
+		agent:       agent,
 	}
 }
 
 // Run executes the ChangeDirectory tool
 func (t *changeDirectoryToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agentID, shared.ToolNameChangeDirectory, args,
+	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameChangeDirectory, args,
 		func() (map[string]any, error) {
 			return t.runChangeDirectory(ctx, args)
 		})
@@ -117,7 +118,10 @@ func (t *changeDirectoryToolImpl) runChangeDirectory(ctx context.Context, args T
 		return nil, fmt.Errorf("failed to change directory: %w", err)
 	}
 
-	t.logService.Infof("Changed directory from %s to %s", previousPath, absPath)
+	t.logService.InfoWithContext("Changed directory",
+		t.agent.ToLoggingContext(),
+		zap.String("previous_path", previousPath),
+		zap.String("new_path", absPath))
 
 	// Publish directory changed event - services will react to this
 	if err := events.PublishTyped(t.eventBus, ctx,
