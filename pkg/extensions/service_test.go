@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
@@ -79,6 +80,11 @@ func (m *mockLogger) InfoWithFlowStep(msg string, flowName, stateName, stepType 
 func (m *mockLogger) DebugWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {}
 func (m *mockLogger) ErrorWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {}
 func (m *mockLogger) WarnWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {}
+func (m *mockLogger) InfoWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {}
+func (m *mockLogger) ErrorWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {}
+func (m *mockLogger) DebugWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {}
+func (m *mockLogger) WarnWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {}
+func (m *mockLogger) SetLogForwarder(forwarder shared.LogForwarder) {}
 
 type mockWorkspace struct{}
 

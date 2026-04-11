@@ -1,10 +1,9 @@
-// Package channel provides unit tests for the command manager service.
-package channel
+// Package command provides unit tests for the command manager service.
+package command
 
 import (
 	"context"
 	"errors"
-
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/session"
@@ -17,28 +16,28 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-// TestNewCommandManager tests that NewCommandManager creates a valid instance
-func TestNewCommandManager(t *testing.T) {
+// TestNewManager tests that NewManager creates a valid instance
+func TestNewManager(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	injector := do.New()
 	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(ctrl))
 
-	service, err := NewCommandManager(injector)
+	service, err := NewManager(injector)
 
 	require.NoError(t, err)
 	assert.NotNil(t, service)
 
-	// Verify it implements CommandManager interface
-	_, ok := service.(CommandManager)
-	assert.True(t, ok, "NewCommandManager should return a CommandManager implementation")
+	// Verify it implements Manager interface
+	_, ok := service.(Manager)
+	assert.True(t, ok, "NewManager should return a Manager implementation")
 }
 
-// TestCommandManager_Register_Success tests successful command registration
-func TestCommandManager_Register_Success(t *testing.T) {
+// TestManager_Register_Success tests successful command registration
+func TestManager_Register_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	injector := do.New()
 	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(ctrl))
-	service, err := NewCommandManager(injector)
+	service, err := NewManager(injector)
 	require.NoError(t, err)
 
 	cmd := Command{
@@ -60,12 +59,12 @@ func TestCommandManager_Register_Success(t *testing.T) {
 	assert.Equal(t, "A test command", commands[0].Description)
 }
 
-// TestCommandManager_Register_Duplicate tests that registering a duplicate command returns an error
-func TestCommandManager_Register_Duplicate(t *testing.T) {
+// TestManager_Register_Duplicate tests that registering a duplicate command returns an error
+func TestManager_Register_Duplicate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	injector := do.New()
 	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(ctrl))
-	service, err := NewCommandManager(injector)
+	service, err := NewManager(injector)
 	require.NoError(t, err)
 
 	cmd := Command{
@@ -87,12 +86,12 @@ func TestCommandManager_Register_Duplicate(t *testing.T) {
 	assert.Contains(t, err.Error(), "/test")
 }
 
-// TestCommandManager_Unregister_Success tests successful command unregistration
-func TestCommandManager_Unregister_Success(t *testing.T) {
+// TestManager_Unregister_Success tests successful command unregistration
+func TestManager_Unregister_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	injector := do.New()
 	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(ctrl))
-	service, err := NewCommandManager(injector)
+	service, err := NewManager(injector)
 	require.NoError(t, err)
 
 	cmd := Command{
@@ -120,12 +119,12 @@ func TestCommandManager_Unregister_Success(t *testing.T) {
 	assert.Len(t, commands, 0)
 }
 
-// TestCommandManager_Unregister_NonExistent tests that unregistering a non-existent command doesn't error
-func TestCommandManager_Unregister_NonExistent(t *testing.T) {
+// TestManager_Unregister_NonExistent tests that unregistering a non-existent command doesn't error
+func TestManager_Unregister_NonExistent(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	injector := do.New()
 	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(ctrl))
-	service, err := NewCommandManager(injector)
+	service, err := NewManager(injector)
 	require.NoError(t, err)
 
 	// Unregister non-existent command - should not error
@@ -133,12 +132,12 @@ func TestCommandManager_Unregister_NonExistent(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestCommandManager_Execute_EmptyInput tests that empty input returns (false, "", nil)
-func TestCommandManager_Execute_EmptyInput(t *testing.T) {
+// TestManager_Execute_EmptyInput tests that empty input returns (false, "", nil)
+func TestManager_Execute_EmptyInput(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	injector := do.New()
 	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(ctrl))
-	service, err := NewCommandManager(injector)
+	service, err := NewManager(injector)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -149,12 +148,12 @@ func TestCommandManager_Execute_EmptyInput(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestCommandManager_Execute_NonCommandInput tests that non-command input (no "/") returns (false, "", nil)
-func TestCommandManager_Execute_NonCommandInput(t *testing.T) {
+// TestManager_Execute_NonCommandInput tests that non-command input (no "/") returns (false, "", nil)
+func TestManager_Execute_NonCommandInput(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	injector := do.New()
 	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(ctrl))
-	service, err := NewCommandManager(injector)
+	service, err := NewManager(injector)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -179,12 +178,12 @@ func TestCommandManager_Execute_NonCommandInput(t *testing.T) {
 	}
 }
 
-// TestCommandManager_Execute_UnknownCommand tests that unknown command returns (false, "", nil)
-func TestCommandManager_Execute_UnknownCommand(t *testing.T) {
+// TestManager_Execute_UnknownCommand tests that unknown command returns (false, "", nil)
+func TestManager_Execute_UnknownCommand(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	injector := do.New()
 	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(ctrl))
-	service, err := NewCommandManager(injector)
+	service, err := NewManager(injector)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -195,8 +194,8 @@ func TestCommandManager_Execute_UnknownCommand(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestCommandManager_Execute_ParseCommandNameAndArgs tests command parsing with various inputs
-func TestCommandManager_Execute_ParseCommandNameAndArgs(t *testing.T) {
+// TestManager_Execute_ParseCommandNameAndArgs tests command parsing with various inputs
+func TestManager_Execute_ParseCommandNameAndArgs(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -212,7 +211,7 @@ func TestCommandManager_Execute_ParseCommandNameAndArgs(t *testing.T) {
 	mockSM.EXPECT().GetSession("test-session").Return(testSession, true).AnyTimes()
 
 	do.ProvideValue[session.SessionManager](injector, mockSM)
-	service, err := NewCommandManager(injector)
+	service, err := NewManager(injector)
 	require.NoError(t, err)
 
 	// Track what args were passed to the handler
@@ -255,8 +254,8 @@ func TestCommandManager_Execute_ParseCommandNameAndArgs(t *testing.T) {
 	}
 }
 
-// TestCommandManager_Execute_CallsHandler tests that Execute calls the handler and returns results
-func TestCommandManager_Execute_CallsHandler(t *testing.T) {
+// TestManager_Execute_CallsHandler tests that Execute calls the handler and returns results
+func TestManager_Execute_CallsHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -272,7 +271,7 @@ func TestCommandManager_Execute_CallsHandler(t *testing.T) {
 	mockSM.EXPECT().GetSession("test-session").Return(testSession, true).AnyTimes()
 
 	do.ProvideValue[session.SessionManager](injector, mockSM)
-	service, err := NewCommandManager(injector)
+	service, err := NewManager(injector)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -341,12 +340,12 @@ func TestCommandManager_Execute_CallsHandler(t *testing.T) {
 	}
 }
 
-// TestCommandManager_List_ReturnsAllCommands tests that List returns all registered commands
-func TestCommandManager_List_ReturnsAllCommands(t *testing.T) {
+// TestManager_List_ReturnsAllCommands tests that List returns all registered commands
+func TestManager_List_ReturnsAllCommands(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	injector := do.New()
 	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(ctrl))
-	service, err := NewCommandManager(injector)
+	service, err := NewManager(injector)
 	require.NoError(t, err)
 
 	// Initially empty
@@ -379,12 +378,12 @@ func TestCommandManager_List_ReturnsAllCommands(t *testing.T) {
 	assert.True(t, commandNames["/cmd3"])
 }
 
-// TestCommandManager_IsCommand_RegisteredCommand tests that IsCommand returns true for registered commands
-func TestCommandManager_IsCommand_RegisteredCommand(t *testing.T) {
+// TestManager_IsCommand_RegisteredCommand tests that IsCommand returns true for registered commands
+func TestManager_IsCommand_RegisteredCommand(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	injector := do.New()
 	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(ctrl))
-	service, err := NewCommandManager(injector)
+	service, err := NewManager(injector)
 	require.NoError(t, err)
 
 	cmd := Command{
@@ -414,12 +413,12 @@ func TestCommandManager_IsCommand_RegisteredCommand(t *testing.T) {
 	}
 }
 
-// TestCommandManager_IsCommand_UnregisteredCommand tests that IsCommand returns false for unregistered commands
-func TestCommandManager_IsCommand_UnregisteredCommand(t *testing.T) {
+// TestManager_IsCommand_UnregisteredCommand tests that IsCommand returns false for unregistered commands
+func TestManager_IsCommand_UnregisteredCommand(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	injector := do.New()
 	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(ctrl))
-	service, err := NewCommandManager(injector)
+	service, err := NewManager(injector)
 	require.NoError(t, err)
 
 	// Register one command
@@ -452,8 +451,8 @@ func TestCommandManager_IsCommand_UnregisteredCommand(t *testing.T) {
 	}
 }
 
-// TestCommandManager_Concurrency tests that concurrent access is safe
-func TestCommandManager_Concurrency(t *testing.T) {
+// TestManager_Concurrency tests that concurrent access is safe
+func TestManager_Concurrency(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -469,7 +468,7 @@ func TestCommandManager_Concurrency(t *testing.T) {
 	mockSM.EXPECT().GetSession("test-session").Return(testSession, true).AnyTimes()
 
 	do.ProvideValue[session.SessionManager](injector, mockSM)
-	service, err := NewCommandManager(injector)
+	service, err := NewManager(injector)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -508,5 +507,3 @@ func TestCommandManager_Concurrency(t *testing.T) {
 	commands := service.List()
 	assert.Greater(t, len(commands), 0)
 }
-
-// setupTestCommandManager creates a command manager with a mock session manager

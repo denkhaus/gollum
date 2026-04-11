@@ -64,7 +64,8 @@
       "Bash(go version:*)",
       "Bash(gollum flow:*)",
       "mcp__brave-search__brave_web_search",
-      "mcp__deepwiki__ask_question"
+      "mcp__deepwiki__ask_question",
+      "Bash(go fmt:*)"
     ],
     "deny": [],
     "ask": []

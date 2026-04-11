@@ -29,7 +29,7 @@ const (
 	ToolNameSetContextField ToolName = "set_context_field"
 	ToolNameGetContext      ToolName = "get_context"
 	ToolNameEmitLog         ToolName = "emit_log"
-	ToolNameTransitionTo ToolName = "transition_to"
+	ToolNameTransitionTo    ToolName = "transition_to"
 	// Flow management tools
 	ToolNameExecuteFlow ToolName = "execute_flow"
 	ToolNameListFlows   ToolName = "list_flows"

@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -36,14 +37,24 @@ func TestJSONLogFormat(t *testing.T) {
 	logErr := svc.EnableFileLogging(tmpDir, sessionID)
 	require.NoError(t, logErr)
 	require.NoError(t, err)
-	defer func() { _ = svc.CloseFileLogging() }()
 
-	// Log with agent ID (using InfoWithAgent)
+	// Log with COMPLETE context (all fields required for file logging)
+	// Using InfoWithContext instead of InfoWithAgent to provide full context
 	agentID := uuid.New()
-	svc.InfoWithAgent("Test message", agentID, zap.String("test_field", "test_value"))
+	channelID := uuid.New()
+	testCtx := shared.LoggingContext{
+		SessionID: "test-session",
+		ChannelID: channelID,
+		AgentID:   agentID,
+	}
+	svc.InfoWithContext("Test message", testCtx, zap.String("test_field", "test_value"))
 
 	// Flush to ensure write
 	err = svc.Flush()
+	require.NoError(t, err)
+
+	// Close file logging to ensure all writes are flushed
+	err = svc.CloseFileLogging()
 	require.NoError(t, err)
 
 	// Read the log file (it's in the logs/ subdirectory)
@@ -53,11 +64,22 @@ func TestJSONLogFormat(t *testing.T) {
 
 	// Verify it's valid JSON
 	lines := strings.Split(strings.TrimSpace(string(content)), "\n")
-	require.Greater(t, len(lines), 1, "Log file should have at least two lines")
+	require.GreaterOrEqual(t, len(lines), 2, "Log file should have at least two lines (enabled message + test message)")
 
-	// First line is "Session logging enabled", second line is our test message
+	// Lines are:
+	// 1. "Session logging enabled"
+	// 2. The actual test message (with complete context, so it's logged to file)
 	var logEntry map[string]interface{}
-	err = json.Unmarshal([]byte(lines[1]), &logEntry)
+	// Find the test message (skip the "Session logging enabled" line)
+	testMsgIndex := -1
+	for i, line := range lines {
+		if strings.Contains(line, "Test message") {
+			testMsgIndex = i
+			break
+		}
+	}
+	require.NotEqual(t, -1, testMsgIndex, "Should find test message in log file")
+	err = json.Unmarshal([]byte(lines[testMsgIndex]), &logEntry)
 	require.NoError(t, err, "Log line should be valid JSON")
 
 	// Verify required fields

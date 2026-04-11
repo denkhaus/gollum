@@ -17,6 +17,7 @@ import (
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
 
+	"github.com/denkhaus/gollum/pkg/command"
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/registry"
@@ -114,7 +115,7 @@ type mockCommandManager struct {
 	executeFunc func(ctx context.Context, sessionID string, input string) (handled bool, response string, err error)
 }
 
-func (m *mockCommandManager) Register(cmd Command) error {
+func (m *mockCommandManager) Register(cmd command.Command) error {
 	return nil
 }
 
@@ -129,7 +130,7 @@ func (m *mockCommandManager) Execute(ctx context.Context, sessionID string, inpu
 	return false, "", nil
 }
 
-func (m *mockCommandManager) List() []Command {
+func (m *mockCommandManager) List() []command.Command {
 	return nil
 }
 
@@ -284,7 +285,7 @@ func (m *mockAgent) UpdateHistory(ctx context.Context, modifier func(*gollem.His
 // setupTestInjector creates an injector with all mock dependencies for testing
 func setupTestInjector() do.Injector {
 	injector := do.New()
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
+	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
@@ -305,7 +306,7 @@ func setupTestInjector() do.Injector {
 func setupTestInjectorWithLogger(logService logger.LoggerService) do.Injector {
 	ctrl := gomock.NewController(&testing.T{})
 	injector := do.New()
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
+	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	mockSM := session.NewMockSessionManager(ctrl)
@@ -319,7 +320,7 @@ func setupTestInjectorWithLogger(logService logger.LoggerService) do.Injector {
 // setupTestInjectorWithConfig creates an injector with a specific config
 func setupTestInjectorWithConfig(cfg config.ConfigService) do.Injector {
 	injector := do.New()
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
+	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(&testing.T{})))
@@ -713,8 +714,14 @@ func TestChannelFacade_DisplayLog_RoutesToSpecificChannel(t *testing.T) {
 
 // TestChannelFacade_DisplayLog_ChannelNotFound tests that DisplayLog logs warning when channel not found
 func TestChannelFacade_DisplayLog_ChannelNotFound(t *testing.T) {
-	mockLogger := &logger.MockLoggerService{}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := logger.NewMockLoggerService(ctrl)
 	injector := setupTestInjectorWithLogger(mockLogger)
+
+	// Set expectation BEFORE the call
+	mockLogger.EXPECT().Warn("channel not found for log entry", gomock.Any()).Times(1)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -729,9 +736,6 @@ func TestChannelFacade_DisplayLog_ChannelNotFound(t *testing.T) {
 		ChannelID: uuid.New(),
 	}
 	service.DisplayLog(entry)
-
-	// Verify warning was logged
-	assert.True(t, mockLogger.WarnCalled(), "Should log warning when channel not found")
 }
 
 // TestChannelFacade_SubmitInput_SlashCommand tests that SubmitInput routes slash commands to CommandManager
@@ -747,7 +751,7 @@ func TestChannelFacade_SubmitInput_SlashCommand(t *testing.T) {
 			return false, "", nil
 		},
 	}
-	do.ProvideValue[CommandManagerService](injector, cmdMgr)
+	do.ProvideValue[command.ManagerService](injector, cmdMgr)
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(t)))
@@ -784,7 +788,7 @@ func TestChannelFacade_SubmitInput_NonCommand_NoAgentRouting(t *testing.T) {
 		},
 	}
 
-	do.ProvideValue[CommandManagerService](injector, cmdMgr)
+	do.ProvideValue[command.ManagerService](injector, cmdMgr)
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 
@@ -829,7 +833,7 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 		},
 	}
 
-	do.ProvideValue[CommandManagerService](injector, cmdMgr)
+	do.ProvideValue[command.ManagerService](injector, cmdMgr)
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(t)))
@@ -978,14 +982,14 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 
 
 	// Wait for all goroutines with timeout
-	done := make(chan struct{})
+	doneWait := make(chan struct{})
 	go func() {
 		wg.Wait()
-		close(done)
+		close(doneWait)
 	}()
 
 	select {
-	case <-done:
+	case <-doneWait:
 		// All goroutines completed
 	case <-time.After(5 * time.Second):
 		t.Fatal("Test timed out waiting for concurrent operations")
@@ -993,11 +997,11 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 
 	// Verify final state is consistent
 		// Verify channels received their logs
-		totalLogs := 0
+		finalTotalLogs := 0
 		for _, ch := range channels {
-			totalLogs += ch.getLogCount()
+			finalTotalLogs += ch.getLogCount()
 		}
-	assert.Greater(t, len(logs), 0, "Should have logs stored")
+	assert.Greater(t, finalTotalLogs, 0, "Should have logs stored")
 }
 
 // TestChannelFacade_SubmitInput_RoutesToSupervisorAgent tests that SubmitInput routes to the singleton Supervisor-Agent
@@ -1010,7 +1014,7 @@ func TestChannelFacade_SubmitInput_RoutesToSupervisorAgent(t *testing.T) {
 			return false, "", nil
 		},
 	}
-	do.ProvideValue[CommandManagerService](injector, cmdMgr)
+	do.ProvideValue[command.ManagerService](injector, cmdMgr)
 
 	// Create a supervisor agent
 	supervisorID := uuid.New()
@@ -1072,7 +1076,7 @@ func TestChannelFacade_SubmitInput_NoSupervisorError(t *testing.T) {
 			return false, "", nil
 		},
 	}
-	do.ProvideValue[CommandManagerService](injector, cmdMgr)
+	do.ProvideValue[command.ManagerService](injector, cmdMgr)
 
 	// Mock registry that returns error for supervisor
 	mockRegistry := &mockAgentRegistryWithSupervisor{
@@ -1151,7 +1155,7 @@ func TestChannelFacade_CancelInput_Success(t *testing.T) {
 // TestChannelFacade_CancelInput_SessionNotFound tests that CancelInput returns error for non-existent session
 func TestChannelFacade_CancelInput_SessionNotFound(t *testing.T) {
 	injector := do.New()
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
+	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
@@ -1188,7 +1192,7 @@ func TestChannelFacade_SubmitInput_ExecuteError(t *testing.T) {
 			return false, "", nil
 		},
 	}
-	do.ProvideValue[CommandManagerService](injector, cmdMgr)
+	do.ProvideValue[command.ManagerService](injector, cmdMgr)
 
 	// Create a supervisor agent that returns an error
 	supervisorID := uuid.New()
@@ -1252,7 +1256,7 @@ func TestChannelFacade_SubmitInput_ExecuteEmptyResponse(t *testing.T) {
 			return false, "", nil
 		},
 	}
-	do.ProvideValue[CommandManagerService](injector, cmdMgr)
+	do.ProvideValue[command.ManagerService](injector, cmdMgr)
 
 	// Create a supervisor agent that returns empty response
 	supervisorID := uuid.New()
@@ -1318,7 +1322,7 @@ func TestChannelFacade_SubmitInput_ExecuteNilResponse(t *testing.T) {
 			return false, "", nil
 		},
 	}
-	do.ProvideValue[CommandManagerService](injector, cmdMgr)
+	do.ProvideValue[command.ManagerService](injector, cmdMgr)
 
 	// Create a supervisor agent that returns nil response
 	supervisorID := uuid.New()
@@ -1382,7 +1386,7 @@ func TestChannelFacade_SubmitInput_MultipleTextsInResponse(t *testing.T) {
 			return false, "", nil
 		},
 	}
-	do.ProvideValue[CommandManagerService](injector, cmdMgr)
+	do.ProvideValue[command.ManagerService](injector, cmdMgr)
 
 	// Create a supervisor agent that returns multiple texts
 	supervisorID := uuid.New()
@@ -1441,7 +1445,7 @@ func TestChannelFacade_SubmitInput_MultipleTextsInResponse(t *testing.T) {
 // setupTestInjectorWithSessionManager creates an injector with a session manager mock with proper expectations
 func setupTestInjectorWithSessionManager(ctrl *gomock.Controller) do.Injector {
 	injector := do.New()
-	do.ProvideValue[CommandManagerService](injector, &mockCommandManager{})
+	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})

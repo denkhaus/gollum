@@ -1,5 +1,5 @@
-// Package channel provides the channel abstraction layer for Gollum.
-package channel
+// Package command provides command handling functionality for Gollum.
+package command
 
 import (
 	"context"
@@ -11,32 +11,32 @@ import (
 	"github.com/samber/do/v2"
 )
 
-// CommandManagerService defines the command manager service interface for DI
-type CommandManagerService interface {
-	CommandManager
+// ManagerService defines the command manager service interface for DI
+type ManagerService interface {
+	Manager
 }
 
-// commandManagerImpl implements CommandManager
-type commandManagerImpl struct {
+// managerImpl implements Manager
+type managerImpl struct {
 	mu             sync.RWMutex
 	commands       map[string]Command
 	sessionManager session.SessionManager
 }
 
-// Ensure commandManagerImpl implements CommandManager at compile time
-var _ CommandManager = (*commandManagerImpl)(nil)
+// Ensure managerImpl implements Manager at compile time
+var _ Manager = (*managerImpl)(nil)
 
-// NewCommandManager creates a new command manager service
-func NewCommandManager(injector do.Injector) (CommandManagerService, error) {
+// NewManager creates a new command manager service
+func NewManager(injector do.Injector) (ManagerService, error) {
 	sessionManager := do.MustInvoke[session.SessionManager](injector)
-	return &commandManagerImpl{
+	return &managerImpl{
 		commands:       make(map[string]Command),
 		sessionManager: sessionManager,
 	}, nil
 }
 
 // Register adds a new slash command
-func (p *commandManagerImpl) Register(cmd Command) error {
+func (p *managerImpl) Register(cmd Command) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -49,7 +49,7 @@ func (p *commandManagerImpl) Register(cmd Command) error {
 }
 
 // Unregister removes a command
-func (p *commandManagerImpl) Unregister(name string) error {
+func (p *managerImpl) Unregister(name string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -58,7 +58,7 @@ func (p *commandManagerImpl) Unregister(name string) error {
 }
 
 // Execute parses input and executes command if it begins with "/"
-func (p *commandManagerImpl) Execute(ctx context.Context, sessionID string, input string) (bool, string, error) {
+func (p *managerImpl) Execute(ctx context.Context, sessionID string, input string) (bool, string, error) {
 	if input == "" {
 		return false, "", nil
 	}
@@ -101,7 +101,7 @@ func (p *commandManagerImpl) Execute(ctx context.Context, sessionID string, inpu
 }
 
 // List returns all available commands
-func (p *commandManagerImpl) List() []Command {
+func (p *managerImpl) List() []Command {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
@@ -113,7 +113,7 @@ func (p *commandManagerImpl) List() []Command {
 }
 
 // IsCommand checks if input starts with "/"
-func (p *commandManagerImpl) IsCommand(input string) bool {
+func (p *managerImpl) IsCommand(input string) bool {
 	if input == "" {
 		return false
 	}

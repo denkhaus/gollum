@@ -97,97 +97,97 @@ const (
 	ParamPath ToolParamKeys = "path"
 	// ParamContent is the content to read/write (string).
 	ParamContent ToolParamKeys = "content"
-	 // ParamPattern is the search pattern (string).
-	 ParamPattern ToolParamKeys = "pattern"
-    // ParamTimeout is the timeout in seconds (float64).
-    ParamTimeout ToolParamKeys = "timeout"
-    // ParamOutputMode is the output mode (string).
-    ParamOutputMode ToolParamKeys = "output_mode"
-    // ParamLimit is the maximum number of results (int).
-    ParamLimit ToolParamKeys = "limit"
-    // ParamOffset is the starting line number (int).
-    ParamOffset ToolParamKeys = "offset"
-    // ParamGlob is the glob pattern for file filtering (string).
-    ParamGlob ToolParamKeys = "glob"
-    // ParamOldString is the string to replace (string).
-    ParamOldString ToolParamKeys = "old_string"
-    // ParamNewString is the replacement string (string).
-    ParamNewString ToolParamKeys = "new_string"
-    // ParamReplaceAll = " replace all occurrences (bool).
-    ParamReplaceAll ToolParamKeys = "replace_all"
-    // ParamCreateDirs = " create parent directories (bool).
-    ParamCreateDirs ToolParamKeys = "create_dirs"
-    // ParamContextBefore = " context lines before match (int).
-    ParamContextBefore ToolParamKeys = "-B"
-    // ParamContextAfter = " context lines after match (int).
-    ParamContextAfter ToolParamKeys = "-A"
-    // ParamContextBoth = " context lines before and after (int).
-    ParamContextBoth ToolParamKeys = "-C"
-    // ParamCaseIgnore = " case-insensitive search (bool).
-    ParamCaseIgnore ToolParamKeys = "-i"
-    // ParamShowNumbers = " show line numbers (bool).
-    ParamShowNumbers ToolParamKeys = "-n"
-    // ParamMultiline = " multiline regex mode (bool).
-    ParamMultiline ToolParamKeys = "multiline"
-    // ParamHeadLimit is the maximum results to return (int).
-    ParamHeadLimit ToolParamKeys = "head_limit"
-    // ParamAgentID is the agent ID (string).
-    ParamAgentID ToolParamKeys = "agent_id"
-    // ParamAgentName is the agent name (string).
-    ParamAgentName ToolParamKeys = "name"
-    // ParamModel is the model identifier (string).
-    ParamModel ToolParamKeys = "model"
-    // ParamPrompt is " prompt text (string).
-    ParamPrompt ToolParamKeys = "prompt"
-    // ParamQuery is the search query (string).
-    ParamQuery ToolParamKeys = "query"
-    // ParamURL is the URL (string).
-    ParamURL ToolParamKeys = "url"
-    // ParamMode is the operation mode (string).
-    ParamMode ToolParamKeys = "mode"
-    // ParamCount is the count of items (int).
-    ParamCount ToolParamKeys = "count"
-    // ParamLevel is the log level (string).
-    ParamLevel ToolParamKeys = "level"
-    // ParamSinceSeq is the sequence number to start from (int64).
-    ParamSinceSeq ToolParamKeys = "since_seq"
-    // ParamBlock is whether to block for completion (bool).
-    ParamBlock ToolParamKeys = "block"
-    // ParamRecursive is whether to search recursively (bool).
-    ParamRecursive ToolParamKeys = "recursive"
-    // ParamTree is whether to format as tree (bool).
-    ParamTree ToolParamKeys = "tree"
-    // ParamForce is whether to force an operation (bool).
-    ParamForce ToolParamKeys = "force"
-    // ParamTimezone is the timezone (string).
-    ParamTimezone ToolParamKeys = "timezone"
-    // ParamRunInBackground is whether to run asynchronously (bool).
-    ParamRunInBackground ToolParamKeys = "run_in_background"
-    // ParamInput is the input text (string).
-    ParamInput ToolParamKeys = "input"
-    // ParamContextMode is the context mode (string).
-    ParamContextMode ToolParamKeys = "context_mode"
-    // ParamRole is the agent role (string).
-    ParamRole ToolParamKeys = "role"
-    // ParamDescription is a short description (string).
-    ParamDescription ToolParamKeys = "description"
-    // ParamShareContext is whether to share context (bool).
-    ParamShareContext ToolParamKeys = "share_context"
-    // ParamAllowedTools is the list of allowed tools ([]string).
-    ParamAllowedTools ToolParamKeys = "allowed_tools"
-    // ParamValue is a generic value parameter (string).
-    ParamValue ToolParamKeys = "value"
-    // ParamTo is the target destination (string).
-    ParamTo ToolParamKeys = "to"
-    // ParamFields is a list of fields ([]string).
-    ParamFields ToolParamKeys = "fields"
-    // ParamMessage is a message (string).
-    ParamMessage ToolParamKeys = "message"
-    // ParamFlowName is the name of the flow to execute (string).
-    ParamFlowName ToolParamKeys = "flowName"
-    // ParamInputs is the input parameters for the flow (map[string]any).
-    ParamInputs ToolParamKeys = "inputs"
-)// ToolResult is a type alias for tool execution result maps.
+	// ParamPattern is the search pattern (string).
+	ParamPattern ToolParamKeys = "pattern"
+	// ParamTimeout is the timeout in seconds (float64).
+	ParamTimeout ToolParamKeys = "timeout"
+	// ParamOutputMode is the output mode (string).
+	ParamOutputMode ToolParamKeys = "output_mode"
+	// ParamLimit is the maximum number of results (int).
+	ParamLimit ToolParamKeys = "limit"
+	// ParamOffset is the starting line number (int).
+	ParamOffset ToolParamKeys = "offset"
+	// ParamGlob is the glob pattern for file filtering (string).
+	ParamGlob ToolParamKeys = "glob"
+	// ParamOldString is the string to replace (string).
+	ParamOldString ToolParamKeys = "old_string"
+	// ParamNewString is the replacement string (string).
+	ParamNewString ToolParamKeys = "new_string"
+	// ParamReplaceAll = " replace all occurrences (bool).
+	ParamReplaceAll ToolParamKeys = "replace_all"
+	// ParamCreateDirs = " create parent directories (bool).
+	ParamCreateDirs ToolParamKeys = "create_dirs"
+	// ParamContextBefore = " context lines before match (int).
+	ParamContextBefore ToolParamKeys = "-B"
+	// ParamContextAfter = " context lines after match (int).
+	ParamContextAfter ToolParamKeys = "-A"
+	// ParamContextBoth = " context lines before and after (int).
+	ParamContextBoth ToolParamKeys = "-C"
+	// ParamCaseIgnore = " case-insensitive search (bool).
+	ParamCaseIgnore ToolParamKeys = "-i"
+	// ParamShowNumbers = " show line numbers (bool).
+	ParamShowNumbers ToolParamKeys = "-n"
+	// ParamMultiline = " multiline regex mode (bool).
+	ParamMultiline ToolParamKeys = "multiline"
+	// ParamHeadLimit is the maximum results to return (int).
+	ParamHeadLimit ToolParamKeys = "head_limit"
+	// ParamAgentID is the agent ID (string).
+	ParamAgentID ToolParamKeys = "agent_id"
+	// ParamAgentName is the agent name (string).
+	ParamAgentName ToolParamKeys = "name"
+	// ParamModel is the model identifier (string).
+	ParamModel ToolParamKeys = "model"
+	// ParamPrompt is " prompt text (string).
+	ParamPrompt ToolParamKeys = "prompt"
+	// ParamQuery is the search query (string).
+	ParamQuery ToolParamKeys = "query"
+	// ParamURL is the URL (string).
+	ParamURL ToolParamKeys = "url"
+	// ParamMode is the operation mode (string).
+	ParamMode ToolParamKeys = "mode"
+	// ParamCount is the count of items (int).
+	ParamCount ToolParamKeys = "count"
+	// ParamLevel is the log level (string).
+	ParamLevel ToolParamKeys = "level"
+	// ParamSinceSeq is the sequence number to start from (int64).
+	ParamSinceSeq ToolParamKeys = "since_seq"
+	// ParamBlock is whether to block for completion (bool).
+	ParamBlock ToolParamKeys = "block"
+	// ParamRecursive is whether to search recursively (bool).
+	ParamRecursive ToolParamKeys = "recursive"
+	// ParamTree is whether to format as tree (bool).
+	ParamTree ToolParamKeys = "tree"
+	// ParamForce is whether to force an operation (bool).
+	ParamForce ToolParamKeys = "force"
+	// ParamTimezone is the timezone (string).
+	ParamTimezone ToolParamKeys = "timezone"
+	// ParamRunInBackground is whether to run asynchronously (bool).
+	ParamRunInBackground ToolParamKeys = "run_in_background"
+	// ParamInput is the input text (string).
+	ParamInput ToolParamKeys = "input"
+	// ParamContextMode is the context mode (string).
+	ParamContextMode ToolParamKeys = "context_mode"
+	// ParamRole is the agent role (string).
+	ParamRole ToolParamKeys = "role"
+	// ParamDescription is a short description (string).
+	ParamDescription ToolParamKeys = "description"
+	// ParamShareContext is whether to share context (bool).
+	ParamShareContext ToolParamKeys = "share_context"
+	// ParamAllowedTools is the list of allowed tools ([]string).
+	ParamAllowedTools ToolParamKeys = "allowed_tools"
+	// ParamValue is a generic value parameter (string).
+	ParamValue ToolParamKeys = "value"
+	// ParamTo is the target destination (string).
+	ParamTo ToolParamKeys = "to"
+	// ParamFields is a list of fields ([]string).
+	ParamFields ToolParamKeys = "fields"
+	// ParamMessage is a message (string).
+	ParamMessage ToolParamKeys = "message"
+	// ParamFlowName is the name of the flow to execute (string).
+	ParamFlowName ToolParamKeys = "flowName"
+	// ParamInputs is the input parameters for the flow (map[string]any).
+	ParamInputs ToolParamKeys = "inputs"
+) // ToolResult is a type alias for tool execution result maps.
 type ToolResult map[string]any
 
 // GetString returns a string value from the result.

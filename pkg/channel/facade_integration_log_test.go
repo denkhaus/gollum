@@ -20,18 +20,35 @@ import (
 	"github.com/denkhaus/gollum/pkg/shared"
 )
 
-// TestLogForwarding_Integration tests that logs with valid context are forwarded to the correct channel.
-// This is an integration test that verifies the complete flow:
-// LoggerService → LogForwarder → ChannelFacade → specific Channel
-func TestLogForwarding_Integration(t *testing.T) {
-	// Setup injector with all dependencies for integration test
+const asyncWait = 10 * time.Millisecond
+
+// setupIntegrationTest creates a configured injector with all dependencies for integration tests.
+// Returns the injector, controller, and a cleanup function.
+func setupIntegrationTest(t *testing.T) (do.Injector, *gomock.Controller) {
+	ctrl := gomock.NewController(t)
+
 	injector := do.New()
 	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
 	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(t)))
+	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(ctrl))
 	cfg := &mockConfigService{logBufferSize: 100}
 	do.ProvideValue[config.ConfigService](injector, cfg)
+
+	return injector, ctrl
+}
+
+// TestLogForwarding_Integration tests that logs with valid context are forwarded to the correct channel.
+// This is an integration test that verifies the complete flow:
+// LoggerService → LogForwarder → ChannelFacade → specific Channel
+func TestLogForwarding_Integration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	// Setup injector with all dependencies for integration test
+	injector, ctrl := setupIntegrationTest(t)
+	defer ctrl.Finish()
 
 	// Create real logger service (not mock) for integration testing
 	loggerSvc, err := logger.NewService(injector)
@@ -51,6 +68,11 @@ func TestLogForwarding_Integration(t *testing.T) {
 	regErr := facade.RegisterChannel(testChannel)
 	require.NoError(t, regErr)
 
+	// Cleanup: unregister channel to prevent resource leaks
+	t.Cleanup(func() {
+		_ = facade.UnregisterChannel(testChannel.ID())
+	})
+
 	// Create logging context with valid routing information
 	ctx := shared.LoggingContext{
 		SessionID: "test-session-123",
@@ -62,7 +84,7 @@ func TestLogForwarding_Integration(t *testing.T) {
 	loggerSvc.InfoWithContext("Test message", ctx, zap.String("test", "value"))
 
 	// Give time for async processing (log forwarding is async via buffer)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(asyncWait)
 
 	// Verify log was received
 	assert.Equal(t, 1, testChannel.getLogCount(), "Channel should receive exactly one log entry")
@@ -76,14 +98,13 @@ func TestLogForwarding_Integration(t *testing.T) {
 // TestLogForwarding_InvalidContext_DoesNotForward tests that logs with invalid context are not forwarded.
 // Invalid context means missing SessionID, ChannelID, or AgentID.
 func TestLogForwarding_InvalidContext_DoesNotForward(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
 	// Setup injector with all dependencies for integration test
-	injector := do.New()
-	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(t)))
-	cfg := &mockConfigService{logBufferSize: 100}
-	do.ProvideValue[config.ConfigService](injector, cfg)
+	injector, ctrl := setupIntegrationTest(t)
+	defer ctrl.Finish()
 
 	// Create real logger service (not mock) for integration testing
 	loggerSvc, err := logger.NewService(injector)
@@ -102,6 +123,11 @@ func TestLogForwarding_InvalidContext_DoesNotForward(t *testing.T) {
 	testChannel := newMockChannel(uuid.New())
 	regErr := facade.RegisterChannel(testChannel)
 	require.NoError(t, regErr)
+
+	// Cleanup: unregister channel to prevent resource leaks
+	t.Cleanup(func() {
+		_ = facade.UnregisterChannel(testChannel.ID())
+	})
 
 	// Test 1: Empty SessionID - should not forward
 	ctx1 := shared.LoggingContext{
@@ -128,7 +154,7 @@ func TestLogForwarding_InvalidContext_DoesNotForward(t *testing.T) {
 	loggerSvc.InfoWithContext("Invalid - nil agent", ctx3)
 
 	// Give time for async processing
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(asyncWait)
 
 	// Verify no logs were received (all contexts were invalid)
 	assert.Equal(t, 0, testChannel.getLogCount(), "Channel should not receive logs with invalid context")
@@ -137,14 +163,13 @@ func TestLogForwarding_InvalidContext_DoesNotForward(t *testing.T) {
 // TestLogForwarding_MultipleChannels_RoutesCorrectly tests that logs are routed to the correct channel
 // when multiple channels are registered.
 func TestLogForwarding_MultipleChannels_RoutesCorrectly(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
 	// Setup injector with all dependencies for integration test
-	injector := do.New()
-	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(t)))
-	cfg := &mockConfigService{logBufferSize: 100}
-	do.ProvideValue[config.ConfigService](injector, cfg)
+	injector, ctrl := setupIntegrationTest(t)
+	defer ctrl.Finish()
 
 	// Create real logger service (not mock) for integration testing
 	loggerSvc, err := logger.NewService(injector)
@@ -171,6 +196,13 @@ func TestLogForwarding_MultipleChannels_RoutesCorrectly(t *testing.T) {
 		require.NoError(t, err)
 	}
 
+	// Cleanup: unregister all channels to prevent resource leaks
+	t.Cleanup(func() {
+		for _, ch := range channels {
+			_ = facade.UnregisterChannel(ch.ID())
+		}
+	})
+
 	// Create logging context for the second channel
 	ctx := shared.LoggingContext{
 		SessionID: "test-session-multi",
@@ -182,7 +214,7 @@ func TestLogForwarding_MultipleChannels_RoutesCorrectly(t *testing.T) {
 	loggerSvc.InfoWithContext("Routed message", ctx)
 
 	// Give time for async processing
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(asyncWait)
 
 	// Verify only the second channel received the log
 	assert.Equal(t, 0, channels[0].getLogCount(), "First channel should not receive the log")
@@ -196,14 +228,13 @@ func TestLogForwarding_MultipleChannels_RoutesCorrectly(t *testing.T) {
 
 // TestLogForwarding_LogWithFields tests that log fields are preserved through forwarding.
 func TestLogForwarding_LogWithFields(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
 	// Setup injector with all dependencies for integration test
-	injector := do.New()
-	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(t)))
-	cfg := &mockConfigService{logBufferSize: 100}
-	do.ProvideValue[config.ConfigService](injector, cfg)
+	injector, ctrl := setupIntegrationTest(t)
+	defer ctrl.Finish()
 
 	// Create real logger service (not mock) for integration testing
 	loggerSvc, err := logger.NewService(injector)
@@ -223,6 +254,11 @@ func TestLogForwarding_LogWithFields(t *testing.T) {
 	regErr := facade.RegisterChannel(testChannel)
 	require.NoError(t, regErr)
 
+	// Cleanup: unregister channel to prevent resource leaks
+	t.Cleanup(func() {
+		_ = facade.UnregisterChannel(testChannel.ID())
+	})
+
 	// Create logging context
 	ctx := shared.LoggingContext{
 		SessionID: "test-session-fields",
@@ -238,7 +274,7 @@ func TestLogForwarding_LogWithFields(t *testing.T) {
 	)
 
 	// Give time for async processing
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(asyncWait)
 
 	// Verify log was received with fields
 	assert.Equal(t, 1, testChannel.getLogCount())

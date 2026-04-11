@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
+	"go.uber.org/zap"
 )
 
 const (
@@ -96,11 +97,11 @@ func (t *currentTimeToolImpl) runCurrentTime(ctx context.Context, args ToolReque
 	}
 
 	// Use enriched logging if flow/step context is available
-	logMsg := fmt.Sprintf("current_time('%s') -> %s", timezone, result["time"])
+	timeStr, _ := result["time"].(string)
 	if fc := hooks.GetFlowStepContext(ctx); fc != nil {
-		t.logService.DebugWithFlowStep(logMsg, fc.FlowName, fc.StateName, fc.StepType)
+		t.logService.DebugWithFlowStep("current_time() called", fc.FlowName, fc.StateName, fc.StepType, zap.String("timezone", timezone), zap.String("time", timeStr))
 	} else {
-		t.logService.Debugf(logMsg)
+		t.logService.Debug("current_time() called", zap.String("timezone", timezone), zap.String("time", timeStr))
 	}
 
 	return result, nil

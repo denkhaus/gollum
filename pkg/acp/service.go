@@ -33,9 +33,16 @@
 //
 // - Each Gollum-ACP process creates ONE connection via NewConnection()
 // - The connection can create MULTIPLE sessions (multi-session support)
-// - Session is created by the ACP framework via NewSession callback (in connection.go)
-// - TODO: Determine when NewSession callback fires (Initialize/SetSessionMode/Prompt?)
-// - Each OnMessage() call includes the target SessionID for routing
+// - Session lifecycle follows the ACP protocol:
+//
+//   1. Initialize() - Protocol handshake, NO session created yet
+//   2. First Prompt() call for a new session - Triggers NewSession callback
+//   3. NewSession callback (in connection.go) creates the session BEFORE Prompt() executes
+//   4. Subsequent Prompt() calls reuse existing session (identified by SessionID)
+//
+// - Sessions are stored in s.store and looked up by SessionID
+// - Each OnMessage() call includes the target SessionID for routing to specific sessions
+// - OnLog() broadcasts to ALL active sessions (logs are system-wide, not session-specific)
 //
 // PROTOCOL BEHAVIOR:
 //
@@ -142,24 +149,95 @@ func (s *acpServiceImpl) OnMessage(msg channel.Message) {
 	}
 }
 
-// OnLog receives log entries from the agent system
-// Currently not forwarded to ACP client, but logged locally
+// OnLog receives log entries from the agent system and forwards them to the appropriate ACP session
 func (s *acpServiceImpl) OnLog(entry channel.LogEntry) {
+	// Log locally for debugging
 	s.logger.Debug("log entry from agent system",
 		zap.String("level", entry.Level),
 		zap.String("message", entry.Message),
+		zap.String("session_id", entry.SessionID),
+		zap.String("channel_id", entry.ChannelID.String()),
 	)
-	// TODO: Optionally forward logs to ACP client if needed
+
+	// Format: [LEVEL] message
+	logMsg := fmt.Sprintf("[%s] %s", entry.Level, entry.Message)
+
+	// If session is specified, route to that specific session
+	if entry.SessionID != "" {
+		sessionID := acppkg.SessionID(entry.SessionID)
+		session, ok := s.store.Get(sessionID)
+		if !ok {
+			s.logger.Warn("log entry specifies session but session not found",
+				zap.String("session_id", entry.SessionID),
+			)
+			return
+		}
+
+		// Stream log to specific ACP session
+		stream := acppkg.NewSessionStream(s.client, sessionID)
+		if err := stream.SendText(session.Context, logMsg); err != nil {
+			s.logger.Error("failed to stream log to ACP client",
+				zap.String("session_id", entry.SessionID),
+				zap.Error(err),
+			)
+		}
+		return
+	}
+
+	// If no session specified, broadcast to all active sessions
+	sessionIDs := s.store.List()
+	for _, sessionID := range sessionIDs {
+		session, ok := s.store.Get(sessionID)
+		if !ok {
+			continue
+		}
+
+		// Stream log to ACP client
+		stream := acppkg.NewSessionStream(s.client, sessionID)
+		if err := stream.SendText(session.Context, logMsg); err != nil {
+			s.logger.Error("failed to stream log to ACP client",
+				zap.String("session_id", string(sessionID)),
+				zap.Error(err),
+			)
+		}
+	}
 }
 
-// OnAgentLifecycle receives agent registration/removal events
+// OnAgentLifecycle receives agent registration/removal events and notifies all active ACP sessions
 func (s *acpServiceImpl) OnAgentLifecycle(event channel.AgentLifecycleEvent) {
 	s.logger.Debug("agent lifecycle event",
 		zap.String("agent_id", event.AgentID.String()),
 		zap.String("role", event.Role),
 		zap.Bool("added", event.Added),
 	)
-	// TODO: Optionally notify ACP client of agent changes
+
+	// Notify all active ACP sessions of agent changes
+	// Format: Agent {added|removed}: {role} (id: {agent_id})
+	var action string
+	if event.Added {
+		action = "added"
+	} else {
+		action = "removed"
+	}
+	notification := fmt.Sprintf("Agent %s: %s (id: %s)", action, event.Role, event.AgentID.String())
+
+	// Get all active sessions and send the notification
+	sessionIDs := s.store.List()
+	for _, sessionID := range sessionIDs {
+		session, ok := s.store.Get(sessionID)
+		if !ok {
+			continue
+		}
+
+		// Stream notification to ACP client
+		stream := acppkg.NewSessionStream(s.client, sessionID)
+		if err := stream.SendText(session.Context, notification); err != nil {
+			s.logger.Error("failed to send agent lifecycle notification to ACP client",
+				zap.String("session_id", string(sessionID)),
+				zap.Error(err),
+			)
+		}
+	}
 }
 
 // =============================================================================

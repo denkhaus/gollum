@@ -23,11 +23,11 @@ type (
 // ChannelMiddleware sends agent outputs to channel facade.
 // This middleware bridges the agent execution pipeline with the channel system.
 type ChannelMiddleware struct {
-	facade     ChannelFacade
-	agentID    uuid.UUID
-	agentRole  string
-	sessionID  string
-	channelID  uuid.UUID
+	facade    ChannelFacade
+	agentID   uuid.UUID
+	agentRole string
+	sessionID string
+	channelID uuid.UUID
 }
 
 // NewChannelMiddleware creates a new channel middleware

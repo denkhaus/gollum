@@ -8,6 +8,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/errs"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,6 +47,11 @@ func (m *mockLogger) InfoWithFlowStep(_ string, _, _, _ string, _ ...zap.Field) 
 func (m *mockLogger) ErrorWithFlowStep(_ string, _, _, _ string, _ ...zap.Field)   {}
 func (m *mockLogger) DebugWithFlowStep(_ string, _, _, _ string, _ ...zap.Field)   {}
 func (m *mockLogger) WarnWithFlowStep(_ string, _, _, _ string, _ ...zap.Field)    {}
+func (m *mockLogger) InfoWithContext(_ string, _ shared.LoggingContext, _ ...zap.Field) {}
+func (m *mockLogger) ErrorWithContext(_ string, _ shared.LoggingContext, _ ...zap.Field) {}
+func (m *mockLogger) DebugWithContext(_ string, _ shared.LoggingContext, _ ...zap.Field) {}
+func (m *mockLogger) WarnWithContext(_ string, _ shared.LoggingContext, _ ...zap.Field) {}
+func (m *mockLogger) SetLogForwarder(_ shared.LogForwarder)                        {}
 func (m *mockLogger) GetLogger() *zap.Logger                                        { return nil }
 func (m *mockLogger) SetTUIWriter(_ io.Writer)                             {}
 func (m *mockLogger) ResetToStdout()                                       {}

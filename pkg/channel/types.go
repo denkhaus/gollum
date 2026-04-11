@@ -12,13 +12,13 @@ import (
 type MessageType int
 
 const (
-	MessageTypeUserChat MessageType = iota
-	MessageTypeAgentChat    // Chat response from agent
-	MessageTypeToolRequest  // Tool execution request
-	MessageTypeToolResponse // Tool execution response
-	MessageTypeThinking     // Agent thinking blocks
-	MessageTypeSystemInfo   // System information messages
-	MessageTypeError        // Error messages
+	MessageTypeUserChat     MessageType = iota
+	MessageTypeAgentChat                // Chat response from agent
+	MessageTypeToolRequest              // Tool execution request
+	MessageTypeToolResponse             // Tool execution response
+	MessageTypeThinking                 // Agent thinking blocks
+	MessageTypeSystemInfo               // System information messages
+	MessageTypeError                    // Error messages
 )
 
 // String returns a string representation of the MessageType

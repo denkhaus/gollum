@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -42,6 +43,11 @@ func (n *nopLogger) InfoWithFlowStep(_ string, _, _, _ string, _ ...zap.Field) {
 func (n *nopLogger) DebugWithFlowStep(_ string, _, _, _ string, _ ...zap.Field) {}
 func (n *nopLogger) ErrorWithFlowStep(_ string, _, _, _ string, _ ...zap.Field) {}
 func (n *nopLogger) WarnWithFlowStep(_ string, _, _, _ string, _ ...zap.Field) {}
+func (n *nopLogger) InfoWithContext(_ string, _ shared.LoggingContext, _ ...zap.Field) {}
+func (n *nopLogger) ErrorWithContext(_ string, _ shared.LoggingContext, _ ...zap.Field) {}
+func (n *nopLogger) DebugWithContext(_ string, _ shared.LoggingContext, _ ...zap.Field) {}
+func (n *nopLogger) WarnWithContext(_ string, _ shared.LoggingContext, _ ...zap.Field) {}
+func (n *nopLogger) SetLogForwarder(_ shared.LogForwarder) {}
 
 // testGetEnvOrDefault gets an environment variable or returns the default value.
 func testGetEnvOrDefault(key, defaultValue string) string {

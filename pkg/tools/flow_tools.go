@@ -333,15 +333,15 @@ func (t *emitLogTool) runEmitLog(ctx context.Context, args ToolRequestParams) (m
 		// Fall back to regular logging
 		switch level {
 		case "debug":
-			t.logService.Debugf(logMsg)
+			t.logService.Debug("LogTool: " + message)
 		case "info":
-			t.logService.Infof(logMsg)
+			t.logService.Info("LogTool: " + message)
 		case "warn":
-			t.logService.Warnf(logMsg)
+			t.logService.Warn("LogTool: " + message)
 		case "error":
-			t.logService.Errorf(logMsg)
+			t.logService.Error("LogTool: " + message)
 		default:
-			t.logService.Infof(logMsg)
+			t.logService.Info("LogTool: " + message)
 		}
 	}
 
@@ -393,7 +393,7 @@ func (t *transitionToTool) runTransitionTo(ctx context.Context, args ToolRequest
 	if fc := hooks.GetFlowStepContext(ctx); fc != nil {
 		t.logService.DebugWithFlowStep(msg, fc.FlowName, fc.StateName, fc.StepType)
 	} else {
-		t.logService.Debugf(msg)
+		t.logService.Debug("transition_to() called", zap.String("from", fromState), zap.String("to", toState))
 	}
 
 	return map[string]any{
