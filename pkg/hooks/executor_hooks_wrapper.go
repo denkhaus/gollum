@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/errs"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -36,7 +37,7 @@ func (p *hookManagerImpl) WithFlowStepHooks(
 	}
 
 	beforeCtx := NewTypedHookContext(
-		BaseContext{SessionID: sessionID, AgentID: uuid.Nil},
+		shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.Nil, AgentID: uuid.Nil},
 		beforePayload,
 	)
 
@@ -68,7 +69,7 @@ func (p *hookManagerImpl) WithFlowStepHooks(
 	}
 
 	afterCtx := NewTypedHookContext(
-		BaseContext{SessionID: sessionID, AgentID: uuid.Nil},
+		shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.Nil, AgentID: uuid.Nil},
 		afterPayload,
 	)
 
@@ -76,7 +77,8 @@ func (p *hookManagerImpl) WithFlowStepHooks(
 	afterResult := p.executorRegistry.Trigger(ctx, AfterFlowStep, afterCtx)
 	if afterResult.Error != nil {
 		// Log hook error but don't override the original work error
-		p.log.Warn("AfterFlowStep hook error",
+		p.log.WarnWithContext("AfterFlowStep hook error",
+			shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.Nil, AgentID: uuid.Nil}, // No agentID in flow context
 			zap.Error(afterResult.Error),
 			zap.String("flow_id", flowID.String()),
 			zap.String("flow_name", flowName),

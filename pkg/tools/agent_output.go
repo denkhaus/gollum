@@ -77,7 +77,7 @@ func (t *agentOutputToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the AgentOutput tool to retrieve results from background agents
 func (t *agentOutputToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameAgentOutput, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameAgentOutput, args,
 		func() (map[string]any, error) {
 			return t.runAgentOutput(ctx, args)
 		})

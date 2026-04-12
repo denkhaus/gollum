@@ -5,7 +5,6 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/errs"
 	"github.com/denkhaus/gollum/pkg/shared"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -25,7 +24,7 @@ import (
 //   - Or hooks can allow the error to propagate
 func (p *hookManagerImpl) WithToolHooks(
 	ctx context.Context,
-	sessionID, agentID uuid.UUID,
+	loggingContext shared.LoggingContext,
 	toolName shared.ToolName,
 	args map[string]any,
 	work func() (map[string]any, error),
@@ -45,8 +44,7 @@ func (p *hookManagerImpl) WithToolHooks(
 	}
 
 	// BeforeToolExecution hook with typed context
-	hookCtx := NewTypedHookContext(
-		BaseContext{SessionID: sessionID, AgentID: agentID},
+	hookCtx := NewTypedHookContext(loggingContext,
 		ToolPayload{Name: toolName, Args: argsCopy},
 	)
 
@@ -84,9 +82,11 @@ func (p *hookManagerImpl) WithToolHooks(
 
 		// If hooks provided a fallback result, use it
 		if hookCtx.Payload.Result != nil {
-			p.log.Debug("Tool error recovered by hook",
+			p.log.DebugWithContext("Tool error recovered by hook",
+				loggingContext,
 				zap.String("tool", toolName.String()),
-				zap.Error(workErr))
+				zap.Error(workErr),
+			)
 			return hookCtx.Payload.Result, nil
 		}
 

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/errs"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +36,11 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 		agentID := uuid.New()
 		filePath := testFilePath
 
-		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileWrite, filePath, func() error {
+		err := hm.WithFileHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, BeforeFileWrite, filePath, func() error {
 			executed = append(executed, "work")
 			return nil
 		})
@@ -59,7 +64,11 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 		filePath := testFilePath
 
 		workExecuted := false
-		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileDelete, filePath, func() error {
+		err := hm.WithFileHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, BeforeFileDelete, filePath, func() error {
 			workExecuted = true
 			return nil
 		})
@@ -82,7 +91,11 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 		filePath := testFilePath
 
 		workExecuted := false
-		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileWrite, filePath, func() error {
+		err := hm.WithFileHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, BeforeFileWrite, filePath, func() error {
 			workExecuted = true
 			return nil
 		})
@@ -113,7 +126,11 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 		filePath := testFilePath
 		workErr := errors.New("read failed")
 
-		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileRead, filePath, func() error {
+		err := hm.WithFileHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, BeforeFileRead, filePath, func() error {
 			executed = append(executed, "work")
 			return workErr
 		})
@@ -129,7 +146,11 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 		sessionID := uuid.New()
 		agentID := uuid.New()
 
-		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileWrite, "", func() error {
+		err := hm.WithFileHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, BeforeFileWrite, "", func() error {
 			return nil
 		})
 
@@ -143,7 +164,11 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 		sessionID := uuid.New()
 		agentID := uuid.New()
 
-		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileWrite, testSuspiciousPath, func() error {
+		err := hm.WithFileHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, BeforeFileWrite, testSuspiciousPath, func() error {
 			return nil
 		})
 
@@ -159,7 +184,11 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 		agentID := uuid.New()
 		filePath := testFilePath
 
-		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileWrite, filePath, nil)
+		err := hm.WithFileHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, BeforeFileWrite, filePath, nil)
 
 		require.Error(t, err)
 		assert.True(t, errs.IsType(err, errs.TypeValidation))
@@ -172,7 +201,11 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 		agentID := uuid.New()
 		filePath := testFilePath
 
-		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeToolExecution, filePath, func() error {
+		err := hm.WithFileHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, BeforeToolExecution, filePath, func() error {
 			return nil
 		})
 
@@ -194,7 +227,11 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 		filePath := testFilePath
 		workErr := errors.New("work failed")
 
-		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileWrite, filePath, func() error {
+		err := hm.WithFileHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, BeforeFileWrite, filePath, func() error {
 			return workErr
 		})
 
@@ -219,7 +256,11 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 		agentID := uuid.New()
 		filePath := testFilePath
 
-		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileModify, filePath, func() error {
+		err := hm.WithFileHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, BeforeFileModify, filePath, func() error {
 			return nil
 		})
 
@@ -244,7 +285,11 @@ func TestHookManager_WithFileHooks(t *testing.T) {
 		agentID := uuid.New()
 		filePath := testFilePath
 
-		err := hm.WithFileHooks(context.Background(), sessionID, agentID, BeforeFileWrite, filePath, func() error {
+		err := hm.WithFileHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, BeforeFileWrite, filePath, func() error {
 			executed = append(executed, "work")
 			return nil
 		})

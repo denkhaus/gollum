@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -121,8 +122,8 @@ func TestHookManager_TriggerExecutorHooks_BeforeFlowStep(t *testing.T) {
 	}
 
 	hookCtx := &TypedHookContext[ExecutorPayload]{
-		BaseContext: BaseContext{
-			SessionID: payload.SessionID,
+		LoggingContext: shared.LoggingContext{
+			SessionID: payload.SessionID.String(),
 		},
 		Payload: payload,
 	}

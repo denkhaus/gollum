@@ -10,23 +10,13 @@ import (
 	"github.com/google/uuid"
 )
 
-// BaseContext contains common fields shared by all hook contexts.
-// It provides session and agent identification for correlation and tracing.
-type BaseContext struct {
-	// SessionID is the unique identifier for the current session.
-	SessionID uuid.UUID
-
-	// AgentID is the unique identifier for the agent triggering the hook.
-	AgentID uuid.UUID
-}
-
 // ToolPayload contains data for tool execution hooks.
 // Used with BeforeToolExecution, AfterToolExecution, and OnToolError hook points.
 //
 // Hooks can modify Args before execution (BeforeToolExecution) and
 // modify Result after execution (AfterToolExecution).
 type ToolPayload struct {
-	BaseContext
+	shared.LoggingContext
 
 	// Name is the tool name being executed.
 	Name shared.ToolName
@@ -49,7 +39,7 @@ type ToolPayload struct {
 //
 // Hooks can modify Input before the request and Response after receiving it.
 type LLMPayload struct {
-	BaseContext
+	shared.LoggingContext
 
 	// Input is the prompt sent to the LLM.
 	// Hooks can modify this before the request is sent.
@@ -91,7 +81,7 @@ const (
 // Hooks can modify Content before write operations and access both
 // OldContent and NewContent for modify operations.
 type FilePayload struct {
-	BaseContext
+	shared.LoggingContext
 
 	// Path is the file path for the operation.
 	Path string
@@ -116,7 +106,7 @@ type FilePayload struct {
 // SessionPayload contains data for session lifecycle hooks.
 // Used with BeforeSessionStart and AfterSessionEnd hook points.
 type SessionPayload struct {
-	BaseContext
+	shared.LoggingContext
 
 	// Metadata contains additional session-specific data.
 	// Hooks can use this to pass information between before/after hooks.
@@ -136,7 +126,7 @@ const (
 // AgentPayload contains data for agent lifecycle hooks.
 // Used with BeforeAgentSpawn/AfterAgentSpawn and BeforeAgentRemove/AfterAgentRemove hook points.
 type AgentPayload struct {
-	BaseContext
+	shared.LoggingContext
 
 	// Event indicates whether this is a spawn or remove event.
 	Event AgentEvent
@@ -175,7 +165,7 @@ const (
 // SkillPayload contains data for skill invocation hooks.
 // Used with BeforeSkillInvoked, AfterSkillInvoked, and OnSkillError hook points.
 type SkillPayload struct {
-	BaseContext
+	shared.LoggingContext
 
 	// Name is the skill name being invoked.
 	Name string
@@ -210,7 +200,7 @@ type SkillPayload struct {
 // This payload is available for all hook points to enable consistent
 // observability across the entire hook lifecycle.
 type TracingPayload struct {
-	BaseContext
+	shared.LoggingContext
 
 	// SpanID is the unique identifier for this span within the trace.
 	SpanID string

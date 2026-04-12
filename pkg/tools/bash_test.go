@@ -1,21 +1,20 @@
 package tools
 
 import (
-
 	"context"
-	"github.com/denkhaus/gollum/pkg/state"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/config"
+	"github.com/denkhaus/gollum/pkg/diff"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/diff"
+	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"go.uber.org/mock/gomock"
-
 )
 
 // createBashToolForTesting creates a BashTool with mocked dependencies for testing.
@@ -30,10 +29,16 @@ func createBashToolForTesting(t *testing.T, ctrl *gomock.Controller) *bashToolIm
 	mockDiffProvider := diff.NewMockProvider(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
 	return &bashToolImpl{
 		logService:   logService,
 		fileState:    mockFSM,
-		agentID:      uuid.New(),
+		agent:        mockAgent,
 		hookManager:  mockHookManager,
 		diffProvider: mockDiffProvider,
 		bashCfg: &config.BashConfig{

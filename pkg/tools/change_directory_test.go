@@ -29,6 +29,13 @@ func TestChangeDirectoryTool_Run_ValidDirectory(t *testing.T) {
 	// Only need eventBus - services react via events
 	mockEventBus := events.NewMockBus(ctrl)
 
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
+
 	// Save original directory and restore after test
 	originalDir, err := os.Getwd()
 	if err != nil {
@@ -50,7 +57,7 @@ func TestChangeDirectoryTool_Run_ValidDirectory(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		eventBus:    mockEventBus,
-		agentID:     uuid.New(),
+		agent:       mockAgent,
 	}
 
 	args := map[string]any{
@@ -85,10 +92,16 @@ func TestChangeDirectoryTool_Run_MissingPath(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
 	tool := &changeDirectoryToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
-		agentID:     uuid.New(),
+		agent:       mockAgent,
 	}
 
 	args := map[string]any{}
@@ -108,10 +121,16 @@ func TestChangeDirectoryTool_Run_EmptyPath(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
 	tool := &changeDirectoryToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
-		agentID:     uuid.New(),
+		agent:       mockAgent,
 	}
 
 	args := map[string]any{
@@ -133,10 +152,16 @@ func TestChangeDirectoryTool_Run_NonexistentDirectory(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
 	tool := &changeDirectoryToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
-		agentID:     uuid.New(),
+		agent:       mockAgent,
 	}
 
 	args := map[string]any{
@@ -158,10 +183,16 @@ func TestChangeDirectoryTool_Run_FileNotDirectory(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
 	tool := &changeDirectoryToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
-		agentID:     uuid.New(),
+		agent:       mockAgent,
 	}
 
 	// Create a temp file (not directory)
@@ -192,6 +223,13 @@ func TestChangeDirectoryTool_Run_RelativePath(t *testing.T) {
 	// Only need eventBus
 	mockEventBus := events.NewMockBus(ctrl)
 
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
+
 	// Save original directory and restore after test
 	originalDir, err := os.Getwd()
 	if err != nil {
@@ -220,7 +258,7 @@ func TestChangeDirectoryTool_Run_RelativePath(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		eventBus:    mockEventBus,
-		agentID:     uuid.New(),
+		agent:       mockAgent,
 	}
 
 	args := map[string]any{
@@ -268,6 +306,9 @@ func TestChangeDirectoryTool_Spec(t *testing.T) {
 }
 
 func TestChangeDirectoryToolProvider_CreateTool(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockHookManager := hooks.NewMockHookManager(nil)
@@ -278,9 +319,14 @@ func TestChangeDirectoryToolProvider_CreateTool(t *testing.T) {
 		hookManager: mockHookManager,
 		eventBus:    mockEventBus,
 	}
-	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
-	tool := provider.CreateTool(testUUID)
+	// Create mock agent
+	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(testUUID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", testUUID, uuid.Nil)).AnyTimes()
+
+	tool := provider.CreateTool(mockAgent)
 
 	if tool == nil {
 		t.Fatal("Expected non-nil tool")
@@ -297,8 +343,8 @@ func TestChangeDirectoryToolProvider_CreateTool(t *testing.T) {
 		if toolImpl.logService == nil {
 			t.Error("Expected tool to have logService")
 		}
-		if toolImpl.agentID != testUUID {
-			t.Errorf("Expected agentID %v, got %v", testUUID, toolImpl.agentID)
+		if toolImpl.agent.GetID() != testUUID {
+			t.Errorf("Expected agent ID %v, got %v", testUUID, toolImpl.agent.GetID())
 		}
 	} else {
 		t.Error("Expected tool to be *changeDirectoryToolImpl")
@@ -317,6 +363,13 @@ func TestNewChangeDirectoryToolProvider(t *testing.T) {
 
 	// Use mock for EventBus
 	mockEventBus := events.NewMockBus(ctrl)
+
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
 	do.ProvideValue[events.Bus](injector, mockEventBus)
 
 	provider, err := NewChangeDirectoryToolProvider(injector)
@@ -329,8 +382,7 @@ func TestNewChangeDirectoryToolProvider(t *testing.T) {
 	}
 
 	// Verify provider can create tool
-	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
-	tool := provider.CreateTool(testUUID)
+	tool := provider.CreateTool(mockAgent)
 
 	if tool == nil {
 		t.Error("Expected provider to create non-nil tool")

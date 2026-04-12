@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/denkhaus/gollum/pkg/errs"
-	"github.com/google/uuid"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"go.uber.org/zap"
 )
 
@@ -25,7 +25,7 @@ import (
 //   - Or hooks can allow the error to propagate
 func (p *hookManagerImpl) WithLLMHooks(
 	ctx context.Context,
-	sessionID, agentID uuid.UUID,
+	loggingContext shared.LoggingContext,
 	prompt string,
 	model string,
 	work func(string) (string, error),
@@ -37,7 +37,7 @@ func (p *hookManagerImpl) WithLLMHooks(
 
 	// BeforeLLMRequest hook with typed context
 	hookCtx := NewTypedHookContext(
-		BaseContext{SessionID: sessionID, AgentID: agentID},
+		loggingContext,
 		LLMPayload{
 			Input:   prompt,
 			Model:   model,
@@ -73,7 +73,8 @@ func (p *hookManagerImpl) WithLLMHooks(
 
 		// If hooks provided a fallback response, use it
 		if hookCtx.Payload.Response != "" {
-			p.log.Debug("LLM error recovered by hook",
+			p.log.DebugWithContext("LLM error recovered by hook",
+				loggingContext,
 				zap.String("model", model),
 				zap.Error(workErr))
 			return hookCtx.Payload.Response, nil

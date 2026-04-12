@@ -13,7 +13,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
-	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -77,7 +76,7 @@ func (t *globToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the Glob tool to find files matching a pattern
 func (t *globToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameGlob, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameGlob, args,
 		func() (map[string]any, error) {
 			return t.runGlob(ctx, args)
 		})

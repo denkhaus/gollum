@@ -16,7 +16,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
-	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -122,7 +121,7 @@ func (t *grepToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the Grep tool to search file contents
 func (t *grepToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameGrep, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameGrep, args,
 		func() (map[string]any, error) {
 			return t.runGrep(ctx, args)
 		})
@@ -535,7 +534,7 @@ func (t *grepToolImpl) grepCount(_ context.Context, searchPath string, regex *re
 // searchFile searches a single file and returns matches with context
 func (t *grepToolImpl) searchFile(ctx context.Context, path string, regex *regexp.Regexp, contextBefore, contextAfter int, showLineNumbers bool) ([]map[string]any, error) {
 	// Wrap the file read operation with file read hooks
-	content, err := t.hookManager.WithFileReadHooks(ctx, uuid.Nil, t.agent.GetID(), path,
+	content, err := t.hookManager.WithFileReadHooks(ctx, t.agent.ToLoggingContext(), path,
 		func() (string, error) {
 			file, err := os.Open(path)
 			if err != nil {

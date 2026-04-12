@@ -44,6 +44,13 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 	senderID := uuid.New()
 	var spawnedAgentID uuid.UUID
 
+	// Create mock sender agent
+	mockSenderAgent := shared.NewMockAgent(ctrl)
+	mockSenderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockSenderAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
+		AgentID: senderID,
+	}).AnyTimes()
+
 	// Create mock agent - ID will be determined at spawn time
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().DoAndReturn(func() uuid.UUID {
@@ -66,7 +73,7 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:        mockSenderAgent,
 	}
 
 	ctx := context.Background()
@@ -90,7 +97,7 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 	// Create agent output tool for result retrieval
 	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
-		senderID:    senderID,
+		agent:    mockSenderAgent,
 		hookManager: mockHookManager,
 	}
 
@@ -149,6 +156,13 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 	senderID := uuid.New()
 	var spawnedAgentID uuid.UUID
 
+	// Create mock sender agent
+	mockSenderAgent := shared.NewMockAgent(ctrl)
+	mockSenderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockSenderAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
+		AgentID: senderID,
+	}).AnyTimes()
+
 	// Create mock agent - ID will be determined at spawn time
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().DoAndReturn(func() uuid.UUID {
@@ -171,7 +185,7 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:        mockSenderAgent,
 	}
 
 	ctx := context.Background()
@@ -209,7 +223,7 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 	// Create agent output tool
 	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
-		senderID:    senderID,
+		agent:    mockSenderAgent,
 		hookManager: mockHookManager,
 	}
 
@@ -258,6 +272,13 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 	senderID := uuid.New()
 	var spawnedAgentID uuid.UUID
 
+	// Create mock sender agent
+	mockSenderAgent := shared.NewMockAgent(ctrl)
+	mockSenderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockSenderAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
+		AgentID: senderID,
+	}).AnyTimes()
+
 	// Create mock agent - ID will be determined at spawn time
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().DoAndReturn(func() uuid.UUID {
@@ -280,7 +301,7 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:        mockSenderAgent,
 	}
 
 	ctx := context.Background()
@@ -299,7 +320,7 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 	// Create agent output tool
 	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
-		senderID:    senderID,
+		agent:    mockSenderAgent,
 		hookManager: mockHookManager,
 	}
 
@@ -355,6 +376,13 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 	senderID := uuid.New()
 	var spawnedAgentID uuid.UUID
 
+	// Create mock sender agent
+	mockSenderAgent := shared.NewMockAgent(ctrl)
+	mockSenderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockSenderAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
+		AgentID: senderID,
+	}).AnyTimes()
+
 	// Create mock agent - ID will be determined at spawn time
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().DoAndReturn(func() uuid.UUID {
@@ -377,7 +405,7 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:        mockSenderAgent,
 	}
 
 	ctx := context.Background()
@@ -400,7 +428,7 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 	// Create agent output tool
 	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
-		senderID:    senderID,
+		agent:    mockSenderAgent,
 		hookManager: mockHookManager,
 	}
 

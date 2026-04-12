@@ -20,8 +20,14 @@ func TestInvokeSkillTool_Spec(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
 	tool := &invokeSkillToolImpl{
-		senderID: uuid.New(),
+		agent: mockAgent,
 	}
 
 	spec := tool.Spec()
@@ -72,6 +78,9 @@ func TestInvokeSkillTool_MissingRequiredParameters(t *testing.T) {
 			defer ctrl.Finish()
 
 			senderID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
 			mockLogger := logger.NewMockLoggerService(ctrl)
 			mockHookManager := hooks.NewMockHookManager(ctrl)
 
@@ -79,14 +88,14 @@ func TestInvokeSkillTool_MissingRequiredParameters(t *testing.T) {
 			mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 			// Set up hook manager to pass through
-			mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-				DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+			mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 					return work()
 				})
 
 			tool := &invokeSkillToolImpl{
 				logService:      mockLogger,
-				senderID:        senderID,
+				agent:           mockAgent,
 				hookManager:     mockHookManager,
 				executionHelper: &testExecutionHelper{},
 			}
@@ -103,13 +112,16 @@ func TestInvokeSkillTool_SkillNotFound(t *testing.T) {
 	defer ctrl.Finish()
 
 	senderID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockSkillService := skills.NewMockSkillService(ctrl)
 
 	// Set up hook manager to pass through
-	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 			return work()
 		})
 
@@ -119,7 +131,7 @@ func TestInvokeSkillTool_SkillNotFound(t *testing.T) {
 	tool := &invokeSkillToolImpl{
 		logService:      mockLogger,
 		skillService:    mockSkillService,
-		senderID:        senderID,
+		agent:           mockAgent,
 		hookManager:     mockHookManager,
 		executionHelper: &testExecutionHelper{},
 	}
@@ -139,13 +151,16 @@ func TestInvokeSkillTool_InvalidContextMode(t *testing.T) {
 	defer ctrl.Finish()
 
 	senderID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockSkillService := skills.NewMockSkillService(ctrl)
 
 	// Set up hook manager to pass through
-	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 			return work()
 		})
 
@@ -160,7 +175,7 @@ func TestInvokeSkillTool_InvalidContextMode(t *testing.T) {
 	tool := &invokeSkillToolImpl{
 		logService:      mockLogger,
 		skillService:    mockSkillService,
-		senderID:        senderID,
+		agent:           mockAgent,
 		hookManager:     mockHookManager,
 		executionHelper: &testExecutionHelper{},
 	}
@@ -181,14 +196,17 @@ func TestInvokeSkillTool_InvalidModel(t *testing.T) {
 	defer ctrl.Finish()
 
 	senderID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockSkillService := skills.NewMockSkillService(ctrl)
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 
 	// Set up hook manager to pass through
-	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 			return work()
 		})
 
@@ -204,7 +222,7 @@ func TestInvokeSkillTool_InvalidModel(t *testing.T) {
 	tool := &invokeSkillToolImpl{
 		logService:      mockLogger,
 		skillService:    mockSkillService,
-		senderID:        senderID,
+		agent:           mockAgent,
 		hookManager:     mockHookManager,
 		executionHelper: &testExecutionHelper{},
 		registry:        mockRegistry,
@@ -226,14 +244,17 @@ func TestInvokeSkillTool_SkillWithNoContent(t *testing.T) {
 	defer ctrl.Finish()
 
 	senderID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockSkillService := skills.NewMockSkillService(ctrl)
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 
 	// Set up hook manager to pass through
-	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 			return work()
 		})
 
@@ -254,7 +275,7 @@ func TestInvokeSkillTool_SkillWithNoContent(t *testing.T) {
 	tool := &invokeSkillToolImpl{
 		logService:      mockLogger,
 		skillService:    mockSkillService,
-		senderID:        senderID,
+		agent:           mockAgent,
 		hookManager:     mockHookManager,
 		executionHelper: &testExecutionHelper{},
 		registry:        mockRegistry,
@@ -320,7 +341,7 @@ func TestInvokeSkillTool_ImplementsGollemTool(t *testing.T) {
 	defer ctrl.Finish()
 
 	tool := &invokeSkillToolImpl{
-		senderID: uuid.New(),
+		agent: shared.NewMockAgent(ctrl),
 	}
 
 	// This will fail to compile if InvokeSkillTool doesn't implement gollem.Tool
@@ -333,12 +354,15 @@ func TestInvokeSkillTool_TriggersSkillHooks(t *testing.T) {
 	defer ctrl.Finish()
 
 	senderID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockSkillService := skills.NewMockSkillService(ctrl)
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	mockFactory := shared.NewMockAgentFactory(ctrl)
-	mockAgent := shared.NewMockAgent(ctrl)
+	mockExecutionAgent := shared.NewMockAgent(ctrl)
 	mockExecutionHelper := NewMockAgentExecutionHelper(ctrl)
 
 	skill := &skills.Skill{
@@ -354,8 +378,8 @@ func TestInvokeSkillTool_TriggersSkillHooks(t *testing.T) {
 	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false).Times(2)
 
 	// Tool hooks pass through
-	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), shared.ToolNameInvokeSkill, gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _, _ uuid.UUID, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), shared.ToolNameInvokeSkill, gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ shared.ToolName, lc shared.LoggingContext, _ shared.ToolName, work func() (map[string]any, error)) (map[string]any, error) {
 			return work()
 		})
 
@@ -372,14 +396,14 @@ func TestInvokeSkillTool_TriggersSkillHooks(t *testing.T) {
 	mockLogger.EXPECT().DebugWithAgent(gomock.Any(), gomock.Eq(senderID), gomock.Any()).AnyTimes()
 
 	// Agent factory creates agent
-	mockFactory.EXPECT().CreateAgent(gomock.Any(), gomock.Any()).Return(mockAgent, nil)
-	mockAgent.EXPECT().GetID().Return(uuid.New())
+	mockFactory.EXPECT().CreateAgent(gomock.Any(), gomock.Any()).Return(mockExecutionAgent, nil)
+	mockExecutionAgent.EXPECT().GetID().Return(uuid.New())
 
 	// Registry registers agent
-	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any()).Return(nil)
+	mockRegistry.EXPECT().Register(mockExecutionAgent, gomock.Any()).Return(nil)
 
 	// Execution helper executes synchronously
-	mockExecutionHelper.EXPECT().ExecuteSynchronously(gomock.Any(), gomock.Any(), "test task").
+	mockExecutionHelper.EXPECT().ExecuteSynchronously(gomock.Any(), mockExecutionAgent, "test task").
 		Return(map[string]any{"status": "success"}, nil)
 
 	tool := &invokeSkillToolImpl{
@@ -387,7 +411,7 @@ func TestInvokeSkillTool_TriggersSkillHooks(t *testing.T) {
 		agentFactory:    mockFactory,
 		registry:        mockRegistry,
 		skillService:    mockSkillService,
-		senderID:        senderID,
+		agent:           mockAgent,
 		hookManager:     mockHookManager,
 		executionHelper: mockExecutionHelper,
 	}

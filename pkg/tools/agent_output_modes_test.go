@@ -29,6 +29,7 @@ func TestAgentOutputTool_Run_NonBlockingMode_Running(t *testing.T) {
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
 
 	agentID := uuid.New()
 	startedAt := time.Now().Unix()
@@ -81,6 +82,7 @@ func TestAgentOutputTool_Run_NonBlockingMode_Completed(t *testing.T) {
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
 
 	agentID := uuid.New()
 	startedAt := time.Now().Add(-1 * time.Hour).Unix()
@@ -140,6 +142,7 @@ func TestAgentOutputTool_Run_NonBlockingMode_Failed(t *testing.T) {
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
 
 	agentID := uuid.New()
 	startedAt := time.Now().Add(-1 * time.Hour).Unix()
@@ -194,6 +197,7 @@ func TestAgentOutputTool_Run_BlockingMode_Completed(t *testing.T) {
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
 
 	agentID := uuid.New()
 	startedAt := time.Now().Add(-1 * time.Hour).Unix()
@@ -256,6 +260,7 @@ func TestAgentOutputTool_Run_BlockingMode_Timeout(t *testing.T) {
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
 
 	agentID := uuid.New()
 	startedAt := time.Now().Unix()
@@ -310,6 +315,7 @@ func TestAgentOutputTool_Run_BlockingMode_Failed(t *testing.T) {
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
 
 	agentID := uuid.New()
 	startedAt := time.Now().Add(-1 * time.Hour).Unix()
@@ -368,6 +374,7 @@ func TestAgentOutputTool_Run_CustomTimeout(t *testing.T) {
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
 
 	agentID := uuid.New()
 	startedAt := time.Now().Unix()
@@ -388,7 +395,7 @@ func TestAgentOutputTool_Run_CustomTimeout(t *testing.T) {
 		Return(taskResult, true)
 
 	mockRegistry.EXPECT().
-		WaitForAgent(gomock.Any(), agentID, 5000*time.Millisecond).
+		WaitForAgent(gomock.Any(), agentID, 5*time.Second).
 		Return(taskResult, nil)
 
 	tool := &agentOutputToolImpl{

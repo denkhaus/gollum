@@ -1,18 +1,17 @@
 package tools
 
 import (
-
-	"github.com/denkhaus/gollum/pkg/state"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-
 )
 
 // TestEditToolSpec verifies the tool specification
@@ -22,10 +21,17 @@ func TestEditToolSpec(t *testing.T) {
 
 	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
+
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
 	tool := &editToolImpl{
 		fsm:         mockFSM,
 		hookManager: mockHookManager,
-		agentID:     uuid.New(),
+		agent:       mockAgent,
 	}
 
 	spec := tool.Spec()
@@ -54,10 +60,17 @@ func TestEditToolSpecIsConstant(t *testing.T) {
 
 	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
+
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
 	tool := &editToolImpl{
 		fsm:         mockFSM,
 		hookManager: mockHookManager,
-		agentID:     uuid.New(),
+		agent:       mockAgent,
 	}
 
 	spec1 := tool.Spec()
@@ -81,12 +94,17 @@ func TestEditToolProvider(t *testing.T) {
 		fsm:        mockFSM,
 	}
 
+	// Create mock agent
 	agentID := uuid.New()
-	tool := provider.CreateTool(agentID)
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
+	tool := provider.CreateTool(mockAgent)
 	toolImpl := tool.(*editToolImpl)
 
 	require.NotNil(t, tool)
-	assert.Equal(t, agentID, toolImpl.agentID)
+	assert.Equal(t, agentID, toolImpl.agent.GetID())
 	assert.Equal(t, logService, toolImpl.logService)
 	assert.Equal(t, mockFSM, toolImpl.fsm)
 }

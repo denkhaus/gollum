@@ -24,7 +24,9 @@ func TestAgentOutputTool_Spec(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	mockAgent := shared.NewMockAgent(ctrl)
-	mockAgent.EXPECT().GetID().Return(uuid.New()).AnyTimes()
+	agentID := uuid.New()
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
 	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
@@ -62,7 +64,9 @@ func TestAgentOutputTool_Run_MissingAgentID(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	mockAgent := shared.NewMockAgent(ctrl)
-	mockAgent.EXPECT().GetID().Return(uuid.New()).AnyTimes()
+	agentID := uuid.New()
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
 	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
@@ -87,7 +91,9 @@ func TestAgentOutputTool_Run_EmptyAgentID(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	mockAgent := shared.NewMockAgent(ctrl)
-	mockAgent.EXPECT().GetID().Return(uuid.New()).AnyTimes()
+	agentID := uuid.New()
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
 	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
@@ -113,7 +119,9 @@ func TestAgentOutputTool_Run_InvalidUUID(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	mockAgent := shared.NewMockAgent(ctrl)
-	mockAgent.EXPECT().GetID().Return(uuid.New()).AnyTimes()
+	agentID := uuid.New()
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
 	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
@@ -143,6 +151,7 @@ func TestAgentOutputTool_Run_AgentNotFound(t *testing.T) {
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
 
 	// Permission check: sender is direct parent
 	mockRegistry.EXPECT().

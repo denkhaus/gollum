@@ -175,7 +175,12 @@ func TestGlobToolProvider_CreateTool(t *testing.T) {
 	provider := &globToolProvider{logService: logService, hookManager: mockHookManager}
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
-	tool := provider.CreateTool(testUUID)
+	// Create mock agent
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(testUUID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", testUUID, uuid.Nil)).AnyTimes()
+
+	tool := provider.CreateTool(mockAgent)
 	toolImpl := tool.(*globToolImpl)
 	if tool == nil {
 		t.Fatal("Expected non-nil tool")
@@ -189,12 +194,14 @@ func TestGlobToolProvider_CreateTool(t *testing.T) {
 		t.Error("Expected tool to have hookManager")
 	}
 
-	if toolImpl.agentID != testUUID {
-		t.Errorf("Expected agentID %v, got %v", testUUID, toolImpl.agentID)
+	if toolImpl.agent.GetID() != testUUID {
+		t.Errorf("Expected agentID %v, got %v", testUUID, toolImpl.agent.GetID())
 	}
 }
 
 func TestNewGlobToolProvider(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 	injector := setupTestInjector()
 
 	provider, err := NewGlobToolProvider(injector)
@@ -208,7 +215,11 @@ func TestNewGlobToolProvider(t *testing.T) {
 
 	// Verify provider can create tool
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
-	tool := provider.CreateTool(testUUID)
+
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(testUUID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", testUUID, uuid.Nil)).AnyTimes()
+	tool := provider.CreateTool(mockAgent)
 
 	if tool == nil {
 		t.Error("Expected provider to create non-nil tool")

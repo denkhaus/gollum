@@ -27,11 +27,13 @@ func TestListAgentsTool_Spec(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	senderAgent := shared.NewMockAgent(ctrl)
+
 	tool := &listAgentsToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
-		senderID:    uuid.New(),
+		agent:    senderAgent,
 	}
 
 	spec := tool.Spec()
@@ -62,6 +64,10 @@ func TestListAgentsTool_Run_SuccessNoRelatedAgents(t *testing.T) {
 	registry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
+
+	senderAgent := shared.NewMockAgent(ctrl)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+
 	registry.EXPECT().GetChildren(senderID).Return([]shared.Agent{})
 	registry.EXPECT().GetParent(senderID).Return(nil, false)
 
@@ -69,7 +75,7 @@ func TestListAgentsTool_Run_SuccessNoRelatedAgents(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
-		senderID:    senderID,
+		agent:    senderAgent,
 	}
 
 	ctx := context.Background()
@@ -97,6 +103,10 @@ func TestListAgentsTool_Run_SuccessWithSubagentsOnly(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock sender agent
+	senderAgent := shared.NewMockAgent(ctrl)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+
 	// Create mock child agents
 	child1 := shared.NewMockAgent(ctrl)
 	child2 := shared.NewMockAgent(ctrl)
@@ -120,7 +130,7 @@ func TestListAgentsTool_Run_SuccessWithSubagentsOnly(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
-		senderID:    senderID,
+		agent:    senderAgent,
 	}
 
 	ctx := context.Background()
@@ -157,6 +167,10 @@ func TestListAgentsTool_Run_SuccessWithParentOnly(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock sender agent
+	senderAgent := shared.NewMockAgent(ctrl)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+
 	// Create mock parent agent
 	parent := shared.NewMockAgent(ctrl)
 
@@ -174,7 +188,7 @@ func TestListAgentsTool_Run_SuccessWithParentOnly(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
-		senderID:    senderID,
+		agent:    senderAgent,
 	}
 
 	ctx := context.Background()
@@ -208,6 +222,10 @@ func TestListAgentsTool_Run_SuccessWithParentAndSubagents(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock sender agent
+	senderAgent := shared.NewMockAgent(ctrl)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+
 	// Create mock parent agent
 	parent := shared.NewMockAgent(ctrl)
 	parentConfig := &shared.AgentConfig{
@@ -239,7 +257,7 @@ func TestListAgentsTool_Run_SuccessWithParentAndSubagents(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
-		senderID:    senderID,
+		agent:    senderAgent,
 	}
 
 	ctx := context.Background()
@@ -277,18 +295,23 @@ func TestListAgentsToolProvider(t *testing.T) {
 	registry := registry.NewMockAgentRegistry(ctrl)
 	senderID := uuid.New()
 
+	// Create mock agent
+	senderAgent := shared.NewMockAgent(ctrl)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	senderAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+
 	provider := &listAgentsToolProvider{
 		logService: logService,
 		registry:   registry,
 	}
 
-	tool := provider.CreateTool(senderID)
+	tool := provider.CreateTool(senderAgent)
 	toolImpl := tool.(*listAgentsToolImpl)
 
 	assert.NotNil(t, tool)
 	assert.Equal(t, logService, toolImpl.logService)
 	assert.Equal(t, registry, toolImpl.registry)
-	assert.Equal(t, senderID, toolImpl.senderID)
+	assert.Equal(t, senderAgent, toolImpl.agent)
 }
 
 func TestNewListAgentsToolProvider(t *testing.T) {
@@ -328,6 +351,10 @@ func TestListAgentsTool_Run_RecursiveFlag(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock sender agent
+	senderAgent := shared.NewMockAgent(ctrl)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+
 	// Create mock agents
 	child1 := shared.NewMockAgent(ctrl)
 	grandchild := shared.NewMockAgent(ctrl)
@@ -357,7 +384,7 @@ func TestListAgentsTool_Run_RecursiveFlag(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
-		senderID:    senderID,
+		agent:    senderAgent,
 	}
 
 	ctx := context.Background()
@@ -397,6 +424,10 @@ func TestListAgentsTool_Run_TreeFlag(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock sender agent
+	senderAgent := shared.NewMockAgent(ctrl)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+
 	// Create mock child agents
 	child1 := shared.NewMockAgent(ctrl)
 	child2 := shared.NewMockAgent(ctrl)
@@ -421,7 +452,7 @@ func TestListAgentsTool_Run_TreeFlag(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
-		senderID:    senderID,
+		agent:    senderAgent,
 	}
 
 	ctx := context.Background()
@@ -455,6 +486,10 @@ func TestListAgentsTool_Run_TreeFlagWithRecursive(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock sender agent
+	senderAgent := shared.NewMockAgent(ctrl)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+
 	// Create mock agents
 	child := shared.NewMockAgent(ctrl)
 	grandchild := shared.NewMockAgent(ctrl)
@@ -481,7 +516,7 @@ func TestListAgentsTool_Run_TreeFlagWithRecursive(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
-		senderID:    senderID,
+		agent:    senderAgent,
 	}
 
 	ctx := context.Background()

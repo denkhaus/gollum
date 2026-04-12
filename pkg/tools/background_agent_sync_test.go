@@ -1,7 +1,6 @@
 package tools
 
 import (
-
 	"context"
 	"errors"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
@@ -17,7 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-
 )
 
 // TestBackgroundAgent_SyncExecution tests the complete synchronous execution flow
@@ -57,6 +55,11 @@ func TestBackgroundAgent_SyncExecution(t *testing.T) {
 		SystemPrompt: "test",
 	}).AnyTimes()
 
+	// Create mock sender agent
+	mockSenderAgent := shared.NewMockAgent(ctrl)
+	mockSenderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockSenderAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+
 	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
@@ -65,7 +68,7 @@ func TestBackgroundAgent_SyncExecution(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:           mockSenderAgent,
 	}
 
 	ctx := context.Background()
@@ -105,7 +108,7 @@ func TestBackgroundAgent_SyncExecution(t *testing.T) {
 	// Create agent output tool for result retrieval
 	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
-		senderID:    senderID,
+		agent:       mockSenderAgent,
 		hookManager: mockHookManager,
 	}
 
@@ -158,6 +161,11 @@ func TestBackgroundAgent_SyncExecutionError(t *testing.T) {
 		SystemPrompt: "test",
 	}).AnyTimes()
 
+	// Create mock sender agent
+	mockSenderAgent := shared.NewMockAgent(ctrl)
+	mockSenderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockSenderAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+
 	// Create spawn tool
 	tool := &spawnAgentToolImpl{
 		logService:      logService,
@@ -167,7 +175,7 @@ func TestBackgroundAgent_SyncExecutionError(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:           mockSenderAgent,
 	}
 
 	ctx := context.Background()
@@ -179,9 +187,9 @@ func TestBackgroundAgent_SyncExecutionError(t *testing.T) {
 		return mockAgent, nil
 	})
 
-	// Agent execution will fail
+	// Mock the agent execution to return an error
 	testError := errors.New("execution failed")
-	mockAgent.EXPECT().Execute(ctx, gomock.Any()).Return(nil, testError)
+	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).Return(nil, testError)
 
 	// Execute spawn agent - should handle error gracefully
 	result, err := tool.Run(ctx, map[string]any{

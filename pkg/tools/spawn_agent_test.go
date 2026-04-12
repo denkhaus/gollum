@@ -45,7 +45,8 @@ func TestSpawnAgentToolSpec(t *testing.T) {
 		configService: mockConfigService,
 		hookManager:   mockHookManager,
 	}
-	tool := provider.CreateTool(uuid.New(), nil) // nil factory is OK for Spec() test
+	mockAgent := shared.NewMockAgent(ctrl)
+	tool := provider.CreateTool(mockAgent, nil) // nil factory is OK for Spec() test
 
 	spec := tool.Spec()
 
@@ -87,6 +88,7 @@ func TestSpawnAgentToolValidation(t *testing.T) {
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
+	mockAgent := shared.NewMockAgent(ctrl)
 	tool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
@@ -95,7 +97,7 @@ func TestSpawnAgentToolValidation(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        uuid.New(),
+		agent:        mockAgent,
 	}
 
 	ctx := context.Background()
@@ -153,7 +155,9 @@ func TestSpawnAgentToolSynchronousExecution(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
+	senderAgent := shared.NewMockAgent(ctrl)
 	senderID := uuid.New()
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	taskID := uuid.New()
 
 	// Setup mocks
@@ -185,7 +189,7 @@ func TestSpawnAgentToolSynchronousExecution(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	ctx := context.Background()
@@ -233,7 +237,9 @@ func TestSpawnAgentToolAsynchronousExecution(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
+	senderAgent := shared.NewMockAgent(ctrl)
 	senderID := uuid.New()
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	taskID := uuid.New()
 
 	mockFactory := shared.NewMockAgentFactory(ctrl)
@@ -265,7 +271,7 @@ func TestSpawnAgentToolAsynchronousExecution(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	ctx := context.Background()
@@ -312,7 +318,9 @@ func TestSpawnAgentToolExecutionError(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
+	senderAgent := shared.NewMockAgent(ctrl)
 	senderID := uuid.New()
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	taskID := uuid.New()
 
 	mockFactory := shared.NewMockAgentFactory(ctrl)
@@ -343,7 +351,7 @@ func TestSpawnAgentToolExecutionError(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	ctx := context.Background()
@@ -377,7 +385,9 @@ func TestSpawnAgentToolInheritsLLMProvider(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
+	senderAgent := shared.NewMockAgent(ctrl)
 	senderID := uuid.New()
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	taskID := uuid.New()
 
 	mockFactory := shared.NewMockAgentFactory(ctrl)
@@ -413,7 +423,7 @@ func TestSpawnAgentToolInheritsLLMProvider(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	ctx := context.Background()
@@ -473,12 +483,15 @@ func TestSpawnAgentToolProvider_CreateTool(t *testing.T) {
 		hookManager:     mockHookManager,
 	}
 
+	senderAgent := shared.NewMockAgent(ctrl)
 	senderID := uuid.New()
-	tool := provider.CreateTool(senderID, mockFactory)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+
+	tool := provider.CreateTool(senderAgent, mockFactory)
 	toolImpl := tool.(*spawnAgentToolImpl)
 
 	require.NotNil(t, tool)
-	assert.Equal(t, senderID, toolImpl.senderID)
+	assert.Equal(t, senderAgent, toolImpl.agent)
 	assert.Equal(t, mockFactory, toolImpl.agentFactory)
 	assert.Equal(t, mockRegistry, toolImpl.registry)
 	assert.Equal(t, mockPromptMgr, toolImpl.promptManager)
@@ -495,7 +508,9 @@ func TestSpawnAgentTool_WithShareContext_NoParent(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
+	senderAgent := shared.NewMockAgent(ctrl)
 	senderID := uuid.New()
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 
 	// Setup mocks - no parent agent
 	mockFactory := shared.NewMockAgentFactory(ctrl)
@@ -514,13 +529,13 @@ func TestSpawnAgentTool_WithShareContext_NoParent(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	ctx := context.Background()
 
 	// No parent agent exists
-	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
+	mockRegistry.EXPECT().GetAgent(senderAgent).Return(nil, false)
 	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
 
 	// Create the mock agent that will be returned by CreateAgent
@@ -564,7 +579,9 @@ func TestSpawnAgentTool_AllowedTools_Builtin(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
+	senderAgent := shared.NewMockAgent(ctrl)
 	senderID := uuid.New()
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	taskID := uuid.New()
 
 	mockFactory := shared.NewMockAgentFactory(ctrl)
@@ -594,7 +611,7 @@ func TestSpawnAgentTool_AllowedTools_Builtin(t *testing.T) {
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
 		toolRegistry:    toolRegistry,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	ctx := context.Background()
@@ -634,7 +651,9 @@ func TestSpawnAgentTool_AllowedTools_MCP(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
+	senderAgent := shared.NewMockAgent(ctrl)
 	senderID := uuid.New()
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	taskID := uuid.New()
 
 	mockFactory := shared.NewMockAgentFactory(ctrl)
@@ -664,7 +683,7 @@ func TestSpawnAgentTool_AllowedTools_MCP(t *testing.T) {
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
 		toolRegistry:    toolRegistry,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	ctx := context.Background()
@@ -704,7 +723,9 @@ func TestSpawnAgentTool_AllowedTools_Mixed(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
+	senderAgent := shared.NewMockAgent(ctrl)
 	senderID := uuid.New()
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	taskID := uuid.New()
 
 	mockFactory := shared.NewMockAgentFactory(ctrl)
@@ -734,7 +755,7 @@ func TestSpawnAgentTool_AllowedTools_Mixed(t *testing.T) {
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
 		toolRegistry:    toolRegistry,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	ctx := context.Background()
@@ -774,7 +795,9 @@ func TestSpawnAgentTool_AllowedTools_Empty(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
+	senderAgent := shared.NewMockAgent(ctrl)
 	senderID := uuid.New()
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	taskID := uuid.New()
 
 	mockFactory := shared.NewMockAgentFactory(ctrl)
@@ -804,7 +827,7 @@ func TestSpawnAgentTool_AllowedTools_Empty(t *testing.T) {
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
 		toolRegistry:    toolRegistry,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	ctx := context.Background()
@@ -844,7 +867,9 @@ func TestSpawnAgentTool_AllowedTools_NonStringValue(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
+	senderAgent := shared.NewMockAgent(ctrl)
 	senderID := uuid.New()
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	taskID := uuid.New()
 
 	mockFactory := shared.NewMockAgentFactory(ctrl)
@@ -874,7 +899,7 @@ func TestSpawnAgentTool_AllowedTools_NonStringValue(t *testing.T) {
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
 		toolRegistry:    toolRegistry,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	ctx := context.Background()

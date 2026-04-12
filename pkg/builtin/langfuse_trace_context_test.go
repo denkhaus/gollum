@@ -1,18 +1,18 @@
 package builtin
 
 import (
-
-	"github.com/denkhaus/gollum/pkg/logger"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/logger"
+
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-
 )
 
 func TestLangfuseHook_TraceContextOperations(t *testing.T) {
@@ -32,11 +32,11 @@ func TestLangfuseHook_TraceContextOperations(t *testing.T) {
 		config:      cfg,
 		client:      nil,
 		clientMu:    &sync.Mutex{},
-		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxs:   make(map[string]*TraceContext),
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
-	sessionID := uuid.New()
+	sessionID := uuid.New().String()
 
 	t.Run("getTraceContext returns nil when not found", func(t *testing.T) {
 		tc := hook.getTraceContext(sessionID)
@@ -72,9 +72,9 @@ func TestLangfuseHook_TraceContextOperations(t *testing.T) {
 
 	t.Run("concurrent access is thread-safe", func(t *testing.T) {
 		// Create multiple session IDs
-		session1 := uuid.New()
-		session2 := uuid.New()
-		session3 := uuid.New()
+		session1 := uuid.New().String()
+		session2 := uuid.New().String()
+		session3 := uuid.New().String()
 
 		// Run concurrent operations
 		done := make(chan bool)
@@ -113,7 +113,7 @@ func TestTraceContext_Struct(t *testing.T) {
 			TraceID:   "test-trace-123",
 			RootSpan:  nil,
 			Spans:     make(map[string]interface{}),
-			SessionID: uuid.New(),
+			SessionID: uuid.New().String(),
 			CreatedAt: time.Now(),
 		}
 
@@ -149,7 +149,7 @@ func TestRegisterLangfuseHooks(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
@@ -172,7 +172,7 @@ func TestRegisterLangfuseHooks(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
@@ -201,14 +201,14 @@ func TestLangfuseHook_TracingPropagation(t *testing.T) {
 	cfg := &config.LangfuseConfig{
 		LangfuseEnabled: true,
 	}
-	sessionID := uuid.New()
+	sessionID := uuid.New().String()
 
 	hook := &LangfuseHook{
 		log:         mockLog,
 		config:      cfg,
 		client:      nil,
 		clientMu:    &sync.Mutex{},
-		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxs:   make(map[string]*TraceContext),
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
@@ -225,7 +225,7 @@ func TestLangfuseHook_TracingPropagation(t *testing.T) {
 		tc := requireTraceContext(t)
 		_ = tc // Use tc to avoid unused variable error
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID},
+			shared.LoggingContext{SessionID: sessionID},
 			hooks.ToolPayload{Name: "test"},
 		)
 
@@ -237,11 +237,11 @@ func TestLangfuseHook_TracingPropagation(t *testing.T) {
 
 	t.Run("propagateTracingToContext does nothing when no session", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: uuid.Nil},
+			shared.LoggingContext{SessionID: uuid.Nil.String()},
 			hooks.ToolPayload{Name: "test"},
 		)
 
-		hook.propagateTracingToContext(uuid.Nil, &hookCtx.Tracing)
+		hook.propagateTracingToContext(uuid.Nil.String(), &hookCtx.Tracing)
 
 		assert.Empty(t, hookCtx.Tracing.TraceID, "TraceID should not be set for nil session")
 	})
@@ -249,11 +249,11 @@ func TestLangfuseHook_TracingPropagation(t *testing.T) {
 	t.Run("propagateTracingToContext does nothing when no trace context", func(t *testing.T) {
 		differentSession := uuid.New()
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: differentSession},
+			shared.LoggingContext{SessionID: differentSession.String()},
 			hooks.ToolPayload{Name: "test"},
 		)
 
-		hook.propagateTracingToContext(differentSession, &hookCtx.Tracing)
+		hook.propagateTracingToContext(differentSession.String(), &hookCtx.Tracing)
 
 		assert.Empty(t, hookCtx.Tracing.TraceID, "TraceID should not be set for non-existent trace")
 	})

@@ -26,14 +26,6 @@ type LoggerService interface {
 	Debugf(template string, args ...any)
 	Warn(msg string, fields ...zap.Field)
 	Warnf(template string, args ...any)
-	// InfoWithAgent logs an info message with agent ID
-	InfoWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)
-	// ErrorWithAgent logs an error message with agent ID
-	ErrorWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)
-	// DebugWithAgent logs a debug message with agent ID
-	DebugWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)
-	// WarnWithAgent logs a warning message with agent ID
-	WarnWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)
 	// InfoWithFlowStep logs an info message with flow and step context
 	InfoWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field)
 	// ErrorWithFlowStep logs an error message with flow and step context
@@ -81,7 +73,7 @@ type service struct {
 	configService  config.ConfigService
 	logFile        *os.File
 	logFilePath    string
-	fileLogger     *zap.Logger     // Separate logger that always writes to file
+	fileLogger     *zap.Logger         // Separate logger that always writes to file
 	forwarder      shared.LogForwarder // NEW: for channel log forwarding
 }
 
@@ -223,30 +215,6 @@ func (s *service) Warnf(template string, args ...any) {
 	// Store formatted message in buffer for TUI log panel
 	msg := fmt.Sprintf(template, args...)
 	s.storeInBuffer("warn", msg, nil)
-}
-
-// InfoWithAgent logs an info message with agent ID included as a structured field.
-func (s *service) InfoWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
-	allFields := append([]zap.Field{zap.String("agent_id", agentID.String())}, fields...)
-	s.Info(msg, allFields...)
-}
-
-// ErrorWithAgent logs an error message with agent ID included as a structured field.
-func (s *service) ErrorWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
-	allFields := append([]zap.Field{zap.String("agent_id", agentID.String())}, fields...)
-	s.Error(msg, allFields...)
-}
-
-// DebugWithAgent logs a debug message with agent ID included as a structured field.
-func (s *service) DebugWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
-	allFields := append([]zap.Field{zap.String("agent_id", agentID.String())}, fields...)
-	s.Debug(msg, allFields...)
-}
-
-// WarnWithAgent logs a warning message with agent ID included as a structured field.
-func (s *service) WarnWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {
-	allFields := append([]zap.Field{zap.String("agent_id", agentID.String())}, fields...)
-	s.Warn(msg, allFields...)
 }
 
 // InfoWithFlowStep logs an info message with flow and step context included as structured fields.

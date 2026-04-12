@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/diff"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/diff"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
@@ -29,7 +30,11 @@ func TestEditToolBasicOperation(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock agent
 	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
 	// Create temporary test file
 	tmpDir := t.TempDir()
@@ -46,7 +51,7 @@ func TestEditToolBasicOperation(t *testing.T) {
 	tool := &editToolImpl{
 		logService:   logService,
 		fsm:          mockFSM,
-		agentID:      agentID,
+		agent:        mockAgent,
 		hookManager:  mockHookManager,
 		diffProvider: mockDiffProvider,
 	}
@@ -123,7 +128,11 @@ func TestEditToolStringNotFound(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock agent
 	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
 	// Create temporary test file
 	tmpDir := t.TempDir()
@@ -139,7 +148,7 @@ func TestEditToolStringNotFound(t *testing.T) {
 	tool := &editToolImpl{
 		logService:   logService,
 		fsm:          mockFSM,
-		agentID:      agentID,
+		agent:        mockAgent,
 		hookManager:  mockHookManager,
 		diffProvider: mockDiffProvider,
 	}
@@ -194,7 +203,11 @@ func TestEditToolMultipleOccurrences(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock agent
 	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
 	// Create temporary test file
 	tmpDir := t.TempDir()
@@ -210,7 +223,7 @@ func TestEditToolMultipleOccurrences(t *testing.T) {
 	tool := &editToolImpl{
 		logService:   logService,
 		fsm:          mockFSM,
-		agentID:      agentID,
+		agent:        mockAgent,
 		hookManager:  mockHookManager,
 		diffProvider: mockDiffProvider,
 	}
@@ -267,7 +280,11 @@ func TestEditToolReplaceAll(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock agent
 	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
 	// Create temporary test file
 	tmpDir := t.TempDir()
@@ -283,7 +300,7 @@ func TestEditToolReplaceAll(t *testing.T) {
 	tool := &editToolImpl{
 		logService:   logService,
 		fsm:          mockFSM,
-		agentID:      agentID,
+		agent:        mockAgent,
 		hookManager:  mockHookManager,
 		diffProvider: mockDiffProvider,
 	}

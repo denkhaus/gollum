@@ -9,6 +9,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/git-hulk/langfuse-go/pkg/traces"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -55,17 +56,17 @@ func TestLangfuseHook_AgentSpanLifecycle_Integration(t *testing.T) {
 				config:      cfg,
 				client:      nil,
 				clientMu:    &sync.Mutex{},
-				traceCtxs:   make(map[uuid.UUID]*TraceContext),
+				traceCtxs:   make(map[string]*TraceContext),
 				traceCtxsMu: &sync.RWMutex{},
 			}
 
 			// Create trace context
-			hook.createTraceContext(sessionID)
-			tc := hook.getTraceContext(sessionID)
+			hook.createTraceContext(sessionID.String())
+			tc := hook.getTraceContext(sessionID.String())
 
 			// Simulate agent spawn flow with TypedHookContext
 			hookCtx := hooks.NewTypedHookContext(
-				hooks.BaseContext{SessionID: sessionID, AgentID: tt.parentAgentID},
+				shared.LoggingContext{SessionID: sessionID.String(), AgentID: tt.parentAgentID},
 				hooks.AgentPayload{Event: tt.eventType, NewAgentID: tt.newAgentID},
 			)
 
@@ -153,12 +154,12 @@ func TestLangfuseHook_SessionTraceLifecycle(t *testing.T) {
 				config:      cfg,
 				client:      nil, // Will be lazily initialized
 				clientMu:    &sync.Mutex{},
-				traceCtxs:   make(map[uuid.UUID]*TraceContext),
+				traceCtxs:   make(map[string]*TraceContext),
 				traceCtxsMu: &sync.RWMutex{},
 			}
 
 			hookCtx := hooks.NewTypedHookContext(
-				hooks.BaseContext{SessionID: tt.sessionID},
+				shared.LoggingContext{SessionID: tt.sessionID.String()},
 				hooks.SessionPayload{},
 			)
 
@@ -169,7 +170,7 @@ func TestLangfuseHook_SessionTraceLifecycle(t *testing.T) {
 			if tt.wantTraceCreated {
 				// Note: Without a real client, we can't test actual SDK trace creation
 				// This tests the hook logic and trace context management
-				tc := hook.getTraceContext(tt.sessionID)
+				tc := hook.getTraceContext(tt.sessionID.String())
 				assert.NotNil(t, tc, "TraceContext should be created")
 				assert.NotEmpty(t, tc.TraceID, "TraceID should be set")
 				assert.NotNil(t, tc.Spans, "Spans map should be initialized")
@@ -183,11 +184,11 @@ func TestLangfuseHook_SessionTraceLifecycle(t *testing.T) {
 				require.NoError(t, err)
 
 				// Verify cleanup
-				tc = hook.getTraceContext(tt.sessionID)
+				tc = hook.getTraceContext(tt.sessionID.String())
 				assert.Nil(t, tc, "TraceContext should be removed after session end")
 			} else {
 				// Verify no trace context created
-				tc := hook.getTraceContext(tt.sessionID)
+				tc := hook.getTraceContext(tt.sessionID.String())
 				assert.Nil(t, tc, "TraceContext should not be created when disabled or nil session")
 			}
 		})
@@ -219,17 +220,17 @@ func TestLangfuseHook_SessionTraceFlush(t *testing.T) {
 		config:      cfg,
 		client:      nil, // No real client - tests flush error handling
 		clientMu:    &sync.Mutex{},
-		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxs:   make(map[string]*TraceContext),
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
 	// Create trace context manually (simulating session start)
-	hook.createTraceContext(sessionID)
-	tc := hook.getTraceContext(sessionID)
+	hook.createTraceContext(sessionID.String())
+	tc := hook.getTraceContext(sessionID.String())
 	require.NotNil(t, tc)
 
 	hookCtx := hooks.NewTypedHookContext(
-		hooks.BaseContext{SessionID: sessionID},
+		shared.LoggingContext{SessionID: sessionID.String()},
 		hooks.SessionPayload{},
 	)
 
@@ -238,7 +239,7 @@ func TestLangfuseHook_SessionTraceFlush(t *testing.T) {
 	require.NoError(t, err, "afterSessionEndHook should not return error on flush failure")
 
 	// Verify trace context removed
-	tc = hook.getTraceContext(sessionID)
+	tc = hook.getTraceContext(sessionID.String())
 	assert.Nil(t, tc, "TraceContext should be removed even if flush fails")
 }
 
@@ -259,20 +260,20 @@ func TestLangfuseHook_PropagateTracing(t *testing.T) {
 		config:      cfg,
 		client:      nil,
 		clientMu:    &sync.Mutex{},
-		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxs:   make(map[string]*TraceContext),
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
-	hook.createTraceContext(sessionID)
-	tc := hook.getTraceContext(sessionID)
+	hook.createTraceContext(sessionID.String())
+	tc := hook.getTraceContext(sessionID.String())
 	require.NotNil(t, tc)
 
 	hookCtx := hooks.NewTypedHookContext(
-		hooks.BaseContext{SessionID: sessionID},
+		shared.LoggingContext{SessionID: sessionID.String()},
 		hooks.ToolPayload{Name: "test"},
 	)
 
-	hook.propagateTracingToContext(sessionID, &hookCtx.Tracing)
+	hook.propagateTracingToContext(sessionID.String(), &hookCtx.Tracing)
 
 	assert.NotEmpty(t, hookCtx.Tracing.TraceID, "Should have trace ID in Tracing")
 	assert.Equal(t, tc.TraceID, hookCtx.Tracing.TraceID, "Trace ID should match TraceContext.TraceID")
@@ -302,22 +303,22 @@ func TestLangfuseHook_FullTraceLifecycle(t *testing.T) {
 		config:      cfg,
 		client:      nil, // Will be initialized lazily
 		clientMu:    &sync.Mutex{},
-		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxs:   make(map[string]*TraceContext),
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
 	// Step 1: Create trace context manually (simulating session start)
 	// Note: beforeSessionStartHook requires a real client, so we simulate
 	// the post-session-start state where trace context exists.
-	hook.createTraceContext(sessionID)
+	hook.createTraceContext(sessionID.String())
 
-	tc := hook.getTraceContext(sessionID)
+	tc := hook.getTraceContext(sessionID.String())
 	require.NotNil(t, tc, "TraceContext should exist after session start")
 	assert.NotEmpty(t, tc.TraceID, "TraceID should be set")
 
 	// Step 2: LLM span
 	llmCtx := hooks.NewTypedHookContext(
-		hooks.BaseContext{SessionID: sessionID},
+		shared.LoggingContext{SessionID: sessionID.String()},
 		hooks.LLMPayload{Model: "claude-3-5-sonnet", Input: "Hello"},
 	)
 	err := hook.beforeLLMRequestHook(context.Background(), llmCtx, func() error { return nil })
@@ -334,7 +335,7 @@ func TestLangfuseHook_FullTraceLifecycle(t *testing.T) {
 
 	// Step 3: Tool span
 	toolCtx := hooks.NewTypedHookContext(
-		hooks.BaseContext{SessionID: sessionID},
+		shared.LoggingContext{SessionID: sessionID.String()},
 		hooks.ToolPayload{Name: "read_file", Args: map[string]any{"path": "/test.txt"}},
 	)
 	err = hook.beforeToolExecutionHook(context.Background(), toolCtx, func() error { return nil })
@@ -354,7 +355,7 @@ func TestLangfuseHook_FullTraceLifecycle(t *testing.T) {
 
 	// Step 4: Agent span
 	agentCtx := hooks.NewTypedHookContext(
-		hooks.BaseContext{SessionID: sessionID, AgentID: uuid.New()},
+		shared.LoggingContext{SessionID: sessionID.String(), AgentID: uuid.New()},
 		hooks.AgentPayload{Event: hooks.AgentEventSpawn, NewAgentID: uuid.New()},
 	)
 	err = hook.beforeAgentSpawnHook(context.Background(), agentCtx, func() error { return nil })
@@ -366,10 +367,10 @@ func TestLangfuseHook_FullTraceLifecycle(t *testing.T) {
 
 	// Step 5: Session end - simulate by removing trace context
 	// (afterSessionEndHook would do this after flushing)
-	hook.removeTraceContext(sessionID)
+	hook.removeTraceContext(sessionID.String())
 
 	// Verify cleanup
-	tc = hook.getTraceContext(sessionID)
+	tc = hook.getTraceContext(sessionID.String())
 	assert.Nil(t, tc, "TraceContext should be removed after session end")
 
 	// Step 6: Shutdown

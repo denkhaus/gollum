@@ -10,6 +10,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/git-hulk/langfuse-go/pkg/traces"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -34,13 +35,13 @@ func TestLangfuseHook_NilSessionID(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
 		ctx := context.Background()
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: uuid.Nil}, // Nil SessionID
+			shared.LoggingContext{SessionID: uuid.Nil.String()}, // Nil SessionID
 			hooks.SessionPayload{},
 		)
 
@@ -72,13 +73,13 @@ func TestLangfuseHook_NilSessionID(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
 		ctx := context.Background()
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: uuid.Nil}, // Nil SessionID
+			shared.LoggingContext{SessionID: uuid.Nil.String()}, // Nil SessionID
 			hooks.SessionPayload{},
 		)
 
@@ -116,12 +117,12 @@ func TestLangfuseHook_onToolErrorHook_NilError(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
 		// Create trace context with tool span
-		tc := hook.createTraceContext(sessionID)
+		tc := hook.createTraceContext(sessionID.String())
 		tc.Spans[spanID] = &ToolSpanContext{
 			StartTime: time.Now(),
 			ToolName:  "test-tool",
@@ -129,7 +130,7 @@ func TestLangfuseHook_onToolErrorHook_NilError(t *testing.T) {
 
 		ctx := context.Background()
 		hookCtx := hooks.NewTypedHookContextWithTracing(
-			hooks.BaseContext{SessionID: sessionID},
+			shared.LoggingContext{SessionID: sessionID.String()},
 			hooks.ToolPayload{
 				Name:  "test-tool",
 				Error: nil, // nil error
@@ -178,12 +179,12 @@ func TestLangfuseHook_onLLMErrorHook_NilError(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
 		// Create trace context with LLM span
-		tc := hook.createTraceContext(sessionID)
+		tc := hook.createTraceContext(sessionID.String())
 		tc.Spans[spanID] = &LLMSpanContext{
 			StartTime: time.Now(),
 			Model:     "gpt-4",
@@ -191,7 +192,7 @@ func TestLangfuseHook_onLLMErrorHook_NilError(t *testing.T) {
 
 		ctx := context.Background()
 		hookCtx := hooks.NewTypedHookContextWithTracing(
-			hooks.BaseContext{SessionID: sessionID},
+			shared.LoggingContext{SessionID: sessionID.String()},
 			hooks.LLMPayload{
 				Model: "gpt-4",
 				Error: nil, // nil error
@@ -248,12 +249,12 @@ func TestLangfuseHook_FileOperationHooks_AreStubs(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
 		// Create a trace context for propagation
-		tc := hook.createTraceContext(sessionID)
+		tc := hook.createTraceContext(sessionID.String())
 
 		ctx := context.Background()
 		next := func() error { return nil }
@@ -279,7 +280,7 @@ func TestLangfuseHook_FileOperationHooks_AreStubs(t *testing.T) {
 		for _, fh := range fileHooks {
 			t.Run(fh.name, func(t *testing.T) {
 				hookCtx := hooks.NewTypedHookContext(
-					hooks.BaseContext{SessionID: sessionID},
+					shared.LoggingContext{SessionID: sessionID.String()},
 					hooks.FilePayload{},
 				)
 

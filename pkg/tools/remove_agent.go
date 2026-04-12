@@ -78,7 +78,7 @@ func (t *removeAgentToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the RemoveAgent tool to remove agents
 func (t *removeAgentToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameRemoveAgent, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameRemoveAgent, args,
 		func() (map[string]any, error) {
 			return t.runRemoveAgent(ctx, args)
 		})

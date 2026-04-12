@@ -7,6 +7,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
@@ -25,12 +26,17 @@ func TestEditToolValidation(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockFSM := state.NewMockFileStateManager(ctrl)
 
+	// Create mock agent
 	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
 	tool := &editToolImpl{
 		logService:  logService,
 		fsm:         mockFSM,
 		hookManager: mockHookManager,
-		agentID:     agentID,
+		agent:       mockAgent,
 	}
 
 	// Set up mock hookManager to pass through calls (no hooks registered)
@@ -143,14 +149,18 @@ func TestEditToolFileNotRead(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock agent
 	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 	testFile := "/tmp/test_edit.txt"
 	absPath, _ := filepath.Abs(testFile)
 
 	tool := &editToolImpl{
 		logService:  logService,
 		fsm:         mockFSM,
-		agentID:     agentID,
+		agent:       mockAgent,
 		hookManager: mockHookManager,
 	}
 
@@ -182,14 +192,18 @@ func TestEditToolStaleFile(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	// Create mock agent
 	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 	testFile := "/tmp/test_edit.txt"
 	absPath, _ := filepath.Abs(testFile)
 
 	tool := &editToolImpl{
 		logService:  logService,
 		fsm:         mockFSM,
-		agentID:     agentID,
+		agent:       mockAgent,
 		hookManager: mockHookManager,
 	}
 

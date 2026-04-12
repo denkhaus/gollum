@@ -8,7 +8,6 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 
@@ -32,7 +31,7 @@ func TestNewBuiltinHooksProvider_WithLangfuse(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
@@ -61,7 +60,7 @@ func TestNewBuiltinHooksProvider_WithLangfuse(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
@@ -89,7 +88,7 @@ func TestNewBuiltinHooksProvider_WithLangfuse(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 

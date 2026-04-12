@@ -13,7 +13,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/state"
-	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -96,7 +95,7 @@ func (t *editToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the Edit tool to perform string replacements in files
 func (t *editToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameEdit, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameEdit, args,
 		func() (map[string]any, error) {
 			return t.runEdit(ctx, args)
 		})
@@ -264,7 +263,7 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 			)
 
 			// Wrap the file write with file write hooks (edit is a write operation)
-			err = t.hookManager.WithFileWriteHooks(ctx, uuid.Nil, t.agent.GetID(), filePath, newContent,
+			err = t.hookManager.WithFileWriteHooks(ctx, t.agent.ToLoggingContext(), filePath, newContent,
 				func(finalContent string) error {
 					// Write the modified content back
 					if err := os.WriteFile(filePath, []byte(finalContent), 0o644); err != nil {

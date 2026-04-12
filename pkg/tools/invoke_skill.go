@@ -125,7 +125,7 @@ func (t *invokeSkillToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the InvokeSkill tool
 func (t *invokeSkillToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameInvokeSkill, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameInvokeSkill, args,
 		func() (map[string]any, error) {
 			return t.runInvokeSkill(ctx, args)
 		})
@@ -189,9 +189,7 @@ func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args ToolReque
 	// Build skill hook context with typed payload
 	modelName, _ := llmClientConfig.ModelName()
 	skillHookCtx := &hooks.TypedHookContext[hooks.SkillPayload]{
-		BaseContext: hooks.BaseContext{
-			AgentID: t.agent.GetID(),
-		},
+		LoggingContext: t.agent.ToLoggingContext(),
 		Payload: hooks.SkillPayload{
 			Name:        skill.Name,
 			Type:        hooks.SkillType(skill.Type),

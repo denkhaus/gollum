@@ -66,11 +66,6 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 	flowExecutorService := do.MustInvoke[executor.FlowExecutorService](injector)
 	flowRegistry := do.MustInvoke[flowregistry.FlowRegistry](injector)
 
-	// Discover channel providers from DI
-	if err := channelFacade.DiscoverProviders(injector); err != nil {
-		return nil, fmt.Errorf("failed to discover channel providers: %w", err)
-	}
-
 	return &applicationServiceImpl{
 		sessionID:        uuid.New(),
 		logService:       logService,

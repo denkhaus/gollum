@@ -10,7 +10,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
-	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -63,7 +62,7 @@ func (p *changeDirectoryToolProvider) CreateTool(agent shared.Agent) gollem.Tool
 
 // Run executes the ChangeDirectory tool
 func (t *changeDirectoryToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameChangeDirectory, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameChangeDirectory, args,
 		func() (map[string]any, error) {
 			return t.runChangeDirectory(ctx, args)
 		})

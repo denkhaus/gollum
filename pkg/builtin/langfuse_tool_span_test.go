@@ -78,16 +78,16 @@ func TestLangfuseHook_ToolSpanCreation(t *testing.T) {
 				config:      cfg,
 				client:      nil, // Will be lazily initialized
 				clientMu:    &sync.Mutex{},
-				traceCtxs:   make(map[uuid.UUID]*TraceContext),
+				traceCtxs:   make(map[string]*TraceContext),
 				traceCtxsMu: &sync.RWMutex{},
 			}
 
 			if tt.sessionID != uuid.Nil {
-				hook.createTraceContext(tt.sessionID)
+				hook.createTraceContext(tt.sessionID.String())
 			}
 
 			hookCtx := hooks.NewTypedHookContext(
-				hooks.BaseContext{SessionID: tt.sessionID},
+				shared.LoggingContext{SessionID: tt.sessionID.String()},
 				hooks.ToolPayload{Name: shared.ToolName(tt.toolName), Args: tt.toolArgs},
 			)
 
@@ -99,7 +99,7 @@ func TestLangfuseHook_ToolSpanCreation(t *testing.T) {
 			if tt.wantSpanCreated {
 				assert.NotEmpty(t, spanID, "Span ID should not be empty")
 
-				tc := hook.getTraceContext(tt.sessionID)
+				tc := hook.getTraceContext(tt.sessionID.String())
 				require.NotNil(t, tc, "TraceContext should exist")
 				assert.Contains(t, tc.Spans, spanID, "Span should be in TraceContext.Spans")
 
@@ -136,12 +136,12 @@ func TestLangfuseHook_ToolSpanUpdate(t *testing.T) {
 		config:      cfg,
 		client:      nil,
 		clientMu:    &sync.Mutex{},
-		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxs:   make(map[string]*TraceContext),
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
-	hook.createTraceContext(sessionID)
-	tc := hook.getTraceContext(sessionID)
+	hook.createTraceContext(sessionID.String())
+	tc := hook.getTraceContext(sessionID.String())
 	spanID := uuid.New().String()
 
 	startTime := time.Now().Add(-50 * time.Millisecond)
@@ -152,7 +152,7 @@ func TestLangfuseHook_ToolSpanUpdate(t *testing.T) {
 	}
 
 	hookCtx := hooks.NewTypedHookContextWithTracing(
-		hooks.BaseContext{SessionID: sessionID},
+		shared.LoggingContext{SessionID: sessionID.String()},
 		hooks.ToolPayload{Result: map[string]any{"content": "hello world"}},
 		hooks.TracingPayload{SpanID: spanID},
 	)
@@ -209,12 +209,12 @@ func TestLangfuseHook_OnToolError(t *testing.T) {
 				config:      cfg,
 				client:      nil,
 				clientMu:    &sync.Mutex{},
-				traceCtxs:   make(map[uuid.UUID]*TraceContext),
+				traceCtxs:   make(map[string]*TraceContext),
 				traceCtxsMu: &sync.RWMutex{},
 			}
 
-			hook.createTraceContext(sessionID)
-			tc := hook.getTraceContext(sessionID)
+			hook.createTraceContext(sessionID.String())
+			tc := hook.getTraceContext(sessionID.String())
 			spanID := uuid.New().String()
 
 			tc.Spans[spanID] = &ToolSpanContext{
@@ -225,7 +225,7 @@ func TestLangfuseHook_OnToolError(t *testing.T) {
 			}
 
 			hookCtx := hooks.NewTypedHookContextWithTracing(
-				hooks.BaseContext{SessionID: sessionID},
+				shared.LoggingContext{SessionID: sessionID.String()},
 				hooks.ToolPayload{Error: tt.toolError},
 				hooks.TracingPayload{SpanID: spanID},
 			)
@@ -298,17 +298,17 @@ func TestLangfuseHook_ToolSpanLifecycle_Integration(t *testing.T) {
 				config:      cfg,
 				client:      nil,
 				clientMu:    &sync.Mutex{},
-				traceCtxs:   make(map[uuid.UUID]*TraceContext),
+				traceCtxs:   make(map[string]*TraceContext),
 				traceCtxsMu: &sync.RWMutex{},
 			}
 
 			// Create trace context
-			hook.createTraceContext(sessionID)
-			tc := hook.getTraceContext(sessionID)
+			hook.createTraceContext(sessionID.String())
+			tc := hook.getTraceContext(sessionID.String())
 
 			// Simulate tool flow: BeforeToolExecution -> Tool execution -> AfterToolExecution/OnToolError
 			hookCtx := hooks.NewTypedHookContext(
-				hooks.BaseContext{SessionID: sessionID},
+				shared.LoggingContext{SessionID: sessionID.String()},
 				hooks.ToolPayload{
 					Name:   shared.ToolName(tt.toolName),
 					Args:   tt.toolArgs,

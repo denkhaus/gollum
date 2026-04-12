@@ -43,6 +43,13 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 
 	senderID := uuid.New()
 
+	// Create mock sender agent
+	mockSenderAgent := shared.NewMockAgent(ctrl)
+	mockSenderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockSenderAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
+		AgentID: senderID,
+	}).AnyTimes()
+
 	// Create spawn tool
 	tool := &spawnAgentToolImpl{
 		logService:      logService,
@@ -52,7 +59,7 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:        mockSenderAgent,
 	}
 
 	ctx := context.Background()
@@ -116,7 +123,7 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 	// Create agent output tool
 	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
-		senderID:    senderID,
+		agent:    mockSenderAgent,
 		hookManager: mockHookManager,
 	}
 
@@ -171,6 +178,9 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	// Create mock agents for each level
 	rootAgent := shared.NewMockAgent(ctrl)
 	rootAgent.EXPECT().GetID().Return(rootID).AnyTimes()
+	rootAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
+		AgentID: rootID,
+	}).AnyTimes()
 	rootAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		ID: rootID,
 		LLMClientConfig: &shared.LLMClientConfig{
@@ -183,6 +193,9 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	childAgent.EXPECT().GetID().DoAndReturn(func() uuid.UUID {
 		return childID
 	}).AnyTimes()
+	childAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
+		AgentID: childID,
+	}).AnyTimes()
 	childAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
@@ -193,6 +206,9 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	grandchildAgent := shared.NewMockAgent(ctrl)
 	grandchildAgent.EXPECT().GetID().DoAndReturn(func() uuid.UUID {
 		return grandchildID
+	}).AnyTimes()
+	grandchildAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
+		AgentID: grandchildID,
 	}).AnyTimes()
 	grandchildAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		LLMClientConfig: &shared.LLMClientConfig{
@@ -223,7 +239,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        rootID,
+		agent:        rootAgent,
 	}
 
 	// Step 1: Root spawns child
@@ -260,7 +276,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        childID,
+		agent:        childAgent,
 	}
 
 	mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Grandchild", "Grandchild task").Return("You are a helpful assistant", nil)
@@ -293,7 +309,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	// Verify permission checks: root can access child but not grandchild directly
 	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
-		senderID:    rootID,
+		agent:    rootAgent,
 		hookManager: mockHookManager,
 	}
 

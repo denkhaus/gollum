@@ -36,6 +36,8 @@ func TestSpawnAgentTool_Run_AgentFactoryError_LimitExceeded(t *testing.T) {
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
 	senderID := uuid.New()
+	senderAgent := shared.NewMockAgent(ctrl)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 
 	// Mock agent factory that returns a limit error
 	mockAgentFactory.EXPECT().CreateAgent(gomock.Any(), gomock.Any()).Return(
@@ -54,7 +56,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_LimitExceeded(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	args := map[string]any{
@@ -88,7 +90,9 @@ func TestSpawnAgentTool_Run_AgentFactoryError_SubAgentLimitExceeded(t *testing.T
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
+	senderAgent := shared.NewMockAgent(ctrl)
 	senderID := uuid.New()
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 
 	// Mock agent factory that returns a sub-agent limit error
 	mockAgentFactory.EXPECT().CreateAgent(gomock.Any(), gomock.Any()).Return(
@@ -96,7 +100,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_SubAgentLimitExceeded(t *testing.T
 	)
 
 	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
-	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
+	mockRegistry.EXPECT().GetAgent(senderAgent).Return(nil, false)
 	// No StoreTaskResult expected when CreateAgent fails
 
 	tool := &spawnAgentToolImpl{
@@ -107,7 +111,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_SubAgentLimitExceeded(t *testing.T
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	args := map[string]any{
@@ -141,7 +145,9 @@ func TestSpawnAgentTool_Run_AgentFactoryError_GenericError(t *testing.T) {
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
+	senderAgent := shared.NewMockAgent(ctrl)
 	senderID := uuid.New()
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 
 	// Mock agent factory that returns a generic error
 	mockAgentFactory.EXPECT().CreateAgent(gomock.Any(), gomock.Any()).Return(
@@ -149,7 +155,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_GenericError(t *testing.T) {
 	)
 
 	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
-	mockRegistry.EXPECT().GetAgent(senderID).Return(nil, false)
+	mockRegistry.EXPECT().GetAgent(senderAgent).Return(nil, false)
 	// No StoreTaskResult expected when CreateAgent fails
 
 	tool := &spawnAgentToolImpl{
@@ -160,7 +166,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_GenericError(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	args := map[string]any{

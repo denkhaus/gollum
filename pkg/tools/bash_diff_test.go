@@ -43,10 +43,15 @@ func TestBashTool_Run_WithDiffIntegration_FileModification(t *testing.T) {
 	err := os.WriteFile(testFile, []byte(initialContent), 0644)
 	require.NoError(t, err)
 
+	// Create mock agent
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
 	tool := &bashToolImpl{
 		logService:   logService,
 		fileState:    mockFSM,
-		agentID:      agentID,
+		agent:        mockAgent,
 		hookManager:  mockHookManager,
 		diffProvider: mockDiffProvider,
 		bashCfg:      &config.BashConfig{TrackChanges: true},
@@ -121,10 +126,15 @@ func TestBashTool_Run_WithDiffIntegration_FileCreation(t *testing.T) {
 	newFile := filepath.Join(tmpDir, "new.txt")
 	absPath := newFile
 
+	// Create mock agent
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
 	tool := &bashToolImpl{
 		logService:   logService,
 		fileState:    mockFSM,
-		agentID:      agentID,
+		agent:        mockAgent,
 		hookManager:  mockHookManager,
 		diffProvider: mockDiffProvider,
 		bashCfg:      &config.BashConfig{TrackChanges: true},
@@ -189,10 +199,15 @@ func TestBashTool_Run_WithDiffIntegration_NoFileChanges(t *testing.T) {
 
 	agentID := uuid.New()
 
+	// Create mock agent
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
 	tool := &bashToolImpl{
 		logService:   logService,
 		fileState:    mockFSM,
-		agentID:      agentID,
+		agent:        mockAgent,
 		hookManager:  mockHookManager,
 		diffProvider: mockDiffProvider,
 		bashCfg:      &config.BashConfig{TrackChanges: true},
@@ -248,10 +263,15 @@ func TestBashTool_Run_WithDiffIntegration_MultipleFileChanges(t *testing.T) {
 	err = os.WriteFile(testFile2, []byte("old content"), 0644)
 	require.NoError(t, err)
 
+	// Create mock agent
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
 	tool := &bashToolImpl{
 		logService:   logService,
 		fileState:    mockFSM,
-		agentID:      agentID,
+		agent:        mockAgent,
 		hookManager:  mockHookManager,
 		diffProvider: mockDiffProvider,
 		bashCfg:      &config.BashConfig{TrackChanges: true},

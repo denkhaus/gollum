@@ -150,6 +150,14 @@ func (m *testFlowRegistry) GetFlow(name string) (*flows.Flow, error) {
 	return flow, nil
 }
 
+func (m *testFlowRegistry) GetDefaultFlow() (*flows.Flow, error) {
+	flow, ok := m.flows["default"]
+	if !ok {
+		return nil, flowregistry.ErrFlowNotFound
+	}
+	return flow, nil
+}
+
 func (m *testFlowRegistry) GetFlowInfo(name string) (*flowregistry.FlowInfo, error) {
 	flow, err := m.GetFlow(name)
 	if err != nil {

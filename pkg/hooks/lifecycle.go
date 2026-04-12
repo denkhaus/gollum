@@ -4,23 +4,22 @@ import (
 	"context"
 
 	"github.com/denkhaus/gollum/pkg/errs"
-	"github.com/google/uuid"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"go.uber.org/zap"
 )
 
 // WithSessionHooks wraps a function with session lifecycle hooks.
 func (p *hookManagerImpl) WithSessionHooks(
 	ctx context.Context,
-	sessionID uuid.UUID,
+	loggingContext shared.LoggingContext,
 	work func() error,
 ) error {
-	if sessionID == uuid.Nil {
-		return errs.Validation("session ID cannot be nil")
+	if !loggingContext.IsValid() {
+		return errs.Validation("logging context is invalid")
 	}
 
 	// BeforeSessionStart hook with typed context
-	hookCtx := NewTypedHookContext(
-		BaseContext{SessionID: sessionID},
+	hookCtx := NewTypedHookContext(loggingContext,
 		SessionPayload{Metadata: make(map[string]any)},
 	)
 
@@ -39,7 +38,9 @@ func (p *hookManagerImpl) WithSessionHooks(
 	// If a fatal 'after' hook failed, its error takes precedence.
 	if result.Error != nil {
 		if workErr != nil {
-			p.log.Error("The original work function also returned an error, which is being superseded by the AfterSessionEnd hook error", zap.Error(workErr))
+			p.log.ErrorWithContext("The original work function also returned an error, which is being superseded by the AfterSessionEnd hook error",
+				loggingContext,
+				zap.Error(workErr))
 		}
 		return result.Error
 	}
@@ -51,12 +52,12 @@ func (p *hookManagerImpl) WithSessionHooks(
 // WithAgentHooks wraps a function with agent lifecycle hooks.
 func (p *hookManagerImpl) WithAgentHooks(
 	ctx context.Context,
-	sessionID, agentID uuid.UUID,
+	loggingContext shared.LoggingContext,
 	point HookPoint,
 	work func() error,
 ) error {
-	if agentID == uuid.Nil {
-		return errs.Validation("agent ID cannot be nil")
+	if !loggingContext.IsValid() {
+		return errs.Validation("logging context is invalid")
 	}
 
 	// Validate hook point and determine agent event
@@ -71,9 +72,8 @@ func (p *hookManagerImpl) WithAgentHooks(
 	}
 
 	// Create typed context
-	hookCtx := NewTypedHookContext(
-		BaseContext{SessionID: sessionID, AgentID: agentID},
-		AgentPayload{Event: event, NewAgentID: agentID},
+	hookCtx := NewTypedHookContext(loggingContext,
+		AgentPayload{Event: event, NewAgentID: loggingContext.AgentID},
 	)
 
 	result := p.TriggerAgentHooks(ctx, point, hookCtx)

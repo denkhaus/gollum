@@ -12,7 +12,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/state"
-	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -82,7 +81,7 @@ func (t *readFileToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the ReadFile tool to read file contents
 func (t *readFileToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameReadFile, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameReadFile, args,
 		func() (map[string]any, error) {
 			return t.runFileRead(ctx, args)
 		})
@@ -128,7 +127,7 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 	},
 		func(_ context.Context, token *state.LockToken) (any, error) {
 			// Wrap the file read with file read hooks
-			content, err := t.hookManager.WithFileReadHooks(ctx, uuid.Nil, t.agent.GetID(), path,
+			content, err := t.hookManager.WithFileReadHooks(ctx, t.agent.ToLoggingContext(), path,
 				func() (string, error) {
 					// Check if file exists
 					_, err := os.Stat(path)

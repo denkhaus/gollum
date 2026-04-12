@@ -105,7 +105,7 @@ type descendantInfo struct {
 
 // Run executes the ListAgents tool to list all related agents
 func (t *listAgentsToolImpl) Run(ctx context.Context, params map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameListAgents, params,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameListAgents, params,
 		func() (map[string]any, error) {
 			return t.runListAgents(ctx, params)
 		})

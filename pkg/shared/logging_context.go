@@ -19,3 +19,12 @@ func (c LoggingContext) IsValid() bool {
 		c.ChannelID != uuid.Nil &&
 		c.AgentID != uuid.Nil
 }
+
+// NewLoggingContext creates a LoggingContext.
+func NewLoggingContext(sessionID string, agentID uuid.UUID, channelID uuid.UUID) *LoggingContext {
+	return &LoggingContext{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		AgentID:   agentID,
+	}
+}

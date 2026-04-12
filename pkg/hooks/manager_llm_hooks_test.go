@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/errs"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,7 +22,7 @@ func TestWithLLMHooks(t *testing.T) {
 		prompt := testLLMPrompt
 		model := testLLMModel
 
-		response, err := hm.WithLLMHooks(context.Background(), sessionID, agentID, prompt, model, func(p string) (string, error) {
+		response, err := hm.WithLLMHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, prompt, model, func(p string) (string, error) {
 			assert.Equal(t, prompt, p, "prompt should be passed unchanged")
 			return testLLMResponse, nil
 		})
@@ -47,7 +48,7 @@ func TestWithLLMHooks(t *testing.T) {
 		model := testLLMModel
 
 		var receivedPrompt string
-		response, err := hm.WithLLMHooks(context.Background(), sessionID, agentID, prompt, model, func(p string) (string, error) {
+		response, err := hm.WithLLMHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, prompt, model, func(p string) (string, error) {
 			receivedPrompt = p
 			return testLLMResponse, nil
 		})
@@ -73,7 +74,7 @@ func TestWithLLMHooks(t *testing.T) {
 		prompt := testLLMPrompt
 		model := testLLMModel
 
-		response, err := hm.WithLLMHooks(context.Background(), sessionID, agentID, prompt, model, func(_ string) (string, error) {
+		response, err := hm.WithLLMHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, prompt, model, func(_ string) (string, error) {
 			return "original response", nil
 		})
 
@@ -98,7 +99,7 @@ func TestWithLLMHooks(t *testing.T) {
 		model := testLLMModel
 
 		workCalled := false
-		response, err := hm.WithLLMHooks(context.Background(), sessionID, agentID, prompt, model, func(_ string) (string, error) {
+		response, err := hm.WithLLMHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, prompt, model, func(_ string) (string, error) {
 			workCalled = true
 			return "should not see this", nil
 		})
@@ -124,7 +125,7 @@ func TestWithLLMHooks(t *testing.T) {
 		prompt := testLLMPrompt
 		model := testLLMModel
 
-		response, err := hm.WithLLMHooks(context.Background(), sessionID, agentID, prompt, model, func(_ string) (string, error) {
+		response, err := hm.WithLLMHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, prompt, model, func(_ string) (string, error) {
 			return "", errors.New("LLM API error")
 		})
 
@@ -140,7 +141,7 @@ func TestWithLLMHooks(t *testing.T) {
 		prompt := testLLMPrompt
 		model := testLLMModel
 
-		response, err := hm.WithLLMHooks(context.Background(), sessionID, agentID, prompt, model, func(_ string) (string, error) {
+		response, err := hm.WithLLMHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, prompt, model, func(_ string) (string, error) {
 			return "", errors.New("LLM API error")
 		})
 
@@ -164,7 +165,7 @@ func TestWithLLMHooks(t *testing.T) {
 		model := testLLMModel
 
 		workCalled := false
-		response, err := hm.WithLLMHooks(context.Background(), sessionID, agentID, prompt, model, func(_ string) (string, error) {
+		response, err := hm.WithLLMHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, prompt, model, func(_ string) (string, error) {
 			workCalled = true
 			return "should not see this", nil
 		})
@@ -190,7 +191,7 @@ func TestWithLLMHooks(t *testing.T) {
 		prompt := testLLMPrompt
 		model := testLLMModel
 
-		response, err := hm.WithLLMHooks(context.Background(), sessionID, agentID, prompt, model, func(_ string) (string, error) {
+		response, err := hm.WithLLMHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, prompt, model, func(_ string) (string, error) {
 			return testLLMResponse, nil
 		})
 
@@ -215,13 +216,13 @@ func TestWithLLMHooks(t *testing.T) {
 		prompt := testLLMPrompt
 		model := testLLMModel
 
-		_, err := hm.WithLLMHooks(context.Background(), sessionID, agentID, prompt, model, func(_ string) (string, error) {
+		_, err := hm.WithLLMHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, prompt, model, func(_ string) (string, error) {
 			return "response", nil
 		})
 
 		require.NoError(t, err)
 		require.NotNil(t, receivedCtx)
-		assert.Equal(t, sessionID, receivedCtx.SessionID)
+		assert.Equal(t, sessionID.String(), receivedCtx.SessionID)
 		assert.Equal(t, agentID, receivedCtx.AgentID)
 		assert.Equal(t, prompt, receivedCtx.Payload.Input)
 		assert.Equal(t, model, receivedCtx.Payload.Model)
@@ -253,7 +254,7 @@ func TestWithLLMHooks(t *testing.T) {
 		model := testLLMModel
 
 		var receivedPrompt string
-		_, err := hm.WithLLMHooks(context.Background(), sessionID, agentID, prompt, model, func(p string) (string, error) {
+		_, err := hm.WithLLMHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, prompt, model, func(p string) (string, error) {
 			receivedPrompt = p
 			return "response", nil
 		})

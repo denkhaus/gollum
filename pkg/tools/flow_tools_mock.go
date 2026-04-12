@@ -14,7 +14,6 @@ import (
 
 	flows "github.com/denkhaus/gollum/pkg/flows"
 	shared "github.com/denkhaus/gollum/pkg/shared"
-	uuid "github.com/google/uuid"
 	gollem "github.com/m-mizutani/gollem"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -44,18 +43,18 @@ func (m *MockFlowToolsProvider) EXPECT() *MockFlowToolsProviderMockRecorder {
 }
 
 // CreateTool mocks base method.
-func (m *MockFlowToolsProvider) CreateTool(agentID uuid.UUID, flowCtx flows.FlowContext, toolName shared.ToolName) (gollem.Tool, error) {
+func (m *MockFlowToolsProvider) CreateTool(agent shared.Agent, flowCtx flows.FlowContext, toolName shared.ToolName) (gollem.Tool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateTool", agentID, flowCtx, toolName)
+	ret := m.ctrl.Call(m, "CreateTool", agent, flowCtx, toolName)
 	ret0, _ := ret[0].(gollem.Tool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateTool indicates an expected call of CreateTool.
-func (mr *MockFlowToolsProviderMockRecorder) CreateTool(agentID, flowCtx, toolName any) *gomock.Call {
+func (mr *MockFlowToolsProviderMockRecorder) CreateTool(agent, flowCtx, toolName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTool", reflect.TypeOf((*MockFlowToolsProvider)(nil).CreateTool), agentID, flowCtx, toolName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTool", reflect.TypeOf((*MockFlowToolsProvider)(nil).CreateTool), agent, flowCtx, toolName)
 }
 
 // MockExecuteFlowToolProvider is a mock of ExecuteFlowToolProvider interface.
@@ -83,17 +82,17 @@ func (m *MockExecuteFlowToolProvider) EXPECT() *MockExecuteFlowToolProviderMockR
 }
 
 // CreateTool mocks base method.
-func (m *MockExecuteFlowToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+func (m *MockExecuteFlowToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateTool", agentID)
+	ret := m.ctrl.Call(m, "CreateTool", agent)
 	ret0, _ := ret[0].(gollem.Tool)
 	return ret0
 }
 
 // CreateTool indicates an expected call of CreateTool.
-func (mr *MockExecuteFlowToolProviderMockRecorder) CreateTool(agentID any) *gomock.Call {
+func (mr *MockExecuteFlowToolProviderMockRecorder) CreateTool(agent any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTool", reflect.TypeOf((*MockExecuteFlowToolProvider)(nil).CreateTool), agentID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTool", reflect.TypeOf((*MockExecuteFlowToolProvider)(nil).CreateTool), agent)
 }
 
 // MockListFlowsToolProvider is a mock of ListFlowsToolProvider interface.
@@ -121,15 +120,15 @@ func (m *MockListFlowsToolProvider) EXPECT() *MockListFlowsToolProviderMockRecor
 }
 
 // CreateTool mocks base method.
-func (m *MockListFlowsToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+func (m *MockListFlowsToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateTool", agentID)
+	ret := m.ctrl.Call(m, "CreateTool", agent)
 	ret0, _ := ret[0].(gollem.Tool)
 	return ret0
 }
 
 // CreateTool indicates an expected call of CreateTool.
-func (mr *MockListFlowsToolProviderMockRecorder) CreateTool(agentID any) *gomock.Call {
+func (mr *MockListFlowsToolProviderMockRecorder) CreateTool(agent any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTool", reflect.TypeOf((*MockListFlowsToolProvider)(nil).CreateTool), agentID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTool", reflect.TypeOf((*MockListFlowsToolProvider)(nil).CreateTool), agent)
 }

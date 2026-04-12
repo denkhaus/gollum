@@ -9,6 +9,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -37,7 +38,7 @@ func TestNewLangfuseHook_DI(t *testing.T) {
 			config:      expectedCfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
@@ -67,7 +68,7 @@ func TestNewLangfuseHook_DI(t *testing.T) {
 				config:      cfg,
 				client:      nil,
 				clientMu:    &sync.Mutex{},
-				traceCtxs:   make(map[uuid.UUID]*TraceContext),
+				traceCtxs:   make(map[string]*TraceContext),
 				traceCtxsMu: &sync.RWMutex{},
 			}
 
@@ -93,8 +94,8 @@ func TestNewLangfuseHookProvider_ReturnsHookFunc(t *testing.T) {
 		// Test calling the TypedHookFunc
 		ctx := context.Background()
 		hookCtx := &hooks.TypedHookContext[hooks.SessionPayload]{
-			BaseContext: hooks.BaseContext{
-				SessionID: uuid.New(),
+			LoggingContext: shared.LoggingContext{
+				SessionID: uuid.New().String(),
 			},
 			Payload: hooks.SessionPayload{},
 		}
@@ -117,8 +118,8 @@ func TestNewLangfuseHookProvider_ReturnsHookFunc(t *testing.T) {
 
 		ctx := context.Background()
 		hookCtx := &hooks.TypedHookContext[hooks.SessionPayload]{
-			BaseContext: hooks.BaseContext{
-				SessionID: uuid.New(),
+			LoggingContext: shared.LoggingContext{
+				SessionID: uuid.New().String(),
 			},
 			Payload: hooks.SessionPayload{},
 		}
@@ -148,7 +149,7 @@ func TestNewLangfuseHooksProvider_ReturnsHookInstance(t *testing.T) {
 			config:      expectedCfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
@@ -169,7 +170,7 @@ func TestNewLangfuseHooksProvider_ReturnsHookInstance(t *testing.T) {
 			config:      &config.LangfuseConfig{LangfuseEnabled: false},
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 

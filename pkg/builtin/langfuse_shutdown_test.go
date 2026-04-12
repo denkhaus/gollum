@@ -58,14 +58,14 @@ func TestLangfuseHook_Shutdown_UnitTests(t *testing.T) {
 				config:      cfg,
 				client:      nil, // No real client for unit tests
 				clientMu:    &sync.Mutex{},
-				traceCtxs:   make(map[uuid.UUID]*TraceContext),
+				traceCtxs:   make(map[string]*TraceContext),
 				traceCtxsMu: &sync.RWMutex{},
 			}
 
 			// Add trace contexts if needed
 			if tt.hasTraces {
 				for i := 0; i < 2; i++ {
-					hook.createTraceContext(uuid.New())
+					hook.createTraceContext(uuid.New().String())
 				}
 			}
 
@@ -99,14 +99,14 @@ func TestLangfuseHook_CleanupAllTraceContexts(t *testing.T) {
 		config:      cfg,
 		client:      nil,
 		clientMu:    &sync.Mutex{},
-		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxs:   make(map[string]*TraceContext),
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
 	// Create multiple trace contexts
 	sessionIDs := []uuid.UUID{uuid.New(), uuid.New(), uuid.New()}
 	for _, sid := range sessionIDs {
-		hook.createTraceContext(sid)
+		hook.createTraceContext(sid.String())
 	}
 
 	// Verify contexts exist
@@ -121,7 +121,7 @@ func TestLangfuseHook_CleanupAllTraceContexts(t *testing.T) {
 	hook.traceCtxsMu.RLock()
 	assert.Equal(t, 0, len(hook.traceCtxs), "All contexts should be removed")
 	for _, sid := range sessionIDs {
-		_, exists := hook.traceCtxs[sid]
+		_, exists := hook.traceCtxs[sid.String()]
 		assert.False(t, exists, "Context should not exist for session %s", sid)
 	}
 	hook.traceCtxsMu.RUnlock()
@@ -143,7 +143,7 @@ func TestLangfuseHook_FlushTraces(t *testing.T) {
 		config:      cfg,
 		client:      nil, // No client - tests no-op behavior
 		clientMu:    &sync.Mutex{},
-		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxs:   make(map[string]*TraceContext),
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
@@ -172,14 +172,14 @@ func TestLangfuseHook_ShutdownWithOrphanedTraces(t *testing.T) {
 		config:      cfg,
 		client:      nil,
 		clientMu:    &sync.Mutex{},
-		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxs:   make(map[string]*TraceContext),
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
 	// Create some orphaned trace contexts (session started but not ended)
 	for i := 0; i < 3; i++ {
 		sessionID := uuid.New()
-		hook.createTraceContext(sessionID)
+		hook.createTraceContext(sessionID.String())
 	}
 
 	// Verify contexts exist

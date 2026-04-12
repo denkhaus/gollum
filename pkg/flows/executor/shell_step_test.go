@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/flows"
-	"github.com/google/uuid"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"

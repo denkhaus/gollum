@@ -9,6 +9,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -31,14 +32,14 @@ func TestLangfuseHook_DisabledConfig(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
 		ctx := context.Background()
 		sessionID := uuid.New()
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID},
+			shared.LoggingContext{SessionID: sessionID.String()},
 			hooks.SessionPayload{},
 		)
 
@@ -71,13 +72,13 @@ func TestLangfuseHook_DisabledConfig(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
 		ctx := context.Background()
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: uuid.New()},
+			shared.LoggingContext{SessionID: uuid.New().String()},
 			hooks.LLMPayload{
 				Model: "gpt-4",
 				Input: "test input",
@@ -112,13 +113,13 @@ func TestLangfuseHook_DisabledConfig(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
 		ctx := context.Background()
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: uuid.New()},
+			shared.LoggingContext{SessionID: uuid.New().String()},
 			hooks.ToolPayload{
 				Name: "test-tool",
 				Args: map[string]any{"arg": "value"},
@@ -156,14 +157,14 @@ func TestLangfuseHook_MissingSpanID(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
 		ctx := context.Background()
 		sessionID := uuid.New()
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID},
+			shared.LoggingContext{SessionID: sessionID.String()},
 			hooks.LLMPayload{
 				Model:    "gpt-4",
 				Response: "test response",
@@ -199,14 +200,14 @@ func TestLangfuseHook_MissingSpanID(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
 		ctx := context.Background()
 		sessionID := uuid.New()
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID},
+			shared.LoggingContext{SessionID: sessionID.String()},
 			hooks.ToolPayload{
 				Name:   "test-tool",
 				Result: map[string]any{"result": "value"},
@@ -242,14 +243,14 @@ func TestLangfuseHook_MissingSpanID(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
 		ctx := context.Background()
 		sessionID := uuid.New()
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID, AgentID: uuid.New()},
+			shared.LoggingContext{SessionID: sessionID.String(), AgentID: uuid.New()},
 			hooks.AgentPayload{},
 		)
 		// No Tracing.SpanID set
@@ -285,13 +286,13 @@ func TestLangfuseHook_NilContextHandling(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
 		ctx := context.Background()
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: uuid.New()},
+			shared.LoggingContext{SessionID: uuid.New().String()},
 			hooks.LLMPayload{
 				Model: "gpt-4",
 				Input: "test input",
@@ -327,7 +328,7 @@ func TestLangfuseHook_NilContextHandling(t *testing.T) {
 			config:      cfg,
 			client:      nil,
 			clientMu:    &sync.Mutex{},
-			traceCtxs:   make(map[uuid.UUID]*TraceContext),
+			traceCtxs:   make(map[string]*TraceContext),
 			traceCtxsMu: &sync.RWMutex{},
 		}
 
@@ -337,7 +338,7 @@ func TestLangfuseHook_NilContextHandling(t *testing.T) {
 		tracing := &hooks.TracingPayload{}
 
 		// This should not panic - just return without setting anything
-		hook.propagateTracingToContext(sessionID, tracing)
+		hook.propagateTracingToContext(sessionID.String(), tracing)
 
 		assert.Empty(t, tracing.TraceID, "TraceID should remain empty")
 	})

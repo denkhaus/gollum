@@ -355,7 +355,7 @@ func TestHookManager_WithSessionHooks(t *testing.T) {
 
 		sessionID := uuid.New()
 		workExecuted := false
-		err := hm.WithSessionHooks(context.Background(), sessionID, func() error {
+		err := hm.WithSessionHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: uuid.New()}, func() error {
 			executed = append(executed, "work")
 			workExecuted = true
 			return nil
@@ -384,7 +384,7 @@ func TestHookManager_WithSessionHooks(t *testing.T) {
 
 		sessionID := uuid.New()
 		workErr := errors.New("work failed")
-		err := hm.WithSessionHooks(context.Background(), sessionID, func() error {
+		err := hm.WithSessionHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: uuid.New()}, func() error {
 			executed = append(executed, "work")
 			return workErr
 		})
@@ -397,7 +397,7 @@ func TestHookManager_WithSessionHooks(t *testing.T) {
 	t.Run("rejects nil session ID", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		err := hm.WithSessionHooks(context.Background(), uuid.Nil, func() error {
+		err := hm.WithSessionHooks(context.Background(), shared.LoggingContext{SessionID: "", ChannelID: uuid.New(), AgentID: uuid.New()}, func() error {
 			return nil
 		})
 
@@ -421,7 +421,7 @@ func TestHookManager_WithAgentHooks(t *testing.T) {
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
-		err := hm.WithAgentHooks(context.Background(), sessionID, agentID, BeforeAgentSpawn, func() error {
+		err := hm.WithAgentHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, BeforeAgentSpawn, func() error {
 			return nil
 		})
 
@@ -432,7 +432,7 @@ func TestHookManager_WithAgentHooks(t *testing.T) {
 	t.Run("rejects nil agent ID", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		err := hm.WithAgentHooks(context.Background(), uuid.New(), uuid.Nil, BeforeAgentSpawn, nil)
+		err := hm.WithAgentHooks(context.Background(), shared.LoggingContext{SessionID: uuid.New().String(), ChannelID: uuid.New(), AgentID: uuid.Nil}, BeforeAgentSpawn, nil)
 
 		require.Error(t, err)
 		assert.True(t, errs.IsType(err, errs.TypeValidation))
@@ -443,7 +443,7 @@ func TestHookManager_WithAgentHooks(t *testing.T) {
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
-		err := hm.WithAgentHooks(context.Background(), sessionID, agentID, BeforeSessionStart, nil)
+		err := hm.WithAgentHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, BeforeSessionStart, nil)
 
 		require.Error(t, err)
 		assert.True(t, errs.IsType(err, errs.TypeValidation))

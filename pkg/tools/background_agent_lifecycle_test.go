@@ -54,6 +54,11 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 		SystemPrompt: "test",
 	}).AnyTimes()
 
+	// Create mock sender agent
+	mockSenderAgent := shared.NewMockAgent(ctrl)
+	mockSenderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	mockSenderAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+
 	spawnTool := &spawnAgentToolImpl{
 		logService:      logService,
 		agentFactory:    mockFactory,
@@ -62,7 +67,7 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:           mockSenderAgent,
 	}
 
 	ctx := context.Background()
@@ -100,7 +105,7 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 		hookManager:     mockHookManager,
 		registry:        agentRegistry,
 		executionHelper: execHelper,
-		senderID:        senderID,
+		agent:           mockSenderAgent,
 	}
 
 	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).Return(&gollem.ExecuteResponse{
@@ -120,7 +125,7 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 	// Step 3: Get output from the agent
 	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
-		senderID:    senderID,
+		agent:       mockSenderAgent,
 		hookManager: mockHookManager,
 	}
 
@@ -139,7 +144,7 @@ func TestBackgroundAgent_FullLifecycle(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    agentRegistry,
-		senderID:    senderID,
+		agent:       mockSenderAgent,
 	}
 
 	removeResult, err := removeTool.Run(ctx, map[string]any{

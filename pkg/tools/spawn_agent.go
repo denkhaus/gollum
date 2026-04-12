@@ -39,7 +39,6 @@ type (
 
 	spawnAgentToolProvider struct {
 		logService      logger.LoggerService
-		agentFactory    shared.AgentFactory
 		registry        registry.AgentRegistry
 		promptManager   manager.PromptManager
 		executionHelper AgentExecutionHelper
@@ -52,7 +51,6 @@ type (
 // NewSpawnAgentToolProvider creates a provider for SpawnAgent tools
 func NewSpawnAgentToolProvider(injector do.Injector) (SpawnAgentToolProvider, error) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	agentFactory := do.MustInvoke[shared.AgentFactory](injector)
 	agentRegistry := do.MustInvoke[registry.AgentRegistry](injector)
 	promptManager := do.MustInvoke[manager.PromptManager](injector)
 	executionHelper := do.MustInvoke[AgentExecutionHelper](injector)
@@ -62,7 +60,6 @@ func NewSpawnAgentToolProvider(injector do.Injector) (SpawnAgentToolProvider, er
 
 	return &spawnAgentToolProvider{
 		logService:      logService,
-		agentFactory:    agentFactory,
 		registry:        agentRegistry,
 		promptManager:   promptManager,
 		executionHelper: executionHelper,
@@ -139,8 +136,8 @@ func (t *spawnAgentToolImpl) Spec() gollem.ToolSpec {
 				Description: "If true, includes parent agent's message history in subagent configuration for context awareness. Default is false.",
 			},
 			"allowed_tools": {
-				Type:        gollem.TypeArray,
-				Items:       &gollem.Parameter{Type: gollem.TypeString},
+				Type:  gollem.TypeArray,
+				Items: &gollem.Parameter{Type: gollem.TypeString},
 				Description: fmt.Sprintf("List of tool names the agent can access. Available built-in tools: %s. MCP tools use 'server_name/tool_name' format. If omitted, agent has no tools available.",
 					formatToolNamesForDescription(shared.SubAgentBuiltinTools)),
 			},
@@ -150,7 +147,7 @@ func (t *spawnAgentToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the SpawnAgent tool to create and run subagents
 func (t *spawnAgentToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameSpawnAgent, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameSpawnAgent, args,
 		func() (map[string]any, error) {
 			return t.runSpawnAgent(ctx, args)
 		})
@@ -189,7 +186,7 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 			// Check against tool registry (spawn_agent is allowed when explicitly specified)
 			if !t.toolRegistry.IsValidTool(shared.ToolName(toolName)) {
 				t.logService.WarnWithContext("Invalid built-in tool name in allowed_tools",
-				t.agent.ToLoggingContext(),
+					t.agent.ToLoggingContext(),
 					zap.String("tool_name", toolName))
 				return t.executionHelper.ErrorResponse(fmt.Sprintf("invalid built-in tool name: %s", toolName)), nil
 			}
@@ -197,7 +194,7 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 	}
 
 	t.logService.InfoWithContext("Spawning subagent",
-			t.agent.ToLoggingContext(),
+		t.agent.ToLoggingContext(),
 		zap.String("role", role),
 		zap.String("description", description),
 		zap.Bool("background", runInBackground),
@@ -229,10 +226,13 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 	// Create subagent configuration
 	taskID := uuid.New()
 	parentID := t.agent.GetID()
+	parentConfig := t.agent.GetConfig()
 	subagentConfig := &shared.AgentConfig{
 		AllowCompaction: false, // Don't allow compaction in Sub-agents
 		ID:              taskID,
 		ParentID:        &parentID,
+		SessionID:       parentConfig.SessionID,
+		ChannelID:       parentConfig.ChannelID,
 		SystemPrompt:    systemPrompt,
 		Role:            role,
 		Description:     description,
@@ -251,7 +251,7 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 	}
 
 	t.logService.InfoWithContext("Created subagent",
-			t.agent.ToLoggingContext(),
+		t.agent.ToLoggingContext(),
 		zap.String("subagent_id", subagent.GetID().String()),
 		zap.String("role", role))
 

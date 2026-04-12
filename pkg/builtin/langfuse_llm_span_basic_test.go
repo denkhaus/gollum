@@ -10,6 +10,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/git-hulk/langfuse-go/pkg/traces"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -84,18 +85,18 @@ func TestLangfuseHook_LLMSpanCreation(t *testing.T) {
 				config:      cfg,
 				client:      nil, // Will be lazily initialized
 				clientMu:    &sync.Mutex{},
-				traceCtxs:   make(map[uuid.UUID]*TraceContext),
+				traceCtxs:   make(map[string]*TraceContext),
 				traceCtxsMu: &sync.RWMutex{},
 			}
 
 			// Create trace context if needed
 			if tt.sessionID != uuid.Nil {
-				hook.createTraceContext(tt.sessionID)
+				hook.createTraceContext(tt.sessionID.String())
 			}
 
 			// Create TypedHookContext with LLMPayload
 			hookCtx := hooks.NewTypedHookContext(
-				hooks.BaseContext{SessionID: tt.sessionID},
+				shared.LoggingContext{SessionID: tt.sessionID.String()},
 				hooks.LLMPayload{
 					Model:   tt.llmModel,
 					Input:   tt.llmInput,
@@ -114,7 +115,7 @@ func TestLangfuseHook_LLMSpanCreation(t *testing.T) {
 				assert.NotEmpty(t, spanID, "Span ID should not be empty")
 
 				// Verify span stored in TraceContext
-				tc := hook.getTraceContext(tt.sessionID)
+				tc := hook.getTraceContext(tt.sessionID.String())
 				require.NotNil(t, tc, "TraceContext should exist")
 				assert.Contains(t, tc.Spans, spanID, "Span should be in TraceContext.Spans")
 
@@ -152,13 +153,13 @@ func TestLangfuseHook_LLMSpanUpdate(t *testing.T) {
 		config:      cfg,
 		client:      nil,
 		clientMu:    &sync.Mutex{},
-		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxs:   make(map[string]*TraceContext),
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
 	// Create trace context and pre-populate with span
-	hook.createTraceContext(sessionID)
-	tc := hook.getTraceContext(sessionID)
+	hook.createTraceContext(sessionID.String())
+	tc := hook.getTraceContext(sessionID.String())
 	spanID := uuid.New().String()
 
 	startTime := time.Now().Add(-100 * time.Millisecond)
@@ -170,7 +171,7 @@ func TestLangfuseHook_LLMSpanUpdate(t *testing.T) {
 
 	// Create TypedHookContext with span ID in Tracing and response in Payload
 	hookCtx := hooks.NewTypedHookContextWithTracing(
-		hooks.BaseContext{SessionID: sessionID},
+		shared.LoggingContext{SessionID: sessionID.String()},
 		hooks.LLMPayload{
 			Model:    "claude-3-5-sonnet",
 			Response: "Hi there!",
@@ -210,15 +211,15 @@ func TestLangfuseHook_LLMSpanUpdate_MissingSpanID(t *testing.T) {
 		config:      cfg,
 		client:      nil,
 		clientMu:    &sync.Mutex{},
-		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxs:   make(map[string]*TraceContext),
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
-	hook.createTraceContext(sessionID)
+	hook.createTraceContext(sessionID.String())
 
 	// Create TypedHookContext without span ID in Tracing
 	hookCtx := hooks.NewTypedHookContext(
-		hooks.BaseContext{SessionID: sessionID},
+		shared.LoggingContext{SessionID: sessionID.String()},
 		hooks.LLMPayload{Response: "Response!"},
 	)
 
@@ -244,7 +245,7 @@ func TestLangfuseHook_LLMSpanUpdate_NilTraceContext(t *testing.T) {
 		config:      cfg,
 		client:      nil,
 		clientMu:    &sync.Mutex{},
-		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxs:   make(map[string]*TraceContext),
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
@@ -252,7 +253,7 @@ func TestLangfuseHook_LLMSpanUpdate_NilTraceContext(t *testing.T) {
 
 	// Create TypedHookContext with span ID but no trace context
 	hookCtx := hooks.NewTypedHookContextWithTracing(
-		hooks.BaseContext{SessionID: sessionID},
+		shared.LoggingContext{SessionID: sessionID.String()},
 		hooks.LLMPayload{Response: "Response!"},
 		hooks.TracingPayload{SpanID: "nonexistent-span"},
 	)

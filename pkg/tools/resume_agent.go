@@ -91,7 +91,7 @@ func (t *resumeAgentToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the ResumeAgent tool to resume and run existing agents
 func (t *resumeAgentToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameResumeAgent, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameResumeAgent, args,
 		func() (map[string]any, error) {
 			return t.runResumeAgent(ctx, args)
 		})

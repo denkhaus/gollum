@@ -12,7 +12,7 @@ package tools
 import (
 	reflect "reflect"
 
-	uuid "github.com/google/uuid"
+	shared "github.com/denkhaus/gollum/pkg/shared"
 	gollem "github.com/m-mizutani/gollem"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -42,15 +42,15 @@ func (m *MockBashToolProvider) EXPECT() *MockBashToolProviderMockRecorder {
 }
 
 // CreateTool mocks base method.
-func (m *MockBashToolProvider) CreateTool(agentID uuid.UUID) gollem.Tool {
+func (m *MockBashToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateTool", agentID)
+	ret := m.ctrl.Call(m, "CreateTool", agent)
 	ret0, _ := ret[0].(gollem.Tool)
 	return ret0
 }
 
 // CreateTool indicates an expected call of CreateTool.
-func (mr *MockBashToolProviderMockRecorder) CreateTool(agentID any) *gomock.Call {
+func (mr *MockBashToolProviderMockRecorder) CreateTool(agent any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTool", reflect.TypeOf((*MockBashToolProvider)(nil).CreateTool), agentID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTool", reflect.TypeOf((*MockBashToolProvider)(nil).CreateTool), agent)
 }

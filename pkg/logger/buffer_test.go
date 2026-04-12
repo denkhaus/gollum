@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -419,10 +420,10 @@ func BenchmarkLogBuffer_ConcurrentAccess(b *testing.B) {
 	})
 }
 
-// TestLogBuffer_AgentIDExtraction tests that agent_id is extracted from zap fields
-// when using the *WithAgent methods
+// TestLogBuffer_AgentIDExtraction tests that agent_id is stored when using
+// the *WithContext methods
 func TestLogBuffer_AgentIDExtraction(t *testing.T) {
-	t.Run("Agent ID extracted when using InfoWithAgent", func(t *testing.T) {
+	t.Run("Agent ID stored when using InfoWithContext", func(t *testing.T) {
 		buf := newLogBuffer(10, true)
 		logger, _ := zap.NewProduction()
 		svc := &service{
@@ -432,7 +433,13 @@ func TestLogBuffer_AgentIDExtraction(t *testing.T) {
 		}
 
 		agentID := uuid.New()
-		svc.InfoWithAgent("test message", agentID, zap.String("other_field", "value"))
+		channelID := uuid.New()
+		ctx := shared.LoggingContext{
+			SessionID: "test-session",
+			ChannelID: channelID,
+			AgentID:   agentID,
+		}
+		svc.InfoWithContext("test message", ctx, zap.String("other_field", "value"))
 
 		entries := buf.getEntries(LogFilter{})
 		require.Equal(t, 1, len(entries))
@@ -440,7 +447,7 @@ func TestLogBuffer_AgentIDExtraction(t *testing.T) {
 		assert.Equal(t, "test message", entries[0].Message)
 	})
 
-	t.Run("Agent ID extracted when using ErrorWithAgent", func(t *testing.T) {
+	t.Run("Agent ID stored when using ErrorWithContext", func(t *testing.T) {
 		buf := newLogBuffer(10, true)
 		logger, _ := zap.NewProduction()
 		svc := &service{
@@ -450,7 +457,13 @@ func TestLogBuffer_AgentIDExtraction(t *testing.T) {
 		}
 
 		agentID := uuid.New()
-		svc.ErrorWithAgent("error message", agentID, zap.String("error_detail", "something failed"))
+		channelID := uuid.New()
+		ctx := shared.LoggingContext{
+			SessionID: "test-session",
+			ChannelID: channelID,
+			AgentID:   agentID,
+		}
+		svc.ErrorWithContext("error message", ctx, zap.String("error_detail", "something failed"))
 
 		entries := buf.getEntries(LogFilter{})
 		require.Equal(t, 1, len(entries))

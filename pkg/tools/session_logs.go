@@ -60,7 +60,7 @@ func (p *sessionLogsToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 
 // Run executes the SessionLogs tool to retrieve filtered log entries.
 func (t *sessionLogsToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameSessionLogs, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameSessionLogs, args,
 		func() (map[string]any, error) {
 			return t.runSessionLogs(ctx, args)
 		})

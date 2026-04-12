@@ -25,7 +25,9 @@ func TestSpawnAgentTool_WithShareContext(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
+	senderAgent := shared.NewMockAgent(ctrl)
 	senderID := uuid.New()
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	taskID := uuid.New()
 
 	// Setup mocks
@@ -63,13 +65,13 @@ func TestSpawnAgentTool_WithShareContext(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	ctx := context.Background()
 
 	mockPromptMgr.EXPECT().GetSubagentTaskPrompt(gomock.Any(), gomock.Any()).Return("System prompt", nil)
-	mockRegistry.EXPECT().GetAgent(senderID).Return(mockParentAgent, true)
+	mockRegistry.EXPECT().GetAgent(senderAgent).Return(mockParentAgent, true)
 	mockRegistry.EXPECT().StoreAgentResult(gomock.Any()).Return(nil).Times(1)
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).Do(func(_ context.Context, cfg *shared.AgentConfig) {
 		// Verify message history was passed to subagent config

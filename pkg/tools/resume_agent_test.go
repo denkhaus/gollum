@@ -17,8 +17,13 @@ import (
 )
 
 func TestResumeAgentToolSpec(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	provider := &resumeAgentToolProvider{}
-	tool := provider.CreateTool(uuid.New())
+	testAgent := shared.NewMockAgent(ctrl)
+	testAgent.EXPECT().GetID().Return(uuid.New()).AnyTimes()
+	tool := provider.CreateTool(testAgent)
 
 	spec := tool.Spec()
 
@@ -52,12 +57,15 @@ func TestResumeAgentToolValidation(t *testing.T) {
 	// Set up default behavior for response helper methods
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
+	testAgent := shared.NewMockAgent(ctrl)
+	testAgent.EXPECT().GetID().Return(uuid.New()).AnyTimes()
+
 	tool := &resumeAgentToolImpl{
 		logService:      logService,
 		hookManager:     mockHookManager,
 		registry:        mockRegistry,
 		executionHelper: mockExecHelper,
-		senderID:        uuid.New(),
+		agent:        testAgent,
 	}
 
 	ctx := context.Background()
@@ -132,6 +140,8 @@ func TestResumeAgentToolAgentNotFound(t *testing.T) {
 	setupMockExecutionHelperWithDefaults(mockExecHelper)
 
 	senderID := uuid.New()
+ senderAgent := shared.NewMockAgent(ctrl)
+ senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	agentID := uuid.New()
 
 	// Permission check: sender is direct parent
@@ -145,7 +155,7 @@ func TestResumeAgentToolAgentNotFound(t *testing.T) {
 		hookManager:     mockHookManager,
 		registry:        mockRegistry,
 		executionHelper: mockExecHelper,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	ctx := context.Background()
@@ -167,6 +177,8 @@ func TestResumeAgentToolSynchronousExecution(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
 	senderID := uuid.New()
+ senderAgent := shared.NewMockAgent(ctrl)
+ senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	agentID := uuid.New()
 
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
@@ -210,7 +222,7 @@ func TestResumeAgentToolSynchronousExecution(t *testing.T) {
 		hookManager:     mockHookManager,
 		registry:        mockRegistry,
 		executionHelper: mockExecHelper,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	ctx := context.Background()
@@ -233,6 +245,8 @@ func TestResumeAgentToolAsynchronousExecution(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 
 	senderID := uuid.New()
+ senderAgent := shared.NewMockAgent(ctrl)
+ senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	agentID := uuid.New()
 
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
@@ -275,7 +289,7 @@ func TestResumeAgentToolAsynchronousExecution(t *testing.T) {
 		hookManager:     mockHookManager,
 		registry:        mockRegistry,
 		executionHelper: mockExecHelper,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	ctx := context.Background()
@@ -313,11 +327,13 @@ func TestResumeAgentToolProvider_CreateTool(t *testing.T) {
 	}
 
 	senderID := uuid.New()
-	tool := provider.CreateTool(senderID)
+senderAgent := shared.NewMockAgent(ctrl)
+senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	tool := provider.CreateTool(senderAgent)
 	toolImpl := tool.(*resumeAgentToolImpl)
 
 	require.NotNil(t, tool)
-	assert.Equal(t, senderID, toolImpl.senderID)
+	assert.Equal(t, senderAgent, toolImpl.agent)
 	assert.Equal(t, mockRegistry, toolImpl.registry)
 	assert.Equal(t, logService, toolImpl.logService)
 	assert.Equal(t, mockHookManager, toolImpl.hookManager)
@@ -339,6 +355,8 @@ func TestResumeAgentTool_PermissionDenied(t *testing.T) {
 
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 	senderID := uuid.New()
+ senderAgent := shared.NewMockAgent(ctrl)
+ senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	agentID := uuid.New()
 
 	// Permission check: sender is NOT direct parent
@@ -349,7 +367,7 @@ func TestResumeAgentTool_PermissionDenied(t *testing.T) {
 		hookManager:     mockHookManager,
 		registry:        mockRegistry,
 		executionHelper: mockExecHelper,
-		senderID:        senderID,
+		agent:        senderAgent,
 	}
 
 	ctx := context.Background()

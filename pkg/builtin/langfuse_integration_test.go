@@ -66,7 +66,7 @@ func TestFullTraceLifecycle(t *testing.T) {
 		config:      cfg,
 		client:      nil, // Will be lazily initialized
 		clientMu:    &sync.Mutex{},
-		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxs:   make(map[string]*TraceContext),
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
@@ -77,7 +77,7 @@ func TestFullTraceLifecycle(t *testing.T) {
 	// Step 1: beforeSessionStartHook - verify trace context created
 	t.Run("BeforeSessionStart", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID},
+			shared.LoggingContext{SessionID: sessionID.String()},
 			hooks.SessionPayload{},
 		)
 
@@ -92,7 +92,7 @@ func TestFullTraceLifecycle(t *testing.T) {
 		require.NotEmpty(t, traceID, "trace ID should not be empty")
 
 		// Verify trace context was created
-		tc := hook.getTraceContext(sessionID)
+		tc := hook.getTraceContext(sessionID.String())
 		require.NotNil(t, tc, "TraceContext should exist for session")
 		assert.Equal(t, traceID, tc.TraceID, "TraceContext.TraceID should match propagated trace ID")
 		assert.NotNil(t, tc.RootSpan, "TraceContext.RootSpan should be created")
@@ -102,7 +102,7 @@ func TestFullTraceLifecycle(t *testing.T) {
 	// Step 2: beforeLLMRequestHook + afterLLMResponseHook - verify LLM span created
 	t.Run("LLMSpan", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID},
+			shared.LoggingContext{SessionID: sessionID.String()},
 			hooks.LLMPayload{Model: "test-model", Input: "test prompt"},
 		)
 
@@ -124,7 +124,7 @@ func TestFullTraceLifecycle(t *testing.T) {
 		require.NoError(t, err, "afterLLMResponseHook should not error")
 
 		// Verify span was stored in TraceContext
-		tc := hook.getTraceContext(sessionID)
+		tc := hook.getTraceContext(sessionID.String())
 		require.NotNil(t, tc, "TraceContext should still exist")
 
 		hook.traceCtxsMu.RLock()
@@ -141,7 +141,7 @@ func TestFullTraceLifecycle(t *testing.T) {
 	// Step 3: beforeToolExecutionHook + afterToolExecutionHook - verify tool span created
 	t.Run("ToolSpan", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID},
+			shared.LoggingContext{SessionID: sessionID.String()},
 			hooks.ToolPayload{Name: shared.ToolName("test_tool"), Args: map[string]any{"arg1": "value1"}},
 		)
 
@@ -163,7 +163,7 @@ func TestFullTraceLifecycle(t *testing.T) {
 		require.NoError(t, err, "afterToolExecutionHook should not error")
 
 		// Verify span was stored in TraceContext
-		tc := hook.getTraceContext(sessionID)
+		tc := hook.getTraceContext(sessionID.String())
 		require.NotNil(t, tc, "TraceContext should still exist")
 
 		hook.traceCtxsMu.RLock()
@@ -180,7 +180,7 @@ func TestFullTraceLifecycle(t *testing.T) {
 	// Step 4: afterSessionEndHook - verify trace flushed and cleaned up
 	t.Run("AfterSessionEnd", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID},
+			shared.LoggingContext{SessionID: sessionID.String()},
 			hooks.SessionPayload{},
 		)
 
@@ -190,7 +190,7 @@ func TestFullTraceLifecycle(t *testing.T) {
 		require.NoError(t, err, "afterSessionEndHook should not error")
 
 		// Verify trace context was removed
-		tc := hook.getTraceContext(sessionID)
+		tc := hook.getTraceContext(sessionID.String())
 		assert.Nil(t, tc, "TraceContext should be removed after session end")
 	})
 }
@@ -219,7 +219,7 @@ func TestAgentSpanHierarchy(t *testing.T) {
 		config:      cfg,
 		client:      nil,
 		clientMu:    &sync.Mutex{},
-		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxs:   make(map[string]*TraceContext),
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
@@ -229,7 +229,7 @@ func TestAgentSpanHierarchy(t *testing.T) {
 	// Start session trace
 	t.Run("StartSession", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID},
+			shared.LoggingContext{SessionID: sessionID.String()},
 			hooks.SessionPayload{},
 		)
 
@@ -244,7 +244,7 @@ func TestAgentSpanHierarchy(t *testing.T) {
 	var agentASpawnSpanID string
 	t.Run("SpawnAgentA", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID, AgentID: sessionID}, // Root agent is the session
+			shared.LoggingContext{SessionID: sessionID.String(), AgentID: sessionID}, // Root agent is the session
 			hooks.AgentPayload{Event: hooks.AgentEventSpawn, NewAgentID: agentAID},
 		)
 
@@ -268,7 +268,7 @@ func TestAgentSpanHierarchy(t *testing.T) {
 	var agentBSpawnSpanID string
 	t.Run("SpawnAgentB", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID, AgentID: agentAID}, // Spawned from Agent A
+			shared.LoggingContext{SessionID: sessionID.String(), AgentID: agentAID}, // Spawned from Agent A
 			hooks.AgentPayload{Event: hooks.AgentEventSpawn, NewAgentID: agentBID},
 		)
 
@@ -291,7 +291,7 @@ func TestAgentSpanHierarchy(t *testing.T) {
 	var toolSpanID string
 	t.Run("ExecuteTool", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID, AgentID: agentBID}, // Executed from Agent B
+			shared.LoggingContext{SessionID: sessionID.String(), AgentID: agentBID}, // Executed from Agent B
 			hooks.ToolPayload{Name: shared.ToolName("test_tool"), Args: map[string]any{"arg1": "value1"}},
 		)
 
@@ -315,7 +315,7 @@ func TestAgentSpanHierarchy(t *testing.T) {
 	var agentBRemoveSpanID string
 	t.Run("RemoveAgentB", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID, AgentID: agentBID},
+			shared.LoggingContext{SessionID: sessionID.String(), AgentID: agentBID},
 			hooks.AgentPayload{Event: hooks.AgentEventRemove},
 		)
 
@@ -338,7 +338,7 @@ func TestAgentSpanHierarchy(t *testing.T) {
 	var agentARemoveSpanID string
 	t.Run("RemoveAgentA", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID, AgentID: agentAID},
+			shared.LoggingContext{SessionID: sessionID.String(), AgentID: agentAID},
 			hooks.AgentPayload{Event: hooks.AgentEventRemove},
 		)
 
@@ -359,7 +359,7 @@ func TestAgentSpanHierarchy(t *testing.T) {
 
 	// Verify span hierarchy
 	t.Run("VerifySpanHierarchy", func(t *testing.T) {
-		tc := hook.getTraceContext(sessionID)
+		tc := hook.getTraceContext(sessionID.String())
 		require.NotNil(t, tc, "TraceContext should exist")
 
 		hook.traceCtxsMu.RLock()
@@ -407,7 +407,7 @@ func TestAgentSpanHierarchy(t *testing.T) {
 	// End session trace
 	t.Run("EndSession", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID},
+			shared.LoggingContext{SessionID: sessionID.String()},
 			hooks.SessionPayload{},
 		)
 
@@ -417,7 +417,7 @@ func TestAgentSpanHierarchy(t *testing.T) {
 		require.NoError(t, err, "afterSessionEndHook should not error")
 
 		// Verify trace context was removed
-		tc := hook.getTraceContext(sessionID)
+		tc := hook.getTraceContext(sessionID.String())
 		assert.Nil(t, tc, "TraceContext should be removed after session end")
 	})
 }
@@ -446,7 +446,7 @@ func TestErrorHandlingIntegration(t *testing.T) {
 		config:      cfg,
 		client:      nil,
 		clientMu:    &sync.Mutex{},
-		traceCtxs:   make(map[uuid.UUID]*TraceContext),
+		traceCtxs:   make(map[string]*TraceContext),
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
@@ -456,7 +456,7 @@ func TestErrorHandlingIntegration(t *testing.T) {
 	// Start session trace
 	t.Run("StartSession", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID},
+			shared.LoggingContext{SessionID: sessionID.String()},
 			hooks.SessionPayload{},
 		)
 
@@ -470,7 +470,7 @@ func TestErrorHandlingIntegration(t *testing.T) {
 	var llmSpanID string
 	t.Run("LLMError", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID},
+			shared.LoggingContext{SessionID: sessionID.String()},
 			hooks.LLMPayload{
 				Model: "test-model",
 				Input: "test prompt",
@@ -495,7 +495,7 @@ func TestErrorHandlingIntegration(t *testing.T) {
 		require.NoError(t, err, "onLLMErrorHook should not error")
 
 		// Verify error span was marked correctly
-		tc := hook.getTraceContext(sessionID)
+		tc := hook.getTraceContext(sessionID.String())
 		require.NotNil(t, tc, "TraceContext should exist")
 
 		hook.traceCtxsMu.RLock()
@@ -511,7 +511,7 @@ func TestErrorHandlingIntegration(t *testing.T) {
 	var toolSpanID string
 	t.Run("ToolError", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID},
+			shared.LoggingContext{SessionID: sessionID.String()},
 			hooks.ToolPayload{
 				Name:  shared.ToolName("test_tool"),
 				Args:  map[string]any{"arg1": "value1"},
@@ -536,7 +536,7 @@ func TestErrorHandlingIntegration(t *testing.T) {
 		require.NoError(t, err, "onToolErrorHook should not error")
 
 		// Verify error span was marked correctly
-		tc := hook.getTraceContext(sessionID)
+		tc := hook.getTraceContext(sessionID.String())
 		require.NotNil(t, tc, "TraceContext should exist")
 
 		hook.traceCtxsMu.RLock()
@@ -550,7 +550,7 @@ func TestErrorHandlingIntegration(t *testing.T) {
 	// End session trace - should complete despite errors
 	t.Run("EndSession", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			hooks.BaseContext{SessionID: sessionID},
+			shared.LoggingContext{SessionID: sessionID.String()},
 			hooks.SessionPayload{},
 		)
 
@@ -560,7 +560,7 @@ func TestErrorHandlingIntegration(t *testing.T) {
 		require.NoError(t, err, "afterSessionEndHook should not error despite previous errors")
 
 		// Verify trace context was removed (graceful degradation)
-		tc := hook.getTraceContext(sessionID)
+		tc := hook.getTraceContext(sessionID.String())
 		assert.Nil(t, tc, "TraceContext should be removed after session end")
 	})
 }

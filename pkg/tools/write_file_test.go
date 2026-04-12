@@ -325,10 +325,12 @@ func TestWriteFileTool_Run_OverwriteExisting(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	agentID := uuid.New()
+	agent := shared.NewMockAgent(ctrl)
+	agent.EXPECT().GetID().Return(agentID).AnyTimes()
 	mockDiffProvider := diff.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiffForNewFile(gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
-	tool := &writeFileToolImpl{logService: logService, fsm: fsm, agentID: agentID, hookManager: mockHookManager, diffProvider: mockDiffProvider}
+	tool := &writeFileToolImpl{logService: logService, fsm: fsm, agent: agent, hookManager: mockHookManager, diffProvider: mockDiffProvider}
 	tool.diffProvider = mockDiffProvider
 
 	tmpDir := t.TempDir()
@@ -408,8 +410,10 @@ func TestWriteFileTool_Run_AutomaticRaceConditionDetection(t *testing.T) {
 
 	// Create tools for the same agent
 	testAgentID := state.TestAgent1
-	writeTool := &writeFileToolImpl{logService: logService, fsm: fsm, agentID: testAgentID, hookManager: mockHookManager}
-	readTool := &readFileToolImpl{logService: logService, fsm: fsm, agentID: testAgentID, hookManager: mockHookManager}
+	agent := shared.NewMockAgent(ctrl)
+	agent.EXPECT().GetID().Return(testAgentID).AnyTimes()
+	writeTool := &writeFileToolImpl{logService: logService, fsm: fsm, agent: agent, hookManager: mockHookManager}
+	readTool := &readFileToolImpl{logService: logService, fsm: fsm, agent: agent, hookManager: mockHookManager}
 
 	tmpDir := t.TempDir()
 	testPath := filepath.Join(tmpDir, "test.txt")
@@ -624,6 +628,9 @@ func TestWriteFileTool_Run_MultiLineContent(t *testing.T) {
 }
 
 func TestWriteFileToolProvider_CreateWriteFileTool(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	fsm, err := state.NewFileStateManager(injector)
@@ -632,8 +639,10 @@ func TestWriteFileToolProvider_CreateWriteFileTool(t *testing.T) {
 	}
 
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	agent := shared.NewMockAgent(ctrl)
+	agent.EXPECT().GetID().Return(testUUID).AnyTimes()
 	provider := &writeFileToolProvider{logService: logService, fsm: fsm}
-	tool := provider.CreateTool(testUUID)
+	tool := provider.CreateTool(agent)
 	toolImpl := tool.(*writeFileToolImpl)
 
 	if tool == nil {

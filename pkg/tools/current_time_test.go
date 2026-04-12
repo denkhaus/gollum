@@ -23,7 +23,13 @@ func TestCurrentTimeTool_Run_DefaultTimezone(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
+	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	result, err := tool.Run(context.Background(), map[string]any{})
 	if err != nil {
@@ -324,14 +330,22 @@ func TestCurrentTimeTool_Spec(t *testing.T) {
 }
 
 func TestCurrentTimeToolProvider_CreateTool(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	mockHookManager := hooks.NewMockHookManager(nil) // nil ctrl since we're not setting expectations
+	mockHookManager := hooks.NewMockHookManager(nil)
 
 	provider := &currentTimeToolProvider{logService: logService, hookManager: mockHookManager}
-	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
-	tool := provider.CreateTool(testUUID)
+	// Create mock agent
+	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(testUUID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", testUUID, uuid.Nil)).AnyTimes()
+
+	tool := provider.CreateTool(mockAgent)
 	toolImpl := tool.(*currentTimeToolImpl)
 
 	if tool == nil {
@@ -342,12 +356,15 @@ func TestCurrentTimeToolProvider_CreateTool(t *testing.T) {
 		t.Error("Expected tool to have logService")
 	}
 
-	if toolImpl.agentID != testUUID {
-		t.Errorf("Expected agentID %v, got %v", testUUID, toolImpl.agentID)
+	if toolImpl.agent.GetID() != testUUID {
+		t.Errorf("Expected agent ID %v, got %v", testUUID, toolImpl.agent.GetID())
 	}
 }
 
 func TestNewCurrentTimeToolProvider(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := setupTestInjector()
 
 	provider, err := NewCurrentTimeToolProvider(injector)
@@ -361,7 +378,11 @@ func TestNewCurrentTimeToolProvider(t *testing.T) {
 
 	// Verify provider can create tool
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
-	tool := provider.CreateTool(testUUID)
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(testUUID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", testUUID, uuid.Nil)).AnyTimes()
+
+	tool := provider.CreateTool(mockAgent)
 
 	if tool == nil {
 		t.Error("Expected provider to create non-nil tool")

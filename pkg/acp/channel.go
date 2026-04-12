@@ -3,7 +3,7 @@ package acp
 
 import (
 	"github.com/denkhaus/gollum/pkg/channel"
-	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/samber/do/v2"
 )
 
@@ -14,23 +14,25 @@ const Identifier = channel.ChannelIdentifier("acp")
 // This allows the ACP channel to be created via the channel facade.
 func RegisterChannels(injector do.Injector) {
 	do.ProvideNamedValue(injector, "channel_acp", channel.ChannelFactory(func(opts ...channel.ChannelOption) (channel.Channel, error) {
-		// The ACP service is created by NewAcpService() in the DI system
-		// We retrieve it here and return it as a channel
-		service := do.MustInvoke[shared.ACPService](injector)
+		// Create ACP service directly to avoid circular dependency
+		// (ACP service depends on ChannelFacade, so we can't inject it here)
+		logService := do.MustInvoke[logger.LoggerService](injector)
+		facade := do.MustInvoke[channel.ChannelFacade](injector)
 
-		// Type assert to channel.Channel (acpServiceImpl implements both)
-		ch, ok := service.(channel.Channel)
-		if !ok {
-			return nil, nil // Should never happen - acpServiceImpl always implements Channel
+		// Create minimal ACP service instance
+		svc := &acpServiceImpl{
+			logger:   logService,
+			facade:   facade,
+			injector: injector,
 		}
 
 		// Apply any channel options (stdin/stdout for ACP connection)
 		for _, opt := range opts {
-			if err := opt.Apply(ch); err != nil {
+			if err := opt.Apply(svc); err != nil {
 				return nil, err
 			}
 		}
 
-		return ch, nil
+		return svc, nil
 	}))
 }

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/errs"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +36,11 @@ func TestHookManager_WithFileReadHooks(t *testing.T) {
 		agentID := uuid.New()
 		filePath := testFilePath
 
-		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, func() (string, error) {
+		content, err := hm.WithFileReadHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, filePath, func() (string, error) {
 			executed = append(executed, "work")
 			return testOriginalContent, nil
 		})
@@ -60,7 +65,11 @@ func TestHookManager_WithFileReadHooks(t *testing.T) {
 		agentID := uuid.New()
 		filePath := testFilePath
 
-		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, func() (string, error) {
+		content, err := hm.WithFileReadHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, filePath, func() (string, error) {
 			return testOriginalContent, nil
 		})
 
@@ -84,7 +93,11 @@ func TestHookManager_WithFileReadHooks(t *testing.T) {
 		filePath := testFilePath
 
 		workExecuted := false
-		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, func() (string, error) {
+		content, err := hm.WithFileReadHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, filePath, func() (string, error) {
 			workExecuted = true
 			return testContent, nil
 		})
@@ -115,7 +128,11 @@ func TestHookManager_WithFileReadHooks(t *testing.T) {
 		filePath := testFilePath
 		workErr := errors.New("read failed")
 
-		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, func() (string, error) {
+		content, err := hm.WithFileReadHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, filePath, func() (string, error) {
 			executed = append(executed, "work")
 			return "", workErr
 		})
@@ -132,7 +149,11 @@ func TestHookManager_WithFileReadHooks(t *testing.T) {
 		sessionID := uuid.New()
 		agentID := uuid.New()
 
-		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, "", func() (string, error) {
+		content, err := hm.WithFileReadHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, "", func() (string, error) {
 			return testContent, nil
 		})
 
@@ -147,7 +168,11 @@ func TestHookManager_WithFileReadHooks(t *testing.T) {
 		sessionID := uuid.New()
 		agentID := uuid.New()
 
-		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, testSuspiciousPath, func() (string, error) {
+		content, err := hm.WithFileReadHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, testSuspiciousPath, func() (string, error) {
 			return testContent, nil
 		})
 
@@ -164,7 +189,11 @@ func TestHookManager_WithFileReadHooks(t *testing.T) {
 		agentID := uuid.New()
 		filePath := testFilePath
 
-		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, nil)
+		content, err := hm.WithFileReadHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, filePath, nil)
 
 		require.Error(t, err)
 		assert.True(t, errs.IsType(err, errs.TypeValidation))
@@ -185,7 +214,11 @@ func TestHookManager_WithFileReadHooks(t *testing.T) {
 		filePath := testFilePath
 		workErr := errors.New("work failed")
 
-		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, func() (string, error) {
+		content, err := hm.WithFileReadHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, filePath, func() (string, error) {
 			return "", workErr
 		})
 
@@ -213,7 +246,11 @@ func TestHookManager_WithFileReadHooks(t *testing.T) {
 		agentID := uuid.New()
 		filePath := testFilePath
 
-		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, func() (string, error) {
+		content, err := hm.WithFileReadHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, filePath, func() (string, error) {
 			executed = append(executed, "work")
 			return testContent, nil
 		})
@@ -240,7 +277,11 @@ func TestHookManager_WithFileReadHooks(t *testing.T) {
 		filePath := testFilePath
 		originalContent := "SENSITIVE DATA"
 
-		content, err := hm.WithFileReadHooks(context.Background(), sessionID, agentID, filePath, func() (string, error) {
+		content, err := hm.WithFileReadHooks(context.Background(), shared.LoggingContext{
+			SessionID: sessionID.String(),
+			ChannelID: uuid.New(),
+			AgentID:   agentID,
+		}, filePath, func() (string, error) {
 			return originalContent, nil
 		})
 

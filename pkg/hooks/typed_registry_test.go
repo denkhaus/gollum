@@ -103,7 +103,7 @@ func TestTypedRegistry_Trigger(t *testing.T) {
 		}, TypedHookMetadata{Name: "second", Point: BeforeToolExecution, Priority: 5}))
 
 		hookCtx := &TypedHookContext[ToolPayload]{
-			BaseContext: BaseContext{SessionID: uuid.New(), AgentID: uuid.New()},
+			LoggingContext: shared.LoggingContext{SessionID: uuid.New().String(), ChannelID: uuid.New(), AgentID: uuid.New()},
 			Payload:     ToolPayload{Args: make(map[string]any)},
 		}
 		result := r.Trigger(context.Background(), BeforeToolExecution, hookCtx)
@@ -129,7 +129,7 @@ func TestTypedRegistry_Trigger(t *testing.T) {
 		}, TypedHookMetadata{Name: "second", Point: BeforeToolExecution, Priority: 5}))
 
 		hookCtx := &TypedHookContext[ToolPayload]{
-			BaseContext: BaseContext{SessionID: uuid.New(), AgentID: uuid.New()},
+			LoggingContext: shared.LoggingContext{SessionID: uuid.New().String(), ChannelID: uuid.New(), AgentID: uuid.New()},
 			Payload:     ToolPayload{Args: make(map[string]any)},
 		}
 		result := r.Trigger(context.Background(), BeforeToolExecution, hookCtx)
@@ -157,7 +157,7 @@ func TestTypedRegistry_Trigger(t *testing.T) {
 		}, TypedHookMetadata{Name: "second", Point: BeforeToolExecution, Priority: 5}))
 
 		hookCtx := &TypedHookContext[ToolPayload]{
-			BaseContext: BaseContext{SessionID: uuid.New(), AgentID: uuid.New()},
+			LoggingContext: shared.LoggingContext{SessionID: uuid.New().String(), ChannelID: uuid.New(), AgentID: uuid.New()},
 			Payload:     ToolPayload{Args: make(map[string]any)},
 		}
 		result := r.Trigger(context.Background(), BeforeToolExecution, hookCtx)
@@ -185,7 +185,7 @@ func TestTypedRegistry_Trigger(t *testing.T) {
 		}, TypedHookMetadata{Name: "second", Point: BeforeToolExecution, Priority: 5}))
 
 		hookCtx := &TypedHookContext[ToolPayload]{
-			BaseContext: BaseContext{SessionID: uuid.New(), AgentID: uuid.New()},
+			LoggingContext: shared.LoggingContext{SessionID: uuid.New().String(), ChannelID: uuid.New(), AgentID: uuid.New()},
 			Payload:     ToolPayload{Args: make(map[string]any)},
 		}
 		result := r.Trigger(context.Background(), BeforeToolExecution, hookCtx)
@@ -207,7 +207,7 @@ func TestTypedRegistry_Trigger(t *testing.T) {
 		}, TypedHookMetadata{Name: "modifier", Point: BeforeToolExecution, Priority: 1}))
 
 		hookCtx := &TypedHookContext[ToolPayload]{
-			BaseContext: BaseContext{SessionID: uuid.New(), AgentID: uuid.New()},
+			LoggingContext: shared.LoggingContext{SessionID: uuid.New().String(), ChannelID: uuid.New(), AgentID: uuid.New()},
 			Payload:     ToolPayload{Name: "original", Args: make(map[string]any)},
 		}
 		result := r.Trigger(context.Background(), BeforeToolExecution, hookCtx)
@@ -224,7 +224,7 @@ func TestTypedRegistry_Trigger(t *testing.T) {
 		r := NewTypedRegistry[ToolPayload]()
 
 		hookCtx := &TypedHookContext[ToolPayload]{
-			BaseContext: BaseContext{SessionID: uuid.New(), AgentID: uuid.New()},
+			LoggingContext: shared.LoggingContext{SessionID: uuid.New().String(), ChannelID: uuid.New(), AgentID: uuid.New()},
 			Payload:     ToolPayload{Name: "test"},
 		}
 		result := r.Trigger(context.Background(), BeforeToolExecution, hookCtx)

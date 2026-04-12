@@ -37,7 +37,7 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		agentID := uuid.New()
 		args := map[string]any{"input": "test"}
 
-		result, err := hm.WithToolHooks(context.Background(), sessionID, agentID, shared.ToolName("test-tool"), args, func() (map[string]any, error) {
+		result, err := hm.WithToolHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, shared.ToolName("test-tool"), args, func() (map[string]any, error) {
 			executed = append(executed, "work")
 			return map[string]any{"output": "success"}, nil
 		})
@@ -62,7 +62,7 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		agentID := uuid.New()
 		args := map[string]any{"input": "original"}
 
-		result, err := hm.WithToolHooks(context.Background(), sessionID, agentID, "test-tool", args, func() (map[string]any, error) {
+		result, err := hm.WithToolHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, "test-tool", args, func() (map[string]any, error) {
 			// Note: Work function does NOT receive modified args from hooks due to design.
 			// Hooks can validate/block but cannot modify what work() receives.
 			// The work function closes over the original 'args' parameter.
@@ -88,7 +88,7 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		agentID := uuid.New()
 		args := map[string]any{"input": "test"}
 
-		result, err := hm.WithToolHooks(context.Background(), sessionID, agentID, "test-tool", args, func() (map[string]any, error) {
+		result, err := hm.WithToolHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, "test-tool", args, func() (map[string]any, error) {
 			return map[string]any{"output": "original"}, nil
 		})
 
@@ -112,7 +112,7 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		args := map[string]any{"input": "test"}
 
 		workExecuted := false
-		result, err := hm.WithToolHooks(context.Background(), sessionID, agentID, "test-tool", args, func() (map[string]any, error) {
+		result, err := hm.WithToolHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, "test-tool", args, func() (map[string]any, error) {
 			workExecuted = true
 			return map[string]any{"output": "success"}, nil
 		})
@@ -137,7 +137,7 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		agentID := uuid.New()
 		args := map[string]any{"input": "test"}
 
-		result, err := hm.WithToolHooks(context.Background(), sessionID, agentID, "test-tool", args, func() (map[string]any, error) {
+		result, err := hm.WithToolHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, "test-tool", args, func() (map[string]any, error) {
 			return nil, errors.New("tool failed")
 		})
 
@@ -157,7 +157,7 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		agentID := uuid.New()
 		args := map[string]any{"input": "test"}
 
-		result, err := hm.WithToolHooks(context.Background(), sessionID, agentID, "test-tool", args, func() (map[string]any, error) {
+		result, err := hm.WithToolHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, "test-tool", args, func() (map[string]any, error) {
 			return nil, errors.New("tool failed")
 		})
 
@@ -173,7 +173,7 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		agentID := uuid.New()
 		args := map[string]any{"input": "test"}
 
-		_, err := hm.WithToolHooks(context.Background(), sessionID, agentID, "", args, func() (map[string]any, error) {
+		_, err := hm.WithToolHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, "", args, func() (map[string]any, error) {
 			return map[string]any{"output": "success"}, nil
 		})
 
@@ -188,7 +188,7 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		agentID := uuid.New()
 		args := map[string]any{"input": "test"}
 
-		_, err := hm.WithToolHooks(context.Background(), sessionID, agentID, "test-tool", args, nil)
+		_, err := hm.WithToolHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, "test-tool", args, nil)
 
 		require.Error(t, err)
 		assert.True(t, errs.IsType(err, errs.TypeValidation))
@@ -208,7 +208,7 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		args := map[string]any{"input": "test"}
 
 		workExecuted := false
-		result, err := hm.WithToolHooks(context.Background(), sessionID, agentID, "test-tool", args, func() (map[string]any, error) {
+		result, err := hm.WithToolHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, "test-tool", args, func() (map[string]any, error) {
 			workExecuted = true
 			return map[string]any{"output": "success"}, nil
 		})
@@ -232,7 +232,7 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		agentID := uuid.New()
 		args := map[string]any{"input": "test"}
 
-		result, err := hm.WithToolHooks(context.Background(), sessionID, agentID, "test-tool", args, func() (map[string]any, error) {
+		result, err := hm.WithToolHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, "test-tool", args, func() (map[string]any, error) {
 			return map[string]any{"output": "success"}, nil
 		})
 
@@ -256,7 +256,7 @@ func TestHookManager_WithToolHooks(t *testing.T) {
 		agentID := uuid.New()
 		args := map[string]any{"input": "test"}
 
-		result, err := hm.WithToolHooks(context.Background(), sessionID, agentID, "test-tool", args, func() (map[string]any, error) {
+		result, err := hm.WithToolHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, "test-tool", args, func() (map[string]any, error) {
 			return map[string]any{"output": "success"}, nil
 		})
 

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/denkhaus/gollum/pkg/errs"
-	"github.com/google/uuid"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"go.uber.org/zap"
 )
 
@@ -20,7 +20,7 @@ import (
 // The returned content is the final content after any modifications by AfterFileRead hooks.
 func (p *hookManagerImpl) WithFileReadHooks(
 	ctx context.Context,
-	sessionID, agentID uuid.UUID,
+	loggingContext shared.LoggingContext,
 	filePath string,
 	work func() (string, error),
 ) (string, error) {
@@ -38,8 +38,7 @@ func (p *hookManagerImpl) WithFileReadHooks(
 	}
 
 	// BeforeFileRead hook with typed context
-	hookCtx := NewTypedHookContext(
-		BaseContext{SessionID: sessionID, AgentID: agentID},
+	hookCtx := NewTypedHookContext(loggingContext,
 		FilePayload{Path: filePath, Operation: FileOperationRead},
 	)
 
@@ -66,7 +65,8 @@ func (p *hookManagerImpl) WithFileReadHooks(
 	// If a fatal 'after' hook failed, its error takes precedence
 	if result.Error != nil {
 		if workErr != nil {
-			p.log.Error("The original work function also returned an error, which is being superseded by the AfterFileRead hook error",
+			p.log.ErrorWithContext("The original work function also returned an error, which is being superseded by the AfterFileRead hook error",
+				loggingContext,
 				zap.String("file_path", filePath),
 				zap.Error(workErr))
 		}
@@ -87,7 +87,7 @@ func (p *hookManagerImpl) WithFileReadHooks(
 // 3. AfterFileWrite hooks run - can log/audit
 func (p *hookManagerImpl) WithFileWriteHooks(
 	ctx context.Context,
-	sessionID, agentID uuid.UUID,
+	loggingContext shared.LoggingContext,
 	filePath string,
 	content string,
 	work func(string) error,
@@ -107,7 +107,7 @@ func (p *hookManagerImpl) WithFileWriteHooks(
 
 	// BeforeFileWrite hook with typed context
 	hookCtx := NewTypedHookContext(
-		BaseContext{SessionID: sessionID, AgentID: agentID},
+		loggingContext,
 		FilePayload{Path: filePath, Content: content, Operation: FileOperationWrite},
 	)
 
@@ -132,7 +132,8 @@ func (p *hookManagerImpl) WithFileWriteHooks(
 	// If a fatal 'after' hook failed, its error takes precedence
 	if result.Error != nil {
 		if workErr != nil {
-			p.log.Error("The original work function also returned an error, which is being superseded by the AfterFileWrite hook error",
+			p.log.ErrorWithContext("The original work function also returned an error, which is being superseded by the AfterFileWrite hook error",
+				loggingContext,
 				zap.String("file_path", filePath),
 				zap.Error(workErr))
 		}
@@ -174,7 +175,7 @@ func (p *hookManagerImpl) WithFileWriteHooks(
 // 3. AfterFileModify hooks run - can log/audit the modification
 func (p *hookManagerImpl) WithFileHooks(
 	ctx context.Context,
-	sessionID, agentID uuid.UUID,
+	loggingContext shared.LoggingContext,
 	point HookPoint,
 	filePath string,
 	work func() error,
@@ -218,8 +219,7 @@ func (p *hookManagerImpl) WithFileHooks(
 	}
 
 	// Before hook with typed context
-	hookCtx := NewTypedHookContext(
-		BaseContext{SessionID: sessionID, AgentID: agentID},
+	hookCtx := NewTypedHookContext(loggingContext,
 		FilePayload{Path: filePath, Operation: operation},
 	)
 
@@ -243,7 +243,8 @@ func (p *hookManagerImpl) WithFileHooks(
 	// If a fatal 'after' hook failed, its error takes precedence
 	if result.Error != nil {
 		if workErr != nil {
-			p.log.Error("The original work function also returned an error, which is being superseded by the after hook error",
+			p.log.ErrorWithContext("The original work function also returned an error, which is being superseded by the after hook error",
+				loggingContext,
 				zap.String("file_path", filePath),
 				zap.Error(workErr))
 		}

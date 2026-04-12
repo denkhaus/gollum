@@ -14,7 +14,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/state"
-	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -88,7 +87,7 @@ func (t *writeFileToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the WriteFile tool to write content to files
 func (t *writeFileToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, uuid.Nil, t.agent.GetID(), shared.ToolNameWriteFile, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameWriteFile, args,
 		func() (map[string]any, error) {
 			return t.runFileWrite(ctx, args)
 		})
@@ -199,7 +198,7 @@ func (t *writeFileToolImpl) runFileWrite(ctx context.Context, args ToolRequestPa
 		},
 		func(_ context.Context, token *state.LockToken) (any, error) {
 			// Wrap the actual file write with file write hooks
-			err := t.hookManager.WithFileWriteHooks(ctx, uuid.Nil, t.agent.GetID(), path, content,
+			err := t.hookManager.WithFileWriteHooks(ctx, t.agent.ToLoggingContext(), path, content,
 				func(finalContent string) error {
 					// Write the file
 					if err := os.WriteFile(path, []byte(finalContent), 0o644); err != nil {

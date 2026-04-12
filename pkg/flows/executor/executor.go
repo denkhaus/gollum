@@ -17,8 +17,8 @@ import (
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/google/uuid"
-	"github.com/samber/do/v2"
 	"github.com/m-mizutani/gollem"
+	"github.com/samber/do/v2"
 )
 
 // dummyShellAgent is a minimal agent implementation for shell steps
@@ -1213,4 +1213,3 @@ func init() {
 	// This is a placeholder to avoid nil pointer errors
 	flows.RegisterExecutor(&executorAdapter{})
 }
-

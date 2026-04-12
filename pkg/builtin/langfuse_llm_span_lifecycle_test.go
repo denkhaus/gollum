@@ -11,6 +11,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/git-hulk/langfuse-go/pkg/traces"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -82,13 +83,13 @@ func TestLangfuseHook_OnLLMError(t *testing.T) {
 				config:      cfg,
 				client:      nil,
 				clientMu:    &sync.Mutex{},
-				traceCtxs:   make(map[uuid.UUID]*TraceContext),
+				traceCtxs:   make(map[string]*TraceContext),
 				traceCtxsMu: &sync.RWMutex{},
 			}
 
 			// Create trace context and span
-			hook.createTraceContext(sessionID)
-			tc := hook.getTraceContext(sessionID)
+			hook.createTraceContext(sessionID.String())
+			tc := hook.getTraceContext(sessionID.String())
 			spanID := uuid.New().String()
 
 			startTime := time.Now().Add(-50 * time.Millisecond)
@@ -101,7 +102,7 @@ func TestLangfuseHook_OnLLMError(t *testing.T) {
 
 			// Create TypedHookContext with LLMPayload
 			hookCtx := hooks.NewTypedHookContext(
-				hooks.BaseContext{SessionID: tt.sessionID},
+				shared.LoggingContext{SessionID: tt.sessionID.String()},
 				hooks.LLMPayload{
 					Error:   tt.llmError,
 					Options: make(map[string]any),
@@ -201,17 +202,17 @@ func TestLangfuseHook_LLMSpanLifecycle_Integration(t *testing.T) {
 				config:      cfg,
 				client:      nil,
 				clientMu:    &sync.Mutex{},
-				traceCtxs:   make(map[uuid.UUID]*TraceContext),
+				traceCtxs:   make(map[string]*TraceContext),
 				traceCtxsMu: &sync.RWMutex{},
 			}
 
 			// Create trace context
-			hook.createTraceContext(sessionID)
-			tc := hook.getTraceContext(sessionID)
+			hook.createTraceContext(sessionID.String())
+			tc := hook.getTraceContext(sessionID.String())
 
 			// Simulate LLM flow: BeforeLLMRequest -> LLM call -> AfterLLMResponse/OnLLMError
 			hookCtx := hooks.NewTypedHookContext(
-				hooks.BaseContext{SessionID: sessionID},
+				shared.LoggingContext{SessionID: sessionID.String()},
 				hooks.LLMPayload{
 					Model:    tt.llmModel,
 					Input:    tt.llmInput,

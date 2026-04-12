@@ -8,6 +8,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -88,8 +89,8 @@ func TestLoggingHook_typedHooks(t *testing.T) {
 		hook := &LoggingHook{log: mockLogger, config: cfg}
 
 		hookCtx := &hooks.TypedHookContext[hooks.ToolPayload]{
-			BaseContext: hooks.BaseContext{
-				SessionID: uuid.New(),
+			LoggingContext: shared.LoggingContext{
+				SessionID: uuid.New().String(),
 				AgentID:   uuid.New(),
 			},
 			Payload: hooks.ToolPayload{
@@ -114,8 +115,8 @@ func TestLoggingHook_typedHooks(t *testing.T) {
 		hook := &LoggingHook{log: mockLogger, config: cfg}
 
 		hookCtx := &hooks.TypedHookContext[hooks.FilePayload]{
-			BaseContext: hooks.BaseContext{
-				SessionID: uuid.New(),
+			LoggingContext: shared.LoggingContext{
+				SessionID: uuid.New().String(),
 				AgentID:   uuid.New(),
 			},
 			Payload: hooks.FilePayload{
@@ -139,8 +140,8 @@ func TestLoggingHook_typedHooks(t *testing.T) {
 		hook := &LoggingHook{log: mockLogger, config: cfg}
 
 		hookCtx := &hooks.TypedHookContext[hooks.LLMPayload]{
-			BaseContext: hooks.BaseContext{
-				SessionID: uuid.New(),
+			LoggingContext: shared.LoggingContext{
+				SessionID: uuid.New().String(),
 				AgentID:   uuid.New(),
 			},
 			Payload: hooks.LLMPayload{
@@ -165,8 +166,8 @@ func TestLoggingHook_typedHooks(t *testing.T) {
 		hook := &LoggingHook{log: mockLogger, config: cfg}
 
 		hookCtx := &hooks.TypedHookContext[hooks.ToolPayload]{
-			BaseContext: hooks.BaseContext{
-				SessionID: uuid.New(),
+			LoggingContext: shared.LoggingContext{
+				SessionID: uuid.New().String(),
 				AgentID:   uuid.New(),
 			},
 			Payload: hooks.ToolPayload{
