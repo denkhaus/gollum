@@ -35,8 +35,7 @@ func TestClickOnCollapsedToolMessage(t *testing.T) {
 		Type:      channel.MessageTypeToolResponse,
 		Content:   "This is a long tool output that should be collapsed",
 		Timestamp: time.Now(),
-		Metadata: map[string]any{"is_tool": true, "collapsed": true},
-		
+		Metadata:  map[string]any{"is_tool": true, "collapsed": true},
 	}
 	agentMsg := channel.Message{
 		ID:        uuid.New(),
@@ -102,8 +101,8 @@ func TestClickOnExpandedToolMessage(t *testing.T) {
 		Type:      channel.MessageTypeToolResponse,
 		Content:   "This is tool output that should be visible",
 		Timestamp: time.Now(),
-		Metadata: map[string]any{"is_tool": true, "collapsed": true},
-		 // EXPANDED
+		Metadata:  map[string]any{"is_tool": true, "collapsed": true},
+		// EXPANDED
 	}
 	agentMsg := channel.Message{
 		ID:        uuid.New(),
@@ -155,8 +154,7 @@ func TestClickOnToolMessageWithDifferentialUpdate(t *testing.T) {
 		Type:      channel.MessageTypeToolResponse,
 		Content:   "Tool output",
 		Timestamp: time.Now(),
-		Metadata: map[string]any{"is_tool": true, "collapsed": true},
-		
+		Metadata:  map[string]any{"is_tool": true, "collapsed": true},
 	})
 	m.updateViewportContent()
 	m.viewport.SetContent(m.cachedContent)
@@ -312,8 +310,7 @@ func TestClickOnFirstToolMessage(t *testing.T) {
 		Timestamp: time.Now(),
 		AgentID:   uuid.New(),
 		AgentRole: "runner",
-		Metadata: map[string]any{"is_tool": true, "collapsed": true},
-		
+		Metadata:  map[string]any{"is_tool": true, "collapsed": true},
 	}
 	m.messages = append(m.messages, toolMsg)
 	content = m.updateViewportContent()

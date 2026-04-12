@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
@@ -26,21 +27,24 @@ func TestNewChannelMiddleware(t *testing.T) {
 	assert.Equal(t, agentRole, middleware.agentRole)
 	assert.Equal(t, sessionID, middleware.sessionID)
 	assert.Equal(t, channelID, middleware.channelID)
-	assert.Equal(t, mockFacade, middleware.facade)
 }
 
 func TestChannelMiddlewareProvider_CreateChannelMiddleware(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	provider := &channelMiddlewareProvider{}
+	// Create injector with mock facade
+	injector := do.New()
 	mockFacade := NewMockChannelFacade(ctrl)
+	do.ProvideValue[ChannelFacade](injector, mockFacade)
+
+	provider := &channelMiddlewareProvider{injector: injector}
 	agentID := uuid.New()
 	agentRole := "assistant"
 	sessionID := "test-session-456"
 	channelID := uuid.New()
 
-	middleware := provider.CreateChannelMiddleware(mockFacade, agentID, agentRole, sessionID, channelID)
+	middleware := provider.CreateChannelMiddleware(agentID, agentRole, sessionID, channelID)
 
 	assert.NotNil(t, middleware)
 	assert.Equal(t, agentID, middleware.agentID)
@@ -111,13 +115,16 @@ func TestNewChannelMiddlewareProvider(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	// Create injector with mock facade
+	injector := do.New()
+	mockFacade := NewMockChannelFacade(ctrl)
+	do.ProvideValue[ChannelFacade](injector, mockFacade)
+
 	// Test that provider can be created
-	provider := &channelMiddlewareProvider{}
+	provider := &channelMiddlewareProvider{injector: injector}
 	assert.NotNil(t, provider)
 
 	// Test CreateChannelMiddleware with various inputs
-	mockFacade := NewMockChannelFacade(ctrl)
-
 	testCases := []struct {
 		name      string
 		agentID   uuid.UUID
@@ -150,7 +157,7 @@ func TestNewChannelMiddlewareProvider(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			middleware := provider.CreateChannelMiddleware(mockFacade, tc.agentID, tc.agentRole, tc.sessionID, tc.channelID)
+			middleware := provider.CreateChannelMiddleware(tc.agentID, tc.agentRole, tc.sessionID, tc.channelID)
 			assert.NotNil(t, middleware)
 			assert.Equal(t, tc.agentID, middleware.agentID)
 			assert.Equal(t, tc.agentRole, middleware.agentRole)

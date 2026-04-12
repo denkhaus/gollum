@@ -14,11 +14,9 @@ import (
 // ACPCommand returns the ACP server command
 func ACPCommand() *cli.Command {
 	return &cli.Command{
-		Name:  "acp",
-		Usage: "Start Gollum ACP server (Agent Client Protocol)",
-		Action: func(ctx context.Context, cmd *cli.Command) error {
-			return runACPServer(ctx, cmd)
-		},
+		Name:   "acp",
+		Usage:  "Start Gollum ACP server (Agent Client Protocol)",
+		Action: runACPServer,
 	}
 }
 
@@ -45,7 +43,7 @@ func runACPServer(ctx context.Context, cmd *cli.Command) error {
 
 	// Ensure cleanup on exit
 	defer func() {
-		facade.UnregisterChannel(ch.ID())
+		_ = facade.UnregisterChannel(ch.ID())
 	}()
 
 	// Start channel (encapsulates connection creation and lifecycle)

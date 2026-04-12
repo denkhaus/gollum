@@ -37,7 +37,6 @@ type defaultAgentFactory struct {
 	promptManager    manager.PromptManager
 	workspaceService workspace.Service
 	channelProvider  channel.ChannelMiddlewareProvider
-	channelFacade    channel.ChannelFacade
 	skillsService    skills.SkillService
 	// Tool providers for adding default tools to all agents
 	spawnAgentToolProv      tools.SpawnAgentToolProvider

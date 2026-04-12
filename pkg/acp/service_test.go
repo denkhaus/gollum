@@ -158,7 +158,7 @@ func TestAcpService_Prompt_IntegratesWithFacade(t *testing.T) {
 
 	// Create a simple in-memory session store for testing
 	sessionID := acppkg.SessionID("test-session")
-	session := shared.NewAcpSession(context.Background(), func(){})
+	session := shared.NewAcpSession(context.Background(), func() {})
 	session.SessionID = sessionID
 
 	// Create a simple mock session store
@@ -267,7 +267,7 @@ func TestAcpService_Cancel_NotImplemented(t *testing.T) {
 
 	// Create a session store with a session for testing
 	sessionID := acppkg.SessionID("test-session")
-	session := shared.NewAcpSession(context.Background(), func(){})
+	session := shared.NewAcpSession(context.Background(), func() {})
 	session.SessionID = sessionID
 
 	store := &mockSessionStore{

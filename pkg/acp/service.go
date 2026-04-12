@@ -35,10 +35,10 @@
 // - The connection can create MULTIPLE sessions (multi-session support)
 // - Session lifecycle follows the ACP protocol:
 //
-//   1. Initialize() - Protocol handshake, NO session created yet
-//   2. First Prompt() call for a new session - Triggers NewSession callback
-//   3. NewSession callback (in connection.go) creates the session BEFORE Prompt() executes
-//   4. Subsequent Prompt() calls reuse existing session (identified by SessionID)
+//  1. Initialize() - Protocol handshake, NO session created yet
+//  2. First Prompt() call for a new session - Triggers NewSession callback
+//  3. NewSession callback (in connection.go) creates the session BEFORE Prompt() executes
+//  4. Subsequent Prompt() calls reuse existing session (identified by SessionID)
 //
 // - Sessions are stored in s.store and looked up by SessionID
 // - Each OnMessage() call includes the target SessionID for routing to specific sessions
@@ -72,10 +72,10 @@ type acpServiceImpl struct {
 	logger   logger.LoggerService
 	client   acppkg.Client
 	store    acppkg.SessionStore[*shared.ACPSession]
-	id       uuid.UUID // Channel ID
-	conn     Connection // ACP connection (created in Start)
-	stdin    io.Reader // For connection creation
-	stdout   io.Writer // For connection creation
+	id       uuid.UUID   // Channel ID
+	conn     Connection  // ACP connection (created in Start)
+	stdin    io.Reader   // For connection creation
+	stdout   io.Writer   // For connection creation
 	injector do.Injector // For connection creation
 }
 

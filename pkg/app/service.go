@@ -143,7 +143,7 @@ func (p *applicationServiceImpl) runChannel(ctx context.Context, identifier chan
 	// Ensure cleanup on failure
 	defer func() {
 		if err != nil {
-			p.channelFacade.UnregisterChannel(ch.ID())
+			_ = p.channelFacade.UnregisterChannel(ch.ID())
 		}
 	}()
 

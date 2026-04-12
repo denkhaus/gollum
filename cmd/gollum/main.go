@@ -15,6 +15,7 @@ func main() {
 	ctx := context.Background()
 
 	// Initialize XSD validator for XML schema validation
+	// TODO: why is it neccessary to initialize the linter xsd here?
 	if err := linter.InitXSD(); err != nil {
 		log.Fatalf("failed to initialize XSD validator: %v", err)
 	}

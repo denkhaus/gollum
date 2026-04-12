@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"testing"
 
-	"go.uber.org/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	"github.com/samber/do/v2"
 
@@ -91,7 +91,7 @@ func TestNewConnection_ServiceNotInDI_ReturnsError(t *testing.T) {
 	// Don't register ACP service provider - should panic
 
 	assert.Panics(t, func() {
-		NewConnection(injector, bytes.NewReader([]byte{}), &bytes.Buffer{})
+		_, _ = NewConnection(injector, bytes.NewReader([]byte{}), &bytes.Buffer{})
 	})
 }
 

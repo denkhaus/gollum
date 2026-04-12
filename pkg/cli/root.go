@@ -62,12 +62,14 @@ func (p *rootHandler) before(ctx context.Context, cmd *cli.Command) (context.Con
 
 	// Register all channels
 	if err := registerChannels(injector); err != nil {
+		cancel()
 		return nil, fmt.Errorf("failed to register channels: %w", err)
 	}
 
 	// Discover channel providers (makes them available to ChannelFacade)
 	channelFacade := do.MustInvoke[channel.ChannelFacade](injector)
 	if err := channelFacade.DiscoverProviders(injector); err != nil {
+		cancel()
 		return nil, fmt.Errorf("failed to discover channel providers: %w", err)
 	}
 
