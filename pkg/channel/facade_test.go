@@ -805,38 +805,43 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 	assert.Contains(t, result.Error.Error(), "command failed")
 }
 
-// TestChannelFacade_NotifyAgentLifecycle_BroadcastsToAllChannels tests that NotifyAgentLifecycle broadcasts event to all channels
-func TestChannelFacade_NotifyAgentLifecycle_BroadcastsToAllChannels(t *testing.T) {
+// TestChannelFacade_NotifyAgentLifecycle_TargetsSpecificChannel tests that NotifyAgentLifecycle sends event only to the specified channel
+func TestChannelFacade_NotifyAgentLifecycle_TargetsSpecificChannel(t *testing.T) {
 	injector := setupTestInjector()
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
 
 	// Register multiple channels
-	channels := []*mockChannel{
-		newMockChannel(uuid.New()),
-		newMockChannel(uuid.New()),
-		newMockChannel(uuid.New()),
-	}
+	channel1 := newMockChannel(uuid.New())
+	channel2 := newMockChannel(uuid.New())
+	channel3 := newMockChannel(uuid.New())
 
-	for _, ch := range channels {
-		err = service.RegisterChannel(ch)
-		require.NoError(t, err)
-	}
+	err = service.RegisterChannel(channel1)
+	require.NoError(t, err)
+	err = service.RegisterChannel(channel2)
+	require.NoError(t, err)
+	err = service.RegisterChannel(channel3)
+	require.NoError(t, err)
 
-	// Notify agent lifecycle event
+	// Notify agent lifecycle event for channel2 only
 	agentID := uuid.New()
 	role := "tester"
-	service.NotifyAgentLifecycle(agentID, role, true)
+	sessionID := "test-session-123"
+	service.NotifyAgentLifecycle(agentID, channel2.id, sessionID, role, true)
 
-	// Verify all channels received the event
-	for _, ch := range channels {
-		assert.Equal(t, 1, ch.getEventCount(), "Channel should receive exactly one lifecycle event")
-		received := ch.getLastEvent()
-		assert.Equal(t, agentID, received.AgentID)
-		assert.Equal(t, role, received.Role)
-		assert.True(t, received.Added)
-	}
+	// Verify only channel2 received the event
+	assert.Equal(t, 1, channel2.getEventCount(), "Target channel should receive exactly one lifecycle event")
+	received := channel2.getLastEvent()
+	assert.Equal(t, agentID, received.AgentID)
+	assert.Equal(t, role, received.Role)
+	assert.Equal(t, sessionID, received.SessionID)
+	assert.Equal(t, channel2.id, received.ChannelID)
+	assert.True(t, received.Added)
+
+	// Verify other channels did NOT receive the event
+	assert.Equal(t, 0, channel1.getEventCount(), "Other channels should not receive lifecycle event")
+	assert.Equal(t, 0, channel3.getEventCount(), "Other channels should not receive lifecycle event")
 }
 
 // TestChannelFacade_Concurrency tests that concurrent access is safe

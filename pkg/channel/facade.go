@@ -218,25 +218,30 @@ func (p *channelFacadeImpl) CancelInput(sessionID string) error {
 	return nil
 }
 
-// NotifyAgentLifecycle broadcasts agent lifecycle event
-// TODO: this method must be session and channel aware and should not broadcast to all channels
-func (p *channelFacadeImpl) NotifyAgentLifecycle(agentID uuid.UUID, role string, added bool) {
+// NotifyAgentLifecycle sends agent lifecycle event to specific channel
+func (p *channelFacadeImpl) NotifyAgentLifecycle(agentID uuid.UUID, channelID uuid.UUID, sessionID string, role string, added bool) {
 	event := AgentLifecycleEvent{
-		AgentID: agentID,
-		Role:    role,
-		Added:   added,
+		AgentID:   agentID,
+		Role:      role,
+		Added:     added,
+		SessionID: sessionID,
+		ChannelID: channelID,
 	}
 
 	p.mu.RLock()
-	channels := make([]Channel, 0, len(p.channels))
-	for _, c := range p.channels {
-		channels = append(channels, c)
-	}
+	targetChannel, exists := p.channels[channelID]
 	p.mu.RUnlock()
 
-	for _, channel := range channels {
-		channel.OnAgentLifecycle(event)
+	if !exists {
+		p.logger.Warn("channel not found for agent lifecycle event",
+			zap.String("channel_id", channelID.String()),
+			zap.String("session_id", sessionID),
+			zap.String("agent_id", agentID.String()),
+		)
+		return
 	}
+
+	targetChannel.OnAgentLifecycle(event)
 }
 
 // ForwardLog implements shared.LogForwarder for channel-based log routing.

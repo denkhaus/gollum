@@ -68,9 +68,11 @@ type InputResult struct {
 
 // AgentLifecycleEvent represents agent registration/removal events
 type AgentLifecycleEvent struct {
-	AgentID uuid.UUID
-	Role    string
-	Added   bool
+	AgentID   uuid.UUID
+	Role      string
+	Added     bool
+	SessionID string
+	ChannelID uuid.UUID
 }
 
 // Channel is the interface that all channel implementations must satisfy
@@ -113,8 +115,8 @@ type ChannelFacade interface {
 	// UnregisterChannel removes a channel
 	UnregisterChannel(channelID uuid.UUID) error
 
-	// NotifyAgentLifecycle broadcasts agent lifecycle event
-	NotifyAgentLifecycle(agentID uuid.UUID, role string, added bool)
+	// NotifyAgentLifecycle sends agent lifecycle event to specific channel
+	NotifyAgentLifecycle(agentID uuid.UUID, channelID uuid.UUID, sessionID string, role string, added bool)
 
 	// DiscoverProviders scans DI for channel providers
 	DiscoverProviders(injector do.Injector) error

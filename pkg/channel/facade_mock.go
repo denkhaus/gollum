@@ -204,15 +204,15 @@ func (mr *MockChannelFacadeMockRecorder) ForwardLog(entry any) *gomock.Call {
 }
 
 // NotifyAgentLifecycle mocks base method.
-func (m *MockChannelFacade) NotifyAgentLifecycle(agentID uuid.UUID, role string, added bool) {
+func (m *MockChannelFacade) NotifyAgentLifecycle(agentID, channelID uuid.UUID, sessionID, role string, added bool) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "NotifyAgentLifecycle", agentID, role, added)
+	m.ctrl.Call(m, "NotifyAgentLifecycle", agentID, channelID, sessionID, role, added)
 }
 
 // NotifyAgentLifecycle indicates an expected call of NotifyAgentLifecycle.
-func (mr *MockChannelFacadeMockRecorder) NotifyAgentLifecycle(agentID, role, added any) *gomock.Call {
+func (mr *MockChannelFacadeMockRecorder) NotifyAgentLifecycle(agentID, channelID, sessionID, role, added any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotifyAgentLifecycle", reflect.TypeOf((*MockChannelFacade)(nil).NotifyAgentLifecycle), agentID, role, added)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotifyAgentLifecycle", reflect.TypeOf((*MockChannelFacade)(nil).NotifyAgentLifecycle), agentID, channelID, sessionID, role, added)
 }
 
 // RegisterChannel mocks base method.
