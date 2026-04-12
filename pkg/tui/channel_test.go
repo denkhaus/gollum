@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/channel"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -112,7 +113,7 @@ func TestTUIChannel_OnLog(t *testing.T) {
 	ch := NewTUIChannel(msgChan)
 
 	// Create a test log entry
-	testLog := channel.LogEntry{
+	testLog := shared.LogEntry{
 		Level:     "info",
 		Message:   "Test log message",
 		Timestamp: time.Now(),
@@ -198,4 +199,11 @@ func TestTUIChannel_ImplementsChannelInterface(t *testing.T) {
 	var _ channel.Channel = (*TUIChannel)(nil)
 	ch := NewTUIChannel(nil)
 	assert.Implements(t, (*channel.Channel)(nil), ch)
+}
+
+// TestIdentifier tests that the Identifier constant is defined correctly.
+func TestIdentifier(t *testing.T) {
+	id := Identifier
+	assert.Equal(t, channel.ChannelIdentifier("tui"), id)
+	assert.NotEmpty(t, string(id))
 }

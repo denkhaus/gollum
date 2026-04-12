@@ -9,6 +9,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// Identifier is the unique channel identifier for registration.
+const Identifier = channel.ChannelIdentifier("tui")
+
 // TUIChannel implements the channel.Channel interface for the TUI.
 // It forwards messages to the TUI model via the message channel for display.
 type TUIChannel struct {
