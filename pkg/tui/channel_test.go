@@ -5,10 +5,13 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/channel"
+	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/markdown"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 // TestTUIChannel_OnMessage tests that TUIChannel sends messages to the message channel.
@@ -17,7 +20,7 @@ func TestTUIChannel_OnMessage(t *testing.T) {
 	msgChan := make(chan channel.Message, 10)
 
 	// Create TUIChannel
-	ch := NewTUIChannel(msgChan)
+	ch := NewTUIChannel(WithChannelMessageChan(msgChan))
 	require.NotNil(t, ch)
 	assert.NotEqual(t, uuid.Nil, ch.ID())
 
@@ -51,7 +54,7 @@ func TestTUIChannel_OnMessage_ChannelFull(t *testing.T) {
 	msgChan := make(chan channel.Message, 1)
 
 	// Create TUIChannel
-	ch := NewTUIChannel(msgChan)
+	ch := NewTUIChannel(WithChannelMessageChan(msgChan))
 
 	// Fill the channel
 	testMsg := channel.Message{
@@ -91,7 +94,7 @@ func TestTUIChannel_OnMessage_ChannelFull(t *testing.T) {
 // TestTUIChannel_OnMessage_NoChannel tests that TUIChannel handles nil channel gracefully.
 func TestTUIChannel_OnMessage_NoChannel(t *testing.T) {
 	// Create TUIChannel with nil channel
-	ch := NewTUIChannel(nil)
+	ch := NewTUIChannel()
 	require.NotNil(t, ch)
 
 	// Send message (should not panic)
@@ -110,7 +113,7 @@ func TestTUIChannel_OnLog(t *testing.T) {
 	msgChan := make(chan channel.Message, 10)
 
 	// Create TUIChannel
-	ch := NewTUIChannel(msgChan)
+	ch := NewTUIChannel(WithChannelMessageChan(msgChan))
 
 	// Create a test log entry
 	testLog := shared.LogEntry{
@@ -143,7 +146,7 @@ func TestTUIChannel_OnAgentLifecycle(t *testing.T) {
 	msgChan := make(chan channel.Message, 10)
 
 	// Create TUIChannel
-	ch := NewTUIChannel(msgChan)
+	ch := NewTUIChannel(WithChannelMessageChan(msgChan))
 
 	// Create a test lifecycle event
 	agentID := uuid.New()
@@ -171,7 +174,7 @@ func TestTUIChannel_OnAgentLifecycle(t *testing.T) {
 // TestTUIChannel_SetAgentInfo tests that agent info can be set.
 func TestTUIChannel_SetAgentInfo(t *testing.T) {
 	// Create TUIChannel
-	ch := NewTUIChannel(nil)
+	ch := NewTUIChannel()
 
 	// Set agent info
 	agentID := uuid.New()
@@ -184,7 +187,7 @@ func TestTUIChannel_SetAgentInfo(t *testing.T) {
 
 // TestTUIChannel_ID_ReturnsUUID tests that TUIChannel returns a valid UUID.
 func TestTUIChannel_ID_ReturnsUUID(t *testing.T) {
-	channel := NewTUIChannel(nil)
+	channel := NewTUIChannel()
 
 	id := channel.ID()
 
@@ -197,8 +200,44 @@ func TestTUIChannel_ID_ReturnsUUID(t *testing.T) {
 func TestTUIChannel_ImplementsChannelInterface(t *testing.T) {
 	// This is a compile-time check, but we can verify at runtime too
 	var _ channel.Channel = (*TUIChannel)(nil)
-	ch := NewTUIChannel(nil)
+	ch := NewTUIChannel()
 	assert.Implements(t, (*channel.Channel)(nil), ch)
+}
+
+// TestNewTUIChannel_WithOptions tests creating TUIChannel with options.
+func TestNewTUIChannel_WithOptions(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockRenderer := markdown.NewMockRenderer(ctrl)
+	msgChan := make(chan channel.Message, 10)
+
+	ch := NewTUIChannel(
+		WithChannelMessageChan(msgChan),
+		WithChannelLogger(mockLogger),
+		WithChannelRenderer(mockRenderer),
+	)
+
+	assert.NotNil(t, ch)
+	// Verify message channel is set
+	got := ch.GetMessageChan()
+	require.NotNil(t, got)
+	got <- channel.Message{}
+	<-msgChan
+	// Verify logger and renderer
+	assert.Equal(t, mockLogger, ch.GetLogger())
+	assert.Equal(t, mockRenderer, ch.GetRenderer())
+}
+
+// TestNewTUIChannel_NoOptions tests creating TUIChannel without options.
+func TestNewTUIChannel_NoOptions(t *testing.T) {
+	ch := NewTUIChannel()
+	assert.NotNil(t, ch)
+	// Defaults should be nil/zero values
+	assert.Nil(t, ch.GetMessageChan())
+	assert.Nil(t, ch.GetLogger())
+	assert.Nil(t, ch.GetRenderer())
 }
 
 // TestIdentifier tests that the Identifier constant is defined correctly.

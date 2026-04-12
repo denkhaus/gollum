@@ -279,7 +279,7 @@ func WithTUIChannel() func(*Model) {
 		m.SetMessageChannel(ch)
 
 		// Create TUIChannel that will send messages to the TUI
-		tuiCh := NewTUIChannel(ch)
+		tuiCh := NewTUIChannel(WithChannelMessageChan(ch))
 		m.SetTUIChannel(tuiCh)
 	}
 }

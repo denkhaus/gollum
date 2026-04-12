@@ -16,7 +16,7 @@ import (
 
 func TestTUIOption_WithChannelMessageChan(t *testing.T) {
 	msgChan := make(chan channel.Message, 10)
-	ch := NewTUIChannel(nil)
+	ch := NewTUIChannel()
 
 	opt := WithChannelMessageChan(msgChan)
 	err := opt.Apply(ch)
@@ -34,7 +34,7 @@ func TestTUIOption_WithChannelLogger(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
-	ch := NewTUIChannel(nil)
+	ch := NewTUIChannel()
 
 	opt := WithChannelLogger(mockLogger)
 	err := opt.Apply(ch)
@@ -48,7 +48,7 @@ func TestTUIOption_WithChannelRenderer(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRenderer := markdown.NewMockRenderer(ctrl)
-	ch := NewTUIChannel(nil)
+	ch := NewTUIChannel()
 
 	opt := WithChannelRenderer(mockRenderer)
 	err := opt.Apply(ch)
@@ -79,7 +79,7 @@ func TestTUIOptions_Multiple(t *testing.T) {
 	mockRenderer := markdown.NewMockRenderer(ctrl)
 	msgChan := make(chan channel.Message, 10)
 
-	ch := NewTUIChannel(nil)
+	ch := NewTUIChannel()
 
 	// Apply multiple options
 	opts := []TUIOption{

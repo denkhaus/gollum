@@ -26,16 +26,21 @@ type TUIChannel struct {
 	executor    shared.Agent
 }
 
-// NewTUIChannel creates a new TUIChannel instance.
-// The messageChan is used to send messages to the TUI model for display.
-// If messageChan is nil, messages will be logged instead.
-func NewTUIChannel(messageChan chan<- channel.Message) *TUIChannel {
-	return &TUIChannel{
-		id:          uuid.New(),
-		messageChan: messageChan,
-		agentID:     uuid.Nil, // Will be set by SetAgentInfo
-		agentRole:   "assistant",
+// NewTUIChannel creates a new TUIChannel instance with optional configuration.
+// Options can be provided to configure the channel's dependencies.
+func NewTUIChannel(opts ...TUIOption) *TUIChannel {
+	ch := &TUIChannel{
+		id:        uuid.New(),
+		agentID:   uuid.Nil, // Will be set by SetAgentInfo
+		agentRole: "assistant",
+		// messageChan, logger, renderer default to nil
 	}
+
+	for _, opt := range opts {
+		_ = opt.Apply(ch) // TUIOption.Apply handles the type assertion
+	}
+
+	return ch
 }
 
 // SetAgentInfo sets the agent ID and role for messages sent via this channel.
