@@ -7,6 +7,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 )
 
 // MessageType represents different types of messages
@@ -109,4 +110,7 @@ type ChannelFacade interface {
 
 	// NotifyAgentLifecycle broadcasts agent lifecycle event
 	NotifyAgentLifecycle(agentID uuid.UUID, role string, added bool)
+
+	// DiscoverProviders scans DI for channel providers
+	DiscoverProviders(injector do.Injector) error
 }

@@ -28,6 +28,7 @@ type channelFacadeImpl struct {
 	agentFactory   shared.AgentFactory
 	sessionManager session.SessionManager
 	logger         logger.LoggerService
+	providers      map[ChannelIdentifier]ChannelFactory
 }
 
 // Ensure channelFacadeImpl implements ChannelFacade at compile time
@@ -52,6 +53,43 @@ func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 		channels:       make(map[uuid.UUID]Channel),
 		logger:         log,
 	}, nil
+}
+
+// DiscoverProviders scans the DI container for channel providers.
+// Looks for named providers matching the "channel_*" pattern.
+func (f *channelFacadeImpl) DiscoverProviders(injector do.Injector) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.providers = make(map[ChannelIdentifier]ChannelFactory)
+
+	// NOTE: samber/do/v2 doesn't expose ListServices directly
+	// We need to iterate known channel names or use reflection
+	// For now, implement a simple approach with known channels
+	// This can be extended with reflection if needed
+
+	knownChannels := []string{"tui", "acp"} // Can be extended
+	foundAny := false
+
+	for _, name := range knownChannels {
+		providerName := "channel_" + name
+		factory, err := do.InvokeNamed[ChannelFactory](injector, providerName)
+		if err != nil {
+			// Provider not registered, skip
+			continue
+		}
+
+		identifier := ChannelIdentifier(name)
+		f.providers[identifier] = factory
+		f.logger.Infof("Discovered channel: %s", identifier)
+		foundAny = true
+	}
+
+	if !foundAny {
+		f.logger.Warn("No channel providers discovered - channels may not be available")
+	}
+
+	return nil
 }
 
 // RegisterChannel adds a channel to receive events
@@ -87,24 +125,6 @@ func (p *channelFacadeImpl) DisplayMessage(msg Message) {
 	}
 
 	channel.OnMessage(msg)
-}
-
-// DisplayLog sends a log entry to the specific channel identified by ChannelID.
-func (p *channelFacadeImpl) DisplayLog(entry LogEntry) {
-	p.mu.RLock()
-	targetChannel, exists := p.channels[entry.ChannelID]
-	p.mu.RUnlock()
-
-	if !exists {
-		p.logger.Warn("channel not found for log entry",
-			zap.String("channel_id", entry.ChannelID.String()),
-			zap.String("session_id", entry.SessionID),
-		)
-		return
-	}
-
-	// Forward to specific channel only
-	targetChannel.OnLog(entry)
 }
 
 // SubmitInput handles user input from any channel
@@ -169,6 +189,7 @@ func (p *channelFacadeImpl) CancelInput(sessionID string) error {
 }
 
 // NotifyAgentLifecycle broadcasts agent lifecycle event
+// TODO: this method must be session and channel aware and should not broadcast to all channels
 func (p *channelFacadeImpl) NotifyAgentLifecycle(agentID uuid.UUID, role string, added bool) {
 	event := AgentLifecycleEvent{
 		AgentID: agentID,
@@ -190,6 +211,18 @@ func (p *channelFacadeImpl) NotifyAgentLifecycle(agentID uuid.UUID, role string,
 
 // ForwardLog implements shared.LogForwarder for channel-based log routing.
 func (p *channelFacadeImpl) ForwardLog(entry shared.LogEntry) {
-	// Convert shared.LogEntry to channel.LogEntry (they are aliases, so this is a no-op)
-	p.DisplayLog(LogEntry(entry))
+	p.mu.RLock()
+	targetChannel, exists := p.channels[entry.ChannelID]
+	p.mu.RUnlock()
+
+	if !exists {
+		p.logger.Warn("channel not found for log entry",
+			zap.String("channel_id", entry.ChannelID.String()),
+			zap.String("session_id", entry.SessionID),
+		)
+		return
+	}
+
+	// Forward to specific channel only
+	targetChannel.OnLog(entry)
 }
