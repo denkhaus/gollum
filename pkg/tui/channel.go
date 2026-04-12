@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/channel"
+	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/markdown"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 )
@@ -19,6 +21,9 @@ type TUIChannel struct {
 	messageChan chan<- channel.Message
 	agentID     uuid.UUID
 	agentRole   string
+	logger      logger.LoggerService
+	renderer    markdown.Renderer
+	executor    shared.Agent
 }
 
 // NewTUIChannel creates a new TUIChannel instance.
@@ -135,6 +140,21 @@ func formatLifecycleEvent(event channel.AgentLifecycleEvent) string {
 	}
 
 	return "Agent " + action + ": " + event.AgentID.String() + " (" + event.Role + ")"
+}
+
+// GetMessageChan returns the message channel (for testing).
+func (c *TUIChannel) GetMessageChan() chan<- channel.Message {
+	return c.messageChan
+}
+
+// GetLogger returns the logger service (for testing).
+func (c *TUIChannel) GetLogger() logger.LoggerService {
+	return c.logger
+}
+
+// GetRenderer returns the markdown renderer (for testing).
+func (c *TUIChannel) GetRenderer() markdown.Renderer {
+	return c.renderer
 }
 
 // Compile-time check to ensure TUIChannel implements channel.Channel
