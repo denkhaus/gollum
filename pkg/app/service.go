@@ -5,13 +5,9 @@ package app
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/flows/executor"
-	"github.com/denkhaus/gollum/pkg/flows/parser"
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/markdown"
@@ -23,7 +19,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/tui"
 	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/google/uuid"
-	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 )
 
@@ -71,6 +66,11 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 	flowExecutorService := do.MustInvoke[executor.FlowExecutorService](injector)
 	flowRegistry := do.MustInvoke[flowregistry.FlowRegistry](injector)
 
+	// Discover channel providers from DI
+	if err := channelFacade.DiscoverProviders(injector); err != nil {
+		return nil, fmt.Errorf("failed to discover channel providers: %w", err)
+	}
+
 	return &applicationServiceImpl{
 		sessionID:        uuid.New(),
 		logService:       logService,
@@ -111,90 +111,53 @@ func (p *applicationServiceImpl) Run(ctx context.Context) error {
 	}
 
 	// Check for default flow first
-	defaultFlowPath, err := p.resolveDefaultFlowPath()
-	if err == nil && defaultFlowPath != "" {
-		// Default flow found, execute it
-		p.logService.Infof("Default flow found at: %s", defaultFlowPath)
-		return p.runDefaultFlow(ctx, defaultFlowPath)
-	} else {
-		p.logService.Info("no default flow found -> run tui")
+	defaultFlow, err := p.flowRegistry.GetDefaultFlow()
+	if err == nil && defaultFlow != nil {
+		// Default flow found, execute it using flow.Execute()
+		p.logService.Infof("Default flow found: %s", defaultFlow.Name)
+		result, err := defaultFlow.Execute(ctx, make(map[string]any))
+		if err != nil {
+			return fmt.Errorf("default flow execution failed: %w", err)
+		}
+		// Display flow outputs
+		if len(result.Outputs) > 0 {
+			p.logService.Info("Flow outputs:")
+			for name, value := range result.Outputs {
+				p.logService.Infof("  %s: %v", name, value)
+			}
+		}
+		p.logService.Info("Default flow completed successfully")
+		return nil
 	}
+	p.logService.Info("no default flow found -> run tui")
 
 	// No default flow, run TUI
-	return p.runTUI(ctx)
+	return p.runChannel(ctx, tui.Identifier,
+		tui.WithChannelLogger(p.logService),
+		tui.WithChannelRenderer(p.markdownRenderer),
+	)
 }
 
-// runTUI runs the terminal user interface
-func (p *applicationServiceImpl) runTUI(ctx context.Context) error {
-
-	// Create and register Supervisor agent
-	agent, _, err := p.agentFactory.CreateSupervisorAgent(ctx)
+// runChannel creates and runs a channel by identifier.
+func (p *applicationServiceImpl) runChannel(ctx context.Context, identifier channel.ChannelIdentifier, opts ...channel.ChannelOption) error {
+	ch, err := p.channelFacade.CreateChannel(identifier, opts...)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create channel %s: %w", identifier, err)
 	}
 
-	// Run interactive loop
-	return p.runInteractiveLoop(ctx, agent)
-}
-
-// resolveDefaultFlowPath checks for default flow in workspace and global locations
-func (p *applicationServiceImpl) resolveDefaultFlowPath() (string, error) {
-	// Check workspace-local first: .gollum/flows/default/main.xml
-	workspace := p.workspaceService.GetCurrentWorkspace()
-	workspaceFlowPath := filepath.Join(workspace, ".gollum", "flows", "default", "main.xml")
-	if _, err := os.Stat(workspaceFlowPath); err == nil {
-		return workspaceFlowPath, nil
-	}
-
-	// Check global config: ~/.config/gollum/flows/default/main.xml
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to get home directory: %w", err)
-	}
-	globalFlowPath := filepath.Join(homeDir, ".config", "gollum", "flows", "default", "main.xml")
-	if _, err := os.Stat(globalFlowPath); err == nil {
-		return globalFlowPath, nil
-	}
-
-	return "", fmt.Errorf("no default flow found")
-}
-
-// runDefaultFlow executes the default flow using FlowExecutorService
-func (p *applicationServiceImpl) runDefaultFlow(ctx context.Context, flowPath string) error {
-	p.logService.Infof("Running default flow: %s", flowPath)
-
-	// Parse flow
-	flow, err := parser.Parse(flowPath)
-	if err != nil {
-		return fmt.Errorf("failed to parse default flow: %w", err)
-	}
-
-	// Create executor
-	executor := p.flowExecutorService.New(flow)
-
-	// Set empty input (default flow should define required inputs with defaults)
-	executor.SetInput(make(map[string]string))
-
-	// Validate and run
-	if err := executor.Validate(); err != nil {
-		return fmt.Errorf("default flow validation failed: %w", err)
-	}
-
-	result, err := executor.Run()
-	if err != nil {
-		return fmt.Errorf("default flow execution failed: %w", err)
-	}
-
-	// Display flow outputs
-	if len(result.Outputs) > 0 {
-		p.logService.Info("Flow outputs:")
-		for name, value := range result.Outputs {
-			p.logService.Infof("  %s: %v", name, value)
+	// Ensure cleanup on failure
+	defer func() {
+		if err != nil {
+			p.channelFacade.UnregisterChannel(ch.ID())
 		}
+	}()
+
+	if err = p.channelFacade.RegisterChannel(ch); err != nil {
+		return fmt.Errorf("failed to register channel %s: %w", identifier, err)
 	}
 
-	p.logService.Info("Default flow completed successfully")
-	return nil
+	// Start channel lifecycle
+	return ch.Start(ctx)
 }
 
 // primeFileStateManager primes the file state manager with directory scan
@@ -205,60 +168,6 @@ func (p *applicationServiceImpl) primeFileStateManager(ctx context.Context) erro
 	}
 	p.logService.Infof("FileStateManager primed successfully")
 	return nil
-}
-
-// runInteractiveLoop runs the main CLI interactive loop using Bubbletea TUI
-func (p *applicationServiceImpl) runInteractiveLoop(ctx context.Context, agent shared.Agent) error {
-	// Create agent executor adapter
-	executor := &agentExecutorAdapter{agent: agent}
-
-	// Enable TUI mode to disable stdout logging (logs go to buffer only)
-	p.logService.SetTUIMode(true)
-
-	defer p.logService.SetTUIMode(false) // Restore stdout logging on exit
-
-	// Create the TUI model with all options
-	// This creates the TUIChannel which we need to register with ChannelFacade
-	model := tui.NewModel(ctx, executor)
-	tui.WithTUIChannel()(&model)                         // Create and set TUIChannel
-	tui.WithLoggerService(p.logService)(&model)          // Set logger service
-	tui.WithMarkdownRenderer(p.markdownRenderer)(&model) // Set markdown renderer
-
-	// Register the TUIChannel with ChannelFacade
-	// This allows the channel system to send messages to the TUI
-	tuiChannel := model.GetTUIChannel()
-	if tuiChannel != nil {
-		if err := p.channelFacade.RegisterChannel(tuiChannel); err != nil {
-			return fmt.Errorf("failed to register TUI channel: %w", err)
-		}
-		p.logService.Infof("TUI channel registered with ChannelFacade")
-	}
-
-	// Create and run the TUI program
-	prog := tea.NewProgram(model,
-		tea.WithContext(ctx),
-		tea.WithAltScreen(),
-		// Enable mouse cell motion for click detection on tool messages
-		// This allows text selection in most terminals while still receiving clicks
-		tea.WithMouseCellMotion(),
-	)
-
-	_, err := prog.Run()
-	if err != nil {
-		return fmt.Errorf("failed to run TUI: %w", err)
-	}
-
-	return nil
-}
-
-// agentExecutorAdapter adapts shared.Agent to implement tui.AgentExecutor interface
-type agentExecutorAdapter struct {
-	agent shared.Agent
-}
-
-// Execute implements tui.AgentExecutor by delegating to the underlying agent
-func (a *agentExecutorAdapter) Execute(ctx context.Context, input string) (*gollem.ExecuteResponse, error) {
-	return a.agent.Execute(ctx, gollem.Text(input))
 }
 
 // Cleanup performs any necessary cleanup when the application exits.

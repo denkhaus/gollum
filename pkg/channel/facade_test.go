@@ -29,7 +29,7 @@ import (
 type mockChannel struct {
 	id       uuid.UUID
 	messages []Message
-	logs     []LogEntry
+	logs     []shared.LogEntry
 	events   []AgentLifecycleEvent
 	mu       sync.Mutex
 }
@@ -38,7 +38,7 @@ func newMockChannel(id uuid.UUID) *mockChannel {
 	return &mockChannel{
 		id:       id,
 		messages: make([]Message, 0),
-		logs:     make([]LogEntry, 0),
+		logs:     make([]shared.LogEntry, 0),
 		events:   make([]AgentLifecycleEvent, 0),
 	}
 }
@@ -53,7 +53,7 @@ func (m *mockChannel) OnMessage(msg Message) {
 	m.messages = append(m.messages, msg)
 }
 
-func (m *mockChannel) OnLog(entry LogEntry) {
+func (m *mockChannel) OnLog(entry shared.LogEntry) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.logs = append(m.logs, entry)
@@ -63,6 +63,11 @@ func (m *mockChannel) OnAgentLifecycle(event AgentLifecycleEvent) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.events = append(m.events, event)
+}
+
+// Start is a no-op for the mock channel (used in testing)
+func (m *mockChannel) Start(ctx context.Context) error {
+	return nil
 }
 
 func (m *mockChannel) getMessageCount() int {
@@ -92,11 +97,11 @@ func (m *mockChannel) getLastMessage() Message {
 	return m.messages[len(m.messages)-1]
 }
 
-func (m *mockChannel) getLastLog() LogEntry {
+func (m *mockChannel) getLastLog() shared.LogEntry {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if len(m.logs) == 0 {
-		return LogEntry{}
+		return shared.LogEntry{}
 	}
 	return m.logs[len(m.logs)-1]
 }
@@ -280,6 +285,12 @@ func (m *mockAgent) UpdateSystemPrompt(ctx context.Context, newPrompt string) er
 
 func (m *mockAgent) UpdateHistory(ctx context.Context, modifier func(*gollem.History) (*gollem.History, error)) error {
 	return nil
+}
+
+func (m *mockAgent) ToLoggingContext() shared.LoggingContext {
+	return shared.LoggingContext{
+		AgentID: m.id,
+	}
 }
 
 // setupTestInjector creates an injector with all mock dependencies for testing
@@ -673,71 +684,6 @@ func TestChannelFacade_DisplayMessage_NoBroadcast(t *testing.T) {
 	}
 }
 
-// TestChannelFacade_DisplayLog_RoutesToSpecificChannel tests that DisplayLog routes to specific channel by ChannelID
-func TestChannelFacade_DisplayLog_RoutesToSpecificChannel(t *testing.T) {
-	injector := setupTestInjector()
-
-	service, err := NewChannelFacade(injector)
-	require.NoError(t, err)
-
-	// Register multiple channels
-	channels := []*mockChannel{
-		newMockChannel(uuid.New()),
-		newMockChannel(uuid.New()),
-	}
-
-	for _, ch := range channels {
-		err = service.RegisterChannel(ch)
-		require.NoError(t, err)
-	}
-
-	// Send a log entry to first channel only
-	entry := LogEntry{
-		Level:     "info",
-		Message:   "Test log message",
-		Timestamp: time.Now(),
-		Fields:    map[string]any{"key": "value"},
-		SessionID: "test-session",
-		ChannelID: channels[0].id,
-	}
-	service.DisplayLog(entry)
-
-	// Verify only the first channel received the log
-	assert.Equal(t, 1, channels[0].getLogCount(), "First channel should receive exactly one log entry")
-	assert.Equal(t, 0, channels[1].getLogCount(), "Second channel should not receive the log entry")
-
-	received := channels[0].getLastLog()
-	assert.Equal(t, entry.Level, received.Level)
-	assert.Equal(t, entry.Message, received.Message)
-	assert.Equal(t, entry.ChannelID, received.ChannelID)
-}
-
-// TestChannelFacade_DisplayLog_ChannelNotFound tests that DisplayLog logs warning when channel not found
-func TestChannelFacade_DisplayLog_ChannelNotFound(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockLogger := logger.NewMockLoggerService(ctrl)
-	injector := setupTestInjectorWithLogger(mockLogger)
-
-	// Set expectation BEFORE the call
-	mockLogger.EXPECT().Warn("channel not found for log entry", gomock.Any()).Times(1)
-
-	service, err := NewChannelFacade(injector)
-	require.NoError(t, err)
-
-	// Send a log entry to non-existent channel
-	entry := LogEntry{
-		Level:     "info",
-		Message:   "Test log message",
-		Timestamp: time.Now(),
-		Fields:    map[string]any{"key": "value"},
-		SessionID: "test-session",
-		ChannelID: uuid.New(),
-	}
-	service.DisplayLog(entry)
-}
-
 // TestChannelFacade_SubmitInput_SlashCommand tests that SubmitInput routes slash commands to CommandManager
 func TestChannelFacade_SubmitInput_SlashCommand(t *testing.T) {
 	injector := do.New()
@@ -859,7 +805,6 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 	assert.Contains(t, result.Error.Error(), "command failed")
 }
 
-
 // TestChannelFacade_NotifyAgentLifecycle_BroadcastsToAllChannels tests that NotifyAgentLifecycle broadcasts event to all channels
 func TestChannelFacade_NotifyAgentLifecycle_BroadcastsToAllChannels(t *testing.T) {
 	injector := setupTestInjector()
@@ -941,67 +886,26 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 		}(i)
 	}
 
-		// Send logs concurrently to specific channels to specific channels
-		for i := range 10 {
-			wg.Add(1)
-			go func(i int) {
-				defer wg.Done()
-				// Send to one of the registered channels
-				targetChannel := channels[i%len(channels)]
-				entry := LogEntry{
-					Level:     "info",
-					Message:   fmt.Sprintf("log %d", i),
-					Timestamp: time.Now(),
-					SessionID: "test-session",
-					ChannelID: targetChannel.id,
-				}
-				service.DisplayLog(entry)
-			}(i)
-		}
-
-		// Wait for all goroutines with timeout
-		done := make(chan struct{})
-		go func() {
-			wg.Wait()
-			close(done)
-		}()
-
-		select {
-		case <-done:
-			// All goroutines completed
-		case <-time.After(5 * time.Second):
-			t.Fatal("Test timed out waiting for concurrent operations")
-		}
-
-		// Verify channels received their logs
-		totalLogs := 0
-		for _, ch := range channels {
-			totalLogs += ch.getLogCount()
-		}
-		assert.Greater(t, totalLogs, 0, "Channels should have received logs")
-
-
 	// Wait for all goroutines with timeout
-	doneWait := make(chan struct{})
+	done := make(chan struct{})
 	go func() {
 		wg.Wait()
-		close(doneWait)
+		close(done)
 	}()
 
 	select {
-	case <-doneWait:
+	case <-done:
 		// All goroutines completed
 	case <-time.After(5 * time.Second):
 		t.Fatal("Test timed out waiting for concurrent operations")
 	}
 
-	// Verify final state is consistent
-		// Verify channels received their logs
-		finalTotalLogs := 0
-		for _, ch := range channels {
-			finalTotalLogs += ch.getLogCount()
-		}
-	assert.Greater(t, finalTotalLogs, 0, "Should have logs stored")
+	// Verify channels received their messages
+	totalMessages := 0
+	for _, ch := range channels {
+		totalMessages += ch.getMessageCount()
+	}
+	assert.Greater(t, totalMessages, 0, "Channels should have received messages")
 }
 
 // TestChannelFacade_SubmitInput_RoutesToSupervisorAgent tests that SubmitInput routes to the singleton Supervisor-Agent

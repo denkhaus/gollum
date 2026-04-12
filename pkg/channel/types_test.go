@@ -35,6 +35,11 @@ func TestChannelOption_Apply(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestChannel_Start_Interface(t *testing.T) {
+	// Compile-time check that Channel.Start is part of the interface
+	var _ Channel = (*mockStarterChannel)(nil)
+}
+
 // mockChannelForTypes for testing (avoiding conflict with facade_test.go)
 type mockChannelForTypes struct {
 	id uuid.UUID
@@ -44,6 +49,7 @@ func (m *mockChannelForTypes) ID() uuid.UUID                                  { 
 func (m *mockChannelForTypes) OnMessage(msg Message)                           {}
 func (m *mockChannelForTypes) OnLog(entry shared.LogEntry)                     {}
 func (m *mockChannelForTypes) OnAgentLifecycle(event AgentLifecycleEvent)      {}
+func (m *mockChannelForTypes) Start(ctx context.Context) error                { return nil }
 
 // mockOption for testing
 type mockOption struct {
@@ -54,11 +60,7 @@ func (m *mockOption) Apply(ch Channel) error {
 	return m.applyFunc(ch)
 }
 
-func TestChannelStarter_Interface(t *testing.T) {
-	// Compile-time check that ChannelStarter is a valid interface
-	var _ ChannelStarter = (*mockStarterChannel)(nil)
-}
-
+// mockStarterChannel for interface verification
 type mockStarterChannel struct {
 	id uuid.UUID
 }

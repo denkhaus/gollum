@@ -1,17 +1,18 @@
 package tui
 
 import (
-
 	"context"
-	"github.com/denkhaus/gollum/pkg/logger"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
+
 	"github.com/denkhaus/gollum/pkg/channel"
+	"github.com/denkhaus/gollum/pkg/logger"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
-
 )
 
 func TestHandleNewMessageMsg(t *testing.T) {
@@ -85,6 +86,24 @@ func TestHandleExport(t *testing.T) {
 	if len(result.messages) != 3 {
 		t.Errorf("Expected 3 messages (2 original + export result), got %d", len(result.messages))
 	}
+
+	// Cleanup: remove the created export file
+	t.Cleanup(func() {
+		// The export file is created in the current working directory
+		// Find and remove any gollum_export_*.txt files created during this test
+		entries, err := os.ReadDir(".")
+		if err != nil {
+			t.Logf("Failed to read directory for cleanup: %v", err)
+			return
+		}
+		for _, entry := range entries {
+			if matched, _ := filepath.Match("gollum_export_*.txt", entry.Name()); matched {
+				if err := os.Remove(entry.Name()); err != nil {
+					t.Logf("Failed to remove export file %s: %v", entry.Name(), err)
+				}
+			}
+		}
+	})
 }
 
 // TestUpdate_LogTickMsg tests the Update function with logTickMsg.

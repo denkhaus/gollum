@@ -26,12 +26,12 @@ func TestDefaultAgentFactory_ResolveTools_Empty(t *testing.T) {
 	mockMCPProvider := &mockMCPToolProvider{}
 
 	factory := &defaultAgentFactory{
-		logService:  mockLogger,
+		logService:     mockLogger,
 		mcpToolProvider: mockMCPProvider,
 		// Other fields can be nil for this test
 	}
 
-	tools, err := factory.resolveTools(context.Background(), uuid.Nil, nil)
+	tools, err := factory.resolveTools(context.Background(), nil, nil)
 
 	assert.NoError(t, err)
 	assert.Nil(t, tools)
@@ -47,13 +47,18 @@ func TestDefaultAgentFactory_ResolveTools_BashOnly(t *testing.T) {
 	mockMCPProvider := &mockMCPToolProvider{}
 
 	factory := &defaultAgentFactory{
-		logService:  mockLogger,
+		logService:     mockLogger,
 		mcpToolProvider: mockMCPProvider,
 		// Mock the bash provider
 		bashToolProv: &mockBashToolProviderImpl{},
 	}
 
-	tools, err := factory.resolveTools(context.Background(), uuid.Nil, []string{"bash"})
+	// Create a minimal DefaultAgent for testing
+	testAgent := &DefaultAgent{
+		id: uuid.New(),
+		config: &shared.AgentConfig{},
+	}
+	tools, err := factory.resolveTools(context.Background(), testAgent, []string{"bash"})
 
 	assert.NoError(t, err)
 	assert.Len(t, tools, 1)
@@ -69,11 +74,15 @@ func TestDefaultAgentFactory_ResolveTools_InvalidBuiltin(t *testing.T) {
 	mockMCPProvider := &mockMCPToolProvider{}
 
 	factory := &defaultAgentFactory{
-		logService:  mockLogger,
+		logService:     mockLogger,
 		mcpToolProvider: mockMCPProvider,
 	}
 
-	tools, err := factory.resolveTools(context.Background(), uuid.Nil, []string{"not_a_real_tool"})
+	testAgent := &DefaultAgent{
+		id:     uuid.New(),
+		config: &shared.AgentConfig{},
+	}
+	tools, err := factory.resolveTools(context.Background(), testAgent, []string{"not_a_real_tool"})
 
 	assert.Error(t, err)
 	assert.Nil(t, tools)
@@ -93,11 +102,15 @@ func TestDefaultAgentFactory_ResolveTools_MCPTool_ValidFormat(t *testing.T) {
 	}
 
 	factory := &defaultAgentFactory{
-		logService:  mockLogger,
+		logService:     mockLogger,
 		mcpToolProvider: mockMCPProvider,
 	}
 
-	tools, err := factory.resolveTools(context.Background(), uuid.Nil, []string{"server/tool"})
+	testAgent := &DefaultAgent{
+		id:     uuid.New(),
+		config: &shared.AgentConfig{},
+	}
+	tools, err := factory.resolveTools(context.Background(), testAgent, []string{"server/tool"})
 
 	assert.NoError(t, err)
 	assert.Len(t, tools, 1)
@@ -121,7 +134,11 @@ func TestDefaultAgentFactory_ResolveTools_MCPTool_NotFound(t *testing.T) {
 		mcpToolProvider: mockMCPProvider,
 	}
 
-	tools, err := factory.resolveTools(context.Background(), uuid.Nil, []string{"server/missing"})
+	testAgent := &DefaultAgent{
+		id:     uuid.New(),
+		config: &shared.AgentConfig{},
+	}
+	tools, err := factory.resolveTools(context.Background(), testAgent, []string{"server/missing"})
 
 	// Should succeed - MCP tool not found is a warning, not an error
 	assert.NoError(t, err)
@@ -146,7 +163,11 @@ func TestDefaultAgentFactory_ResolveTools_InvalidMCPFormat(t *testing.T) {
 		mcpToolProvider: mockMCPProvider,
 	}
 
-	tools, err := factory.resolveTools(context.Background(), uuid.Nil, []string{"server/noslash"})
+	testAgent := &DefaultAgent{
+		id:     uuid.New(),
+		config: &shared.AgentConfig{},
+	}
+	tools, err := factory.resolveTools(context.Background(), testAgent, []string{"server/noslash"})
 
 	// MCP provider returns error for invalid format - this is treated as a warning
 	// and the tool is skipped, so it succeeds but returns no tools
@@ -229,7 +250,7 @@ func (m *mockTool) Run(ctx context.Context, args map[string]any) (map[string]any
 // mockBashToolProviderImpl is a mock implementation of BashToolProvider
 type mockBashToolProviderImpl struct{}
 
-func (m *mockBashToolProviderImpl) CreateTool(agentID uuid.UUID) gollem.Tool {
+func (m *mockBashToolProviderImpl) CreateTool(agent shared.Agent) gollem.Tool {
 	return &mockBashToolWithSpec{}
 }
 
@@ -295,3 +316,4 @@ func TestAgentConfig_SessionContextMarshaling(t *testing.T) {
 	assert.Equal(t, sessionID, config.SessionID)
 	assert.Equal(t, channelID, config.ChannelID)
 }
+

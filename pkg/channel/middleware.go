@@ -14,10 +14,12 @@ import (
 type (
 	// ChannelMiddlewareProvider creates channel middleware instances via DI
 	ChannelMiddlewareProvider interface {
-		CreateChannelMiddleware(facade ChannelFacade, agentID uuid.UUID, agentRole string, sessionID string, channelID uuid.UUID) *ChannelMiddleware
+		CreateChannelMiddleware(agentID uuid.UUID, agentRole string, sessionID string, channelID uuid.UUID) *ChannelMiddleware
 	}
 
-	channelMiddlewareProvider struct{}
+	channelMiddlewareProvider struct {
+		injector do.Injector
+	}
 )
 
 // ChannelMiddleware sends agent outputs to channel facade.
@@ -43,17 +45,21 @@ func NewChannelMiddleware(facade ChannelFacade, agentID uuid.UUID, agentRole str
 
 // NewChannelMiddlewareProvider creates a provider for channel middleware
 func NewChannelMiddlewareProvider(injector do.Injector) (ChannelMiddlewareProvider, error) {
-	return &channelMiddlewareProvider{}, nil
+	return &channelMiddlewareProvider{
+		injector: injector,
+	}, nil
 }
 
 // CreateChannelMiddleware creates a new channel middleware for a specific agent
 func (p *channelMiddlewareProvider) CreateChannelMiddleware(
-	facade ChannelFacade,
 	agentID uuid.UUID,
 	agentRole string,
 	sessionID string,
 	channelID uuid.UUID,
 ) *ChannelMiddleware {
+	// Get the facade from injector (breaks circular dependency)
+	facade := do.MustInvoke[ChannelFacade](p.injector)
+
 	return NewChannelMiddleware(facade, agentID, agentRole, sessionID, channelID)
 }
 

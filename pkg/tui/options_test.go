@@ -2,6 +2,7 @@
 package tui
 
 import (
+	"context"
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/channel"
@@ -112,3 +113,4 @@ func (m *mockOtherChannel) ID() uuid.UUID                              { return 
 func (m *mockOtherChannel) OnMessage(msg channel.Message)               {}
 func (m *mockOtherChannel) OnLog(entry shared.LogEntry)                 {}
 func (m *mockOtherChannel) OnAgentLifecycle(event channel.AgentLifecycleEvent) {}
+func (m *mockOtherChannel) Start(ctx context.Context) error             { return nil }

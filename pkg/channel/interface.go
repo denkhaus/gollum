@@ -86,6 +86,11 @@ type Channel interface {
 
 	// OnAgentLifecycle is called when agent registration/removal events occur
 	OnAgentLifecycle(event AgentLifecycleEvent)
+
+	// Start begins the channel's lifecycle. For interactive channels like TUI,
+	// this runs the main event loop. For passive channels, this may return immediately.
+	// Blocks until the channel is complete or context is cancelled.
+	Start(ctx context.Context) error
 }
 
 // ChannelFacade is the central coordinator for all channels

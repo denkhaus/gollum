@@ -24,8 +24,6 @@ func TestNewConnection_CreatesValidConnection(t *testing.T) {
 
 	// Expect Debug call from NewAcpService
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
-	// Expect RegisterChannel call from NewAcpService
-	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil)
 
 	injector := do.New()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
@@ -106,8 +104,6 @@ func TestNewConnection_ImplementsConnectionInterface(t *testing.T) {
 
 	// Expect Debug call from NewAcpService
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
-	// Expect RegisterChannel call from NewAcpService
-	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil)
 
 	injector := do.New()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
@@ -135,8 +131,6 @@ func TestConnectionImpl_DoneReturnsChannel(t *testing.T) {
 
 	// Expect Debug call from NewAcpService
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
-	// Expect RegisterChannel call from NewAcpService
-	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil)
 
 	injector := do.New()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
@@ -164,8 +158,6 @@ func TestConnectionImpl_ConnectionCreatedSuccessfully(t *testing.T) {
 
 	// Expect Debug call from NewAcpService
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
-	// Expect RegisterChannel call from NewAcpService
-	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil)
 
 	injector := do.New()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)

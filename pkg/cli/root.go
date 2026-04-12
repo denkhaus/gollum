@@ -2,21 +2,34 @@ package cli
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/denkhaus/gollum/pkg/acp"
 	"github.com/denkhaus/gollum/pkg/app"
 	"github.com/denkhaus/gollum/pkg/cli/flow"
 	"github.com/denkhaus/gollum/pkg/di"
 	"github.com/denkhaus/gollum/pkg/profiling"
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/tui"
 	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v3"
 )
 
 type rootHandler struct {
+}
+
+// registerChannels registers all available channels with the DI container.
+func registerChannels(injector do.Injector) error {
+	if err := tui.RegisterChannels(injector); err != nil {
+		return fmt.Errorf("failed to register TUI channel: %w", err)
+	}
+	// ACP channel registration doesn't return an error
+	acp.RegisterChannels(injector)
+	return nil
 }
 
 // RootCommand returns the root CLI command
@@ -45,6 +58,11 @@ func (p *rootHandler) before(ctx context.Context, cmd *cli.Command) (context.Con
 	// Setup container and services
 	container := di.NewContainer()
 	injector := container.RegisterServices(shutdownCtx)
+
+	// Register all channels
+	if err := registerChannels(injector); err != nil {
+		return nil, fmt.Errorf("failed to register channels: %w", err)
+	}
 
 	// Store injector in command metadata for subcommands to access
 	shared.SetInjector(cmd, injector)

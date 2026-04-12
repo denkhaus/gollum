@@ -64,7 +64,7 @@ func TestACP_LogRouting_SpecificSession(t *testing.T) {
 	channelID := channelSvc.ID()
 
 	// Create a log entry with LoggingContext containing the SessionID
-	logEntry := channel.LogEntry{
+	logEntry := shared.LogEntry{
 		Level:     "info",
 		Message:   "Test log message for specific session",
 		SessionID: string(sessionID),

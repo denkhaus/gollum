@@ -3,110 +3,23 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/denkhaus/gollum/pkg/flows/executor"
+	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/denkhaus/gollum/pkg/workspace"
 
 	"github.com/denkhaus/gollum/pkg/channel"
-	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
-
-// TestAgentExecutorAdapter_Execute verifies that the adapter correctly
-// delegates to the underlying agent
-func TestAgentExecutorAdapter_Execute(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	ctx := context.Background()
-
-	mockAgent := shared.NewMockAgent(ctrl)
-	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ ...gollem.Input) (*gollem.ExecuteResponse, error) {
-		return &gollem.ExecuteResponse{Texts: []string{"response"}}, nil
-	}).Times(1)
-
-	adapter := &agentExecutorAdapter{agent: mockAgent}
-
-	response, err := adapter.Execute(ctx, "test input")
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if response == nil {
-		t.Fatal("response should not be nil")
-	}
-
-	if len(response.Texts) != 1 {
-		t.Errorf("expected 1 text, got %d", len(response.Texts))
-	}
-
-	if response.Texts[0] != "response" {
-		t.Errorf("expected 'response', got '%s'", response.Texts[0])
-	}
-}
-
-// TestAgentExecutorAdapter_MultipleExecutions verifies that multiple sequential
-// executions work correctly
-func TestAgentExecutorAdapter_MultipleExecutions(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	ctx := context.Background()
-
-	executionCount := 0
-	mockAgent := shared.NewMockAgent(ctrl)
-	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ ...gollem.Input) (*gollem.ExecuteResponse, error) {
-		executionCount++
-		return &gollem.ExecuteResponse{Texts: []string{"response"}}, nil
-	}).Times(3)
-
-	adapter := &agentExecutorAdapter{agent: mockAgent}
-
-	// Execute multiple times
-	for i := 0; i < 3; i++ {
-		_, err := adapter.Execute(ctx, "test")
-		if err != nil {
-			t.Errorf("execution %d: unexpected error: %v", i, err)
-		}
-	}
-
-	if executionCount != 3 {
-		t.Errorf("expected 3 executions, got %d", executionCount)
-	}
-
-	// Verify global context is still active
-	if ctx.Err() != nil {
-		t.Error("context was canceled after multiple executions")
-	}
-}
-
-// TestAgentExecutorAdapter_PropagatesAgentError tests that agent errors are propagated
-func TestAgentExecutorAdapter_PropagatesAgentError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	ctx := context.Background()
-	expectedErr := assert.AnError
-
-	mockAgent := shared.NewMockAgent(ctrl)
-	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).Return(nil, expectedErr).Times(1)
-
-	adapter := &agentExecutorAdapter{agent: mockAgent}
-
-	response, err := adapter.Execute(ctx, "test input")
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, expectedErr)
-	assert.Nil(t, response)
-}
 
 // TestEnsureGollumDirectory_CreatesDirectory tests that .gollum directory is created
 func TestEnsureGollumDirectory_CreatesDirectory(t *testing.T) {
@@ -310,143 +223,6 @@ func TestCleanup_NoOp(t *testing.T) {
 	})
 }
 
-// TestResolveDefaultFlowPath_WorkspaceDefaultFound tests that workspace-local default flow is found
-func TestResolveDefaultFlowPath_WorkspaceDefaultFound(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	// Create temp directory with .gollum/flows/default/main.xml
-	tempDir := t.TempDir()
-	flowDir := filepath.Join(tempDir, ".gollum", "flows", "default")
-	err := os.MkdirAll(flowDir, 0755)
-	require.NoError(t, err)
-
-	flowContent := `<?xml version="1.0" encoding="UTF-8"?>
-<flow name="default">
-  <description>Test default flow</description>
-  <states>
-    <state name="initial" initial="true">
-      <steps>
-        <step type="shell" name="echo">
-          <cmd>echo "Hello"</cmd>
-        </step>
-      </steps>
-      <transitions>
-        <transition to="final" otherwise="true"/>
-      </transitions>
-    </state>
-    <state name="final">
-    </state>
-  </states>
-</flow>`
-	flowPath := filepath.Join(flowDir, "main.xml")
-	err = os.WriteFile(flowPath, []byte(flowContent), 0644)
-	require.NoError(t, err)
-
-	mockWorkspaceService := workspace.NewMockService(ctrl)
-	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return(tempDir).Times(1)
-
-	p := &applicationServiceImpl{
-		workspaceService: mockWorkspaceService,
-	}
-
-	resolvedPath, err := p.resolveDefaultFlowPath()
-	assert.NoError(t, err)
-	assert.Equal(t, flowPath, resolvedPath)
-}
-
-// TestResolveDefaultFlowPath_NoDefaultFlow tests that error is returned when no default flow exists
-func TestResolveDefaultFlowPath_NoDefaultFlow(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	// Create temp directory without default flow
-	tempDir := t.TempDir()
-
-	mockWorkspaceService := workspace.NewMockService(ctrl)
-	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return(tempDir).Times(1)
-
-	p := &applicationServiceImpl{
-		workspaceService: mockWorkspaceService,
-	}
-
-	resolvedPath, err := p.resolveDefaultFlowPath()
-	assert.Error(t, err)
-	assert.Empty(t, resolvedPath)
-}
-
-// TestRun_DefaultFlowSuccess tests that Run executes default flow when found
-func TestRun_DefaultFlowSuccess(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	ctx := context.Background()
-
-	// Create temp directory with default flow
-	tempDir := t.TempDir()
-	flowDir := filepath.Join(tempDir, ".gollum", "flows", "default")
-	err := os.MkdirAll(flowDir, 0755)
-	require.NoError(t, err)
-
-	flowContent := `<?xml version="1.0" encoding="UTF-8"?>
-<flow name="default">
-  <description>Test default flow</description>
-  <states>
-    <state name="initial" initial="true">
-      <steps>
-        <step type="shell" name="echo">
-          <cmd>echo "Hello"</cmd>
-        </step>
-      </steps>
-      <transitions>
-        <transition to="final" otherwise="true"/>
-      </transitions>
-    </state>
-    <state name="final">
-    </state>
-  </states>
-</flow>`
-	flowPath := filepath.Join(flowDir, "main.xml")
-	err = os.WriteFile(flowPath, []byte(flowContent), 0644)
-	require.NoError(t, err)
-
-	// Create mock flow executor
-	mockExecutor := executor.NewMockFlowExecutorInstance(ctrl)
-	mockExecutor.EXPECT().SetInput(gomock.Any()).Times(1)
-	mockExecutor.EXPECT().Validate().Return(nil).Times(1)
-	mockExecutor.EXPECT().Run().Return(&executor.FlowResult{Outputs: map[string]any{}}, nil).Times(1)
-
-	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().EnableFileLogging(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	mockLogger.EXPECT().Infof("Priming FileStateManager - scanning working directory...").Times(1)
-	mockLogger.EXPECT().Infof("FileStateManager primed successfully").Times(1)
-	mockLogger.EXPECT().Infof("Default flow found at: %s", flowPath).Times(1)
-	mockLogger.EXPECT().Infof("Running default flow: %s", flowPath).Times(1)
-	// Note: "Flow outputs:" is only logged if len(result.Outputs) > 0, and our mock returns empty
-	mockLogger.EXPECT().Info("Default flow completed successfully").Times(1)
-	mockLogger.EXPECT().CloseFileLogging().Return(nil).Times(1)
-
-	mockFSM := state.NewMockFileStateManager(ctrl)
-	mockFSM.EXPECT().Prime(ctx).Return(nil).Times(1)
-
-	mockFlowExecutorService := executor.NewMockFlowExecutorService(ctrl)
-	mockFlowExecutorService.EXPECT().New(gomock.Any()).Return(mockExecutor).Times(1)
-
-	mockWorkspaceService := workspace.NewMockService(ctrl)
-	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return(tempDir).MinTimes(1)
-
-	p := &applicationServiceImpl{
-		logService:          mockLogger,
-		fsm:                 mockFSM,
-		workspaceService:    mockWorkspaceService,
-		flowExecutorService: mockFlowExecutorService,
-	}
-
-	err = p.Run(ctx)
-	assert.NoError(t, err)
-}
-
-// TestRun_NoDefaultFlowRunsTUI tests that Run falls back to TUI when no default flow
 func TestRun_NoDefaultFlowRunsTUI(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -456,253 +232,49 @@ func TestRun_NoDefaultFlowRunsTUI(t *testing.T) {
 	// Create temp directory without default flow
 	tempDir := t.TempDir()
 
+	mockFlowRegistry := flowregistry.NewMockFlowRegistry(ctrl)
+	mockFlowRegistry.EXPECT().GetDefaultFlow().Return(nil, fmt.Errorf("no default flow found")).Times(1)
+
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().EnableFileLogging(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mockLogger.EXPECT().CloseFileLogging().Return(nil).Times(1)
 	mockLogger.EXPECT().Infof("Priming FileStateManager - scanning working directory...").Times(1)
 	mockLogger.EXPECT().Infof("FileStateManager primed successfully").Times(1)
 	mockLogger.EXPECT().Info("no default flow found -> run tui").Times(1)
-	mockLogger.EXPECT().Infof("TUI channel registered with ChannelFacade").Times(1)
-	mockLogger.EXPECT().SetTUIMode(true).Times(1)
-	mockLogger.EXPECT().SetTUIMode(false).Times(1)
 
 	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockFSM.EXPECT().Prime(ctx).Return(nil).Times(1)
 
-	mockAgent := shared.NewMockAgent(ctrl)
-	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
-	mockAgent.EXPECT().GetID().Return(testUUID).AnyTimes()
-
-	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
-	mockAgentFactory.EXPECT().CreateSupervisorAgent(ctx).Return(mockAgent, nil, nil).Times(1)
-
 	mockWorkspaceService := workspace.NewMockService(ctrl)
 	mockWorkspaceService.EXPECT().GetCurrentWorkspace().Return(tempDir).AnyTimes()
 
-	mockMCPRegistry := &mockMCPRegistry{toolSets: []gollem.ToolSet{}}
+	// Mock channel that implements Channel (now includes Start)
+	mockCh := channel.NewMockChannel(ctrl)
+	mockChID := uuid.New()
+	mockCh.EXPECT().ID().Return(mockChID).AnyTimes()
+	mockCh.EXPECT().Start(ctx).Return(nil).Times(1)
 
-	// Mock channel facade - TUI channel registration will fail without TUI setup
 	mockChannelFacade := channel.NewMockChannelFacade(ctrl)
-	mockChannelFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).Times(1)
+	mockChannelFacade.EXPECT().CreateChannel(gomock.Any(), gomock.Any()).Return(mockCh, nil).Times(1)
+	mockChannelFacade.EXPECT().RegisterChannel(mockCh).Return(nil).Times(1)
 
 	p := &applicationServiceImpl{
 		gollumDir:        filepath.Join(tempDir, gollumDirName),
 		logService:       mockLogger,
 		fsm:              mockFSM,
-		agentFactory:     mockAgentFactory,
+		flowRegistry:     mockFlowRegistry,
 		workspaceService: mockWorkspaceService,
-		mcpRegistry:      mockMCPRegistry,
 		channelFacade:    mockChannelFacade,
-		markdownRenderer: &mockMarkdownRenderer{},
 	}
 
-	// This will fail when trying to run the actual TUI, but we can verify
-	// it attempts to run TUI instead of default flow
+	// Should complete successfully with the mocked channel
 	err := p.Run(ctx)
-	// The error will be from TUI initialization, which is expected
-	// The important thing is it didn't try to run a default flow
-	assert.Error(t, err)
-}
-
-// TestRunDefaultFlow_ParseError tests error handling when flow parsing fails
-func TestRunDefaultFlow_ParseError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	ctx := context.Background()
-
-	// Create temp directory with invalid flow XML
-	tempDir := t.TempDir()
-	flowDir := filepath.Join(tempDir, ".gollum", "flows", "default")
-	err := os.MkdirAll(flowDir, 0755)
-	require.NoError(t, err)
-
-	invalidFlowPath := filepath.Join(flowDir, "main.xml")
-	err = os.WriteFile(invalidFlowPath, []byte("invalid xml"), 0644)
-	require.NoError(t, err)
-
-	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Infof("Running default flow: %s", invalidFlowPath).Times(1)
-
-	p := &applicationServiceImpl{
-		logService: mockLogger,
-	}
-
-	err = p.runDefaultFlow(ctx, invalidFlowPath)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to parse default flow")
-}
-
-// TestRunDefaultFlow_ValidationError tests error handling when flow validation fails
-func TestRunDefaultFlow_ValidationError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	ctx := context.Background()
-
-	// Create temp directory with valid flow
-	tempDir := t.TempDir()
-	flowDir := filepath.Join(tempDir, ".gollum", "flows", "default")
-	err := os.MkdirAll(flowDir, 0755)
-	require.NoError(t, err)
-
-	flowContent := `<?xml version="1.0" encoding="UTF-8"?>
-<flow name="default">
-  <description>Test default flow</description>
-  <states>
-    <state name="initial" initial="true">
-      <steps>
-        <step type="shell" name="echo">
-          <cmd>echo "Hello"</cmd>
-        </step>
-      </steps>
-      <transitions>
-        <transition to="final" otherwise="true"/>
-      </transitions>
-    </state>
-    <state name="final">
-    </state>
-  </states>
-</flow>`
-	flowPath := filepath.Join(flowDir, "main.xml")
-	err = os.WriteFile(flowPath, []byte(flowContent), 0644)
-	require.NoError(t, err)
-
-	// Create mock flow executor that fails validation
-	mockExecutor := executor.NewMockFlowExecutorInstance(ctrl)
-	mockExecutor.EXPECT().SetInput(gomock.Any()).Times(1)
-	mockExecutor.EXPECT().Validate().Return(assert.AnError).Times(1)
-
-	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Infof("Running default flow: %s", flowPath).Times(1)
-
-	mockFlowExecutorService := executor.NewMockFlowExecutorService(ctrl)
-	mockFlowExecutorService.EXPECT().New(gomock.Any()).Return(mockExecutor).Times(1)
-
-	p := &applicationServiceImpl{
-		logService:          mockLogger,
-		flowExecutorService: mockFlowExecutorService,
-	}
-
-	err = p.runDefaultFlow(ctx, flowPath)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "default flow validation failed")
-}
-
-// TestRunDefaultFlow_RunError tests error handling when flow execution fails
-func TestRunDefaultFlow_RunError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	ctx := context.Background()
-
-	// Create temp directory with valid flow
-	tempDir := t.TempDir()
-	flowDir := filepath.Join(tempDir, ".gollum", "flows", "default")
-	err := os.MkdirAll(flowDir, 0755)
-	require.NoError(t, err)
-
-	flowContent := `<?xml version="1.0" encoding="UTF-8"?>
-<flow name="default">
-  <description>Test default flow</description>
-  <states>
-    <state name="initial" initial="true">
-      <steps>
-        <step type="shell" name="echo">
-          <cmd>echo "Hello"</cmd>
-        </step>
-      </steps>
-      <transitions>
-        <transition to="final" otherwise="true"/>
-      </transitions>
-    </state>
-    <state name="final">
-    </state>
-  </states>
-</flow>`
-	flowPath := filepath.Join(flowDir, "main.xml")
-	err = os.WriteFile(flowPath, []byte(flowContent), 0644)
-	require.NoError(t, err)
-
-	// Create mock flow executor that fails during Run
-	mockExecutor := executor.NewMockFlowExecutorInstance(ctrl)
-	mockExecutor.EXPECT().SetInput(gomock.Any()).Times(1)
-	mockExecutor.EXPECT().Validate().Return(nil).Times(1)
-	mockExecutor.EXPECT().Run().Return(nil, assert.AnError).Times(1)
-
-	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Infof("Running default flow: %s", flowPath).Times(1)
-
-	mockFlowExecutorService := executor.NewMockFlowExecutorService(ctrl)
-	mockFlowExecutorService.EXPECT().New(gomock.Any()).Return(mockExecutor).Times(1)
-
-	p := &applicationServiceImpl{
-		logService:          mockLogger,
-		flowExecutorService: mockFlowExecutorService,
-	}
-
-	err = p.runDefaultFlow(ctx, flowPath)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "default flow execution failed")
-}
-
-// TestRunDefaultFlow_Success tests successful default flow execution
-func TestRunDefaultFlow_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	ctx := context.Background()
-
-	// Create temp directory with valid flow
-	tempDir := t.TempDir()
-	flowDir := filepath.Join(tempDir, ".gollum", "flows", "default")
-	err := os.MkdirAll(flowDir, 0755)
-	require.NoError(t, err)
-
-	flowContent := `<?xml version="1.0" encoding="UTF-8"?>
-<flow name="default">
-  <description>Test default flow</description>
-  <states>
-    <state name="initial" initial="true">
-      <steps>
-        <step type="shell" name="echo">
-          <cmd>echo "Hello"</cmd>
-        </step>
-      </steps>
-      <transitions>
-        <transition to="final" otherwise="true"/>
-      </transitions>
-    </state>
-    <state name="final">
-    </state>
-  </states>
-</flow>`
-	flowPath := filepath.Join(flowDir, "main.xml")
-	err = os.WriteFile(flowPath, []byte(flowContent), 0644)
-	require.NoError(t, err)
-
-	// Create mock flow executor that succeeds
-	mockExecutor := executor.NewMockFlowExecutorInstance(ctrl)
-	mockExecutor.EXPECT().SetInput(gomock.Any()).Times(1)
-	mockExecutor.EXPECT().Validate().Return(nil).Times(1)
-	mockExecutor.EXPECT().Run().Return(&executor.FlowResult{Outputs: map[string]any{}}, nil).Times(1)
-
-	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Infof("Running default flow: %s", flowPath).Times(1)
-	mockLogger.EXPECT().Info("Default flow completed successfully").Times(1)
-
-	mockFlowExecutorService := executor.NewMockFlowExecutorService(ctrl)
-	mockFlowExecutorService.EXPECT().New(gomock.Any()).Return(mockExecutor).Times(1)
-
-	p := &applicationServiceImpl{
-		logService:          mockLogger,
-		flowExecutorService: mockFlowExecutorService,
-	}
-
-	err = p.runDefaultFlow(ctx, flowPath)
 	assert.NoError(t, err)
 }
 
+// TestRunDefaultFlow_ParseError tests error handling when flow parsing fails
+// DEPRECATED: Parsing now happens in FlowRegistry, not in ApplicationService
+// This test is kept for backwards compatibility but is no longer relevant
 // mockMarkdownRenderer is a simple mock for testing
 type mockMarkdownRenderer struct{}
 

@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"context"
+	"errors"
 	"log"
 	"time"
 
@@ -9,6 +11,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/markdown"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
+	"github.com/m-mizutani/gollem"
 )
 
 // Identifier is the unique channel identifier for registration.
@@ -160,6 +163,47 @@ func (c *TUIChannel) GetLogger() logger.LoggerService {
 // GetRenderer returns the markdown renderer (for testing).
 func (c *TUIChannel) GetRenderer() markdown.Renderer {
 	return c.renderer
+}
+
+// Start begins the TUI channel's lifecycle by creating and running the Bubbletea program.
+func (c *TUIChannel) Start(ctx context.Context) error {
+	if c.executor == nil {
+		log.Print("TUIChannel: no executor configured, cannot start TUI")
+		return errors.New("TUIChannel: no executor configured")
+	}
+
+	// Create agent executor adapter
+	executor := &agentExecutorAdapter{agent: c.executor}
+
+	// Create options for the TUI program
+	opts := []func(*Model){
+		WithMessageChannel(),
+	}
+
+	// Add logger and renderer if configured
+	if c.logger != nil {
+		opts = append(opts, WithLoggerService(c.logger))
+	}
+	if c.renderer != nil {
+		opts = append(opts, WithMarkdownRenderer(c.renderer))
+	}
+
+	// Create the TUI program
+	program := NewProgramWithContext(ctx, executor, opts...)
+
+	// Run the program (blocks until TUI exits)
+	_, err := program.Run()
+	return err
+}
+
+// agentExecutorAdapter adapts shared.Agent to tui.AgentExecutor
+type agentExecutorAdapter struct {
+	agent shared.Agent
+}
+
+// Execute implements tui.AgentExecutor by delegating to the underlying agent
+func (a *agentExecutorAdapter) Execute(ctx context.Context, input string) (*gollem.ExecuteResponse, error) {
+	return a.agent.Execute(ctx, gollem.Text(input))
 }
 
 // Compile-time check to ensure TUIChannel implements channel.Channel

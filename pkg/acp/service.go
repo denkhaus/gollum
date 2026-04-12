@@ -54,6 +54,7 @@ package acp
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/google/uuid"
 	acppkg "github.com/ironpark/go-acp"
@@ -67,11 +68,15 @@ import (
 
 // acpServiceImpl implements Service and channel.Channel (PRIVATE)
 type acpServiceImpl struct {
-	facade channel.ChannelFacade
-	logger logger.LoggerService
-	client acppkg.Client
-	store  acppkg.SessionStore[*shared.ACPSession]
-	id     uuid.UUID // Channel ID
+	facade   channel.ChannelFacade
+	logger   logger.LoggerService
+	client   acppkg.Client
+	store    acppkg.SessionStore[*shared.ACPSession]
+	id       uuid.UUID // Channel ID
+	conn     Connection // ACP connection (created in Start)
+	stdin    io.Reader // For connection creation
+	stdout   io.Writer // For connection creation
+	injector do.Injector // For connection creation
 }
 
 // Ensure acpServiceImpl implements Service and channel.Channel at compile time
@@ -89,17 +94,13 @@ func NewAcpService(injector do.Injector) (shared.ACPService, error) {
 	id := uuid.New()
 
 	svc := &acpServiceImpl{
-		logger: logger,
-		facade: facade,
-		id:     id,
+		logger:   logger,
+		facade:   facade,
+		id:       id,
+		injector: injector,
 	}
 
-	// Register self with facade (breaks circular dependency)
-	if err := facade.RegisterChannel(svc); err != nil {
-		return nil, fmt.Errorf("failed to register ACP service as channel: %w", err)
-	}
-
-	logger.Debug("ACP service registered as channel", zap.String("channel_id", id.String()))
+	logger.Debug("ACP service created", zap.String("channel_id", id.String()))
 
 	return svc, nil
 }
@@ -121,6 +122,28 @@ func (s *acpServiceImpl) SetSessionStore(store acppkg.SessionStore[*shared.ACPSe
 // ID returns the unique channel identifier for this ACP service
 func (s *acpServiceImpl) ID() uuid.UUID {
 	return s.id
+}
+
+// Start begins the ACP channel's lifecycle by creating and starting the ACP connection.
+func (s *acpServiceImpl) Start(ctx context.Context) error {
+	// Create the ACP connection using the stored stdin/stdout and injector
+	if s.stdin == nil || s.stdout == nil {
+		return fmt.Errorf("ACP channel: stdin and stdout must be provided via options")
+	}
+
+	conn, err := NewConnection(s.injector, s.stdin, s.stdout)
+	if err != nil {
+		return fmt.Errorf("failed to create ACP connection: %w", err)
+	}
+
+	s.conn = conn
+
+	// Start the connection (this blocks until the ACP client disconnects)
+	if err := s.conn.Start(ctx); err != nil {
+		return fmt.Errorf("ACP connection failed: %w", err)
+	}
+
+	return nil
 }
 
 // OnMessage receives messages from the agent system and streams them to the ACP client
