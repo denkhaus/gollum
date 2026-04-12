@@ -1,6 +1,6 @@
 package pkg
 
-//go:generate go run go.uber.org/mock/mockgen -source=channel/interface.go -destination=channel/facade_mock.go -package=channel github.com/denkhaus/gollum/pkg/channel ChannelFacade
+//go:generate go run go.uber.org/mock/mockgen -source=channel/interface.go -destination=channel/facade_mock.go -package=channel github.com/denkhaus/gollum/pkg/channel ChannelFacade,Channel
 
 //go:generate go run go.uber.org/mock/mockgen -source=config/service.go -destination=config/service_mock.go -package=config github.com/denkhaus/gollum/pkg/config Service
 
