@@ -131,6 +131,26 @@ func (mr *MockChannelFacadeMockRecorder) CancelInput(sessionID any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelInput", reflect.TypeOf((*MockChannelFacade)(nil).CancelInput), sessionID)
 }
 
+// CreateChannel mocks base method.
+func (m *MockChannelFacade) CreateChannel(identifier ChannelIdentifier, opts ...ChannelOption) (Channel, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{identifier}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateChannel", varargs...)
+	ret0, _ := ret[0].(Channel)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateChannel indicates an expected call of CreateChannel.
+func (mr *MockChannelFacadeMockRecorder) CreateChannel(identifier any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{identifier}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateChannel", reflect.TypeOf((*MockChannelFacade)(nil).CreateChannel), varargs...)
+}
+
 // DiscoverProviders mocks base method.
 func (m *MockChannelFacade) DiscoverProviders(injector do.Injector) error {
 	m.ctrl.T.Helper()

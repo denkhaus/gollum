@@ -113,4 +113,7 @@ type ChannelFacade interface {
 
 	// DiscoverProviders scans DI for channel providers
 	DiscoverProviders(injector do.Injector) error
+
+	// CreateChannel creates a channel instance by identifier with options
+	CreateChannel(identifier ChannelIdentifier, opts ...ChannelOption) (Channel, error)
 }

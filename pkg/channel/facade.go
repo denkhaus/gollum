@@ -92,6 +92,36 @@ func (f *channelFacadeImpl) DiscoverProviders(injector do.Injector) error {
 	return nil
 }
 
+// CreateChannel creates a channel instance by identifier with options.
+func (f *channelFacadeImpl) CreateChannel(identifier ChannelIdentifier, opts ...ChannelOption) (Channel, error) {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+
+	factory, ok := f.providers[identifier]
+	if !ok {
+		// Provide helpful error listing available channels
+		available := make([]string, 0, len(f.providers))
+		for id := range f.providers {
+			available = append(available, string(id))
+		}
+		return nil, fmt.Errorf("unknown channel identifier: %s (available: %v)", identifier, available)
+	}
+
+	ch, err := factory(opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create channel %s: %w", identifier, err)
+	}
+
+	// Apply options with error handling
+	for _, opt := range opts {
+		if err := opt.Apply(ch); err != nil {
+			return nil, fmt.Errorf("failed to apply option to channel %s: %w", identifier, err)
+		}
+	}
+
+	return ch, nil
+}
+
 // RegisterChannel adds a channel to receive events
 func (p *channelFacadeImpl) RegisterChannel(channel Channel) error {
 	p.mu.Lock()
