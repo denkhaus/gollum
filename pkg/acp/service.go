@@ -196,24 +196,39 @@ func (s *acpServiceImpl) startHTTP(ctx context.Context) error {
 
 	conn := acppkg.NewAgentSideConnection(s, nil, nil,
 		acppkg.WithTransport(httpTransport),
-		acppkg.WithSessionStore(store, func(ctx context.Context, params *acppkg.NewSessionRequest) (acppkg.SessionID, *shared.ACPSession, error) {
-			ctx, cancel := context.WithCancel(context.Background())
+		acppkg.WithSessionStore(store, func(parentCtx context.Context, params *acppkg.NewSessionRequest) (acppkg.SessionID, *shared.ACPSession, error) {
+			// Use passed context as parent for cancellation propagation
+			ctx, cancel := context.WithCancel(parentCtx)
 			return acppkg.GenerateSessionID(), shared.NewAcpSession(ctx, cancel), nil
 		}),
 		acppkg.WithMiddleware(acppkg.RecoveryMiddleware()),
 	)
 
 	s.SetClient(conn.Client())
+
+	// Get handler from transport - should be non-nil for HTTP transport
+	handler := httpTransport.Handler()
+	if handler == nil {
+		return fmt.Errorf("HTTP transport handler is nil")
+	}
+
 	s.conn = &connectionImpl{
 		conn:    conn,
 		service: s,
-		handler: httpTransport.Handler(),
+		handler: handler,
 	}
 
 	return nil
 }
 
-// GetHandler returns the HTTP handler for HTTP transport mode
+// GetHandler returns the HTTP handler for HTTP transport mode.
+//
+// Returns nil if:
+//   - Start() has not been called yet
+//   - Transport type is not HTTP (e.g., stdio mode)
+//
+// The handler is ready to use with http.Server after Start() completes
+// successfully in HTTP transport mode.
 func (s *acpServiceImpl) GetHandler() http.Handler {
 	if s.conn == nil {
 		return nil

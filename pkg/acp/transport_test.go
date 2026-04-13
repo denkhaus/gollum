@@ -168,3 +168,52 @@ func TestHTTPModeStart(t *testing.T) {
 	// Handler should respond (even if with 404 or method not allowed)
 	// The important part is that it doesn't panic
 }
+
+func TestHTTPModeStartWithContextCancellation(t *testing.T) {
+	// Create injector
+	injector := do.New()
+
+	// Create service with HTTP transport
+	mockService := &acpServiceImpl{
+		injector:      injector,
+		transportType: TransportHTTP,
+	}
+
+	// Create a context that can be cancelled
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Start the service
+	err := mockService.Start(ctx)
+	if err != nil {
+		t.Fatalf("Start() error = %v", err)
+	}
+
+	// Verify connection was created
+	if mockService.conn == nil {
+		t.Error("Start() did not create connection")
+	}
+
+	// Verify handler is available
+	handler := mockService.GetHandler()
+	if handler == nil {
+		t.Error("GetHandler() returned nil, want non-nil handler")
+	}
+
+	// Cancel the context
+	cancel()
+
+	// Verify context is cancelled
+	select {
+	case <-ctx.Done():
+		// Context was cancelled as expected
+	default:
+		t.Error("Context was not cancelled")
+	}
+
+	// Handler should still be accessible after context cancellation
+	// (HTTP handler lifecycle is managed by the server, not the context)
+	handler = mockService.GetHandler()
+	if handler == nil {
+		t.Error("GetHandler() returned nil after context cancellation")
+	}
+}
