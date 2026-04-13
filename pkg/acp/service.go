@@ -55,6 +55,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 
 	"github.com/google/uuid"
 	acppkg "github.com/ironpark/go-acp"
@@ -158,7 +159,14 @@ func (s *acpServiceImpl) ID() uuid.UUID {
 
 // Start begins the ACP channel's lifecycle by creating and starting the ACP connection.
 func (s *acpServiceImpl) Start(ctx context.Context) error {
-	// Create the ACP connection using the stored stdin/stdout and injector
+	if s.transportType == TransportHTTP {
+		return s.startHTTP(ctx)
+	}
+	return s.startStdio(ctx)
+}
+
+// startStdio creates and starts a stdio-based ACP connection
+func (s *acpServiceImpl) startStdio(ctx context.Context) error {
 	if s.stdin == nil || s.stdout == nil {
 		return fmt.Errorf("ACP channel: stdin and stdout must be provided via options")
 	}
@@ -176,6 +184,41 @@ func (s *acpServiceImpl) Start(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// startHTTP creates an HTTP-based ACP connection
+func (s *acpServiceImpl) startHTTP(ctx context.Context) error {
+	httpTransport := acppkg.NewHTTPServerTransport()
+	store := acppkg.NewMemoryStore[*shared.ACPSession]()
+
+	s.SetClient(nil)
+	s.SetSessionStore(store)
+
+	conn := acppkg.NewAgentSideConnection(s, nil, nil,
+		acppkg.WithTransport(httpTransport),
+		acppkg.WithSessionStore(store, func(ctx context.Context, params *acppkg.NewSessionRequest) (acppkg.SessionID, *shared.ACPSession, error) {
+			ctx, cancel := context.WithCancel(context.Background())
+			return acppkg.GenerateSessionID(), shared.NewAcpSession(ctx, cancel), nil
+		}),
+		acppkg.WithMiddleware(acppkg.RecoveryMiddleware()),
+	)
+
+	s.SetClient(conn.Client())
+	s.conn = &connectionImpl{
+		conn:    conn,
+		service: s,
+		handler: httpTransport.Handler(),
+	}
+
+	return nil
+}
+
+// GetHandler returns the HTTP handler for HTTP transport mode
+func (s *acpServiceImpl) GetHandler() http.Handler {
+	if s.conn == nil {
+		return nil
+	}
+	return s.conn.Handler()
 }
 
 // OnMessage receives messages from the agent system and streams them to the ACP client

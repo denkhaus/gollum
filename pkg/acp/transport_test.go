@@ -1,7 +1,11 @@
 package acp
 
 import (
+	"context"
+	"net/http/httptest"
 	"testing"
+
+	"github.com/samber/do/v2"
 )
 
 func TestTransportTypeValues(t *testing.T) {
@@ -127,4 +131,40 @@ func TestWithPort(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHTTPModeStart(t *testing.T) {
+	// Create injector
+	injector := do.New()
+
+	// Create service with HTTP transport
+	mockService := &acpServiceImpl{
+		injector:      injector,
+		transportType: TransportHTTP,
+	}
+
+	// Start the service
+	err := mockService.Start(context.Background())
+	if err != nil {
+		t.Fatalf("Start() error = %v", err)
+	}
+
+	// Verify connection was created
+	if mockService.conn == nil {
+		t.Error("Start() did not create connection")
+	}
+
+	// Verify handler is available
+	handler := mockService.GetHandler()
+	if handler == nil {
+		t.Error("GetHandler() returned nil, want non-nil handler")
+	}
+
+	// Verify handler is functional
+	req := httptest.NewRequest("GET", "/test", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	// Handler should respond (even if with 404 or method not allowed)
+	// The important part is that it doesn't panic
 }

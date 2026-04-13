@@ -2,6 +2,7 @@ package shared
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/ironpark/go-acp"
 )
@@ -19,6 +20,9 @@ type ACPService interface {
 	// Dependency injection setters (called by connection factory)
 	SetClient(client acp.Client)
 	SetSessionStore(store acp.SessionStore[*ACPSession])
+
+	// HTTP transport support
+	GetHandler() http.Handler
 }
 
 // ACPSession holds session state for ACP connections
