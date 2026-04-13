@@ -272,11 +272,161 @@ func (s *acpServiceImpl) OnAgentLifecycle(event channel.AgentLifecycleEvent) {
 
 ---
 
-## 6. Reference Resources
+## 6. Transport Architecture
+
+### Overview
+
+Gollum's ACP implementation supports two transport modes for communication with ACP clients:
+
+- **Stdio Transport** - Default, single-client mode using stdin/stdout
+- **HTTP Transport** - Multi-client mode using HTTP + Server-Sent Events (SSE)
+
+### Transport Type Enum
+
+**File**: `pkg/acp/transport.go`
+
+```go
+type TransportType string
+
+const (
+    TransportStdio TransportType = "stdio"
+    TransportHTTP TransportType = "http"
+)
+
+func ParseTransportType(s string) (TransportType, error)
+```
+
+The `ParseTransportType` function validates transport type strings and returns an error for invalid values.
+
+### Stdio Transport
+
+**Configuration**: Via channel options or CLI flags
+
+```go
+// Channel options
+acp.WithStdin(os.Stdin)
+acp.WithStdout(os.Stdout)
+acp.WithTransport(acp.TransportStdio)
+```
+
+**Usage**: Local development, single-client scenarios
+
+**Behavior**:
+- Reads ACP protocol messages from stdin
+- Writes responses to stdout
+- Blocks until client disconnects
+- Single active session per connection
+
+**CLI**: `gollum acp` (default) or `gollum acp --transport stdio`
+
+### HTTP Transport
+
+**Configuration**: Via channel options or CLI flags
+
+```go
+// Channel options
+acp.WithTransport(acp.TransportHTTP)
+acp.WithHost("0.0.0.0")
+acp.WithPort(8080)
+```
+
+**Usage**: Multi-client servers, production deployments
+
+**Behavior**:
+- HTTP server with SSE for real-time streaming
+- Supports multiple concurrent sessions
+- Each session gets unique context and cancellation
+- Graceful shutdown with configurable timeout
+
+**CLI**: `gollum acp --transport http --host 0.0.0.0 --port 8080`
+
+### Transport Selection
+
+Transport type is selected via:
+
+1. **Configuration Service** - Centralized config with defaults
+2. **CLI Flags** - Command-line override with env var support
+3. **Channel Options** - Programmatic configuration
+
+**Priority**: CLI flags > Config > Defaults
+
+### Implementation Details
+
+#### Service Start Method
+
+**File**: `pkg/acp/service.go`
+
+```go
+func (s *acpServiceImpl) Start(ctx context.Context) error {
+    if s.transportType == TransportHTTP {
+        return s.startHTTP(ctx)
+    }
+    return s.startStdio(ctx)
+}
+```
+
+The `Start` method routes to the appropriate transport implementation based on `s.transportType`.
+
+#### HTTP Server Startup
+
+**File**: `pkg/cli/acp.go`
+
+The CLI command starts an HTTP server in a goroutine with:
+- Configurable timeouts (Read: 15s, Write: 15s, Idle: 60s)
+- Graceful shutdown with configurable timeout (default: 10s)
+- Ready signaling for dependency management
+- Proper error handling and logging
+
+#### Channel Factory
+
+The channel facade creates ACP channels with transport-specific options:
+
+```go
+ch, err := facade.CreateChannel(acp.Identifier,
+    acp.WithTransport(transportType),
+    acp.WithHost(host),
+    acp.WithPort(port),
+    acp.WithStdin(os.Stdin),
+    acp.WithStdout(os.Stdout),
+)
+```
+
+### Session Management
+
+**HTTP Mode**: Multi-session support via `acppkg.MemoryStore`
+- Each HTTP connection creates a new session
+- Sessions are tracked by SessionID
+- Independent context cancellation per session
+
+**Stdio Mode**: Single-session support
+- One session per stdio connection
+- Session created on first `Prompt()` call
+
+### Environment Variables
+
+All transport configuration supports environment variables:
+
+- `GOLLUM_ACP_TRANSPORT` - Transport type (`stdio` or `http`)
+- `GOLLUM_ACP_HOST` - HTTP server bind address
+- `GOLLUM_ACP_PORT` - HTTP server port
+- `GOLLUM_ACP_SHUTDOWN_TIMEOUT` - Graceful shutdown timeout
+
+### Testing
+
+Both transport modes have comprehensive test coverage:
+
+- **Stdio**: `pkg/acp/transport_test.go` - `TestStdioModeStart`
+- **HTTP**: `pkg/acp/transport_test.go` - `TestHTTPModeStart`
+- **Factory**: `pkg/acp/options_test.go` - Transport option validation
+
+---
+
+## 7. Reference Resources
 
 - **ACP Standard**: [ironpark/acp-go](https://github.com/ironpark/acp-go)
 - **DeepWiki Documentation**: Available via MCP `deepwiki` tool
 - **Current Implementation**: `pkg/acp/service.go`, `pkg/acp/connection.go`
+- **Transport Implementation**: `pkg/acp/transport.go`, `pkg/cli/acp.go`
 
 ---
 

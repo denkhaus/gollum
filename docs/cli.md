@@ -17,6 +17,59 @@ gollum
 Runs the default application. If a default flow exists at `.gollum/flows/default/main.xml`,
 it will be executed. Otherwise, the TUI interface starts.
 
+### ACP Command
+
+#### gollum acp
+
+Start Gollum ACP server (Agent Client Protocol) for AI agent communication.
+
+```bash
+gollum acp [flags]
+```
+
+**Flags:**
+- `-t, --transport <type>` - Transport type: `stdio` or `http` (default: `stdio`)
+- `--host <address>` - HTTP server bind address (default: `0.0.0.0`)
+- `--port <number>` - HTTP server port (default: `8080`)
+- `--shutdown-timeout <duration>` - HTTP server graceful shutdown timeout (default: `10s`)
+
+**Environment Variables:**
+- `GOLLUM_ACP_TRANSPORT` - Override transport type
+- `GOLLUM_ACP_HOST` - Override HTTP server bind address
+- `GOLLUM_ACP_PORT` - Override HTTP server port
+- `GOLLUM_ACP_SHUTDOWN_TIMEOUT` - Override shutdown timeout
+
+**Transport Modes:**
+
+1. **Stdio Mode (default)** - Direct stdin/stdout communication
+   - Best for: Local development, single-client scenarios
+   - Usage: `gollum acp` or `gollum acp --transport stdio`
+   - Communication: Standard input/output streams
+
+2. **HTTP Mode** - HTTP + Server-Sent Events
+   - Best for: Multi-client servers, production deployments
+   - Usage: `gollum acp --transport http --host 0.0.0.0 --port 8080`
+   - Communication: HTTP endpoints with SSE for real-time streaming
+   - Supports: Multiple concurrent ACP sessions
+
+**Examples:**
+
+```bash
+# Local development with stdio (default)
+gollum acp
+
+# Multi-client HTTP server
+gollum acp --transport http --host 0.0.0.0 --port 8080
+
+# Production deployment with custom timeout
+gollum acp -t http --host 0.0.0.0 --port 9000 --shutdown-timeout 30s
+
+# Using environment variables
+export GOLLUM_ACP_TRANSPORT=http
+export GOLLUM_ACP_PORT=9000
+gollum acp
+```
+
 ### Flow Commands
 
 #### gollum flow lint
