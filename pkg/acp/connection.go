@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/http"
 
 	"github.com/denkhaus/gollum/pkg/shared"
 	acppkg "github.com/ironpark/go-acp"
@@ -15,12 +16,14 @@ type Connection interface {
 	Start(ctx context.Context) error
 	Close() error
 	Done() <-chan struct{}
+	Handler() http.Handler // Returns handler for HTTP transport, nil for stdio
 }
 
 // connectionImpl implements Connection (PRIVATE)
 type connectionImpl struct {
 	conn    *acppkg.AgentSideConnection
 	service shared.ACPService
+	handler http.Handler // HTTP handler for HTTP transport
 }
 
 // NewConnection creates a new ACP connection with DI
@@ -70,4 +73,8 @@ func (p *connectionImpl) Close() error {
 
 func (p *connectionImpl) Done() <-chan struct{} {
 	return p.conn.Done()
+}
+
+func (p *connectionImpl) Handler() http.Handler {
+	return p.handler
 }
