@@ -217,6 +217,32 @@ type MCPConfig struct {
 	ClientInitTimeoutSeconds int `envconfig:"CLIENT_INIT_TIMEOUT_SECONDS" default:"60"`
 }
 
+// ACPConfig holds configuration for the Agent Client Protocol (ACP) service.
+type ACPConfig struct {
+	// ExpectedAPIKey is the expected authentication key for ACP connections.
+	// This is the "correct" key configured by the server/admin.
+	// When empty, no authentication is required (default for local development).
+	// When set, clients must provide this key via GOLLUM_ACP_API_KEY to connect.
+	ExpectedAPIKey string `envconfig:"EXPECTED_API_KEY"`
+
+	// ProvidedAPIKey is the API key provided by the client via GOLLUM_ACP_API_KEY env var.
+	// The config service reads this from the environment when the agent process starts.
+	ProvidedAPIKey string `envconfig:"API_KEY"`
+
+	// TransportType is the transport type for ACP communication (stdio, http).
+	// stdio: Standard input/output (default for local development)
+	// http: HTTP server for remote connections
+	TransportType string `envconfig:"TRANSPORT_TYPE" default:"stdio"`
+
+	// Host is the host address for HTTP transport.
+	// Only used when TransportType is "http".
+	Host string `envconfig:"HOST" default:"0.0.0.0"`
+
+	// Port is the port number for HTTP transport.
+	// Only used when TransportType is "http".
+	Port int `envconfig:"PORT" default:"8080"`
+}
+
 // GetCommandTimeout returns the command timeout as time.Duration with validation.
 // Ensures timeout is between 1 and 300 seconds (5 minutes).
 func (c *MCPConfig) GetCommandTimeout() time.Duration {
@@ -262,6 +288,7 @@ type ConfigService interface {
 	GetLangfuseConfig() *LangfuseConfig
 	GetEventsConfig() *EventsConfig
 	GetMCPConfig() *MCPConfig
+	GetACPConfig() *ACPConfig
 }
 
 // serviceImpl implements the ConfigService interface
@@ -280,6 +307,7 @@ type serviceImpl struct {
 	PromptOptimizer PromptOptimizerConfig `envconfig:"OPTIMIZER"`
 	Events          EventsConfig          `envconfig:"EVENTS"`
 	MCP             MCPConfig             `envconfig:"MCP"`
+	ACP             ACPConfig             `envconfig:"ACP"`
 }
 
 // NewService creates a new configuration service
@@ -366,4 +394,8 @@ func (s *serviceImpl) GetEventsConfig() *EventsConfig {
 
 func (s *serviceImpl) GetMCPConfig() *MCPConfig {
 	return &s.MCP
+}
+
+func (s *serviceImpl) GetACPConfig() *ACPConfig {
+	return &s.ACP
 }

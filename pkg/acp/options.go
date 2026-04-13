@@ -50,6 +50,9 @@ func WithTransport(t TransportType) channel.ChannelOption {
 // WithHost sets the host address for HTTP transport.
 func WithHost(host string) channel.ChannelOption {
 	return &ACPOption{applyFunc: func(s *acpServiceImpl) error {
+		if host == "" {
+			return fmt.Errorf("host cannot be empty")
+		}
 		s.host = host
 		return nil
 	}}

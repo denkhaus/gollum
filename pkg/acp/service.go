@@ -76,12 +76,14 @@ type acpServiceImpl struct {
 	store         acppkg.SessionStore[*shared.ACPSession]
 	id            uuid.UUID   // Channel ID
 	conn          Connection  // ACP connection (created in Start)
+	injector      do.Injector // For connection creation
+
+	// Transport-related fields
 	stdin         io.Reader   // For connection creation
 	stdout        io.Writer   // For connection creation
-	injector      do.Injector // For connection creation
 	transportType TransportType // Transport type (stdio, http)
-	host          string          // Host address for HTTP transport
-	port          int             // Port number for HTTP transport
+	host          string      // Host address for HTTP transport
+	port          int         // Port number for HTTP transport
 }
 
 // Ensure acpServiceImpl implements Service and channel.Channel at compile time
@@ -99,15 +101,35 @@ func NewAcpService(injector do.Injector) (shared.ACPService, error) {
 	// Generate unique channel ID for this ACP service instance
 	id := uuid.New()
 
+	// Get ACP configuration with defaults
+	acpConfig := cfg.GetACPConfig()
+
+	// Parse transport type from config (default to stdio)
+	transportType := TransportStdio
+	if acpConfig.TransportType != "" {
+		parsedType, err := ParseTransportType(acpConfig.TransportType)
+		if err != nil {
+			logger.Warn("invalid transport type in config, using stdio",
+				zap.String("transport_type", acpConfig.TransportType),
+				zap.Error(err))
+		} else {
+			transportType = parsedType
+		}
+	}
+
+	// Use config defaults for host and port
+	host := acpConfig.Host
+	port := acpConfig.Port
+
 	svc := &acpServiceImpl{
 		logger:        logger,
 		facade:        facade,
 		config:        cfg,
 		id:            id,
 		injector:      injector,
-		transportType: TransportStdio, // Default to stdio
-		host:          "0.0.0.0",     // Default bind address
-		port:          8080,           // Default port
+		transportType: transportType,
+		host:          host,
+		port:          port,
 	}
 
 	logger.Debug("ACP service created", zap.String("channel_id", id.String()))
