@@ -62,21 +62,26 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/denkhaus/gollum/pkg/channel"
+	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 // acpServiceImpl implements Service and channel.Channel (PRIVATE)
 type acpServiceImpl struct {
-	facade   channel.ChannelFacade
-	logger   logger.LoggerService
-	client   acppkg.Client
-	store    acppkg.SessionStore[*shared.ACPSession]
-	id       uuid.UUID   // Channel ID
-	conn     Connection  // ACP connection (created in Start)
-	stdin    io.Reader   // For connection creation
-	stdout   io.Writer   // For connection creation
-	injector do.Injector // For connection creation
+	facade        channel.ChannelFacade
+	logger        logger.LoggerService
+	config        config.ConfigService
+	client        acppkg.Client
+	store         acppkg.SessionStore[*shared.ACPSession]
+	id            uuid.UUID   // Channel ID
+	conn          Connection  // ACP connection (created in Start)
+	stdin         io.Reader   // For connection creation
+	stdout        io.Writer   // For connection creation
+	injector      do.Injector // For connection creation
+	transportType TransportType // Transport type (stdio, http)
+	host          string          // Host address for HTTP transport
+	port          int             // Port number for HTTP transport
 }
 
 // Ensure acpServiceImpl implements Service and channel.Channel at compile time
@@ -87,6 +92,7 @@ var _ channel.Channel = (*acpServiceImpl)(nil)
 func NewAcpService(injector do.Injector) (shared.ACPService, error) {
 	logger := do.MustInvoke[logger.LoggerService](injector)
 	facade := do.MustInvoke[channel.ChannelFacade](injector)
+	cfg := do.MustInvoke[config.ConfigService](injector)
 
 	logger.Debug("startup ACP service")
 
@@ -94,10 +100,14 @@ func NewAcpService(injector do.Injector) (shared.ACPService, error) {
 	id := uuid.New()
 
 	svc := &acpServiceImpl{
-		logger:   logger,
-		facade:   facade,
-		id:       id,
-		injector: injector,
+		logger:        logger,
+		facade:        facade,
+		config:        cfg,
+		id:            id,
+		injector:      injector,
+		transportType: TransportStdio, // Default to stdio
+		host:          "0.0.0.0",     // Default bind address
+		port:          8080,           // Default port
 	}
 
 	logger.Debug("ACP service created", zap.String("channel_id", id.String()))
@@ -269,6 +279,25 @@ func (s *acpServiceImpl) OnAgentLifecycle(event channel.AgentLifecycleEvent) {
 
 // Initialize implements acp.Agent.Initialize
 func (s *acpServiceImpl) Initialize(ctx context.Context, params *acppkg.InitializeRequest) (*acppkg.InitializeResponse, error) {
+	acpConfig := s.config.GetACPConfig()
+
+	// Build auth methods based on configuration
+	// Note: Using basic AuthMethod since env_var type is still unstable in go-acp
+	var authMethods []acppkg.AuthMethod
+	if acpConfig.ExpectedAPIKey != "" {
+		// Require API key authentication via environment variable
+		authMethods = []acppkg.AuthMethod{
+			{
+				ID:          "gollum-acp",
+				Name:        "Gollum ACP API Key",
+				Description: "Set GOLLUM_ACP_API_KEY environment variable when starting the agent",
+			},
+		}
+		s.logger.Debug("ACP authentication required: API key configured")
+	} else {
+		s.logger.Debug("ACP authentication not required: no API key configured")
+	}
+
 	return &acppkg.InitializeResponse{
 		ProtocolVersion: acppkg.ProtocolVersion(acppkg.CurrentProtocolVersion),
 		AgentCapabilities: &acppkg.AgentCapabilities{
@@ -283,16 +312,36 @@ func (s *acpServiceImpl) Initialize(ctx context.Context, params *acppkg.Initiali
 				Image:           false,
 			},
 		},
-		AuthMethods: []acppkg.AuthMethod{},
+		AuthMethods: authMethods,
 	}, nil
 }
 
 // Authenticate implements acp.Agent.Authenticate
-// TODO: Implement proper authentication in Task 6
 func (s *acpServiceImpl) Authenticate(ctx context.Context, params *acppkg.AuthenticateRequest) (*acppkg.AuthenticateResponse, error) {
-	s.logger.Debug("authenticate request", zap.String("method_id", string(params.MethodID)))
-	// Return nil to indicate no authentication required
-	return nil, nil
+	acpConfig := s.config.GetACPConfig()
+
+	// If no expected key is configured, no authentication required
+	if acpConfig.ExpectedAPIKey == "" {
+		s.logger.Debug("ACP authentication skipped: no API key configured")
+		return &acppkg.AuthenticateResponse{}, nil
+	}
+
+	// For env_var auth type per ACP RFC:
+	// Client sets GOLLUM_ACP_API_KEY when starting the agent process.
+	// Config service reads this into ProvidedAPIKey via envconfig.
+	// We validate the provided key matches the expected key.
+	if acpConfig.ProvidedAPIKey == "" {
+		s.logger.Warn("ACP authentication failed: GOLLUM_ACP_API_KEY not set")
+		return nil, fmt.Errorf("authentication failed: GOLLUM_ACP_API_KEY environment variable not set")
+	}
+
+	if acpConfig.ProvidedAPIKey != acpConfig.ExpectedAPIKey {
+		s.logger.Warn("ACP authentication failed: invalid API key")
+		return nil, fmt.Errorf("authentication failed: invalid API key")
+	}
+
+	s.logger.Debug("ACP authentication successful")
+	return &acppkg.AuthenticateResponse{}, nil
 }
 
 // SetSessionMode implements acp.Agent.SetSessionMode

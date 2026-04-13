@@ -2,6 +2,7 @@
 package acp
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/denkhaus/gollum/pkg/channel"
@@ -34,6 +35,33 @@ func WithStdin(r io.Reader) channel.ChannelOption {
 func WithStdout(w io.Writer) channel.ChannelOption {
 	return &ACPOption{applyFunc: func(s *acpServiceImpl) error {
 		s.stdout = w
+		return nil
+	}}
+}
+
+// WithTransport sets the transport type for ACP communication.
+func WithTransport(t TransportType) channel.ChannelOption {
+	return &ACPOption{applyFunc: func(s *acpServiceImpl) error {
+		s.transportType = t
+		return nil
+	}}
+}
+
+// WithHost sets the host address for HTTP transport.
+func WithHost(host string) channel.ChannelOption {
+	return &ACPOption{applyFunc: func(s *acpServiceImpl) error {
+		s.host = host
+		return nil
+	}}
+}
+
+// WithPort sets the port number for HTTP transport.
+func WithPort(port int) channel.ChannelOption {
+	return &ACPOption{applyFunc: func(s *acpServiceImpl) error {
+		if port < 1 || port > 65535 {
+			return fmt.Errorf("port must be between 1 and 65535, got %d", port)
+		}
+		s.port = port
 		return nil
 	}}
 }

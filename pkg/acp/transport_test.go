@@ -66,3 +66,65 @@ func TestTransportTypeString(t *testing.T) {
 		})
 	}
 }
+
+func TestWithTransport(t *testing.T) {
+	// Create a mock acpServiceImpl for testing
+	mockService := &acpServiceImpl{}
+
+	option := WithTransport(TransportHTTP)
+	err := option.Apply(mockService)
+
+	if err != nil {
+		t.Errorf("WithTransport() error = %v", err)
+	}
+	if mockService.transportType != TransportHTTP {
+		t.Errorf("WithTransport() set transportType = %v, want %v", mockService.transportType, TransportHTTP)
+	}
+}
+
+func TestWithHost(t *testing.T) {
+	mockService := &acpServiceImpl{}
+
+	option := WithHost("127.0.0.1")
+	err := option.Apply(mockService)
+
+	if err != nil {
+		t.Errorf("WithHost() error = %v", err)
+	}
+	if mockService.host != "127.0.0.1" {
+		t.Errorf("WithHost() set host = %v, want %v", mockService.host, "127.0.0.1")
+	}
+}
+
+func TestWithPort(t *testing.T) {
+	tests := []struct {
+		name      string
+		port      int
+		wantError bool
+	}{
+		{"valid port", 3000, false},
+		{"min port", 1, false},
+		{"max port", 65535, false},
+		{"zero port", 0, true},
+		{"negative port", -1, true},
+		{"too large port", 65536, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockService := &acpServiceImpl{}
+
+			option := WithPort(tt.port)
+			err := option.Apply(mockService)
+
+			if (err != nil) != tt.wantError {
+				t.Errorf("WithPort(%d) error = %v, wantError %v", tt.port, err, tt.wantError)
+				return
+			}
+
+			if !tt.wantError && mockService.port != tt.port {
+				t.Errorf("WithPort(%d) set port = %v, want %v", tt.port, mockService.port, tt.port)
+			}
+		})
+	}
+}
