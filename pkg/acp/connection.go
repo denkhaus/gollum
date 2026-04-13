@@ -1,3 +1,11 @@
+// Package acp provides Agent Communication Protocol (ACP) support for Gollum.
+//
+// The Connection interface supports two transport modes:
+//   - HTTP mode: Uses HTTP handler for web-based communication (Handler() returns non-nil)
+//   - Stdio mode: Uses standard input/output for CLI-based communication (Handler() returns nil)
+//
+// The connection manages ACP sessions, middleware, and service lifecycle through
+// dependency injection using the samber/do/v2 framework.
 package acp
 
 import (
@@ -27,7 +35,8 @@ type connectionImpl struct {
 }
 
 // NewConnection creates a new ACP connection with DI
-func NewConnection(injector do.Injector, reader io.Reader, writer io.Writer) (Connection, error) {
+// The handler parameter is optional; pass nil for stdio mode
+func NewConnection(injector do.Injector, reader io.Reader, writer io.Writer, handler http.Handler) (Connection, error) {
 	// Validate parameters
 	if reader == nil {
 		return nil, errors.New("reader cannot be nil")
@@ -47,7 +56,7 @@ func NewConnection(injector do.Injector, reader io.Reader, writer io.Writer) (Co
 	// Create connection with session store and middleware
 	conn := acppkg.NewAgentSideConnection(acpService, reader, writer,
 		acppkg.WithSessionStore(store, func(ctx context.Context, params *acppkg.NewSessionRequest) (acppkg.SessionID, *shared.ACPSession, error) {
-			ctx, cancel := context.WithCancel(context.Background())
+			ctx, cancel := context.WithCancel(ctx)
 			return acppkg.GenerateSessionID(), shared.NewAcpSession(ctx, cancel), nil
 		}),
 		acppkg.WithMiddleware(acppkg.RecoveryMiddleware()),
@@ -59,6 +68,7 @@ func NewConnection(injector do.Injector, reader io.Reader, writer io.Writer) (Co
 	return &connectionImpl{
 		conn:    conn,
 		service: acpService,
+		handler: handler,
 	}, nil
 }
 

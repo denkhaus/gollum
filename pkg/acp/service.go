@@ -69,21 +69,21 @@ import (
 
 // acpServiceImpl implements Service and channel.Channel (PRIVATE)
 type acpServiceImpl struct {
-	facade        channel.ChannelFacade
-	logger        logger.LoggerService
-	config        config.ConfigService
-	client        acppkg.Client
-	store         acppkg.SessionStore[*shared.ACPSession]
-	id            uuid.UUID   // Channel ID
-	conn          Connection  // ACP connection (created in Start)
-	injector      do.Injector // For connection creation
+	facade   channel.ChannelFacade
+	logger   logger.LoggerService
+	config   config.ConfigService
+	client   acppkg.Client
+	store    acppkg.SessionStore[*shared.ACPSession]
+	id       uuid.UUID   // Channel ID
+	conn     Connection  // ACP connection (created in Start)
+	injector do.Injector // For connection creation
 
 	// Transport-related fields
-	stdin         io.Reader   // For connection creation
-	stdout        io.Writer   // For connection creation
+	stdin         io.Reader     // For connection creation
+	stdout        io.Writer     // For connection creation
 	transportType TransportType // Transport type (stdio, http)
-	host          string      // Host address for HTTP transport
-	port          int         // Port number for HTTP transport
+	host          string        // Host address for HTTP transport
+	port          int           // Port number for HTTP transport
 }
 
 // Ensure acpServiceImpl implements Service and channel.Channel at compile time
@@ -163,7 +163,7 @@ func (s *acpServiceImpl) Start(ctx context.Context) error {
 		return fmt.Errorf("ACP channel: stdin and stdout must be provided via options")
 	}
 
-	conn, err := NewConnection(s.injector, s.stdin, s.stdout)
+	conn, err := NewConnection(s.injector, s.stdin, s.stdout, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create ACP connection: %w", err)
 	}
@@ -339,6 +339,7 @@ func (s *acpServiceImpl) Initialize(ctx context.Context, params *acppkg.Initiali
 }
 
 // Authenticate implements acp.Agent.Authenticate
+// TODO: The current implementation does only work with stdio mode. Make sure http mode is supported.
 func (s *acpServiceImpl) Authenticate(ctx context.Context, params *acppkg.AuthenticateRequest) (*acppkg.AuthenticateResponse, error) {
 	acpConfig := s.config.GetACPConfig()
 
