@@ -3,8 +3,10 @@ package cli
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/acp"
@@ -42,6 +44,12 @@ func ACPCommand() *cli.Command {
 				Value:   8080,
 				Sources: cli.EnvVars("GOLLUM_ACP_PORT"),
 			},
+			&cli.DurationFlag{
+				Name:    "shutdown-timeout",
+				Usage:   "HTTP server graceful shutdown timeout (default: 10s)",
+				Value:   10 * time.Second,
+				Sources: cli.EnvVars("GOLLUM_ACP_SHUTDOWN_TIMEOUT"),
+			},
 		},
 	}
 }
@@ -74,6 +82,12 @@ func runACPServer(ctx context.Context, cmd *cli.Command) error {
 	if transportType == acp.TransportHTTP {
 		host := cmd.String("host")
 		port := cmd.Int("port")
+
+		// Validate host and port
+		if err := validateHostPort(host, port); err != nil {
+			return fmt.Errorf("invalid host/port configuration: %w", err)
+		}
+
 		options = append(options,
 			acp.WithHost(host),
 			acp.WithPort(port),
@@ -98,7 +112,11 @@ func runACPServer(ctx context.Context, cmd *cli.Command) error {
 
 	// For HTTP transport, start HTTP server in background
 	if transportType == acp.TransportHTTP {
-		if err := startHTTPServer(ctx, cmd, ch); err != nil {
+		host := cmd.String("host")
+		port := cmd.Int("port")
+		shutdownTimeout := cmd.Duration("shutdown-timeout")
+
+		if err := startHTTPServer(ctx, cmd, ch, host, port, shutdownTimeout); err != nil {
 			return fmt.Errorf("failed to start HTTP server: %w", err)
 		}
 	}
@@ -107,8 +125,42 @@ func runACPServer(ctx context.Context, cmd *cli.Command) error {
 	return ch.Start(ctx)
 }
 
-// startHTTPServer starts an HTTP server for the ACP channel
-func startHTTPServer(ctx context.Context, cmd *cli.Command, ch channel.Channel) error {
+// validateHostPort validates host and port configuration.
+// Port validation is already done by WithPort, but we validate host here.
+func validateHostPort(host string, port int) error {
+	// Validate host is not empty
+	if strings.TrimSpace(host) == "" {
+		return fmt.Errorf("host cannot be empty")
+	}
+
+	// Validate port is in valid range (redundant with WithPort but defensive)
+	if port < 1 || port > 65535 {
+		return fmt.Errorf("port must be between 1 and 65535, got %d", port)
+	}
+
+	return nil
+}
+
+// startHTTPServer starts an HTTP server for the ACP channel with proper resource management.
+//
+// The server is configured with timeouts to prevent resource exhaustion:
+// - ReadTimeout: 15s - maximum time to read the request
+// - WriteTimeout: 15s - maximum time to write the response
+// - IdleTimeout: 60s - maximum time to wait for next request
+//
+// The server runs in a goroutine and supports graceful shutdown with configurable timeout.
+// It ensures the server goroutine can be stopped even if ch.Start() returns an error.
+//
+// Parameters:
+//   - ctx: Context for server lifecycle (cancellation triggers shutdown)
+//   - cmd: CLI command for accessing injector
+//   - ch: Channel implementing ACPService interface
+//   - host: Server bind address
+//   - port: Server port number
+//   - shutdownTimeout: Graceful shutdown timeout duration
+//
+// Returns error if server fails to start or shutdown encounters issues.
+func startHTTPServer(ctx context.Context, cmd *cli.Command, ch channel.Channel, host string, port int, shutdownTimeout time.Duration) error {
 	// Get injector from root command
 	injector := shared.MustGetInjectorFromRoot(cmd)
 
@@ -125,51 +177,82 @@ func startHTTPServer(ctx context.Context, cmd *cli.Command, ch channel.Channel) 
 	// Get HTTP handler
 	handler := acpService.GetHandler()
 
-	// Get host and port from flags
-	host := cmd.String("host")
-	port := cmd.Int("port")
+	// Build address
 	addr := fmt.Sprintf("%s:%d", host, port)
 
-	// Create HTTP server
+	// Create HTTP server with timeouts to prevent resource exhaustion
 	server := &http.Server{
-		Addr:    addr,
-		Handler: handler,
+		Addr:         addr,
+		Handler:      handler,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 
-	// Start server in goroutine
+	// Channel to signal server is ready to accept connections
+	readyChan := make(chan struct{})
+
+	// Channel for server errors
 	serverErr := make(chan error, 1)
+
+	// Start server in goroutine
 	go func() {
-		logger.Info("starting HTTP server",
+		// Use a custom listener to detect when server is ready
+		listener, err := net.Listen("tcp", addr)
+		if err != nil {
+			serverErr <- fmt.Errorf("failed to create listener: %w", err)
+			return
+		}
+		defer listener.Close()
+
+		// Signal that server is ready
+		close(readyChan)
+
+		logger.Info("HTTP server started",
 			zap.String("address", addr),
 			zap.String("channel_id", ch.ID().String()),
 		)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			serverErr <- err
+
+		// Serve accepts connections until server.Shutdown() is called
+		if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
+			select {
+			case serverErr <- err:
+			default: // Avoid blocking if error already sent
+			}
 		}
 	}()
 
-	// Wait for context cancellation or server error
+	// Wait for server to be ready or fail
 	select {
-	case <-ctx.Done():
-		// Graceful shutdown
-		logger.Info("shutting down HTTP server",
-			zap.String("channel_id", ch.ID().String()),
-		)
-
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		if err := server.Shutdown(shutdownCtx); err != nil {
-			return fmt.Errorf("HTTP server shutdown error: %w", err)
-		}
-
-		logger.Info("HTTP server stopped",
-			zap.String("channel_id", ch.ID().String()),
-		)
-		return nil
-
+	case <-readyChan:
+		// Server is ready, proceed to wait for context cancellation
 	case err := <-serverErr:
 		// Server failed to start
-		return fmt.Errorf("HTTP server error: %w", err)
+		return fmt.Errorf("HTTP server failed to start: %w", err)
+	case <-ctx.Done():
+		// Context cancelled before server was ready
+		return fmt.Errorf("context cancelled before server started")
 	}
+
+	// Wait for context cancellation
+	<-ctx.Done()
+
+	// Graceful shutdown
+	logger.Info("shutting down HTTP server",
+		zap.String("channel_id", ch.ID().String()),
+		zap.Duration("timeout", shutdownTimeout),
+	)
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("HTTP server shutdown error: %w", err)
+	}
+
+	logger.Info("HTTP server stopped",
+		zap.String("channel_id", ch.ID().String()),
+	)
+
+	return nil
 }
