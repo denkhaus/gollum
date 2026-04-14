@@ -14,6 +14,7 @@ deps:
     echo "✓ libxml2-dev installed"
 
 generate:
+    echo "generate mocks ..."
     @go generate ./...
 
 # Build and install gollum to GOBIN

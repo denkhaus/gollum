@@ -37,7 +37,7 @@ var _ ChannelFacade = (*channelFacadeImpl)(nil)
 // Ensure channelFacadeImpl implements shared.LogForwarder at compile time
 var _ shared.LogForwarder = (*channelFacadeImpl)(nil)
 
-// NewChannelFacade creates a new channel facade service and discovers all channel providers.
+// NewChannelFacade creates a new channel facade service
 func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 	cm := do.MustInvoke[command.ManagerService](injector)
 	reg := do.MustInvoke[registry.AgentRegistry](injector)
@@ -45,26 +45,19 @@ func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 	sm := do.MustInvoke[session.SessionManager](injector)
 	log := do.MustInvoke[logger.LoggerService](injector)
 
-	facade := &channelFacadeImpl{
+	return &channelFacadeImpl{
 		commandManager: cm,
 		registry:       reg,
 		agentFactory:   af,
 		sessionManager: sm,
 		channels:       make(map[uuid.UUID]Channel),
 		logger:         log,
-	}
-
-	// Automatically discover channel providers during construction
-	if err := facade.discoverProviders(injector); err != nil {
-		return nil, fmt.Errorf("failed to discover channel providers: %w", err)
-	}
-
-	return facade, nil
+	}, nil
 }
 
-// discoverProviders scans the DI container for channel providers.
+// DiscoverProviders scans the DI container for channel providers.
 // Automatically discovers all services matching the ProviderPrefix naming pattern.
-func (f *channelFacadeImpl) discoverProviders(injector do.Injector) error {
+func (f *channelFacadeImpl) DiscoverProviders(injector do.Injector) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 

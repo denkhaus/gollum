@@ -69,8 +69,12 @@ func (p *rootHandler) before(ctx context.Context, cmd *cli.Command) (context.Con
 		return nil, fmt.Errorf("failed to register channels: %w", err)
 	}
 
-	// ChannelFacade will automatically discover providers during construction
-	_ = do.MustInvoke[channel.ChannelFacade](injector)
+	// Discover channel providers (makes them available to ChannelFacade)
+	channelFacade := do.MustInvoke[channel.ChannelFacade](injector)
+	if err := channelFacade.DiscoverProviders(injector); err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to discover channel providers: %w", err)
+	}
 
 	// Store injector in command metadata for subcommands to access
 	shared.SetInjector(cmd, injector)
