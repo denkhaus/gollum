@@ -1014,6 +1014,8 @@ func (p *flowExecutorImpl) executeMCPStep(_ context.Context, step *flows.Step, s
 						// Extract value using JSONPath-like syntax
 						extracted, err := p.extractJSONPath(result, path.Path)
 						if err != nil {
+							// Log the MCP result to help debug flow definitions
+							p.logService.Errorf("MCP tool result for %s (path: %s): %+v", toolName, path.Path, result)
 							return &MCPError{
 								Server: toolName,
 								Tool:   toolName,
