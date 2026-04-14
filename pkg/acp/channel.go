@@ -17,7 +17,7 @@ const Identifier = channel.ChannelIdentifier("acp")
 // RegisterChannels registers the ACP channel factory with the dependency injection system.
 // This allows the ACP channel to be created via the channel facade.
 func RegisterChannels(injector do.Injector) {
-	do.ProvideNamedValue(injector, "channel_acp", channel.ChannelFactory(func(opts ...channel.ChannelOption) (channel.Channel, error) {
+	do.ProvideNamedValue(injector, channel.ProviderPrefix+"acp", channel.ChannelFactory(func(opts ...channel.ChannelOption) (channel.Channel, error) {
 		svc, err := NewAcpServiceWithOptions(injector, opts...)
 		if err != nil {
 			return nil, err

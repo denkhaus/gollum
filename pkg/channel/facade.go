@@ -56,7 +56,7 @@ func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 }
 
 // DiscoverProviders scans the DI container for channel providers.
-// Automatically discovers all services matching the "channel_*" naming pattern.
+// Automatically discovers all services matching the ProviderPrefix naming pattern.
 func (f *channelFacadeImpl) DiscoverProviders(injector do.Injector) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -68,13 +68,13 @@ func (f *channelFacadeImpl) DiscoverProviders(injector do.Injector) error {
 	foundAny := false
 
 	for _, service := range services {
-		// Look for services with the "channel_" prefix pattern
-		if !strings.HasPrefix(service.Service, "channel_") {
+		// Look for services with the ProviderPrefix pattern
+		if !strings.HasPrefix(service.Service, ProviderPrefix) {
 			continue
 		}
 
 		// Extract channel name from the service name (e.g., "channel_tui" -> "tui")
-		channelName := strings.TrimPrefix(service.Service, "channel_")
+		channelName := strings.TrimPrefix(service.Service, ProviderPrefix)
 		if channelName == "" {
 			continue // Skip if name is empty after prefix removal
 		}
