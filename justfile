@@ -11,10 +11,9 @@ deps:
         echo "❌ libxml2-dev not found. Run: sudo apt-get install -y libxml2-dev"
         exit 1
     fi
-    echo "✓ libxml2-dev installed"
 
 generate:
-    echo "generate mocks ..."
+    @echo "generate mocks ..."
     @go generate ./...
 
 # Build and install gollum to GOBIN
