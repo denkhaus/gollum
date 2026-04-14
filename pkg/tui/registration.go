@@ -8,7 +8,7 @@ import (
 
 // RegisterChannels registers the TUI channel with the DI container.
 // Call this during application initialization before creating services.
-func RegisterChannels(injector do.Injector) error {
+func RegisterChannels(injector do.Injector) {
 	do.ProvideNamedValue(injector, "channel_tui", channel.ChannelFactory(func(opts ...channel.ChannelOption) (channel.Channel, error) {
 		ch := NewTUIChannel()
 		for _, opt := range opts {
@@ -18,5 +18,4 @@ func RegisterChannels(injector do.Injector) error {
 		}
 		return ch, nil
 	}))
-	return nil
 }

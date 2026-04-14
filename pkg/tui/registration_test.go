@@ -7,14 +7,12 @@ import (
 	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRegisterChannels(t *testing.T) {
 	injector := do.New()
 
-	err := RegisterChannels(injector)
-	require.NoError(t, err)
+	RegisterChannels(injector)
 
 	// Verify the factory was registered
 	factory, err := do.InvokeNamed[channel.ChannelFactory](injector, "channel_tui")
@@ -35,11 +33,10 @@ func TestRegisterChannels_Duplicate(t *testing.T) {
 	injector := do.New()
 
 	// First registration should succeed
-	err := RegisterChannels(injector)
-	require.NoError(t, err)
+	RegisterChannels(injector)
 
 	// Second registration should panic (DI constraint)
 	assert.Panics(t, func() {
-		_ = RegisterChannels(injector)
+		RegisterChannels(injector)
 	})
 }

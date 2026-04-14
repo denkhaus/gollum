@@ -25,10 +25,7 @@ type rootHandler struct {
 
 // registerChannels registers all available channels with the DI container.
 func registerChannels(injector do.Injector) error {
-	if err := tui.RegisterChannels(injector); err != nil {
-		return fmt.Errorf("failed to register TUI channel: %w", err)
-	}
-	// ACP channel registration doesn't return an error
+	tui.RegisterChannels(injector)
 	acp.RegisterChannels(injector)
 	return nil
 }
