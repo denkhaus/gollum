@@ -11,7 +11,7 @@ Demonstrates: Advanced JSONPath extraction from MCP tool results
     </description>
 
     <input>
-        <string name="query" required="true" default="What is the count of total comments?" />
+        <string name="query" required="true" default="Summarize this pull request including its title, state, author, and branch information." />
         <string name="owner" default="denkhaus" />
         <string name="repo" default="gollum" />
         <int name="pr_index" default="114" />
@@ -99,8 +99,9 @@ Demonstrates: Advanced JSONPath extraction from MCP tool results
 
                         Query: ${input.query}
 
-                        Provide a brief summary addressing the query.
+                        Provide a brief summary addressing the query using the emit_log tool.
                     ]]></prompt>
+                    <tools>emit_log</tools>
                     <timeout>60s</timeout>
                 </step>
 
