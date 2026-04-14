@@ -2,10 +2,10 @@ package executor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
-	"encoding/json"
 	"strings"
 	"time"
 
@@ -685,6 +685,7 @@ func (p *flowExecutorImpl) parseAssignTarget(assignTo string) (flows.FlowVariabl
 //   - $.field.nested - extracts nested field
 //   - $[index] - extracts array element
 //   - $[index].field - extracts field from array element
+//
 // Returns: extracted value or error
 func (p *flowExecutorImpl) extractJSONPath(data any, path string) (any, error) {
 	// Remove leading $ if present
@@ -835,6 +836,7 @@ func (p *flowExecutorImpl) unwrapMCPResult(result map[string]any) (map[string]an
 
 	return parsedResult, nil
 }
+
 func (p *flowExecutorImpl) resolveAssignFrom(assignFrom string) string {
 	// Parse scope.field
 	parts := strings.SplitN(assignFrom, ".", 2)

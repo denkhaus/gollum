@@ -163,6 +163,18 @@ func init() {
 	}
 
 	// fmt package
+
+	if err := builtinRegistry.Register("fmt.Sprint", FunctionSignature{
+		Name:       "Sprint",
+		Params:     []Param{{Name: "a", Type: "any"}},
+		ReturnType: "string",
+		Variadic:   true,
+		Func: func(args []any) (any, error) {
+			return fmt.Sprint(args...), nil
+		},
+	}); err != nil {
+		panic(fmt.Sprintf("failed to register fmt.Sprint: %v", err))
+	}
 	if err := builtinRegistry.Register("fmt.Sprintf", FunctionSignature{
 		Name:       "Sprintf",
 		Params:     []Param{{Name: "format", Type: "string"}, {Name: "args", Type: "any"}},

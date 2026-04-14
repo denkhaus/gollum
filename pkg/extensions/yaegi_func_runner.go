@@ -124,7 +124,24 @@ func (p *yaegiFuncRunnerImpl) ExecuteFunc(name string, args map[string]any) (any
 		// Try with main package prefix for functions from .gollum/functions/
 		info, ok = p.funcs["main."+name]
 		if !ok {
-			return nil, fmt.Errorf("function not found: %s", name)
+			// Not in loaded func files, try standard library (e.g., fmt.Sprint)
+			// Try to eval it directly from stdlib
+			fnVal, err := p.i.Eval(name)
+			if err != nil {
+				return nil, fmt.Errorf("function not found: %s", name)
+			}
+
+			// For stdlib functions, we don't have parameter names, so we need to infer them
+			// Build arg list from function signature
+			argList := p.buildArgListFromArgs(fnVal, args)
+
+			// Call the function dynamically
+			results := fnVal.Call(argList)
+
+			if len(results) > 0 {
+				return results[0].Interface(), nil
+			}
+			return nil, nil
 		}
 	}
 
@@ -144,6 +161,33 @@ func (p *yaegiFuncRunnerImpl) ExecuteFunc(name string, args map[string]any) (any
 		return results[0].Interface(), nil
 	}
 	return nil, nil
+}
+
+// buildArgListFromArgs builds argument list for stdlib functions where we don't have param names
+func (p *yaegiFuncRunnerImpl) buildArgListFromArgs(fnVal reflect.Value, args map[string]any) []reflect.Value {
+	fnType := fnVal.Type()
+	argList := make([]reflect.Value, fnType.NumIn())
+
+	// For stdlib functions, use args by position ("a", "b", etc.) or just use the values in order
+	// Try to match by common param names first
+	argNames := []string{"a", "b", "c", "format", "args"}
+	for i := 0; i < fnType.NumIn(); i++ {
+		var found bool
+		// Try each known param name
+		for _, argName := range argNames {
+			if val, ok := args[argName]; ok {
+				argList[i] = p.convertValue(val, fnType.In(i))
+				found = true
+				break
+			}
+		}
+		if !found {
+			// Use zero value if arg not provided
+			argList[i] = reflect.Zero(fnType.In(i))
+		}
+	}
+
+	return argList
 }
 
 func (p *yaegiFuncRunnerImpl) ListFuncs() []string {

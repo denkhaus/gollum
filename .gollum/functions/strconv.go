@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 )
 
@@ -38,4 +39,9 @@ func FormatFloat(f float64, format byte, prec, bitSize int) string {
 // Itoa formats an integer as a string
 func Itoa(i int) string {
 	return strconv.Itoa(i)
+}
+
+// Sprint formats a value using the default format and returns the resulting string
+func Sprint(a any) string {
+	return fmt.Sprint(a)
 }

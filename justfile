@@ -17,16 +17,17 @@ generate:
     @go generate ./...
 
 # Build and install gollum to GOBIN
-build: deps generate
+build: deps
+    @echo "build gollum ..."
     @go install ./cmd/gollum
     @ls -la $(which gollum)
 
 # Run tests
-test:
+test: generate
     go test -v -race ./...
 
 # Run tests with coverage
-test-coverage:
+test-coverage: generate
     go test -v -race -coverprofile=/tmp/gollum/coverage.out ./...
     go tool cover -html=/tmp/gollum/coverage.out -o coverage.html
 
