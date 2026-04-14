@@ -17,7 +17,7 @@ func TestDiscoverProviders_Success(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Infof("Discovered channel: %s", gomock.Any()).Times(1)
+	mockLogger.EXPECT().Infof("Discovered channel: %s (from service: %s)", gomock.Any(), gomock.Any()).Times(1)
 
 	// Create injector with registered channel
 	injector := do.New()

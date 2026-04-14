@@ -56,32 +56,40 @@ func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 }
 
 // DiscoverProviders scans the DI container for channel providers.
-// Looks for named providers matching the "channel_*" pattern.
+// Automatically discovers all services matching the "channel_*" naming pattern.
 func (f *channelFacadeImpl) DiscoverProviders(injector do.Injector) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
 	f.providers = make(map[ChannelIdentifier]ChannelFactory)
 
-	// NOTE: samber/do/v2 doesn't expose ListServices directly
-	// We need to iterate known channel names or use reflection
-	// For now, implement a simple approach with known channels
-	// This can be extended with reflection if needed
-
-	knownChannels := []string{"tui", "acp"} // Can be extended
+	// List all services in the injector and find channel providers
+	services := injector.ListProvidedServices()
 	foundAny := false
 
-	for _, name := range knownChannels {
-		providerName := "channel_" + name
-		factory, err := do.InvokeNamed[ChannelFactory](injector, providerName)
-		if err != nil {
-			// Provider not registered, skip
+	for _, service := range services {
+		// Look for services with the "channel_" prefix pattern
+		if !strings.HasPrefix(service.Service, "channel_") {
 			continue
 		}
 
-		identifier := ChannelIdentifier(name)
+		// Extract channel name from the service name (e.g., "channel_tui" -> "tui")
+		channelName := strings.TrimPrefix(service.Service, "channel_")
+		if channelName == "" {
+			continue // Skip if name is empty after prefix removal
+		}
+
+		// Try to invoke the service as a ChannelFactory
+		factory, err := do.InvokeNamed[ChannelFactory](injector, service.Service)
+		if err != nil {
+			// Service exists but doesn't implement ChannelFactory, skip
+			f.logger.Debugf("Service %s found but is not a ChannelFactory: %v", service.Service, err)
+			continue
+		}
+
+		identifier := ChannelIdentifier(channelName)
 		f.providers[identifier] = factory
-		f.logger.Infof("Discovered channel: %s", identifier)
+		f.logger.Infof("Discovered channel: %s (from service: %s)", identifier, service.Service)
 		foundAny = true
 	}
 
