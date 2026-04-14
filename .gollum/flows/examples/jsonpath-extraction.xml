@@ -14,7 +14,7 @@ Demonstrates: Advanced JSONPath extraction from MCP tool results
         <string name="query" required="true" default="What is the count of total comments?" />
         <string name="owner" default="denkhaus" />
         <string name="repo" default="gollum" />
-        <int name="pr_index" default="1" />
+        <int name="pr_index" default="114" />
     </input>
 
     <output>
@@ -23,7 +23,6 @@ Demonstrates: Advanced JSONPath extraction from MCP tool results
         <string name="first_label" />
         <string name="second_label" />
         <string name="user_login" />
-        <int name="comment_count" />
         <string name="head_branch" />
         <string name="base_branch" />
     </output>
@@ -34,7 +33,6 @@ Demonstrates: Advanced JSONPath extraction from MCP tool results
         <string name="first_label_name" />
         <string name="second_label_name" />
         <string name="author_login" />
-        <int name="total_comments" />
         <string name="head_ref_name" />
         <string name="base_ref_name" />
     </context>
@@ -75,9 +73,6 @@ Demonstrates: Advanced JSONPath extraction from MCP tool results
 
                         <!-- Array element extraction: labels[1].name -->
                         <string path="labels[1].name" assignTo="context.second_label_name" />
-
-                        <!-- Nested field extraction: comments -->
-                        <int path="comments" assignTo="context.total_comments" />
                     </result>
                     <timeout>30s</timeout>
                     <on-error state="error" />
@@ -101,7 +96,6 @@ Demonstrates: Advanced JSONPath extraction from MCP tool results
                         Head Branch: ${context.head_ref_name}
                         Base Branch: ${context.base_ref_name}
                         Labels: ${context.first_label_name}, ${context.second_label_name}
-                        Comments: ${context.total_comments}
 
                         Query: ${input.query}
 
@@ -144,13 +138,6 @@ Demonstrates: Advanced JSONPath extraction from MCP tool results
                         <param name="a" assignFrom="context.author_login" />
                     </params>
                     <result assignTo="output.user_login" />
-                </step>
-
-                <step type="func" function="fmt.Sprint">
-                    <params>
-                        <param name="a" assignFrom="context.total_comments" />
-                    </params>
-                    <result assignTo="output.comment_count" />
                 </step>
 
                 <step type="func" function="fmt.Sprint">

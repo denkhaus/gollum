@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"unicode"
 
+	"github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/samber/do/v2"
 	"github.com/traefik/yaegi/interp"
 	"github.com/traefik/yaegi/stdlib"
@@ -118,6 +119,19 @@ func (p *yaegiFuncRunnerImpl) LoadFunc(name, source string) error {
 }
 
 func (p *yaegiFuncRunnerImpl) ExecuteFunc(name string, args map[string]any) (any, error) {
+	// First, check if it's a builtin function (e.g., fmt.Sprint, strings.ToUpper)
+	if sig, ok := registry.GetBuiltinRegistry().Lookup(name); ok {
+		// Convert map[string]any to []any based on parameter names
+		argSlice := make([]any, len(sig.Params))
+		for i, param := range sig.Params {
+			if val, exists := args[param.Name]; exists {
+				argSlice[i] = val
+			}
+		}
+		// Execute using builtin registry
+		return sig.Func(argSlice)
+	}
+
 	// Try bare name first, then try with "main." prefix (for .gollum/functions/ files)
 	info, ok := p.funcs[name]
 	if !ok {
