@@ -304,6 +304,11 @@ func setupTestInjector() do.Injector {
 	// Add a mock logger
 	ctrl := gomock.NewController(&testing.T{})
 	mockLogger := logger.NewMockLoggerService(ctrl)
+	// Expect Warn call from discoverProviders when no channels are found
+	mockLogger.EXPECT().Warn("No channel providers discovered - channels may not be available").AnyTimes()
+	// Allow other Infof calls
+	mockLogger.EXPECT().Infof(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
 	// Add a mock session manager
@@ -1364,6 +1369,11 @@ func setupTestInjectorWithSessionManager(ctrl *gomock.Controller) do.Injector {
 
 	// Add a mock logger
 	mockLogger := logger.NewMockLoggerService(ctrl)
+	// Expect Warn call from discoverProviders when no channels are found
+	mockLogger.EXPECT().Warn("No channel providers discovered - channels may not be available").AnyTimes()
+	// Allow other logging calls
+	mockLogger.EXPECT().Infof(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
 	// Add a mock session manager with expectations
