@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -773,9 +774,67 @@ func (p *flowExecutorImpl) extractJSONPath(data any, path string) (any, error) {
 	return currentValue, nil
 }
 
-// resolveAssignFrom resolves a bare notation assignFrom reference to its string value
-// Requires: scope.field format (e.g., "input.text", "context.value")
-// All values must be references - literals are not supported
+// unwrapMCPResult unwraps the MCP protocol result format.
+// MCP tools return: {"content": [{"type": "text", "text": "{"key": ...}"}]}
+// This function extracts and parses the actual data from content[0].text
+// unwrapMCPResult unwraps the MCP protocol result format.
+// MCP tools can return different formats:
+// 1. {"Result": {...}} - Direct result map
+// 2. {"content": [{"type": "text", "text": "{\"key\": ...}"}]} - Standard MCP format
+// This function extracts the actual data from whichever format is present
+func (p *flowExecutorImpl) unwrapMCPResult(result map[string]any) (map[string]any, error) {
+	// First, check for "Result" key (some MCP servers return data directly under "Result")
+	if resultMap, hasResult := result["Result"]; hasResult {
+		if resultMapMap, ok := resultMap.(map[string]any); ok {
+			return resultMapMap, nil
+		}
+	}
+
+	// Fall back to standard MCP "content" array format
+	contentField, hasContent := result["content"]
+	if !hasContent {
+		// No content field, return result as-is
+		return result, nil
+	}
+
+	// content should be an array
+	contentArray, ok := contentField.([]any)
+	if !ok || len(contentArray) == 0 {
+		// Invalid content format, return result as-is
+		return result, nil
+	}
+
+	// Get first content item
+	firstContent := contentArray[0]
+	contentMap, ok := firstContent.(map[string]any)
+	if !ok {
+		// Not a map, return result as-is
+		return result, nil
+	}
+
+	// Check for "text" field
+	textField, hasText := contentMap["text"]
+	if !hasText {
+		// No text field, return result as-is
+		return result, nil
+	}
+
+	// Text should be a JSON string
+	textStr, ok := textField.(string)
+	if !ok {
+		// Not a string, return result as-is
+		return result, nil
+	}
+
+	// Parse the JSON string
+	var parsedResult map[string]any
+	if err := json.Unmarshal([]byte(textStr), &parsedResult); err != nil {
+		// Failed to parse, return original result
+		return result, nil
+	}
+
+	return parsedResult, nil
+}
 func (p *flowExecutorImpl) resolveAssignFrom(assignFrom string) string {
 	// Parse scope.field
 	parts := strings.SplitN(assignFrom, ".", 2)
@@ -855,8 +914,8 @@ func (p *flowExecutorImpl) executeFuncStep(_ context.Context, step *flows.Step, 
 }
 
 func (p *flowExecutorImpl) executeMCPStep(_ context.Context, step *flows.Step, stateName string) error {
-	// step.Tool format: "server.tool" (e.g., "tavily.search")
-	// For now, we use the full tool name directly from step.Tool
+	// step.Tool format: "server/tool" (e.g., "tavily/search")
+	// We need to parse this to match against tool specs which only have the tool name
 	toolName := step.Tool
 
 	// Build args from step params by resolving bare notation references
@@ -881,15 +940,31 @@ func (p *flowExecutorImpl) executeMCPStep(_ context.Context, step *flows.Step, s
 
 		// Check if any spec matches our tool name
 		for _, spec := range specs {
-			if spec.Name == toolName {
-				// Found the tool, execute it
-				result, err := toolSet.Run(ctx, toolName, args)
+			// Match against the full server/tool format or just the tool name
+			// The flow uses "server/tool" format, but spec.Name is just "tool"
+			// We need to check if our toolName ends with the spec name
+			if toolName == spec.Name || strings.HasSuffix(toolName, "/"+spec.Name) {
+				// Found the tool, execute it using the spec name (not the full server/tool)
+				result, err := toolSet.Run(ctx, spec.Name, args)
 				if err != nil {
 					return &MCPError{
 						Server: toolName,
-						Tool:   toolName,
+						Tool:   spec.Name,
 						Step:   stateName,
 						Err:    err,
+					}
+				}
+
+				// Unwrap MCP result format if needed
+				// MCP tools return: {"content": [{"type": "text", "text": "{"key": ...}"}]}
+				// We need to extract the actual data from content[0].text and parse it as JSON
+				result, err = p.unwrapMCPResult(result)
+				if err != nil {
+					return &MCPError{
+						Server: toolName,
+						Tool:   spec.Name,
+						Step:   stateName,
+						Err:    fmt.Errorf("failed to unwrap MCP result: %w", err),
 					}
 				}
 
