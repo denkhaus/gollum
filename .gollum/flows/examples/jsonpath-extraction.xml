@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+JSONPath Extraction Example
+Demonstrates: Advanced JSONPath extraction from MCP tool results
+-->
+<flow name="jsonpath-extraction" version="1.0">
+    <description>
+        Demonstrates JSONPath extraction capabilities for MCP tool results.
+        Shows how to extract specific fields, nested fields, and array elements from complex JSON
+        responses.
+    </description>
+
+    <input>
+        <string name="query" required="true" />
+        <string name="owner" default="denkhaus" />
+        <string name="repo" default="gollum" />
+        <int name="pr_index" default="1" />
+    </input>
+
+    <output>
+        <string name="result_title" />
+        <string name="result_state" />
+        <string name="first_label" />
+        <string name="second_label" />
+        <string name="user_login" />
+        <int name="comment_count" />
+        <string name="head_branch" />
+        <string name="base_branch" />
+    </output>
+
+    <context>
+        <string name="pr_title" />
+        <string name="pr_state" />
+        <string name="first_label_name" />
+        <string name="second_label_name" />
+        <string name="author_login" />
+        <int name="total_comments" />
+        <string name="head_ref_name" />
+        <string name="base_ref_name" />
+    </context>
+
+    <agents>
+        <agent name="summarizer" model="anthropic/glm-4.7">
+            <prompt>PR summarizer - concise summaries</prompt>
+            <temperature>0.0</temperature>
+        </agent>
+    </agents>
+
+    <states>
+        <state name="fetch-pr" initial="true">
+            <steps>
+                <!-- Fetch a pull request to get complex JSON data -->
+                <step type="mcp" tool="forgejo/get_pull_request_by_index">
+                    <params>
+                        <param name="owner" assignFrom="input.owner" />
+                        <param name="repo" assignFrom="input.repo" />
+                        <param name="index" assignFrom="input.pr_index" />
+                    </params>
+                    <result>
+                        <!-- Top-level field extraction -->
+                        <string path="title" assignTo="context.pr_title" />
+                        <string path="state" assignTo="context.pr_state" />
+
+                        <!-- Nested field extraction: head.ref -->
+                        <string path="head.ref" assignTo="context.head_ref_name" />
+
+                        <!-- Nested field extraction: base.ref -->
+                        <string path="base.ref" assignTo="context.base_ref_name" />
+
+                        <!-- Nested field extraction: user.login -->
+                        <string path="user.login" assignTo="context.author_login" />
+
+                        <!-- Array element extraction: labels[0].name -->
+                        <string path="labels[0].name" assignTo="context.first_label_name" />
+
+                        <!-- Array element extraction: labels[1].name -->
+                        <string path="labels[1].name" assignTo="context.second_label_name" />
+
+                        <!-- Nested field extraction: comments -->
+                        <int path="comments" assignTo="context.total_comments" />
+                    </result>
+                    <timeout>30s</timeout>
+                    <on-error state="error" />
+                </step>
+            </steps>
+
+            <transitions>
+                <transition to="summarize" />
+            </transitions>
+        </state>
+
+        <state name="summarize">
+            <steps>
+                <!-- Use extracted fields in LLM prompt -->
+                <step type="llm" agent="summarizer">
+                    <prompt><![CDATA[
+                        Pull Request Summary:
+                        Title: ${context.pr_title}
+                        State: ${context.pr_state}
+                        Author: ${context.author_login}
+                        Head Branch: ${context.head_ref_name}
+                        Base Branch: ${context.base_ref_name}
+                        Labels: ${context.first_label_name}, ${context.second_label_name}
+                        Comments: ${context.total_comments}
+
+                        Query: ${input.query}
+
+                        Provide a brief summary addressing the query.
+                    ]]></prompt>
+                    <timeout>60s</timeout>
+                </step>
+
+                <!-- Copy context fields to output -->
+                <step type="func" function="fmt.Sprint">
+                    <params>
+                        <param name="a" assignFrom="context.pr_title" />
+                    </params>
+                    <result assignTo="output.result_title" />
+                </step>
+
+                <step type="func" function="fmt.Sprint">
+                    <params>
+                        <param name="a" assignFrom="context.pr_state" />
+                    </params>
+                    <result assignTo="output.result_state" />
+                </step>
+
+                <step type="func" function="fmt.Sprint">
+                    <params>
+                        <param name="a" assignFrom="context.first_label_name" />
+                    </params>
+                    <result assignTo="output.first_label" />
+                </step>
+
+                <step type="func" function="fmt.Sprint">
+                    <params>
+                        <param name="a" assignFrom="context.second_label_name" />
+                    </params>
+                    <result assignTo="output.second_label" />
+                </step>
+
+                <step type="func" function="fmt.Sprint">
+                    <params>
+                        <param name="a" assignFrom="context.author_login" />
+                    </params>
+                    <result assignTo="output.user_login" />
+                </step>
+
+                <step type="func" function="fmt.Sprint">
+                    <params>
+                        <param name="a" assignFrom="context.total_comments" />
+                    </params>
+                    <result assignTo="output.comment_count" />
+                </step>
+
+                <step type="func" function="fmt.Sprint">
+                    <params>
+                        <param name="a" assignFrom="context.head_ref_name" />
+                    </params>
+                    <result assignTo="output.head_branch" />
+                </step>
+
+                <step type="func" function="fmt.Sprint">
+                    <params>
+                        <param name="a" assignFrom="context.base_ref_name" />
+                    </params>
+                    <result assignTo="output.base_branch" />
+                </step>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="error">
+            <steps>
+                <step type="llm" agent="summarizer">
+                    <prompt><![CDATA[
+                        Error fetching PR details.
+                        Query: ${input.query}
+
+                        Please inform the user about the error.
+                    ]]></prompt>
+                    <timeout>30s</timeout>
+                </step>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="done" />
+    </states>
+</flow>
