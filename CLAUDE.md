@@ -1,5 +1,7 @@
 # Gollum Project - Infos for the coding agent
 
+Use the `karpathy-guidelines` skill. It is our mental model and key principles of our work, strictly to follow.
+
 # What's next
 
 To know what's next to do in this repo use te `forgejo-cli` skill.
@@ -17,7 +19,6 @@ Then use `forgejo issue ready --repo denkhaus/gollum` to lern about the next rea
 - [Go Config Guide](/home/denkhaus/dev/kb/guides/guide.golang.config.md)
 - [Go Logging Guide](/home/denkhaus/dev/kb/guides/guide.golang.logging.md)
 - [Langfuse Tracing Guide](/home/denkhaus/dev/kb/guides/guide.golang.langfuse-tracing.md)
-
 
 ## General rules
 
