@@ -74,6 +74,10 @@ func (m *testConfigService) GetMCPConfig() *config.MCPConfig {
 	return &config.MCPConfig{}
 }
 
+func (m *testConfigService) GetACPConfig() *config.ACPConfig {
+	return &config.ACPConfig{}
+}
+
 func TestFlowRegistryService_GetFlow_ReturnsRegisteredFlow(t *testing.T) {
 	svc := &flowRegistryServiceImpl{
 		flows: make(map[string]*flows.Flow),

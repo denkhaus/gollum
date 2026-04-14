@@ -50,6 +50,7 @@ func (m *mockConfigService) GetLangfuseConfig() *config.LangfuseConfig {
 }
 func (m *mockConfigService) GetEventsConfig() *config.EventsConfig { return &config.EventsConfig{} }
 func (m *mockConfigService) GetMCPConfig() *config.MCPConfig       { return &config.MCPConfig{} }
+func (m *mockConfigService) GetACPConfig() *config.ACPConfig       { return &config.ACPConfig{} }
 
 // mockLoggerService is a minimal implementation of LoggerService for testing.
 //

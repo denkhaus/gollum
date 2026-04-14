@@ -142,3 +142,7 @@ func (m *mockConfigService) GetEventsConfig() *config.EventsConfig {
 func (m *mockConfigService) GetMCPConfig() *config.MCPConfig {
 	return &config.MCPConfig{}
 }
+
+func (m *mockConfigService) GetACPConfig() *config.ACPConfig {
+	return &config.ACPConfig{}
+}

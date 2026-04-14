@@ -472,6 +472,10 @@ func (m *mockConfigService) GetMCPConfig() *config.MCPConfig {
 	return nil
 }
 
+func (m *mockConfigService) GetACPConfig() *config.ACPConfig {
+	return nil
+}
+
 // TestNewChannelFacade tests that NewChannelFacade creates a valid instance
 func TestNewChannelFacade(t *testing.T) {
 	injector := setupTestInjector()
