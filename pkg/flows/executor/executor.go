@@ -20,6 +20,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
+	"github.com/stretchr/objx"
 )
 
 // dummyShellAgent is a minimal agent implementation for shell steps
@@ -679,100 +680,33 @@ func (p *flowExecutorImpl) parseAssignTarget(assignTo string) (flows.FlowVariabl
 	return scope, parts[1], nil
 }
 
-// extractJSONPath extracts a value from data using JSONPath-like syntax
+// extractJSONPath extracts a value from data using JSONPath-like syntax.
+// Uses the objx library for robust field access.
 // Supports:
-//   - $.field - extracts top-level field
-//   - $.field.nested - extracts nested field
-//   - $[index] - extracts array element
-//   - $[index].field - extracts field from array element
+//   - field - extracts top-level field
+//   - field.nested - extracts nested field
+//   - field[0] - extracts array element
+//   - field[0].nested - extracts field from array element
 //
 // Returns: extracted value or error
 func (p *flowExecutorImpl) extractJSONPath(data any, path string) (any, error) {
-	// Remove leading $ if present
+	// Remove leading $ if present (objx doesn't use $ prefix)
 	path = strings.TrimPrefix(path, "$")
 
 	if path == "" || path == "." {
 		return data, nil
 	}
 
-	// Split path into components
-	var parts []string
-	current := ""
-	inBracket := false
+	// Use objx for robust path access
+	m := objx.New(data)
+	result := m.Get(path)
 
-	for _, ch := range path {
-		switch ch {
-		case '.':
-			if !inBracket {
-				if current != "" {
-					parts = append(parts, current)
-					current = ""
-				}
-			} else {
-				current += string(ch)
-			}
-		case '[':
-			if current != "" {
-				parts = append(parts, current)
-				current = ""
-			}
-			inBracket = true
-		case ']':
-			if inBracket {
-				parts = append(parts, current)
-				current = ""
-				inBracket = false
-			}
-		default:
-			current += string(ch)
-		}
-	}
-	if current != "" {
-		parts = append(parts, current)
+	// Check if the result exists (objx returns nil for missing paths)
+	if result.IsNil() {
+		return nil, fmt.Errorf("path '%s' not found", path)
 	}
 
-	// Navigate through the data structure
-	currentValue := data
-	for _, part := range parts {
-		// Check if it's an array index
-		if len(part) > 0 && part[0] == '\'' || part[0] == '"' {
-			// String index for maps
-			key := part[1 : len(part)-1]
-			if m, ok := currentValue.(map[string]any); ok {
-				if val, exists := m[key]; exists {
-					currentValue = val
-				} else {
-					return nil, fmt.Errorf("key '%s' not found", key)
-				}
-			} else {
-				return nil, fmt.Errorf("cannot use string index on non-map type")
-			}
-		} else if idx, err := strconv.Atoi(part); err == nil {
-			// Numeric array index
-			if slice, ok := currentValue.([]any); ok {
-				if idx >= 0 && idx < len(slice) {
-					currentValue = slice[idx]
-				} else {
-					return nil, fmt.Errorf("array index %d out of bounds (length: %d)", idx, len(slice))
-				}
-			} else {
-				return nil, fmt.Errorf("cannot use numeric index on non-array type")
-			}
-		} else {
-			// Map field access
-			if m, ok := currentValue.(map[string]any); ok {
-				if val, exists := m[part]; exists {
-					currentValue = val
-				} else {
-					return nil, fmt.Errorf("field '%s' not found", part)
-				}
-			} else {
-				return nil, fmt.Errorf("cannot access field '%s' on non-map type", part)
-			}
-		}
-	}
-
-	return currentValue, nil
+	return result.Data(), nil
 }
 
 // unwrapMCPResult unwraps the MCP protocol result format.

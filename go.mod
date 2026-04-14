@@ -10,11 +10,11 @@ require (
 	github.com/charmbracelet/bubbles v1.0.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
-	github.com/ironpark/go-acp v0.0.0-00010101000000-000000000000
 	github.com/form3tech-oss/go-xsd-validate v1.0.3
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/git-hulk/langfuse-go v0.1.0
 	github.com/google/uuid v1.6.0
+	github.com/ironpark/go-acp v0.0.0-00010101000000-000000000000
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/m-mizutani/gollem v0.24.0
 	github.com/samber/do/v2 v2.0.0
@@ -42,6 +42,7 @@ require (
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
+	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/yuin/goldmark v1.7.16 // indirect
 	github.com/yuin/goldmark-emoji v1.0.6 // indirect
 	golang.org/x/term v0.41.0 // indirect
