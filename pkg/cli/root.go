@@ -76,6 +76,10 @@ func (p *rootHandler) before(ctx context.Context, cmd *cli.Command) (context.Con
 		return nil, fmt.Errorf("failed to discover channel providers: %w", err)
 	}
 
+	// Break circular dependency: set facade reference in middleware provider
+	channelMiddlewareProvider := do.MustInvoke[channel.ChannelMiddlewareProvider](injector)
+	channelMiddlewareProvider.SetChannelFacade(channelFacade)
+
 	// Store injector in command metadata for subcommands to access
 	shared.SetInjector(cmd, injector)
 

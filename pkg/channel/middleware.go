@@ -15,10 +15,12 @@ type (
 	// ChannelMiddlewareProvider creates channel middleware instances via DI
 	ChannelMiddlewareProvider interface {
 		CreateChannelMiddleware(agentID uuid.UUID, agentRole string, sessionID string, channelID uuid.UUID) *ChannelMiddleware
+		SetChannelFacade(facade ChannelFacade)
 	}
 
 	channelMiddlewareProvider struct {
 		injector do.Injector
+		facade  ChannelFacade // Lazily set to break circular dependency
 	}
 )
 
@@ -47,7 +49,13 @@ func NewChannelMiddleware(facade ChannelFacade, agentID uuid.UUID, agentRole str
 func NewChannelMiddlewareProvider(injector do.Injector) (ChannelMiddlewareProvider, error) {
 	return &channelMiddlewareProvider{
 		injector: injector,
+		facade:  nil, // Will be set later to break circular dependency
 	}, nil
+}
+
+// SetChannelFacade sets the facade reference (called after ChannelFacade is constructed)
+func (p *channelMiddlewareProvider) SetChannelFacade(facade ChannelFacade) {
+	p.facade = facade
 }
 
 // CreateChannelMiddleware creates a new channel middleware for a specific agent
@@ -57,10 +65,8 @@ func (p *channelMiddlewareProvider) CreateChannelMiddleware(
 	sessionID string,
 	channelID uuid.UUID,
 ) *ChannelMiddleware {
-	// Get the facade from injector (breaks circular dependency)
-	facade := do.MustInvoke[ChannelFacade](p.injector)
-
-	return NewChannelMiddleware(facade, agentID, agentRole, sessionID, channelID)
+	// Use stored facade reference to avoid circular dependency
+	return NewChannelMiddleware(p.facade, agentID, agentRole, sessionID, channelID)
 }
 
 // ContentBlockMiddleware processes text content blocks and sends to channel
