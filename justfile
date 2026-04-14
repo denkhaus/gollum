@@ -13,8 +13,11 @@ deps:
     fi
     echo "✓ libxml2-dev installed"
 
+generate:
+    @go generate ./...
+
 # Build and install gollum to GOBIN
-build: deps
+build: deps generate
     @go install ./cmd/gollum
     @ls -la $(which gollum)
 
