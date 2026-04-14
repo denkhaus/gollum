@@ -12,6 +12,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/denkhaus/gollum/pkg/channel"
+	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
 )
@@ -22,13 +23,16 @@ func TestNewAcpService_DICompliant(t *testing.T) {
 
 	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockConfig := config.NewMockConfigService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
+	mockConfig.EXPECT().GetACPConfig().Return(&config.ACPConfig{}).AnyTimes()
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
+	do.Provide(injector, func(i do.Injector) (config.ConfigService, error) { return mockConfig, nil })
 
 	svc, err := NewAcpService(injector)
 	require.NoError(t, err)
@@ -41,13 +45,16 @@ func TestAcpService_Initialize_ReturnsCorrectCapabilities(t *testing.T) {
 
 	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockConfig := config.NewMockConfigService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
+	mockConfig.EXPECT().GetACPConfig().Return(&config.ACPConfig{}).AnyTimes()
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
+	do.Provide(injector, func(i do.Injector) (config.ConfigService, error) { return mockConfig, nil })
 
 	svc, err := NewAcpService(injector)
 	require.NoError(t, err)
@@ -68,13 +75,16 @@ func TestAcpService_Authenticate_NotImplemented(t *testing.T) {
 
 	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockConfig := config.NewMockConfigService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
+	mockConfig.EXPECT().GetACPConfig().Return(&config.ACPConfig{}).AnyTimes()
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
+	do.Provide(injector, func(i do.Injector) (config.ConfigService, error) { return mockConfig, nil })
 
 	svc, err := NewAcpService(injector)
 	require.NoError(t, err)
@@ -82,7 +92,7 @@ func TestAcpService_Authenticate_NotImplemented(t *testing.T) {
 	resp, err := svc.Authenticate(context.Background(), &acppkg.AuthenticateRequest{})
 
 	require.NoError(t, err)
-	assert.Nil(t, resp)
+	assert.NotNil(t, resp)
 }
 
 func TestAcpService_SetSessionMode_NotImplemented(t *testing.T) {
@@ -91,13 +101,16 @@ func TestAcpService_SetSessionMode_NotImplemented(t *testing.T) {
 
 	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockConfig := config.NewMockConfigService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
+	mockConfig.EXPECT().GetACPConfig().Return(&config.ACPConfig{}).AnyTimes()
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
+	do.Provide(injector, func(i do.Injector) (config.ConfigService, error) { return mockConfig, nil })
 
 	svc, err := NewAcpService(injector)
 	require.NoError(t, err)
@@ -114,13 +127,16 @@ func TestAcpService_SetSessionConfigOption_NotImplemented(t *testing.T) {
 
 	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockConfig := config.NewMockConfigService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
+	mockConfig.EXPECT().GetACPConfig().Return(&config.ACPConfig{}).AnyTimes()
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
+	do.Provide(injector, func(i do.Injector) (config.ConfigService, error) { return mockConfig, nil })
 
 	svc, err := NewAcpService(injector)
 	require.NoError(t, err)
@@ -137,9 +153,11 @@ func TestAcpService_Prompt_IntegratesWithFacade(t *testing.T) {
 
 	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockConfig := config.NewMockConfigService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
+	mockConfig.EXPECT().GetACPConfig().Return(&config.ACPConfig{}).AnyTimes()
 
 	// Mock the facade.SubmitInput call
 	expectedResult := channel.InputResult{
@@ -152,6 +170,7 @@ func TestAcpService_Prompt_IntegratesWithFacade(t *testing.T) {
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
+	do.Provide(injector, func(i do.Injector) (config.ConfigService, error) { return mockConfig, nil })
 
 	svc, err := NewAcpService(injector)
 	require.NoError(t, err)
@@ -252,15 +271,18 @@ func TestAcpService_Cancel_NotImplemented(t *testing.T) {
 
 	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockConfig := config.NewMockConfigService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
+	mockConfig.EXPECT().GetACPConfig().Return(&config.ACPConfig{}).AnyTimes()
 	// Expect CancelInput call when canceling
 	mockFacade.EXPECT().CancelInput(gomock.Any()).Return(nil)
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
+	do.Provide(injector, func(i do.Injector) (config.ConfigService, error) { return mockConfig, nil })
 
 	svc, err := NewAcpService(injector)
 	require.NoError(t, err)
@@ -290,13 +312,16 @@ func TestAcpService_SetClient(t *testing.T) {
 
 	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockConfig := config.NewMockConfigService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
+	mockConfig.EXPECT().GetACPConfig().Return(&config.ACPConfig{}).AnyTimes()
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
+	do.Provide(injector, func(i do.Injector) (config.ConfigService, error) { return mockConfig, nil })
 
 	svc, err := NewAcpService(injector)
 	require.NoError(t, err)
@@ -312,13 +337,16 @@ func TestAcpService_SetSessionStore(t *testing.T) {
 
 	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockConfig := config.NewMockConfigService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
+	mockConfig.EXPECT().GetACPConfig().Return(&config.ACPConfig{}).AnyTimes()
 
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
+	do.Provide(injector, func(i do.Injector) (config.ConfigService, error) { return mockConfig, nil })
 
 	svc, err := NewAcpService(injector)
 	require.NoError(t, err)

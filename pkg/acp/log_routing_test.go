@@ -12,6 +12,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/denkhaus/gollum/pkg/channel"
+	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/shared"
 )
@@ -23,14 +24,17 @@ func TestACP_LogRouting_SpecificSession(t *testing.T) {
 
 	mockFacade := channel.NewMockChannelFacade(ctrl)
 	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockConfig := config.NewMockConfigService(ctrl)
 
 	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	mockFacade.EXPECT().RegisterChannel(gomock.Any()).Return(nil).AnyTimes()
+	mockConfig.EXPECT().GetACPConfig().Return(&config.ACPConfig{}).AnyTimes()
 
 	// Setup minimal DI with necessary services
 	injector := do.New()
 	do.Provide(injector, func(i do.Injector) (channel.ChannelFacade, error) { return mockFacade, nil })
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) { return mockLogger, nil })
+	do.Provide(injector, func(i do.Injector) (config.ConfigService, error) { return mockConfig, nil })
 
 	// Create ACP service
 	acpSvc, err := NewAcpService(injector)
