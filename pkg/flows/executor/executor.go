@@ -678,6 +678,101 @@ func (p *flowExecutorImpl) parseAssignTarget(assignTo string) (flows.FlowVariabl
 	return scope, parts[1], nil
 }
 
+// extractJSONPath extracts a value from data using JSONPath-like syntax
+// Supports:
+//   - $.field - extracts top-level field
+//   - $.field.nested - extracts nested field
+//   - $[index] - extracts array element
+//   - $[index].field - extracts field from array element
+// Returns: extracted value or error
+func (p *flowExecutorImpl) extractJSONPath(data any, path string) (any, error) {
+	// Remove leading $ if present
+	path = strings.TrimPrefix(path, "$")
+
+	if path == "" || path == "." {
+		return data, nil
+	}
+
+	// Split path into components
+	var parts []string
+	current := ""
+	inBracket := false
+
+	for _, ch := range path {
+		switch ch {
+		case '.':
+			if !inBracket {
+				if current != "" {
+					parts = append(parts, current)
+					current = ""
+				}
+			} else {
+				current += string(ch)
+			}
+		case '[':
+			if current != "" {
+				parts = append(parts, current)
+				current = ""
+			}
+			inBracket = true
+		case ']':
+			if inBracket {
+				parts = append(parts, current)
+				current = ""
+				inBracket = false
+			}
+		default:
+			current += string(ch)
+		}
+	}
+	if current != "" {
+		parts = append(parts, current)
+	}
+
+	// Navigate through the data structure
+	currentValue := data
+	for _, part := range parts {
+		// Check if it's an array index
+		if len(part) > 0 && part[0] == '\'' || part[0] == '"' {
+			// String index for maps
+			key := part[1 : len(part)-1]
+			if m, ok := currentValue.(map[string]any); ok {
+				if val, exists := m[key]; exists {
+					currentValue = val
+				} else {
+					return nil, fmt.Errorf("key '%s' not found", key)
+				}
+			} else {
+				return nil, fmt.Errorf("cannot use string index on non-map type")
+			}
+		} else if idx, err := strconv.Atoi(part); err == nil {
+			// Numeric array index
+			if slice, ok := currentValue.([]any); ok {
+				if idx >= 0 && idx < len(slice) {
+					currentValue = slice[idx]
+				} else {
+					return nil, fmt.Errorf("array index %d out of bounds (length: %d)", idx, len(slice))
+				}
+			} else {
+				return nil, fmt.Errorf("cannot use numeric index on non-array type")
+			}
+		} else {
+			// Map field access
+			if m, ok := currentValue.(map[string]any); ok {
+				if val, exists := m[part]; exists {
+					currentValue = val
+				} else {
+					return nil, fmt.Errorf("field '%s' not found", part)
+				}
+			} else {
+				return nil, fmt.Errorf("cannot access field '%s' on non-map type", part)
+			}
+		}
+	}
+
+	return currentValue, nil
+}
+
 // resolveAssignFrom resolves a bare notation assignFrom reference to its string value
 // Requires: scope.field format (e.g., "input.text", "context.value")
 // All values must be references - literals are not supported
@@ -822,8 +917,44 @@ func (p *flowExecutorImpl) executeMCPStep(_ context.Context, step *flows.Step, s
 							}
 						}
 					}
-					// TODO: Handle path-based outputs with JSONPath extraction
-					// This would allow mapping specific fields from the result
+
+					// Handle path-based outputs with JSONPath extraction
+					for _, path := range step.Result.Paths {
+						if path.AssignTo == "" || path.Path == "" {
+							continue
+						}
+
+						scope, fieldName, err := p.parseAssignTarget(path.AssignTo)
+						if err != nil {
+							return &MCPError{
+								Server: toolName,
+								Tool:   toolName,
+								Step:   stateName,
+								Err:    fmt.Errorf("invalid assignTo for path '%s': %w", path.Path, err),
+							}
+						}
+
+						// Extract value using JSONPath-like syntax
+						extracted, err := p.extractJSONPath(result, path.Path)
+						if err != nil {
+							return &MCPError{
+								Server: toolName,
+								Tool:   toolName,
+								Step:   stateName,
+								Err:    fmt.Errorf("failed to extract path '%s': %w", path.Path, err),
+							}
+						}
+
+						if scope == flows.FlowVariableScopeContext {
+							if err := p.ctx.SetContextField(fieldName, shared.AnyToString(extracted)); err != nil {
+								return fmt.Errorf("failed to set context field '%s': %w", fieldName, err)
+							}
+						} else {
+							if err := p.ctx.SetOutputField(fieldName, shared.AnyToString(extracted)); err != nil {
+								return fmt.Errorf("failed to set output field '%s': %w", fieldName, err)
+							}
+						}
+					}
 				}
 
 				return nil

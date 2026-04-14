@@ -265,3 +265,98 @@ func TestNewExecutor_BackwardCompatibility(t *testing.T) {
 	assert.Equal(t, "test-flow", exec.flow.Name)
 	assert.Equal(t, "init", exec.currentState)
 }
+
+func TestExtractJSONPath_TopLevelField(t *testing.T) {
+	exec := &flowExecutorImpl{}
+
+	data := map[string]any{
+		"name": "John",
+		"age":  30,
+	}
+
+	result, err := exec.extractJSONPath(data, "$.name")
+	assert.NoError(t, err)
+	assert.Equal(t, "John", result)
+}
+
+func TestExtractJSONPath_NestedField(t *testing.T) {
+	exec := &flowExecutorImpl{}
+
+	data := map[string]any{
+		"user": map[string]any{
+			"name": "Alice",
+			"age":  25,
+		},
+	}
+
+	result, err := exec.extractJSONPath(data, "$.user.name")
+	assert.NoError(t, err)
+	assert.Equal(t, "Alice", result)
+}
+
+func TestExtractJSONPath_ArrayIndex(t *testing.T) {
+	exec := &flowExecutorImpl{}
+
+	data := map[string]any{
+		"items": []any{
+			"first",
+			"second",
+			"third",
+		},
+	}
+
+	result, err := exec.extractJSONPath(data, "$.items[1]")
+	assert.NoError(t, err)
+	assert.Equal(t, "second", result)
+}
+
+func TestExtractJSONPath_ArrayElementField(t *testing.T) {
+	exec := &flowExecutorImpl{}
+
+	data := map[string]any{
+		"users": []any{
+			map[string]any{"name": "Bob"},
+			map[string]any{"name": "Charlie"},
+		},
+	}
+
+	result, err := exec.extractJSONPath(data, "$.users[0].name")
+	assert.NoError(t, err)
+	assert.Equal(t, "Bob", result)
+}
+
+func TestExtractJSONPath_RootOnly(t *testing.T) {
+	exec := &flowExecutorImpl{}
+
+	data := map[string]any{
+		"name": "Test",
+	}
+
+	result, err := exec.extractJSONPath(data, "$")
+	assert.NoError(t, err)
+	assert.Equal(t, data, result)
+}
+
+func TestExtractJSONPath_FieldNotFound(t *testing.T) {
+	exec := &flowExecutorImpl{}
+
+	data := map[string]any{
+		"name": "Test",
+	}
+
+	_, err := exec.extractJSONPath(data, "$.missing")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestExtractJSONPath_InvalidArrayIndex(t *testing.T) {
+	exec := &flowExecutorImpl{}
+
+	data := map[string]any{
+		"items": []any{"one", "two"},
+	}
+
+	_, err := exec.extractJSONPath(data, "$.items[5]")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "out of bounds")
+}
