@@ -126,7 +126,7 @@ func TestInvokeSkillTool_SkillNotFound(t *testing.T) {
 		})
 
 	mockSkillService.EXPECT().Get("nonexistent-skill").Return(nil, skills.ErrSkillNotFound("nonexistent-skill"))
-	mockLogger.EXPECT().ErrorWithAgent(gomock.Any(), gomock.Eq(senderID), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().ErrorWithContext(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 	tool := &invokeSkillToolImpl{
 		logService:      mockLogger,
@@ -270,7 +270,7 @@ func TestInvokeSkillTool_SkillWithNoContent(t *testing.T) {
 	mockHookManager.EXPECT().TriggerSkillHooks(gomock.Any(), gomock.Eq(hooks.BeforeSkillInvoked), gomock.Any()).Return(hooks.TypedHookResult[hooks.SkillPayload]{})
 
 	mockLogger.EXPECT().Infof(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-	mockLogger.EXPECT().InfoWithAgent(gomock.Any(), gomock.Eq(senderID), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().InfoWithContext(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 	tool := &invokeSkillToolImpl{
 		logService:      mockLogger,
@@ -392,8 +392,8 @@ func TestInvokeSkillTool_TriggersSkillHooks(t *testing.T) {
 	// Logger calls - use AnyTimes() for flexible argument matching
 	mockLogger.EXPECT().Infof(gomock.Any(), gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).AnyTimes()
-	mockLogger.EXPECT().InfoWithAgent(gomock.Any(), gomock.Eq(senderID), gomock.Any()).AnyTimes()
-	mockLogger.EXPECT().DebugWithAgent(gomock.Any(), gomock.Eq(senderID), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().InfoWithContext(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().DebugWithContext(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 	// Agent factory creates agent
 	mockFactory.EXPECT().CreateAgent(gomock.Any(), gomock.Any()).Return(mockExecutionAgent, nil)
