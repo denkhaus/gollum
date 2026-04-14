@@ -65,7 +65,9 @@
       "Bash(gollum flow:*)",
       "mcp__brave-search__brave_web_search",
       "mcp__deepwiki__ask_question",
-      "Bash(go fmt:*)"
+      "Bash(go fmt:*)",
+      "mcp__tavily__tavily-search",
+      "mcp__tavily__tavily-extract"
     ],
     "deny": [],
     "ask": []

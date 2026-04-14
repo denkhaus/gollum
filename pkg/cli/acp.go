@@ -26,11 +26,11 @@ func ACPCommand() *cli.Command {
 		Action: runACPServer,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:     "transport",
-				Aliases:  []string{"t"},
-				Usage:    "Transport type: stdio or http (default: stdio)",
-				Value:    "stdio",
-				Sources:  cli.EnvVars("GOLLUM_ACP_TRANSPORT"),
+				Name:    "transport",
+				Aliases: []string{"t"},
+				Usage:   "Transport type: stdio or http (default: stdio)",
+				Value:   "stdio",
+				Sources: cli.EnvVars("GOLLUM_ACP_TRANSPORT"),
 			},
 			&cli.StringFlag{
 				Name:    "host",
@@ -55,6 +55,7 @@ func ACPCommand() *cli.Command {
 }
 
 func runACPServer(ctx context.Context, cmd *cli.Command) error {
+	os.WriteFile("/tmp/acp_func_entered", []byte("runACPServer entered\n"), 0644)
 	// Parse transport type
 	transportStr := cmd.String("transport")
 	transportType, err := acp.ParseTransportType(transportStr)
@@ -95,10 +96,12 @@ func runACPServer(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	// Create ACP channel via factory
+	os.WriteFile("/tmp/acp_before_create", []byte("About to call CreateChannel with ID: "+string(acp.Identifier)+"\n"), 0644)
 	ch, err := facade.CreateChannel(acp.Identifier, options...)
 	if err != nil {
 		return err
 	}
+	os.WriteFile("/tmp/acp_after_create", []byte("CreateChannel returned, ch.ID(): "+ch.ID().String()+", type: "+fmt.Sprintf("%T", ch)+"\n"), 0644)
 
 	// Register channel with facade
 	if err := facade.RegisterChannel(ch); err != nil {
@@ -110,7 +113,15 @@ func runACPServer(ctx context.Context, cmd *cli.Command) error {
 		_ = facade.UnregisterChannel(ch.ID())
 	}()
 
+	// Start channel
+	// For HTTP mode: creates connection, returns immediately
+	// For stdio mode: blocks until client disconnects
+	if err := ch.Start(ctx); err != nil {
+		return err
+	}
+
 	// For HTTP transport, start HTTP server in background
+	// This must be called AFTER ch.Start() so the connection is created
 	if transportType == acp.TransportHTTP {
 		host := cmd.String("host")
 		port := cmd.Int("port")
@@ -121,8 +132,7 @@ func runACPServer(ctx context.Context, cmd *cli.Command) error {
 		}
 	}
 
-	// Start channel (encapsulates connection creation and lifecycle)
-	return ch.Start(ctx)
+	return nil
 }
 
 // validateHostPort validates host and port configuration.
@@ -177,6 +187,22 @@ func startHTTPServer(ctx context.Context, cmd *cli.Command, ch channel.Channel, 
 	// Get HTTP handler
 	handler := acpService.GetHandler()
 
+	// Debug: Check if handler is nil
+	if handler == nil {
+		return fmt.Errorf("ACP handler is nil - connection may not have been created properly")
+	}
+
+	// Wrap handler with logging middleware for debugging
+	rawHandler := handler
+	handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.Info("HTTP request received",
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path),
+			zap.String("raw_handler_type", fmt.Sprintf("%T", rawHandler)),
+		)
+		rawHandler.ServeHTTP(w, r)
+	})
+
 	// Build address
 	addr := fmt.Sprintf("%s:%d", host, port)
 
@@ -225,7 +251,11 @@ func startHTTPServer(ctx context.Context, cmd *cli.Command, ch channel.Channel, 
 	// Wait for server to be ready or fail
 	select {
 	case <-readyChan:
-		// Server is ready, proceed to wait for context cancellation
+		// Server is ready, print clear user-facing message first
+		fmt.Printf("\n✅ ACP HTTP server started on http://%s\n\n", addr)
+		fmt.Println("Ready to accept connections. Press Ctrl+C to stop.\n")
+		os.Stdout.Sync() // Force flush output buffer
+
 	case err := <-serverErr:
 		// Server failed to start
 		return fmt.Errorf("HTTP server failed to start: %w", err)

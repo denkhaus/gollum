@@ -8,8 +8,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/samber/do/v2"
 	acppkg "github.com/ironpark/go-acp"
+	"github.com/samber/do/v2"
 
 	"github.com/denkhaus/gollum/pkg/shared"
 )

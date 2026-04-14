@@ -230,10 +230,10 @@ func (mr *MockChannelFacadeMockRecorder) RegisterChannel(channel any) *gomock.Ca
 }
 
 // SubmitInput mocks base method.
-func (m *MockChannelFacade) SubmitInput(ctx context.Context, channelID uuid.UUID, sessionID, input string) (InputResult, error) {
+func (m *MockChannelFacade) SubmitInput(ctx context.Context, channelID uuid.UUID, sessionID, input string) (*InputResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SubmitInput", ctx, channelID, sessionID, input)
-	ret0, _ := ret[0].(InputResult)
+	ret0, _ := ret[0].(*InputResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -271,13 +271,3 @@ func TestRun_NoDefaultFlowRunsTUI(t *testing.T) {
 	err := p.Run(ctx)
 	assert.NoError(t, err)
 }
-
-// TestRunDefaultFlow_ParseError tests error handling when flow parsing fails
-// DEPRECATED: Parsing now happens in FlowRegistry, not in ApplicationService
-// This test is kept for backwards compatibility but is no longer relevant
-// mockMarkdownRenderer is a simple mock for testing
-type mockMarkdownRenderer struct{}
-
-func (m *mockMarkdownRenderer) Render(ctx context.Context, markdown string, width int) (string, error) {
-	return markdown, nil
-}

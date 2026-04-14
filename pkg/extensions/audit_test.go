@@ -78,3 +78,27 @@ func (m *mockYaegiFuncRunner) ExecuteFunc(name string, args map[string]any) (any
 func (m *mockYaegiFuncRunner) ListFuncs() []string {
 	return []string{}
 }
+
+// mockYaegiFuncRunner provides a minimal mock for YaegiFuncRunner
+type mockYaegiFuncRunner struct{}
+
+func (m *mockYaegiFuncRunner) LoadFunc(name, source string) error { return nil }
+
+func (m *mockYaegiFuncRunner) ExecuteFunc(name string, args map[string]any) (any, error) {
+	return nil, nil
+}
+
+func (m *mockYaegiFuncRunner) ListFuncs() []string { return []string{} }
+
+// mockYaegiLoader provides a minimal mock for YaegiLoader
+type mockYaegiLoader struct{}
+
+func (m *mockYaegiLoader) LoadExtension(path string) (*Extension, error) { return nil, nil }
+
+func (m *mockYaegiLoader) InitExtension(ext *Extension) error { return nil }
+
+func (m *mockYaegiLoader) UnloadExtension(ext *Extension) error { return nil }
+
+func (m *mockYaegiLoader) GetExtension(name string) (*Extension, error) { return nil, nil }
+
+func (m *mockYaegiLoader) ListExtensions() []string { return []string{} }

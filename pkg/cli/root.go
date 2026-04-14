@@ -13,6 +13,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/cli/flow"
 	"github.com/denkhaus/gollum/pkg/di"
+	"github.com/denkhaus/gollum/pkg/flows/linter"
 	"github.com/denkhaus/gollum/pkg/profiling"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/tui"
@@ -48,6 +49,11 @@ func RootCommand() *cli.Command {
 }
 
 func (p *rootHandler) before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+	// Initialize XSD validator for XML schema validation
+	if err := linter.InitXSD(); err != nil {
+		return nil, fmt.Errorf("XSD validator initialization failed: libxml2 required but not available. Install with: sudo apt-get install -y libxml2-dev\n(original error: %w)", err)
+	}
+
 	// Define profiling flags before CLI parsing
 	profiling.DefineFlags()
 	// Create cancellable context for shutdown
@@ -92,6 +98,9 @@ func (p *rootHandler) before(ctx context.Context, cmd *cli.Command) (context.Con
 }
 
 func (p *rootHandler) after(ctx context.Context, cmd *cli.Command) error {
+	// Cleanup XSD validator resources
+	linter.CleanupXSD()
+
 	// Get injector from metadata
 	injector, err := shared.GetInjector(cmd)
 	if err != nil {

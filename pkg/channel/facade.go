@@ -160,11 +160,11 @@ func (p *channelFacadeImpl) DisplayMessage(msg Message) {
 // SubmitInput handles user input from any channel
 // channelID is used to assign each agent message to a channel
 // sessionID is used to get or create a session for this interaction
-func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID, sessionID string, input string) (InputResult, error) {
+func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID, sessionID string, input string) (*InputResult, error) {
 	// First check if it's a slash command
 	handled, response, err := p.commandManager.Execute(ctx, sessionID, input)
 	if handled {
-		return InputResult{
+		return &InputResult{
 			Handled:   true,
 			IsCommand: true,
 			Response:  response,
@@ -175,19 +175,19 @@ func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID
 	// Get or create session for this interaction
 	session, err := p.sessionManager.GetOrCreateSession(sessionID, channelID)
 	if err != nil {
-		return InputResult{}, fmt.Errorf("failed to get/create session: %w", err)
+		return nil, fmt.Errorf("failed to get/create session: %w", err)
 	}
 
 	// Get or create supervisor for this session (lazy, thread-safe)
 	supervisor, err := session.GetOrCreateSupervisor(p.agentFactory)
 	if err != nil {
-		return InputResult{}, fmt.Errorf("failed to get/create supervisor: %w", err)
+		return nil, fmt.Errorf("failed to get/create supervisor: %w", err)
 	}
 
 	// Execute supervisor agent with session context
 	resp, err := supervisor.Execute(session.Context, gollem.Text(input))
 	if err != nil {
-		return InputResult{
+		return &InputResult{
 			Handled: true,
 			Error:   err,
 		}, nil
@@ -199,7 +199,7 @@ func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID
 		content = strings.Join(resp.Texts, "\n")
 	}
 
-	return InputResult{
+	return &InputResult{
 		Handled:  true,
 		Response: content,
 	}, nil

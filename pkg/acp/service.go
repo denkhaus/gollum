@@ -171,7 +171,7 @@ func (s *acpServiceImpl) startStdio(ctx context.Context) error {
 		return fmt.Errorf("ACP channel: stdin and stdout must be provided via options")
 	}
 
-	conn, err := NewConnection(s.injector, s.stdin, s.stdout, nil)
+	conn, err := s.newConnection(nil)
 	if err != nil {
 		return fmt.Errorf("failed to create ACP connection: %w", err)
 	}
@@ -188,35 +188,23 @@ func (s *acpServiceImpl) startStdio(ctx context.Context) error {
 
 // startHTTP creates an HTTP-based ACP connection
 func (s *acpServiceImpl) startHTTP(ctx context.Context) error {
-	httpTransport := acppkg.NewHTTPServerTransport()
-	store := acppkg.NewMemoryStore[*shared.ACPSession]()
-
-	s.SetClient(nil)
-	s.SetSessionStore(store)
-
-	conn := acppkg.NewAgentSideConnection(s, nil, nil,
-		acppkg.WithTransport(httpTransport),
-		acppkg.WithSessionStore(store, func(parentCtx context.Context, params *acppkg.NewSessionRequest) (acppkg.SessionID, *shared.ACPSession, error) {
-			// Use passed context as parent for cancellation propagation
-			ctx, cancel := context.WithCancel(parentCtx)
-			return acppkg.GenerateSessionID(), shared.NewAcpSession(ctx, cancel), nil
-		}),
-		acppkg.WithMiddleware(acppkg.RecoveryMiddleware()),
-	)
-
-	s.SetClient(conn.Client())
-
-	// Get handler from transport - should be non-nil for HTTP transport
-	handler := httpTransport.Handler()
-	if handler == nil {
-		return fmt.Errorf("HTTP transport handler is nil")
+	// If connection already exists, return success
+	if s.conn != nil {
+		return nil
 	}
 
-	s.conn = &connectionImpl{
-		conn:    conn,
-		service: s,
-		handler: handler,
+	// Create HTTP connection (will create its own transport internally)
+	conn, err := s.newConnection(nil)
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP connection: %w", err)
 	}
+
+	s.conn = conn
+
+	// Note: We do NOT call conn.Start() here because for HTTP mode,
+	// go-acp's conn.Start() blocks until HTTP server is running.
+	// The ServeMux from the handler will automatically start processing
+	// requests when the HTTP server begins serving.
 
 	return nil
 }

@@ -11,6 +11,7 @@ package acp
 
 import (
 	context "context"
+	http "net/http"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
@@ -66,6 +67,20 @@ func (m *MockConnection) Done() <-chan struct{} {
 func (mr *MockConnectionMockRecorder) Done() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Done", reflect.TypeOf((*MockConnection)(nil).Done))
+}
+
+// Handler mocks base method.
+func (m *MockConnection) Handler() http.Handler {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handler")
+	ret0, _ := ret[0].(http.Handler)
+	return ret0
+}
+
+// Handler indicates an expected call of Handler.
+func (mr *MockConnectionMockRecorder) Handler() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handler", reflect.TypeOf((*MockConnection)(nil).Handler))
 }
 
 // Start mocks base method.

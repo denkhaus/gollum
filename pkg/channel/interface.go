@@ -104,7 +104,7 @@ type ChannelFacade interface {
 	DisplayMessage(msg Message)
 
 	// SubmitInput handles user input from any channel
-	SubmitInput(ctx context.Context, channelID uuid.UUID, sessionID string, input string) (InputResult, error)
+	SubmitInput(ctx context.Context, channelID uuid.UUID, sessionID string, input string) (*InputResult, error)
 
 	// CancelInput cancels an in-flight input for the given session
 	CancelInput(sessionID string) error

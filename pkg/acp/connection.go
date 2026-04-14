@@ -11,12 +11,10 @@ package acp
 import (
 	"context"
 	"errors"
-	"io"
 	"net/http"
 
 	"github.com/denkhaus/gollum/pkg/shared"
 	acppkg "github.com/ironpark/go-acp"
-	"github.com/samber/do/v2"
 )
 
 // Connection defines the ACP connection interface
@@ -34,27 +32,40 @@ type connectionImpl struct {
 	handler http.Handler // HTTP handler for HTTP transport
 }
 
-// NewConnection creates a new ACP connection with DI
-// The handler parameter is optional; pass nil for stdio mode
-func NewConnection(injector do.Injector, reader io.Reader, writer io.Writer, handler http.Handler) (Connection, error) {
-	// Validate parameters
-	if reader == nil {
-		return nil, errors.New("reader cannot be nil")
-	}
-	if writer == nil {
-		return nil, errors.New("writer cannot be nil")
+// newConnection creates a new ACP connection
+//
+// Modes:
+//   - Stdio mode (handler == nil): uses s.stdin and s.stdout
+//   - HTTP mode (handler != nil): uses the provided handler
+func (s *acpServiceImpl) newConnection(handler http.Handler) (Connection, error) {
+	// Detect HTTP mode by transport type
+	if s.transportType == TransportHTTP {
+		// HTTP mode: create HTTP connection
+		return s.newHTTPConnection(handler)
 	}
 
+	// Stdio mode: stdin and stdout are required
+	if s.stdin == nil {
+		return nil, errors.New("stdin cannot be nil for stdio mode")
+	}
+	if s.stdout == nil {
+		return nil, errors.New("stdout cannot be nil for stdio mode")
+	}
+
+	return s.newStdioConnection()
+}
+
+// newStdioConnection creates a stdio-based ACP connection
+func (s *acpServiceImpl) newStdioConnection() (Connection, error) {
 	// Create session store
 	store := acppkg.NewMemoryStore[*shared.ACPSession]()
-	acpService := do.MustInvoke[shared.ACPService](injector)
 
 	// Set ACP-specific fields
-	acpService.SetClient(nil) // Will be set after connection creation
-	acpService.SetSessionStore(store)
+	s.SetClient(nil) // Will be set after connection creation
+	s.SetSessionStore(store)
 
 	// Create connection with session store and middleware
-	conn := acppkg.NewAgentSideConnection(acpService, reader, writer,
+	conn := acppkg.NewAgentSideConnection(s, s.stdin, s.stdout,
 		acppkg.WithSessionStore(store, func(ctx context.Context, params *acppkg.NewSessionRequest) (acppkg.SessionID, *shared.ACPSession, error) {
 			ctx, cancel := context.WithCancel(ctx)
 			return acppkg.GenerateSessionID(), shared.NewAcpSession(ctx, cancel), nil
@@ -63,12 +74,43 @@ func NewConnection(injector do.Injector, reader io.Reader, writer io.Writer, han
 	)
 
 	// Set client on service
-	acpService.SetClient(conn.Client())
+	s.SetClient(conn.Client())
 
 	return &connectionImpl{
 		conn:    conn,
-		service: acpService,
-		handler: handler,
+		service: s,
+		handler: nil, // Stdio mode has no handler
+	}, nil
+}
+
+// newHTTPConnection creates an HTTP-based ACP connection
+func (s *acpServiceImpl) newHTTPConnection(handler http.Handler) (Connection, error) {
+	// Create HTTP transport from handler
+	httpTransport := acppkg.NewHTTPServerTransport()
+	store := acppkg.NewMemoryStore[*shared.ACPSession]()
+
+	// Set ACP-specific fields
+	s.SetClient(nil)
+	s.SetSessionStore(store)
+
+	// Create connection with HTTP transport
+	conn := acppkg.NewAgentSideConnection(s, nil, nil,
+		acppkg.WithTransport(httpTransport),
+		acppkg.WithSessionStore(store, func(parentCtx context.Context, params *acppkg.NewSessionRequest) (acppkg.SessionID, *shared.ACPSession, error) {
+			// Use passed context as parent for cancellation propagation
+			ctx, cancel := context.WithCancel(parentCtx)
+			return acppkg.GenerateSessionID(), shared.NewAcpSession(ctx, cancel), nil
+		}),
+		acppkg.WithMiddleware(acppkg.RecoveryMiddleware()),
+	)
+
+	// Set client on service
+	s.SetClient(conn.Client())
+
+	return &connectionImpl{
+		conn:    conn,
+		service: s,
+		handler: httpTransport.Handler(),
 	}, nil
 }
 

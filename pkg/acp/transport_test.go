@@ -10,9 +10,9 @@ import (
 
 func TestTransportTypeValues(t *testing.T) {
 	tests := []struct {
-		name     string
+		name      string
 		transport TransportType
-		expected int
+		expected  int
 	}{
 		{"stdio", TransportStdio, 0},
 		{"http", TransportHTTP, 1},
@@ -54,9 +54,9 @@ func TestParseTransportType(t *testing.T) {
 
 func TestTransportTypeString(t *testing.T) {
 	tests := []struct {
-		name     string
+		name      string
 		transport TransportType
-		expected string
+		expected  string
 	}{
 		{"stdio", TransportStdio, "stdio"},
 		{"http", TransportHTTP, "http"},
