@@ -18,6 +18,7 @@ Demonstrates: Advanced JSONPath extraction from MCP tool results
     </input>
 
     <output>
+        <string name="summary" />
         <string name="result_title" />
         <string name="result_state" />
         <string name="first_label" />
@@ -99,10 +100,10 @@ Demonstrates: Advanced JSONPath extraction from MCP tool results
 
                         Query: ${input.query}
 
-                        Provide a brief summary addressing the query using the emit_log tool.
+                        Provide a brief summary addressing the query.
                     ]]></prompt>
-                    <tools>emit_log</tools>
-                    <timeout>60s</timeout>
+                    <result assignTo="output.summary" />
+                    <timeout>30s</timeout>
                 </step>
 
                 <!-- Copy context fields to output -->
