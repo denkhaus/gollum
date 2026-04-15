@@ -8,9 +8,11 @@ import (
 	"github.com/denkhaus/gollum/pkg/flows"
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/strategy"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
@@ -109,6 +111,14 @@ func TestExecuteLLMStep_SubstitutesPrompt(t *testing.T) {
 	do.ProvideValue(injector, flowregistry.FlowRegistry(mockFlowRegistry))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 
+	// Create mock strategy builder
+	mockStrategyBuilder := &mockStrategyBuilderImpl{}
+	do.ProvideValue[strategy.Builder](injector, mockStrategyBuilder)
+
+	// Create mock LLM client provider
+	mockLLMClientProvider := &mockClientProviderImpl{}
+	do.ProvideValue[llm.ClientProvider](injector, mockLLMClientProvider)
+
 	// Register the flow executor service
 	do.Provide(injector, NewFlowExecutor)
 
@@ -189,6 +199,14 @@ func TestExecuteLLMStep_CreateAgentFails(t *testing.T) {
 	do.ProvideValue(injector, flowregistry.FlowRegistry(mockFlowRegistry))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
 
+	// Create mock strategy builder
+	mockStrategyBuilder := &mockStrategyBuilderImpl{}
+	do.ProvideValue[strategy.Builder](injector, mockStrategyBuilder)
+
+	// Create mock LLM client provider
+	mockLLMClientProvider := &mockClientProviderImpl{}
+	do.ProvideValue[llm.ClientProvider](injector, mockLLMClientProvider)
+
 	// Register the flow executor service
 	do.Provide(injector, NewFlowExecutor)
 
@@ -261,6 +279,14 @@ func TestExecuteLLMStep_ExecuteFails(t *testing.T) {
 	mockFlowRegistry.EXPECT().GetFlow(gomock.Any()).Return(nil, flowregistry.ErrFlowNotFound).AnyTimes()
 	do.ProvideValue(injector, flowregistry.FlowRegistry(mockFlowRegistry))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
+
+	// Create mock strategy builder
+	mockStrategyBuilder := &mockStrategyBuilderImpl{}
+	do.ProvideValue[strategy.Builder](injector, mockStrategyBuilder)
+
+	// Create mock LLM client provider
+	mockLLMClientProvider := &mockClientProviderImpl{}
+	do.ProvideValue[llm.ClientProvider](injector, mockLLMClientProvider)
 
 	// Register the flow executor service
 	do.Provide(injector, NewFlowExecutor)

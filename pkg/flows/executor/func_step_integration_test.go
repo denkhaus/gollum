@@ -10,9 +10,11 @@ import (
 	"github.com/denkhaus/gollum/pkg/flows"
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/strategy"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/m-mizutani/gollem"
@@ -99,9 +101,19 @@ func Double(x int) int {
 	// Register mock dependencies for other services
 	do.ProvideValue(injector, tools.BashToolProvider(&testBashToolProvider{}))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
+
 	// Create mock AgentFactory for tests that don't need LLM functionality
 	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
+
+	// Create mock strategy builder
+	mockStrategyBuilder := &mockStrategyBuilderImpl{}
+	do.ProvideValue[strategy.Builder](injector, mockStrategyBuilder)
+
+	// Create mock LLM client provider
+	mockLLMClientProvider := &mockClientProviderImpl{}
+	do.ProvideValue[llm.ClientProvider](injector, mockLLMClientProvider)
+
 	do.Provide(injector, NewFlowExecutor)
 
 	// Load extensions (this will load double.go)
