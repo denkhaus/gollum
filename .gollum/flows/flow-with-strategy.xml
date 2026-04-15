@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow name="example-strategy-flow">
+    <agents>
+        <!-- Conservative agent for quick tasks -->
+        <agent name="summarizer">
+            <strategy maxIterations="5" maxRepeatedActions="1" />
+            <llm model="anthropic/sonnet-4.6" />
+        </agent>
+
+        <!-- Standard agent with defaults -->
+        <agent name="analyst">
+            <llm model="anthropic/opus-4.6" />
+        </agent>
+    </agents>
+
+    <steps>
+        <step type="llm" agent="summarizer">
+            <prompt>Summarize this briefly</prompt>
+            <result assignTo="summary" />
+        </step>
+
+        <step type="llm" agent="analyst">
+            <prompt>Analyze this in detail</prompt>
+            <tools>emit_log</tools>
+            <result assignTo="analysis" />
+        </step>
+    </steps>
+</flow>
