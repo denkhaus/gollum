@@ -17,12 +17,12 @@ import (
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/skills"
+	"github.com/denkhaus/gollum/pkg/strategy"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/m-mizutani/gollem/middleware/compacter"
-	"github.com/m-mizutani/gollem/strategy/simple"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -38,6 +38,7 @@ type defaultAgentFactory struct {
 	workspaceService workspace.Service
 	channelProvider  channel.ChannelMiddlewareProvider
 	skillsService    skills.SkillService
+	strategyBuilder  strategy.Builder
 	// Tool providers for adding default tools to all agents
 	spawnAgentToolProv      tools.SpawnAgentToolProvider
 	agentOutputToolProv     tools.AgentOutputToolProvider
@@ -69,6 +70,7 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 	channelProvider := do.MustInvoke[channel.ChannelMiddlewareProvider](injector)
 	mcpToolProvider := do.MustInvoke[mcp.MCPToolProvider](injector)
 	skillsService := do.MustInvoke[skills.SkillService](injector)
+	strategyBuilder := do.MustInvoke[strategy.Builder](injector)
 
 	// Get tool providers
 	spawnAgentToolProv := do.MustInvoke[tools.SpawnAgentToolProvider](injector)

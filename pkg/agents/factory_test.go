@@ -317,3 +317,149 @@ func TestAgentConfig_SessionContextMarshaling(t *testing.T) {
 	assert.Equal(t, channelID, config.ChannelID)
 }
 
+func TestDefaultAgentFactory_CreateAgent_UsesDefaultReactStrategy(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
+
+	// Create mock strategy builder
+	mockStrategyBuilder := &mockStrategyBuilder{}
+
+	// Create mock client provider
+	mockClientProvider := &mockClientProvider{}
+
+	factory := &defaultAgentFactory{
+		logService:      mockLogger,
+		mcpToolProvider: &mockMCPToolProvider{},
+		strategyBuilder: mockStrategyBuilder,
+		clientProvider:  mockClientProvider,
+		// Add minimal required fields
+		configService:    &mockConfigService{},
+		registry:         &mockRegistry{},
+		promptManager:    &mockPromptManager{},
+		workspaceService: &mockWorkspaceService{},
+		channelProvider:  &mockChannelProvider{},
+		skillsService:    &mockSkillsService{},
+		mcpRegistry:      &mockMCPRegistry{},
+	}
+
+	// Create agent config without strategy (should trigger BuildDefaultReact)
+	config := &shared.AgentConfig{
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "test-model",
+		},
+	}
+
+	// Create agent - should use BuildDefaultReact
+	agent, err := factory.CreateAgent(context.Background(), config)
+
+	// Verify BuildDefaultReact was called
+	assert.True(t, mockStrategyBuilder.buildDefaultReactCalled, "BuildDefaultReact should be called when strategy is nil")
+	assert.NoError(t, err)
+	assert.NotNil(t, agent)
+	// Verify strategy was set
+	assert.NotNil(t, config.Strategy, "Strategy should be set by BuildDefaultReact")
+}
+
+func TestDefaultAgentFactory_CreateAgent_PreservesExistingStrategy(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().GetLogger().Return(zap.NewNop()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
+
+	// Create mock strategy builder (should NOT be called)
+	mockStrategyBuilder := &mockStrategyBuilder{}
+
+	// Create mock client provider
+	mockClientProvider := &mockClientProvider{}
+
+	factory := &defaultAgentFactory{
+		logService:      mockLogger,
+		mcpToolProvider: &mockMCPToolProvider{},
+		strategyBuilder: mockStrategyBuilder,
+		clientProvider:  mockClientProvider,
+		// Add minimal required fields
+		configService:    &mockConfigService{},
+		registry:         &mockRegistry{},
+		promptManager:    &mockPromptManager{},
+		workspaceService: &mockWorkspaceService{},
+		channelProvider:  &mockChannelProvider{},
+		skillsService:    &mockSkillsService{},
+		mcpRegistry:      &mockMCPRegistry{},
+	}
+
+	// Create a mock strategy
+	existingStrategy := &mockStrategy{}
+
+	// Create agent config WITH strategy (should NOT trigger BuildDefaultReact)
+	config := &shared.AgentConfig{
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "test-model",
+		},
+		Strategy: existingStrategy,
+	}
+
+	// Create agent - should NOT use BuildDefaultReact
+	agent, err := factory.CreateAgent(context.Background(), config)
+
+	// Verify BuildDefaultReact was NOT called
+	assert.False(t, mockStrategyBuilder.buildDefaultReactCalled, "BuildDefaultReact should not be called when strategy is already set")
+	assert.NoError(t, err)
+	assert.NotNil(t, agent)
+	// Verify strategy is preserved
+	assert.Equal(t, existingStrategy, config.Strategy, "Existing strategy should be preserved")
+}
+
+// Mock implementations for testing
+
+type mockStrategyBuilder struct {
+	buildDefaultReactCalled bool
+	buildReactCalled         bool
+}
+
+func (m *mockStrategyBuilder) BuildReact(cfg *shared.StrategyConfig, client gollem.LLMClient) gollem.Strategy {
+	m.buildReactCalled = true
+	return &mockStrategy{}
+}
+
+func (m *mockStrategyBuilder) BuildDefaultReact(client gollem.LLMClient) gollem.Strategy {
+	m.buildDefaultReactCalled = true
+	return &mockStrategy{}
+}
+
+type mockStrategy struct{}
+
+func (m *mockStrategy) Init(ctx context.Context, inputs []gollem.Input) error {
+	return nil
+}
+
+func (m *mockStrategy) Handle(ctx context.Context, state *gollem.StrategyState) ([]gollem.Input, *gollem.ExecuteResponse, error) {
+	return nil, nil, nil
+}
+
+func (m *mockStrategy) Tools(ctx context.Context) ([]gollem.Tool, error) {
+	return nil, nil
+}
+
+type mockClientProvider struct{}
+
+func (m *mockClientProvider) GetClient(ctx context.Context, cfg *shared.LLMClientConfig) (gollem.LLMClient, error) {
+	return &mockLLMClient{}, nil
+}
+
+type mockLLMClient struct{}
+
+// Additional mock implementations for required fields
+type mockConfigService struct{}
+type mockRegistry struct{}
+type mockPromptManager struct{}
+type mockWorkspaceService struct{}
+type mockChannelProvider struct{}
+type mockSkillsService struct{}
+type mockMCPRegistry struct{}
+

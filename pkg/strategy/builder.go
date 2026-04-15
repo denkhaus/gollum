@@ -4,6 +4,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/m-mizutani/gollem"
 	"github.com/m-mizutani/gollem/strategy/react"
+	"github.com/m-mizutani/gollem/strategy/simple"
 	"github.com/samber/do/v2"
 )
 
@@ -18,6 +19,36 @@ func NewBuilder(injector do.Injector) (Builder, error) {
 	return &builderImpl{
 		configService: configService,
 	}, nil
+}
+
+// BuildForSupervisor creates a strategy for supervisor agents
+func (b *builderImpl) BuildForSupervisor(client gollem.LLMClient, strategyType StrategyType) gollem.Strategy {
+	supervisorCfg := b.configService.GetSupervisorConfig()
+
+	// Handle both "react" and "default" (which maps to react)
+	if strategyType == StrategyTypeSimple {
+		return b.BuildSimple(client)
+	}
+	// Default to react for everything else (StrategyTypeReact, StrategyTypeDefault, unknown)
+	return b.BuildReact(&supervisorCfg.Strategy, client)
+}
+
+// BuildForSubAgent creates a strategy for subagent creation
+func (b *builderImpl) BuildForSubAgent(client gollem.LLMClient, strategyType StrategyType) gollem.Strategy {
+	subAgentCfg := b.configService.GetSubAgentConfig()
+
+	// Handle both "react" and "default" (which maps to react)
+	if strategyType == StrategyTypeSimple {
+		return b.BuildSimple(client)
+	}
+	// Default to react for everything else (StrategyTypeReact, StrategyTypeDefault, unknown)
+	return b.BuildReact(&subAgentCfg.Strategy, client)
+}
+
+// BuildForLLMStep creates a strategy for flow LLM steps
+// Uses subagent defaults for LLM steps
+func (b *builderImpl) BuildForLLMStep(client gollem.LLMClient, strategyType StrategyType) gollem.Strategy {
+	return b.BuildForSubAgent(client, strategyType)
 }
 
 // BuildReact creates a react strategy with the specified configuration
@@ -42,8 +73,7 @@ func (b *builderImpl) BuildReact(cfg *config.StrategyConfig, client gollem.LLMCl
 	return react.New(client, opts...)
 }
 
-// BuildDefaultReact creates react strategy with default configuration from config service
-func (b *builderImpl) BuildDefaultReact(client gollem.LLMClient) gollem.Strategy {
-	subAgentCfg := b.configService.GetSubAgentConfig()
-	return b.BuildReact(&subAgentCfg.Strategy, client)
+// BuildSimple creates a simple strategy
+func (b *builderImpl) BuildSimple(client gollem.LLMClient) gollem.Strategy {
+	return simple.New()
 }
