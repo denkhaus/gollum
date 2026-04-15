@@ -2,7 +2,7 @@
 
 ## Known Issue: Infinite Tool Calling Loop
 
-The `simple` strategy used by default for LLM steps has a critical flaw: it continues as long as there is input, with no maximum iteration limit. This causes infinite loops when:
+The `simple` strategy used by default for LLM steps,subagents and the supervisor has a critical flaw: it continues as long as there is input, with no maximum iteration limit. This causes infinite loops when:
 
 1. The LLM is asked to use tools (like `emit_log`)
 2. The LLM calls the tool successfully
