@@ -269,6 +269,51 @@ func (c *MCPConfig) GetClientInitTimeout() time.Duration {
 	return time.Duration(timeout) * time.Second
 }
 
+// StrategyConfig holds configuration for agent execution strategy.
+// This configures how agents handle iterations and detect infinite loops.
+type StrategyConfig struct {
+	// MaxIterations is the maximum number of iterations an agent can perform.
+	// Default: 20
+	MaxIterations int `envconfig:"MAX_ITERATIONS" default:"20"`
+
+	// MaxRepeatedActions is the maximum number of times the same action can be repeated.
+	// This helps detect infinite loops where an agent repeats the same action.
+	// Default: 3
+	MaxRepeatedActions int `envconfig:"MAX_REPEATED_ACTIONS" default:"3"`
+}
+
+// SubAgentConfig holds configuration specific to subagent execution.
+// It wraps StrategyConfig with a SUBAGENT prefix for environment variables.
+type SubAgentConfig struct {
+	Strategy StrategyConfig `envconfig:"STRATEGY"`
+}
+
+// MaxIterations returns the maximum iterations for subagent strategy.
+func (c *SubAgentConfig) MaxIterations() int {
+	return c.Strategy.MaxIterations
+}
+
+// MaxRepeatedActions returns the maximum repeated actions for subagent strategy.
+func (c *SubAgentConfig) MaxRepeatedActions() int {
+	return c.Strategy.MaxRepeatedActions
+}
+
+// SupervisorConfig holds configuration specific to supervisor execution.
+// It wraps StrategyConfig with a SUPERVISOR prefix for environment variables.
+type SupervisorConfig struct {
+	Strategy StrategyConfig `envconfig:"STRATEGY"`
+}
+
+// MaxIterations returns the maximum iterations for supervisor strategy.
+func (c *SupervisorConfig) MaxIterations() int {
+	return c.Strategy.MaxIterations
+}
+
+// MaxRepeatedActions returns the maximum repeated actions for supervisor strategy.
+func (c *SupervisorConfig) MaxRepeatedActions() int {
+	return c.Strategy.MaxRepeatedActions
+}
+
 // ConfigService defines the configuration service interface
 //
 //revive:disable-next-line:exported
@@ -289,6 +334,8 @@ type ConfigService interface {
 	GetEventsConfig() *EventsConfig
 	GetMCPConfig() *MCPConfig
 	GetACPConfig() *ACPConfig
+	GetSubAgentConfig() *SubAgentConfig
+	GetSupervisorConfig() *SupervisorConfig
 }
 
 // serviceImpl implements the ConfigService interface
@@ -308,6 +355,8 @@ type serviceImpl struct {
 	Events          EventsConfig          `envconfig:"EVENTS"`
 	MCP             MCPConfig             `envconfig:"MCP"`
 	ACP             ACPConfig             `envconfig:"ACP"`
+	SubAgent        SubAgentConfig        `envconfig:"SUBAGENT"`
+	Supervisor      SupervisorConfig      `envconfig:"SUPERVISOR"`
 }
 
 // NewService creates a new configuration service
@@ -398,4 +447,12 @@ func (s *serviceImpl) GetMCPConfig() *MCPConfig {
 
 func (s *serviceImpl) GetACPConfig() *ACPConfig {
 	return &s.ACP
+}
+
+func (s *serviceImpl) GetSubAgentConfig() *SubAgentConfig {
+	return &s.SubAgent
+}
+
+func (s *serviceImpl) GetSupervisorConfig() *SupervisorConfig {
+	return &s.Supervisor
 }

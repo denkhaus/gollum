@@ -485,3 +485,142 @@ func TestGetLangfuseConfig_ReturnsPointer(t *testing.T) {
 	// Should return the same pointer (stable reference)
 	assert.Same(t, config1, config2, "GetLangfuseConfig should return stable pointer")
 }
+
+// TestStrategyConfigDefaults tests that default strategy values are applied correctly
+func TestStrategyConfigDefaults(t *testing.T) {
+	// Clear environment variables to test defaults
+	unsetEnv(t, "GOLLUM_SUBAGENT_STRATEGY_MAX_ITERATIONS")
+	unsetEnv(t, "GOLLUM_SUBAGENT_STRATEGY_MAX_REPEATED_ACTIONS")
+	unsetEnv(t, "GOLLUM_SUPERVISOR_STRATEGY_MAX_ITERATIONS")
+	unsetEnv(t, "GOLLUM_SUPERVISOR_STRATEGY_MAX_REPEATED_ACTIONS")
+
+	injector := do.New()
+	service, err := NewService(injector)
+	require.NoError(t, err)
+
+	subAgentConfig := service.GetSubAgentConfig()
+	assert.NotNil(t, subAgentConfig)
+	assert.Equal(t, 20, subAgentConfig.MaxIterations(), "Default MaxIterations should be 20")
+	assert.Equal(t, 3, subAgentConfig.MaxRepeatedActions(), "Default MaxRepeatedActions should be 3")
+
+	supervisorConfig := service.GetSupervisorConfig()
+	assert.NotNil(t, supervisorConfig)
+	assert.Equal(t, 20, supervisorConfig.MaxIterations(), "Default MaxIterations should be 20")
+	assert.Equal(t, 3, supervisorConfig.MaxRepeatedActions(), "Default MaxRepeatedActions should be 3")
+}
+
+// TestStrategyConfigEnvVars tests that environment variables are parsed correctly
+func TestStrategyConfigEnvVars(t *testing.T) {
+	tests := []struct {
+		name                string
+		subMaxIter          string
+		subMaxRepeated      string
+		supMaxIter          string
+		supMaxRepeated      string
+		expectSubMaxIter    int
+		expectSubMaxRepeated int
+		expectSupMaxIter    int
+		expectSupMaxRepeated int
+	}{
+		{
+			name:                "Custom values for both",
+			subMaxIter:          "30",
+			subMaxRepeated:      "5",
+			supMaxIter:          "40",
+			supMaxRepeated:      "6",
+			expectSubMaxIter:    30,
+			expectSubMaxRepeated: 5,
+			expectSupMaxIter:    40,
+			expectSupMaxRepeated: 6,
+		},
+		{
+			name:                "Only subagent values set",
+			subMaxIter:          "25",
+			subMaxRepeated:      "4",
+			supMaxIter:          "",
+			supMaxRepeated:      "",
+			expectSubMaxIter:    25,
+			expectSubMaxRepeated: 4,
+			expectSupMaxIter:    20, // default
+			expectSupMaxRepeated: 3, // default
+		},
+		{
+			name:                "Only supervisor values set",
+			subMaxIter:          "",
+			subMaxRepeated:      "",
+			supMaxIter:          "35",
+			supMaxRepeated:      "7",
+			expectSubMaxIter:    20, // default
+			expectSubMaxRepeated: 3, // default
+			expectSupMaxIter:    35,
+			expectSupMaxRepeated: 7,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Clear and set environment variables
+			unsetEnv(t, "GOLLUM_SUBAGENT_STRATEGY_MAX_ITERATIONS")
+			unsetEnv(t, "GOLLUM_SUBAGENT_STRATEGY_MAX_REPEATED_ACTIONS")
+			unsetEnv(t, "GOLLUM_SUPERVISOR_STRATEGY_MAX_ITERATIONS")
+			unsetEnv(t, "GOLLUM_SUPERVISOR_STRATEGY_MAX_REPEATED_ACTIONS")
+
+			if tt.subMaxIter != "" {
+				require.NoError(t, os.Setenv("GOLLUM_SUBAGENT_STRATEGY_MAX_ITERATIONS", tt.subMaxIter))
+			}
+			if tt.subMaxRepeated != "" {
+				require.NoError(t, os.Setenv("GOLLUM_SUBAGENT_STRATEGY_MAX_REPEATED_ACTIONS", tt.subMaxRepeated))
+			}
+			if tt.supMaxIter != "" {
+				require.NoError(t, os.Setenv("GOLLUM_SUPERVISOR_STRATEGY_MAX_ITERATIONS", tt.supMaxIter))
+			}
+			if tt.supMaxRepeated != "" {
+				require.NoError(t, os.Setenv("GOLLUM_SUPERVISOR_STRATEGY_MAX_REPEATED_ACTIONS", tt.supMaxRepeated))
+			}
+
+			injector := do.New()
+			service, err := NewService(injector)
+			require.NoError(t, err)
+
+			subAgentConfig := service.GetSubAgentConfig()
+			assert.Equal(t, tt.expectSubMaxIter, subAgentConfig.MaxIterations())
+			assert.Equal(t, tt.expectSubMaxRepeated, subAgentConfig.MaxRepeatedActions())
+
+			supervisorConfig := service.GetSupervisorConfig()
+			assert.Equal(t, tt.expectSupMaxIter, supervisorConfig.MaxIterations())
+			assert.Equal(t, tt.expectSupMaxRepeated, supervisorConfig.MaxRepeatedActions())
+		})
+	}
+}
+
+// TestGetSubAgentConfig_ReturnsPointer tests that GetSubAgentConfig returns a stable pointer
+func TestGetSubAgentConfig_ReturnsPointer(t *testing.T) {
+	unsetEnv(t, "GOLLUM_SUBAGENT_STRATEGY_MAX_ITERATIONS")
+	unsetEnv(t, "GOLLUM_SUBAGENT_STRATEGY_MAX_REPEATED_ACTIONS")
+
+	injector := do.New()
+	service, err := NewService(injector)
+	require.NoError(t, err)
+
+	config1 := service.GetSubAgentConfig()
+	config2 := service.GetSubAgentConfig()
+
+	// Should return the same pointer (stable reference)
+	assert.Same(t, config1, config2, "GetSubAgentConfig should return stable pointer")
+}
+
+// TestGetSupervisorConfig_ReturnsPointer tests that GetSupervisorConfig returns a stable pointer
+func TestGetSupervisorConfig_ReturnsPointer(t *testing.T) {
+	unsetEnv(t, "GOLLUM_SUPERVISOR_STRATEGY_MAX_ITERATIONS")
+	unsetEnv(t, "GOLLUM_SUPERVISOR_STRATEGY_MAX_REPEATED_ACTIONS")
+
+	injector := do.New()
+	service, err := NewService(injector)
+	require.NoError(t, err)
+
+	config1 := service.GetSupervisorConfig()
+	config2 := service.GetSupervisorConfig()
+
+	// Should return the same pointer (stable reference)
+	assert.Same(t, config1, config2, "GetSupervisorConfig should return stable pointer")
+}
