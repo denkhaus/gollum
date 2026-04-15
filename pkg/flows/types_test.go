@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFlowStruct_BasicFields(t *testing.T) {
@@ -149,4 +150,34 @@ func TestStep_StepResultSimpleAssign(t *testing.T) {
 	assert.NotNil(t, step.Result, "Result should be parsed")
 	assert.Equal(t, "output.analysis", step.Result.AssignTo, "assignTo should be parsed")
 	assert.Empty(t, step.Result.Paths, "Paths should be empty for simple assign")
+}
+
+func TestAgentStrategyParsing(t *testing.T) {
+	xmlData := `<agents>
+		<agent name="test">
+			<strategy maxIterations="10" maxRepeatedActions="2" type="react"/>
+			<prompt>Test prompt</prompt>
+		</agent>
+		<agent name="no-strategy">
+			<prompt>No strategy</prompt>
+		</agent>
+	</agents>`
+
+	var structWithAgents struct {
+		Agents []Agent `xml:"agent"`
+	}
+	err := xml.Unmarshal([]byte(xmlData), &structWithAgents)
+	require.NoError(t, err)
+
+	agents := structWithAgents.Agents
+	require.Len(t, agents, 2)
+
+	// Agent with strategy
+	assert.NotNil(t, agents[0].Strategy)
+	assert.Equal(t, 10, agents[0].Strategy.MaxIterations)
+	assert.Equal(t, 2, agents[0].Strategy.MaxRepeatedActions)
+	assert.Equal(t, "react", agents[0].Strategy.Type)
+
+	// Agent without strategy
+	assert.Nil(t, agents[1].Strategy)
 }

@@ -434,14 +434,22 @@ type ComputedFieldDef struct {
 	Description string    `xml:"description,attr,omitempty"`
 }
 
+// AgentStrategy defines strategy parameters for flow agents
+type AgentStrategy struct {
+	MaxIterations      int    `xml:"maxIterations,attr"`
+	MaxRepeatedActions int    `xml:"maxRepeatedActions,attr"`
+	Type              string `xml:"type,attr,omitempty"` // "react" or "simple", defaults to "react"
+}
+
 // Agent defines an LLM agent
 type Agent struct {
-	Name        string  `xml:"name,attr"`
-	Model       string  `xml:"model,attr"`
-	Prompt      string  `xml:"prompt"`
-	Temperature float64 `xml:"temperature"`
-	TopP        float64 `xml:"top_p"`
-	MaxTokens   int     `xml:"max_tokens"`
+	Name        string         `xml:"name,attr"`
+	Model       string         `xml:"model,attr"`
+	Prompt      string         `xml:"prompt"`
+	Temperature float64        `xml:"temperature"`
+	TopP        float64        `xml:"top_p"`
+	MaxTokens   int            `xml:"max_tokens"`
+	Strategy    *AgentStrategy `xml:"strategy"`
 }
 
 func (p Agent) ToClientConfig() *shared.LLMClientConfig {
