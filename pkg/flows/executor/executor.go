@@ -705,7 +705,10 @@ func (p *flowExecutorImpl) extractJSONPath(data any, path string) (any, error) {
 	// Remove leading $ if present (objx doesn't use $ prefix)
 	path = strings.TrimPrefix(path, "$")
 
-	if path == "" || path == "." {
+	// Remove leading dot if present (objx doesn't use dot prefix for root fields)
+	path = strings.TrimPrefix(path, ".")
+
+	if path == "" {
 		return data, nil
 	}
 

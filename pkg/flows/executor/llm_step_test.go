@@ -440,6 +440,15 @@ func TestExecuteLLMStep_PopulatesAllowedTools(t *testing.T) {
 	mockFlowRegistry.EXPECT().GetFlow(gomock.Any()).Return(nil, flowregistry.ErrFlowNotFound).AnyTimes()
 	do.ProvideValue(injector, flowregistry.FlowRegistry(mockFlowRegistry))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
+
+	// Create mock strategy builder
+	mockStrategyBuilder := &mockStrategyBuilderImpl{}
+	do.ProvideValue[strategy.Builder](injector, mockStrategyBuilder)
+
+	// Create mock LLM client provider
+	mockLLMClientProvider := &mockClientProviderImpl{}
+	do.ProvideValue[llm.ClientProvider](injector, mockLLMClientProvider)
+
 	do.Provide(injector, NewFlowExecutor)
 
 	svc := do.MustInvoke[FlowExecutorService](injector)
@@ -553,6 +562,15 @@ func TestExecuteLLMStep_SeparatesFlowTools(t *testing.T) {
 	mockFlowRegistry.EXPECT().GetFlow(gomock.Any()).Return(nil, flowregistry.ErrFlowNotFound).AnyTimes()
 	do.ProvideValue(injector, flowregistry.FlowRegistry(mockFlowRegistry))
 	do.ProvideValue(injector, tools.FlowToolsProvider(&testFlowToolsProvider{}))
+
+	// Create mock strategy builder
+	mockStrategyBuilder := &mockStrategyBuilderImpl{}
+	do.ProvideValue[strategy.Builder](injector, mockStrategyBuilder)
+
+	// Create mock LLM client provider
+	mockLLMClientProvider := &mockClientProviderImpl{}
+	do.ProvideValue[llm.ClientProvider](injector, mockLLMClientProvider)
+
 	do.Provide(injector, NewFlowExecutor)
 
 	svc := do.MustInvoke[FlowExecutorService](injector)

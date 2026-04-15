@@ -392,5 +392,5 @@ func TestExtractJSONPath_InvalidArrayIndex(t *testing.T) {
 
 	_, err := exec.extractJSONPath(data, "$.items[5]")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "out of bounds")
+	assert.Contains(t, err.Error(), "not found")
 }
