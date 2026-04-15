@@ -1274,8 +1274,12 @@ func setupTestInjectorWithSessionManager(ctrl *gomock.Controller) do.Injector {
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
-	// Add a mock logger
+	// Add a mock logger with expectations
 	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
 	// Add a mock session manager with expectations
