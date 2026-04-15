@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow name="example-strategy-flow" version="1.0">
+    <input>
+        <string name="text" required="true" />
+    </input>
+
+    <output>
+        <string name="summary" />
+        <string name="analysis" />
+    </output>
+
+    <agents>
+        <!-- Conservative agent for quick tasks -->
+        <agent name="summarizer" model="anthropic/sonnet-4.6">
+            <prompt>You are a summarizer. Keep responses brief and concise.</prompt>
+            <strategy type="react" maxIterations="5" maxRepeatedActions="1" />
+        </agent>
+
+        <!-- Standard agent with defaults -->
+        <agent name="analyst" model="anthropic/opus-4.6">
+            <prompt>You are an analyst. Provide detailed analysis.</prompt>
+            <strategy type="react" />
+        </agent>
+    </agents>
+
+    <states>
+        <state name="process" initial="true">
+            <steps>
+                <step type="llm" agent="summarizer">
+                    <prompt>Summarize this briefly: ${input.text}</prompt>
+                    <result assignTo="output.summary" />
+                </step>
+
+                <step type="llm" agent="analyst">
+                    <prompt>Analyze this in detail: ${input.text}</prompt>
+                    <tools>emit_log</tools>
+                    <result assignTo="output.analysis" />
+                </step>
+            </steps>
+        </state>
+    </states>
+</flow>

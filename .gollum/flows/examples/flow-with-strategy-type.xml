@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow name="strategy-type-test" version="1.0">
+    <input>
+        <string name="text" required="true" />
+    </input>
+
+    <output>
+        <string name="summary" />
+    </output>
+
+    <agents>
+        <!-- Agent with explicit strategy type -->
+        <agent name="summarizer" model="anthropic/sonnet-4.6">
+            <prompt>You are a summarizer.</prompt>
+            <strategy type="react" maxIterations="5" maxRepeatedActions="1" />
+        </agent>
+
+        <!-- Agent with simple strategy -->
+        <agent name="simple-agent" model="anthropic/haiku-4.5">
+            <prompt>You are a simple agent.</prompt>
+            <strategy type="simple" />
+        </agent>
+    </agents>
+
+    <states>
+        <state name="process" initial="true">
+            <steps>
+                <step type="llm" agent="summarizer">
+                    <prompt>Summarize: ${input.text}</prompt>
+                    <result assignTo="output.summary" />
+                </step>
+            </steps>
+        </state>
+    </states>
+</flow>

@@ -65,6 +65,7 @@ func (m *mockYaegiLoader) LoadExtensions(workspaceDir string) error {
 	return nil
 }
 
+// TODO use generated mocks if possible
 type mockYaegiFuncRunner struct{}
 
 func (m *mockYaegiFuncRunner) LoadFunc(name, source string) error {
@@ -80,6 +81,7 @@ func (m *mockYaegiFuncRunner) ListFuncs() []string {
 }
 
 // mockYaegiFuncRunner provides a minimal mock for YaegiFuncRunner
+// TODO use generated mocks if possible
 type mockYaegiFuncRunner struct{}
 
 func (m *mockYaegiFuncRunner) LoadFunc(name, source string) error { return nil }
@@ -91,6 +93,7 @@ func (m *mockYaegiFuncRunner) ExecuteFunc(name string, args map[string]any) (any
 func (m *mockYaegiFuncRunner) ListFuncs() []string { return []string{} }
 
 // mockYaegiLoader provides a minimal mock for YaegiLoader
+// TODO use generated mocks if possible
 type mockYaegiLoader struct{}
 
 func (m *mockYaegiLoader) LoadExtension(path string) (*Extension, error) { return nil, nil }

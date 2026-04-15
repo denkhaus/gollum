@@ -147,9 +147,17 @@
       <xs:element name="temperature" type="xs:float" minOccurs="0"/>
       <xs:element name="top_p" type="xs:float" minOccurs="0"/>
       <xs:element name="max_tokens" type="xs:int" minOccurs="0"/>
+      <xs:element name="strategy" type="StrategyType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="name" type="xs:string" use="required"/>
     <xs:attribute name="model" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <!-- Strategy type for agent configuration -->
+  <xs:complexType name="StrategyType">
+    <xs:attribute name="type" type="xs:string"/>
+    <xs:attribute name="maxIterations" type="xs:int"/>
+    <xs:attribute name="maxRepeatedActions" type="xs:int"/>
   </xs:complexType>
 
   <!-- States block -->
