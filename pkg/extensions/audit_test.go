@@ -22,10 +22,10 @@ func TestService_AuditLogging(t *testing.T) {
 
 	// Create a minimal service implementation for testing
 	service := &extensionServiceImpl{
-		logService:  mockLogger,
-		yaegiLoader: &mockYaegiLoader{},
+		logService:      mockLogger,
+		yaegiLoader:     &mockYaegiLoader{},
 		yaegiFuncRunner: &mockYaegiFuncRunner{},
-		loadedFuncs: make(map[string]string),
+		loadedFuncs:     make(map[string]string),
 	}
 
 	// Run LoadAll - it should fail since we don't have a real workspace,
@@ -38,7 +38,7 @@ func TestService_AuditLogging(t *testing.T) {
 }
 
 // Mock implementations for testing
-
+// TODO use generated mocks if possible
 type mockYaegiLoader struct{}
 
 func (m *mockYaegiLoader) LoadExtension(path string) (*Extension, error) {

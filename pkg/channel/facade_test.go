@@ -345,6 +345,7 @@ func setupTestInjectorWithConfig(cfg config.ConfigService) do.Injector {
 	return injector
 }
 
+// TODO use generated mocks if possible
 func (m *mockAgentRegistry) Unregister(agentID uuid.UUID) error {
 	return nil
 }
@@ -475,6 +476,15 @@ func (m *mockConfigService) GetMCPConfig() *config.MCPConfig {
 func (m *mockConfigService) GetACPConfig() *config.ACPConfig {
 	return nil
 }
+
+func (m *mockConfigService) GetSubAgentConfig() *config.SubAgentConfig {
+	return &config.SubAgentConfig{}
+}
+
+func (m *mockConfigService) GetSupervisorConfig() *config.SupervisorConfig {
+	return &config.SupervisorConfig{}
+}
+
 // TestNewChannelFacade tests that NewChannelFacade creates a valid instance
 func TestNewChannelFacade(t *testing.T) {
 	injector := setupTestInjector()

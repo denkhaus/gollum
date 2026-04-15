@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -26,10 +26,10 @@ func TestJSONLogFormat(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := &service{
-		logger:         logger,
-		atomicLevel:    zap.NewAtomicLevelAt(zap.InfoLevel),
+		logger:        logger,
+		atomicLevel:   zap.NewAtomicLevelAt(zap.InfoLevel),
 		config:        zap.NewProductionConfig(),
-		logBuffer:      newLogBuffer(1000, false), // disabled for test
+		logBuffer:     newLogBuffer(1000, false), // disabled for test
 		configService: &mockConfigService{},
 	}
 
@@ -94,13 +94,14 @@ func TestJSONLogFormat(t *testing.T) {
 }
 
 // mockConfigService for testing
+// TODO use generated mocks if possible
 type mockConfigService struct{}
 
-func (m *mockConfigService) IsDevMode() bool                                      { return false }
-func (m *mockConfigService) GetLogLevel() string                                   { return "info" }
-func (m *mockConfigService) GetConfig() interface{}                                { return nil }
-func (m *mockConfigService) GetLLMConfig(name string) (interface{}, bool)         { return nil, false }
-func (m *mockConfigService) GetLLMConfigs() map[string]interface{}                { return nil }
+func (m *mockConfigService) IsDevMode() bool                              { return false }
+func (m *mockConfigService) GetLogLevel() string                          { return "info" }
+func (m *mockConfigService) GetConfig() interface{}                       { return nil }
+func (m *mockConfigService) GetLLMConfig(name string) (interface{}, bool) { return nil, false }
+func (m *mockConfigService) GetLLMConfigs() map[string]interface{}        { return nil }
 func (m *mockConfigService) GetLoggingConfig() *config.LoggingConfig {
 	return &config.LoggingConfig{
 		SessionLogEnabled:    false,
@@ -145,4 +146,12 @@ func (m *mockConfigService) GetMCPConfig() *config.MCPConfig {
 
 func (m *mockConfigService) GetACPConfig() *config.ACPConfig {
 	return &config.ACPConfig{}
+}
+
+func (m *mockConfigService) GetSubAgentConfig() *config.SubAgentConfig {
+	return &config.SubAgentConfig{}
+}
+
+func (m *mockConfigService) GetSupervisorConfig() *config.SupervisorConfig {
+	return &config.SupervisorConfig{}
 }
