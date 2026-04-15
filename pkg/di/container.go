@@ -118,6 +118,7 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	// Flows
 	do.Provide(p.injector, flowregistry.NewFlowRegistryService)
 	do.Provide(p.injector, executor.NewFlowExecutor)
+	do.Provide(p.injector, shared.NewStrategyBuilder)
 
 	// ACP (Agent Client Protocol) services
 	do.Provide(p.injector, acp.NewAcpService)
