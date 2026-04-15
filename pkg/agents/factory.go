@@ -99,6 +99,7 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 		registry:                registry,
 		promptManager:           promptManager,
 		channelProvider:         channelProvider,
+		strategyBuilder:         strategyBuilder,
 		spawnAgentToolProv:      spawnAgentToolProv,
 		agentOutputToolProv:     agentOutputToolProv,
 		removeAgentToolProv:     removeAgentToolProv,
@@ -156,9 +157,9 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 	// Set the LLM client for session recreation
 	defAgent.llmClient = client
 
-	// Set default strategy
+	// Set default strategy using strategy builder
 	if config.Strategy == nil {
-		config.Strategy = simple.New()
+		config.Strategy = f.strategyBuilder.BuildForSubAgent(client, strategy.StrategyTypeDefault)
 	}
 
 	// Set default output mode
