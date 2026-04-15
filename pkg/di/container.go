@@ -32,6 +32,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/skills"
 	"github.com/denkhaus/gollum/pkg/state"
+	"github.com/denkhaus/gollum/pkg/strategy"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/denkhaus/gollum/pkg/workspace"
 	"github.com/samber/do/v2"
@@ -118,7 +119,7 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	// Flows
 	do.Provide(p.injector, flowregistry.NewFlowRegistryService)
 	do.Provide(p.injector, executor.NewFlowExecutor)
-	do.Provide(p.injector, shared.NewStrategyBuilder)
+	do.Provide(p.injector, strategy.NewBuilder)
 
 	// ACP (Agent Client Protocol) services
 	do.Provide(p.injector, acp.NewAcpService)
@@ -152,7 +153,7 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 
 	// Prompts
 	do.Provide(p.injector, store.NewPromptStore)
-	do.Provide[manager.PromptManager](p.injector, manager.NewPromptManagerProvider)
+	do.Provide(p.injector, manager.NewPromptManagerProvider)
 	do.Provide(p.injector, optimizer.NewOptimizerProvider)
 
 	// Wire logger forwarder to channel facade for session/channel-aware log routing
