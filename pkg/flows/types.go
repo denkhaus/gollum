@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/strategy"
 )
 
 // FlowContext defines the interface for accessing flow execution state
@@ -436,9 +437,9 @@ type ComputedFieldDef struct {
 
 // AgentStrategy defines strategy parameters for flow agents
 type AgentStrategy struct {
-	MaxIterations      int    `xml:"maxIterations,attr"`
-	MaxRepeatedActions int    `xml:"maxRepeatedActions,attr"`
-	Type              string `xml:"type,attr,omitempty"` // "react" or "simple", defaults to "react"
+	MaxIterations      int                   `xml:"maxIterations,attr"`
+	MaxRepeatedActions int                   `xml:"maxRepeatedActions,attr"`
+	Type               strategy.StrategyType `xml:"type,attr,omitempty"` // "react" or "simple", defaults to "react"
 }
 
 // Agent defines an LLM agent
@@ -610,11 +611,11 @@ type CallOutputParam struct {
 
 // CallInputFieldRef is a union wrapper for input field variants (internal use)
 type CallInputFieldRef struct {
-	XMLName xml.Name         `xml:"-"`
-	String  *CallInputParam  `xml:"string"`
-	Int     *CallInputParam  `xml:"int"`
-	Bool    *CallInputParam  `xml:"bool"`
-	Float   *CallInputParam  `xml:"float"`
+	XMLName xml.Name        `xml:"-"`
+	String  *CallInputParam `xml:"string"`
+	Int     *CallInputParam `xml:"int"`
+	Bool    *CallInputParam `xml:"bool"`
+	Float   *CallInputParam `xml:"float"`
 }
 
 // GetParam returns the non-nil parameter
@@ -653,11 +654,11 @@ func (c *CallInputFieldRef) GetType() string {
 
 // CallOutputFieldRef is a union wrapper for output field variants (internal use)
 type CallOutputFieldRef struct {
-	XMLName xml.Name          `xml:"-"`
-	String  *CallOutputParam  `xml:"string"`
-	Int     *CallOutputParam  `xml:"int"`
-	Bool    *CallOutputParam  `xml:"bool"`
-	Float   *CallOutputParam  `xml:"float"`
+	XMLName xml.Name         `xml:"-"`
+	String  *CallOutputParam `xml:"string"`
+	Int     *CallOutputParam `xml:"int"`
+	Bool    *CallOutputParam `xml:"bool"`
+	Float   *CallOutputParam `xml:"float"`
 }
 
 // GetParam returns the non-nil parameter

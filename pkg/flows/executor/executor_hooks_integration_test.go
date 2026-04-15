@@ -4,13 +4,16 @@ import (
 	"context"
 	"testing"
 
+	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/extensions"
 	"github.com/denkhaus/gollum/pkg/flows"
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/strategy"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
@@ -56,6 +59,15 @@ func TestFlowExecutor_WithHookManagerIntegration(t *testing.T) {
 	// Create mock AgentFactory for tests that don't need LLM functionality
 	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
+
+	// Create mock strategy builder
+	mockStrategyBuilder := &mockStrategyBuilderImpl{}
+	do.ProvideValue[strategy.Builder](injector, mockStrategyBuilder)
+
+	// Create mock LLM client provider
+	mockLLMClientProvider := &mockClientProviderImpl{}
+	do.ProvideValue[llm.ClientProvider](injector, mockLLMClientProvider)
+
 	do.Provide(injector, NewFlowExecutor)
 
 	// Create executor
@@ -149,4 +161,34 @@ func TestFlowExecutor_ExecuteStepWithHooks(t *testing.T) {
 	assert.Equal(t, "func", capturedBefore.StepType)
 	assert.Equal(t, "initial", capturedBefore.CurrentState)
 	assert.Greater(t, capturedAfter.Duration, int64(0))
+}
+
+// mockStrategyBuilderImpl is a mock implementation of strategy.Builder for testing
+type mockStrategyBuilderImpl struct{}
+
+func (m *mockStrategyBuilderImpl) BuildForSupervisor(client gollem.LLMClient, strategyType strategy.StrategyType) gollem.Strategy {
+	return nil
+}
+
+func (m *mockStrategyBuilderImpl) BuildForSubAgent(client gollem.LLMClient, strategyType strategy.StrategyType) gollem.Strategy {
+	return nil
+}
+
+func (m *mockStrategyBuilderImpl) BuildForLLMStep(client gollem.LLMClient, strategyType strategy.StrategyType) gollem.Strategy {
+	return nil
+}
+
+func (m *mockStrategyBuilderImpl) BuildReact(cfg *config.StrategyConfig, client gollem.LLMClient) gollem.Strategy {
+	return nil
+}
+
+func (m *mockStrategyBuilderImpl) BuildSimple(client gollem.LLMClient) gollem.Strategy {
+	return nil
+}
+
+// mockClientProviderImpl is a mock implementation of llm.ClientProvider for testing
+type mockClientProviderImpl struct{}
+
+func (m *mockClientProviderImpl) GetClient(ctx context.Context, config *shared.LLMClientConfig) (gollem.LLMClient, error) {
+	return nil, nil
 }

@@ -10,6 +10,7 @@ import (
 type StrategyType string
 
 const (
+	StrategyTypeUnknown StrategyType = ""
 	// StrategyTypeReact uses the ReAct (Reasoning and Acting) strategy
 	StrategyTypeReact StrategyType = "react"
 

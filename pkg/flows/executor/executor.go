@@ -13,9 +13,11 @@ import (
 	"github.com/denkhaus/gollum/pkg/flows"
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/strategy"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
@@ -199,6 +201,8 @@ type flowExecutorImpl struct {
 	flowToolsProvider tools.FlowToolsProvider
 	mcpRegistry       mcpregistry.MCPRegistry
 	agentFactory      shared.AgentFactory
+	strategyBuilder   strategy.Builder
+	clientProvider    llm.ClientProvider
 	pendingTransition string // Set by transition_to tool to force a state transition
 }
 
@@ -215,6 +219,8 @@ type flowExecutorServiceImpl struct {
 	flowToolsProvider tools.FlowToolsProvider
 	mcpRegistry       mcpregistry.MCPRegistry
 	agentFactory      shared.AgentFactory
+	strategyBuilder   strategy.Builder
+	clientProvider    llm.ClientProvider
 }
 
 // Ensure flowExecutorServiceImpl implements FlowExecutorService
@@ -233,6 +239,8 @@ func NewFlowExecutor(injector do.Injector) (FlowExecutorService, error) {
 	flowToolsProvider := do.MustInvoke[tools.FlowToolsProvider](injector)
 	mcpRegistry := do.MustInvoke[mcpregistry.MCPRegistry](injector)
 	agentFactory := do.MustInvoke[shared.AgentFactory](injector)
+	strategyBuilder := do.MustInvoke[strategy.Builder](injector)
+	clientProvider := do.MustInvoke[llm.ClientProvider](injector)
 
 	return &flowExecutorServiceImpl{
 		logService:        logService,
@@ -243,6 +251,8 @@ func NewFlowExecutor(injector do.Injector) (FlowExecutorService, error) {
 		flowToolsProvider: flowToolsProvider,
 		mcpRegistry:       mcpRegistry,
 		agentFactory:      agentFactory,
+		strategyBuilder:   strategyBuilder,
+		clientProvider:    clientProvider,
 	}, nil
 }
 
@@ -268,6 +278,8 @@ func (p *flowExecutorServiceImpl) New(flow *flows.Flow) FlowExecutorInstance {
 		flowToolsProvider: p.flowToolsProvider,
 		mcpRegistry:       p.mcpRegistry,
 		agentFactory:      p.agentFactory,
+		strategyBuilder:   p.strategyBuilder,
+		clientProvider:    p.clientProvider,
 	}
 }
 

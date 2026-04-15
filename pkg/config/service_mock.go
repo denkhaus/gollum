@@ -249,6 +249,34 @@ func (mr *MockConfigServiceMockRecorder) GetPromptStoreConfig() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPromptStoreConfig", reflect.TypeOf((*MockConfigService)(nil).GetPromptStoreConfig))
 }
 
+// GetSubAgentConfig mocks base method.
+func (m *MockConfigService) GetSubAgentConfig() *SubAgentConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSubAgentConfig")
+	ret0, _ := ret[0].(*SubAgentConfig)
+	return ret0
+}
+
+// GetSubAgentConfig indicates an expected call of GetSubAgentConfig.
+func (mr *MockConfigServiceMockRecorder) GetSubAgentConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSubAgentConfig", reflect.TypeOf((*MockConfigService)(nil).GetSubAgentConfig))
+}
+
+// GetSupervisorConfig mocks base method.
+func (m *MockConfigService) GetSupervisorConfig() *SupervisorConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSupervisorConfig")
+	ret0, _ := ret[0].(*SupervisorConfig)
+	return ret0
+}
+
+// GetSupervisorConfig indicates an expected call of GetSupervisorConfig.
+func (mr *MockConfigServiceMockRecorder) GetSupervisorConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSupervisorConfig", reflect.TypeOf((*MockConfigService)(nil).GetSupervisorConfig))
+}
+
 // IsDevMode mocks base method.
 func (m *MockConfigService) IsDevMode() bool {
 	m.ctrl.T.Helper()

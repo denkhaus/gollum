@@ -7,9 +7,11 @@ import (
 	"github.com/denkhaus/gollum/pkg/flows"
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
 	"github.com/denkhaus/gollum/pkg/hooks"
+	"github.com/denkhaus/gollum/pkg/llm"
 	"github.com/denkhaus/gollum/pkg/logger"
 	mcpregistry "github.com/denkhaus/gollum/pkg/mcp/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/strategy"
 	"github.com/denkhaus/gollum/pkg/tools"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
@@ -64,6 +66,14 @@ func setupTestDI(t *testing.T) do.Injector {
 	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
 
+	// Create mock strategy builder
+	mockStrategyBuilder := &mockStrategyBuilderImpl{}
+	do.ProvideValue[strategy.Builder](injector, mockStrategyBuilder)
+
+	// Create mock LLM client provider
+	mockLLMClientProvider := &mockClientProviderImpl{}
+	do.ProvideValue[llm.ClientProvider](injector, mockLLMClientProvider)
+
 	// Register the flow executor service
 	do.Provide(injector, NewFlowExecutor)
 
@@ -112,6 +122,14 @@ func setupTestDIWithRegistry(t *testing.T, registry flowregistry.FlowRegistry) d
 	// Create mock AgentFactory for LLM step testing
 	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
+
+	// Create mock strategy builder
+	mockStrategyBuilder := &mockStrategyBuilderImpl{}
+	do.ProvideValue[strategy.Builder](injector, mockStrategyBuilder)
+
+	// Create mock LLM client provider
+	mockLLMClientProvider := &mockClientProviderImpl{}
+	do.ProvideValue[llm.ClientProvider](injector, mockLLMClientProvider)
 
 	do.Provide(injector, NewFlowExecutor)
 
@@ -163,6 +181,14 @@ func setupTestDIWithBashProvider(t *testing.T, provider tools.BashToolProvider) 
 	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
 
+	// Create mock strategy builder
+	mockStrategyBuilder := &mockStrategyBuilderImpl{}
+	do.ProvideValue[strategy.Builder](injector, mockStrategyBuilder)
+
+	// Create mock LLM client provider
+	mockLLMClientProvider := &mockClientProviderImpl{}
+	do.ProvideValue[llm.ClientProvider](injector, mockLLMClientProvider)
+
 	do.Provide(injector, NewFlowExecutor)
 
 	return injector
@@ -207,6 +233,14 @@ func setupTestDIWithBashProviderAndMCPRegistry(t *testing.T, provider tools.Bash
 	// Create mock AgentFactory for LLM step testing
 	mockAgentFactory := shared.NewMockAgentFactory(ctrl)
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
+
+	// Create mock strategy builder
+	mockStrategyBuilder := &mockStrategyBuilderImpl{}
+	do.ProvideValue[strategy.Builder](injector, mockStrategyBuilder)
+
+	// Create mock LLM client provider
+	mockLLMClientProvider := &mockClientProviderImpl{}
+	do.ProvideValue[llm.ClientProvider](injector, mockLLMClientProvider)
 
 	do.Provide(injector, NewFlowExecutor)
 

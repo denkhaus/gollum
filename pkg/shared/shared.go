@@ -268,6 +268,13 @@ type AgentConfig struct {
 	// MCP tools use "server_name/tool_name" format (e.g., "filesystem/read_file").
 	// Empty or nil means no tools available.
 	AllowedTools []string `json:"allowed_tools"`
+
+	// StrategyConfig holds strategy configuration parameters.
+	// If Strategy is nil, the AgentFactory will use StrategyBuilder to create
+	// a strategy based on these configuration fields.
+	StrategyType       string `json:"strategy_type"`        // "react" or "simple"
+	MaxIterations      int    `json:"max_iterations"`       // Max iterations for react strategy
+	MaxRepeatedActions int    `json:"max_repeated_actions"` // Max repeated actions for react strategy
 }
 
 // AgentStatus represents the execution status of a background agent.

@@ -6,11 +6,12 @@ import (
 	"strings"
 
 	"github.com/denkhaus/gollum/pkg/agents"
+	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/flows"
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/strategy"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
-	"github.com/m-mizutani/gollem/strategy/simple"
 )
 
 // executeLLMStep executes an LLM step
@@ -36,6 +37,34 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 	toolNames := p.parseToolNames(step.Tools)
 	flowToolNames, allowedTools := p.separateFlowTools(toolNames)
 
+	// Build strategy from agent config
+	var agentStrategy gollem.Strategy
+	if agentConfig.Strategy != nil {
+		// Get LLM client for strategy building
+		llmClient, err := p.getLLMClientForAgent(ctx, agentConfig)
+		if err != nil {
+			return fmt.Errorf("failed to get LLM client for strategy: %w", err)
+		}
+
+		// Determine strategy type
+		strategyType := strategy.StrategyTypeDefault
+		if agentConfig.Strategy.Type != strategy.StrategyTypeUnknown {
+			strategyType = agentConfig.Strategy.Type
+		}
+
+		// If custom config values provided, use BuildReact with custom config
+		if agentConfig.Strategy.MaxIterations > 0 || agentConfig.Strategy.MaxRepeatedActions > 0 {
+			cfg := &config.StrategyConfig{
+				MaxIterations:      agentConfig.Strategy.MaxIterations,
+				MaxRepeatedActions: agentConfig.Strategy.MaxRepeatedActions,
+			}
+			agentStrategy = p.strategyBuilder.BuildReact(cfg, llmClient)
+		} else {
+			// Use defaults from config service for LLM steps
+			agentStrategy = p.strategyBuilder.BuildForLLMStep(llmClient, strategyType)
+		}
+	}
+
 	// Map flow Agent to shared.AgentConfig
 	config := &shared.AgentConfig{
 		ID:              uuid.New(),
@@ -44,7 +73,7 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 		Description:     fmt.Sprintf("LLM agent for flow %s, step %s", p.flow.Name, step.Name),
 		LLMClientConfig: agentConfig.ToClientConfig(),
 		OutputMode:      p.getOutputModeForStep(step), // Use verbose flag to control output
-		Strategy:        simple.New(),
+		Strategy:        agentStrategy,
 		AllowedTools:    allowedTools,
 	}
 
@@ -191,4 +220,14 @@ func (p *flowExecutorImpl) getOutputModeForStep(step *flows.Step) shared.OutputM
 		return shared.OutputModeFull // Show LLM response in logs
 	}
 	return shared.OutputModeSilent // Suppress LLM response (default)
+}
+
+// getLLMClientForAgent gets an LLM client for the given agent configuration
+func (p *flowExecutorImpl) getLLMClientForAgent(ctx context.Context, agentConfig *flows.Agent) (gollem.LLMClient, error) {
+	clientConfig := agentConfig.ToClientConfig()
+	llmClient, err := p.clientProvider.GetClient(ctx, clientConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get LLM client for agent '%s': %w", agentConfig.Name, err)
+	}
+	return llmClient, nil
 }
