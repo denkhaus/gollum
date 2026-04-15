@@ -78,6 +78,14 @@ func (m *testConfigService) GetACPConfig() *config.ACPConfig {
 	return &config.ACPConfig{}
 }
 
+func (m *testConfigService) GetSubAgentConfig() *config.SubAgentConfig {
+	return &config.SubAgentConfig{}
+}
+
+func (m *testConfigService) GetSupervisorConfig() *config.SupervisorConfig {
+	return &config.SupervisorConfig{}
+}
+
 func TestFlowRegistryService_GetFlow_ReturnsRegisteredFlow(t *testing.T) {
 	svc := &flowRegistryServiceImpl{
 		flows: make(map[string]*flows.Flow),
