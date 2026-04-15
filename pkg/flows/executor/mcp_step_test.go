@@ -13,6 +13,7 @@ import (
 )
 
 // mockMCPTool is a mock MCP tool for testing
+// TODO use generated mocks if possible. If not, due dependency issues, add note here why a custom mock is needed.
 type mockMCPTool struct {
 	name        string
 	description string

@@ -180,6 +180,7 @@ func TestCreateToolSet_Success(t *testing.T) {
 }
 
 // mockMCPRegistry is a simple mock for testing
+// TODO use generated mocks if possible. If not, due dependency issues, add note here why a custom mock is needed.
 type mockMCPRegistry struct {
 	toolSets  []gollem.ToolSet
 	toolNames []string

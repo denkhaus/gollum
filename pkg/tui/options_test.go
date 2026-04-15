@@ -27,7 +27,7 @@ func TestTUIOption_WithChannelMessageChan(t *testing.T) {
 	got := ch.GetMessageChan()
 	require.NotNil(t, got)
 	got <- channel.Message{} // Test that we can send
-	<-msgChan               // Drain the test message
+	<-msgChan                // Drain the test message
 }
 
 func TestTUIOption_WithChannelLogger(t *testing.T) {
@@ -98,19 +98,20 @@ func TestTUIOptions_Multiple(t *testing.T) {
 	got := ch.GetMessageChan()
 	require.NotNil(t, got)
 	got <- channel.Message{} // Test that we can send
-	<-msgChan               // Drain the test message
+	<-msgChan                // Drain the test message
 
 	assert.Equal(t, mockLogger, ch.GetLogger())
 	assert.Equal(t, mockRenderer, ch.GetRenderer())
 }
 
 // mockOtherChannel for testing type mismatch
+// TODO use generated mocks if possible. If not, due dependency issues, add note here why a custom mock is needed.
 type mockOtherChannel struct {
 	id uuid.UUID
 }
 
-func (m *mockOtherChannel) ID() uuid.UUID                              { return m.id }
-func (m *mockOtherChannel) OnMessage(msg channel.Message)               {}
-func (m *mockOtherChannel) OnLog(entry shared.LogEntry)                 {}
+func (m *mockOtherChannel) ID() uuid.UUID                                      { return m.id }
+func (m *mockOtherChannel) OnMessage(msg channel.Message)                      {}
+func (m *mockOtherChannel) OnLog(entry shared.LogEntry)                        {}
 func (m *mockOtherChannel) OnAgentLifecycle(event channel.AgentLifecycleEvent) {}
-func (m *mockOtherChannel) Start(ctx context.Context) error             { return nil }
+func (m *mockOtherChannel) Start(ctx context.Context) error                    { return nil }

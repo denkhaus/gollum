@@ -48,4 +48,8 @@ package pkg
 
 //go:generate go run go.uber.org/mock/mockgen -source=extensions/service.go -destination=extensions/service_mock.go -package=extensions github.com/denkhaus/gollum/pkg/extensions ExtensionService
 
+//go:generate go run go.uber.org/mock/mockgen -source=extensions/yaegi.go -destination=extensions/yaegi_mock.go -package=extensions github.com/denkhaus/gollum/pkg/extensions YaegiLoader
+
+//go:generate go run go.uber.org/mock/mockgen -source=extensions/yaegi_func_runner.go -destination=extensions/yaegi_func_runner_mock.go -package=extensions github.com/denkhaus/gollum/pkg/extensions YaegiFuncRunner
+
 //go:generate go run go.uber.org/mock/mockgen -source=session/manager.go -destination=session/manager_mock.go -package=session github.com/denkhaus/gollum/pkg/session SessionManager

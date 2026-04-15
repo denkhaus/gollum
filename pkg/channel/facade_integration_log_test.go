@@ -2,6 +2,7 @@
 package channel
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -29,7 +30,12 @@ func setupIntegrationTest(t *testing.T) (do.Injector, *gomock.Controller) {
 
 	injector := do.New()
 	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
+
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockRegistry.EXPECT().GetSupervisorAgent().Return(nil, fmt.Errorf("no supervisor agent registered")).AnyTimes()
+	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
+
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(ctrl))
 	cfg := &mockConfigService{logBufferSize: 100}

@@ -21,8 +21,8 @@ func TestStrategyType_Constants(t *testing.T) {
 
 func TestBuilderImpl_BuildForSupervisor(t *testing.T) {
 	tests := []struct {
-		name        string
-		supCfg      config.SupervisorConfig
+		name         string
+		supCfg       config.SupervisorConfig
 		strategyType StrategyType
 	}{
 		{
@@ -76,8 +76,8 @@ func TestBuilderImpl_BuildForSupervisor(t *testing.T) {
 
 func TestBuilderImpl_BuildForSubAgent(t *testing.T) {
 	tests := []struct {
-		name        string
-		subCfg      config.SubAgentConfig
+		name         string
+		subCfg       config.SubAgentConfig
 		strategyType StrategyType
 	}{
 		{
@@ -139,14 +139,14 @@ func TestBuilderImpl_BuildForLLMStep(t *testing.T) {
 
 func TestBuilderImpl_BuildReact_Options(t *testing.T) {
 	tests := []struct {
-		name               string
-		cfg                *config.StrategyConfig
-		expectMaxIterations int
+		name                 string
+		cfg                  *config.StrategyConfig
+		expectMaxIterations  int
 		expectMaxRepeatedAct int
 	}{
 		{
-			name:                "nil config uses react defaults",
-			cfg:                 nil,
+			name:                 "nil config uses react defaults",
+			cfg:                  nil,
 			expectMaxIterations:  0,
 			expectMaxRepeatedAct: 0,
 		},
@@ -182,9 +182,10 @@ func TestBuilderImpl_BuildReact_Options(t *testing.T) {
 }
 
 // mockConfigService implements config.ConfigService for testing
+// TODO use generated mocks if possible. If not, due dependency issues, add note here why a custom mock is needed.
 type mockConfigService struct {
-	subAgentCfg    config.SubAgentConfig
-	supervisorCfg  config.SupervisorConfig
+	subAgentCfg   config.SubAgentConfig
+	supervisorCfg config.SupervisorConfig
 }
 
 func (m *mockConfigService) GetLogLevel() string {

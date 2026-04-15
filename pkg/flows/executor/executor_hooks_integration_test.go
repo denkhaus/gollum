@@ -164,6 +164,7 @@ func TestFlowExecutor_ExecuteStepWithHooks(t *testing.T) {
 }
 
 // mockStrategyBuilderImpl is a mock implementation of strategy.Builder for testing
+// TODO use generated mocks if possible. If not, due dependency issues, add note here why a custom mock is needed.
 type mockStrategyBuilderImpl struct{}
 
 func (m *mockStrategyBuilderImpl) BuildForSupervisor(client gollem.LLMClient, strategyType strategy.StrategyType) gollem.Strategy {

@@ -1,18 +1,17 @@
 package registry
 
 import (
-
 	"context"
-	"github.com/denkhaus/gollum/pkg/logger"
 	"testing"
 	"time"
+
+	"github.com/denkhaus/gollum/pkg/logger"
 
 	appconfig "github.com/denkhaus/gollum/pkg/config"
 	mcpconfig "github.com/denkhaus/gollum/pkg/mcp/config"
 	"github.com/m-mizutani/gollem"
 	"github.com/m-mizutani/gollem/mcp"
 	"go.uber.org/mock/gomock"
-
 )
 
 func TestMCPRegistry_CreateStdioClient(t *testing.T) {
@@ -128,6 +127,7 @@ func TestMCPRegistry_UnsupportedType(t *testing.T) {
 }
 
 // mockConfigLoader is a test double
+// TODO use generated mocks if possible. If not, due dependency issues, add note here why a custom mock is needed.
 type mockConfigLoader struct {
 	configs map[string]mcpconfig.MCPServerConfig
 }
@@ -164,7 +164,7 @@ func NewMCPRegistryWithLoader(t *testing.T, ctrl *gomock.Controller, loader mcpc
 
 	p := &mcpRegistryImpl{
 		clients:   make(map[string]*mcp.Client),
-		tools:    make([]gollem.ToolSet, 0),
+		tools:     make([]gollem.ToolSet, 0),
 		loader:    loader,
 		appConfig: mockAppConfig,
 		logger:    mockLog,

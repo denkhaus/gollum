@@ -13,6 +13,7 @@ import (
 )
 
 // mockBashToolRunner is a simple mock for testing without using gomock
+// TODO use generated mocks if possible. If not, due dependency issues, add note here why a custom mock is needed.
 type mockBashToolRunner struct {
 	runFunc func(ctx context.Context, args map[string]any) (map[string]any, error)
 }

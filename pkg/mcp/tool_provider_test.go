@@ -1,10 +1,10 @@
 package mcp
 
 import (
-
 	"context"
-	"github.com/denkhaus/gollum/pkg/logger"
 	"testing"
+
+	"github.com/denkhaus/gollum/pkg/logger"
 
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
-
 )
 
 func TestMCPToolProvider_CreateTool_ValidFormat(t *testing.T) {
@@ -112,6 +111,7 @@ func TestMCPToolProvider_CreateTool_MultipleToolSets(t *testing.T) {
 }
 
 // Mock implementations
+// TODO use generated mocks if possible. If not, due dependency issues, add note here why a custom mock is needed.
 type mockMCPRegistry struct {
 	tools []gollem.ToolSet
 }

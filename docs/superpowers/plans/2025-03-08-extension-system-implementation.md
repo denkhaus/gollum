@@ -15,6 +15,7 @@
 ### Task 1.1: Create extensions package and DIGateway service
 
 **Files:**
+
 - Create: `pkg/extensions/gateway.go`
 - Create: `pkg/extensions/gateway_test.go`
 
@@ -137,6 +138,7 @@ git commit -m "feat(exts): add DIGateway service for extension DI integration"
 ### Task 1.2: Create HookRegistry service
 
 **Files:**
+
 - Create: `pkg/extensions/hooks.go`
 - Create: `pkg/extensions/hooks_test.go`
 
@@ -339,6 +341,7 @@ git commit -m "feat(exts): add HookRegistry for lifecycle hook management"
 ### Task 1.3: Create ScriggoRunner service
 
 **Files:**
+
 - Create: `pkg/extensions/scriggo.go`
 - Create: `pkg/extensions/scriggo_test.go`
 
@@ -508,6 +511,7 @@ git commit -m "feat(exts): add ScriggoRunner for compiled func step execution"
 ### Task 1.4: Create YaegiLoader service with Extension types
 
 **Files:**
+
 - Create: `pkg/extensions/yaegi.go`
 - Create: `pkg/extensions/yaegi_test.go`
 
@@ -752,6 +756,7 @@ git commit -m "feat(exts): add YaegiLoader for extension package management"
 ### Task 1.5: Create ExtensionService for orchestration
 
 **Files:**
+
 - Create: `pkg/extensions/service.go`
 - Create: `pkg/extensions/service_test.go`
 
@@ -811,6 +816,7 @@ func TestExtensionService_GetFuncRunner(t *testing.T) {
 }
 
 // Mocks
+// TODO use generated mocks if possible. If not, due dependency issues, add note here why a custom mock is needed.
 type mockLogger struct{}
 
 func (m *mockLogger) Info(msg string, fields ...interface{}) {}
@@ -1026,6 +1032,7 @@ git commit -m "feat(exts): add ExtensionService for orchestration"
 ### Task 1.6: Register extension services in DI container
 
 **Files:**
+
 - Modify: `pkg/di/container.go`
 
 **Step 1: Add extension service imports and providers**
@@ -1033,11 +1040,13 @@ git commit -m "feat(exts): add ExtensionService for orchestration"
 Edit `pkg/di/container.go`:
 
 Add to imports (around line 28):
+
 ```go
 	"github.com/denkhaus/gollum/pkg/extensions"
 ```
 
 Add to RegisterServices (after line 104, after executor.NewFlowExecutor):
+
 ```go
 	// Extensions
 	do.Provide(p.injector, extensions.NewGatewayService)
@@ -1069,11 +1078,13 @@ git commit -m "feat(di): register extension services in DI container"
 ### Task 1.7: Add Scriggo and Yaegi dependencies
 
 **Files:**
+
 - Modify: `go.mod`
 
 **Step 1: Add dependencies**
 
 Run:
+
 ```bash
 go get github.com/open2b/scriggo@v0.61.0
 go get github.com/traefik/yaegi@v1.12.2
@@ -1103,6 +1114,7 @@ git commit -m "deps: add Scriggo and Yaegi for extension system"
 ### Task 2.1: Add extension service to Executor
 
 **Files:**
+
 - Modify: `pkg/flows/executor/executor.go`
 - Modify: `pkg/flows/executor/di_service.go`
 
@@ -1111,6 +1123,7 @@ git commit -m "deps: add Scriggo and Yaegi for extension system"
 Read `pkg/flows/executor/executor.go` and modify the Executor struct to include extService:
 
 Find the Executor struct and add:
+
 ```go
 type Executor struct {
 	// ... existing fields ...
@@ -1141,6 +1154,7 @@ func NewFlowExecutor(injector do.Injector) (FlowExecutor, error) {
 **Step 3: Add import**
 
 Add to imports in executor.go:
+
 ```go
 	"github.com/denkhaus/gollum/pkg/extensions"
 ```
@@ -1162,6 +1176,7 @@ git commit -m "feat(executor): add extension service to Executor"
 ### Task 2.2: Implement executeFuncStep with Scriggo
 
 **Files:**
+
 - Modify: `pkg/flows/executor/executor.go`
 - Create: `pkg/flows/executor/func_step_test.go`
 
@@ -1279,6 +1294,7 @@ git commit -m "feat(executor): implement func step execution via Scriggo"
 ### Task 2.3: Wire executeFuncStep into executeStep
 
 **Files:**
+
 - Modify: `pkg/flows/executor/executor.go`
 
 **Step 1: Update executeStep to handle func type**
@@ -1286,6 +1302,7 @@ git commit -m "feat(executor): implement func step execution via Scriggo"
 Find the executeStep method and add func type handling:
 
 In the switch statement or type check, add:
+
 ```go
 case "func":
 	if err := e.executeFuncStep(step, state.Name); err != nil {
@@ -1315,6 +1332,7 @@ git commit -m "feat(executor): wire func step execution into executeStep"
 ### Task 2.4: Create integration test for func steps
 
 **Files:**
+
 - Create: `test/fixtures/flows/func_step_test.xml`
 - Create: `pkg/flows/executor/func_step_integration_test.go`
 
@@ -1396,6 +1414,7 @@ git commit -m "test(executor): add func step integration test scaffold"
 ### Task 3.1: Implement function file loading
 
 **Files:**
+
 - Modify: `pkg/extensions/service.go`
 - Create: `pkg/extensions/loader_test.go`
 
@@ -1519,6 +1538,7 @@ git commit -m "feat(exts): implement function file loading from directories"
 ### Task 3.2: Implement extension loading
 
 **Files:**
+
 - Modify: `pkg/extensions/yaegi.go`
 - Modify: `pkg/extensions/service.go`
 
@@ -1648,6 +1668,7 @@ git commit -m "feat(exts): implement extension loading from directories"
 ### Task 3.3: Add workspace priority override logic
 
 **Files:**
+
 - Modify: `pkg/extensions/service.go`
 - Create: `pkg/extensions/priority_test.go`
 
@@ -1764,6 +1785,7 @@ git commit -m "feat(exts): implement workspace priority override for functions"
 ### Task 4.1: Add execution timeout support
 
 **Files:**
+
 - Modify: `pkg/extensions/scriggo.go`
 - Create: `pkg/extensions/timeout_test.go`
 
@@ -1912,6 +1934,7 @@ git commit -m "feat(exts): add execution timeout support for func steps"
 ### Task 4.2: Add extension validation
 
 **Files:**
+
 - Create: `pkg/extensions/validation.go`
 - Create: `pkg/extensions/validation_test.go`
 
@@ -2052,6 +2075,7 @@ git commit -m "feat(exts): add extension and function name validation"
 ### Task 4.3: Add audit logging
 
 **Files:**
+
 - Modify: `pkg/extensions/service.go`
 - Create: `pkg/extensions/audit_test.go`
 
@@ -2112,6 +2136,7 @@ func (p *extensionServiceImpl) LoadAll(ctx context.Context) error {
 ```
 
 Add zap import:
+
 ```go
 	"go.uber.org/zap"
 ```
@@ -2153,6 +2178,7 @@ git commit -m "feat(exts): add audit logging for extension operations"
 ### Task 5.1: Create extension template
 
 **Files:**
+
 - Create: `examples/extensions/database/main.go`
 - Create: `examples/extensions/database/README.md`
 
@@ -2227,7 +2253,7 @@ func Init() error {
 
 Create `examples/extensions/database/README.md`:
 
-```markdown
+````markdown
 # Database Extension Template
 
 This is a template extension for Gollum that demonstrates how to create and register custom services.
@@ -2251,6 +2277,7 @@ func MyExtensionInit() error {
     // ...
 }
 ```
+````
 
 ## Development
 
@@ -2258,20 +2285,22 @@ func MyExtensionInit() error {
 - Register services in `Init()` function
 - Use `do.Provide()` to register services
 - Use `do.MustInvoke[T]()` to consume services
-```
+
+````
 
 **Step 3: Commit**
 
 ```bash
 git add examples/extensions/database/main.go examples/extensions/database/README.md
 git commit -m "docs(examples): add database extension template"
-```
+````
 
 ---
 
 ### Task 5.2: Create func step examples
 
 **Files:**
+
 - Create: `examples/functions/string_utils.go`
 - Create: `examples/functions/README.md`
 
@@ -2325,7 +2354,7 @@ func toAnySlice(slice []string) []any {
 
 Create `examples/functions/README.md`:
 
-```markdown
+````markdown
 # Func Step Examples
 
 This directory contains example func steps that can be used in flows.
@@ -2346,6 +2375,7 @@ This directory contains example func steps that can be used in flows.
     <output assign="${output.uppercase}"/>
 </step>
 ```
+````
 
 ## Available Functions
 
@@ -2374,6 +2404,7 @@ func Add(a, b int) int {
 ```
 
 Usage in flow:
+
 ```xml
 <step type="func" function="Add">
     <params>
@@ -2383,27 +2414,29 @@ Usage in flow:
     <output assign="${output.sum}"/>
 </step>
 ```
-```
+
+````
 
 **Step 3: Commit**
 
 ```bash
 git add examples/functions/string_utils.go examples/functions/README.md
 git commit -m "docs(examples): add func step examples with string utilities"
-```
+````
 
 ---
 
 ### Task 5.3: Write extension development guide
 
 **Files:**
+
 - Create: `docs/guides/extension-development.md`
 
 **Step 1: Create the guide**
 
 Create `docs/guides/extension-development.md`:
 
-```markdown
+````markdown
 # Extension Development Guide
 
 This guide explains how to create extensions and func steps for Gollum.
@@ -2437,6 +2470,7 @@ func Double(x int) int {
     return x * 2
 }
 ```
+````
 
 ### Usage in Flow
 
@@ -2556,18 +2590,21 @@ func Init() error {
 ## Priority
 
 Workspace-local definitions **override** user space:
+
 1. `<workspace>/.gollum/` (highest priority)
 2. `~/.config/gollum/` (fallback)
 
 ## Best Practices
 
 ### Func Steps
+
 - Keep functions simple and pure
 - Use for data transformations
 - Avoid side effects
 - Document parameters and return types
 
 ### Extensions
+
 - Use clear interfaces
 - Handle initialization errors gracefully
 - Clean up resources if needed
@@ -2586,6 +2623,7 @@ Workspace-local definitions **override** user space:
 ### Extension fails to load
 
 Check logs for:
+
 - Compilation errors
 - Missing Init function
 - DI resolution failures
@@ -2593,6 +2631,7 @@ Check logs for:
 ### Func step not found
 
 Verify:
+
 - File is in correct directory
 - File has `.go` extension
 - Function name matches usage in flow
@@ -2601,27 +2640,29 @@ Verify:
 ## Examples
 
 See `examples/extensions/` and `examples/functions/` for complete examples.
-```
+
+````
 
 **Step 2: Commit**
 
 ```bash
 git add docs/guides/extension-development.md
 git commit -m "docs(guides): add extension development guide"
-```
+````
 
 ---
 
 ### Task 5.4: Update main README with extension docs
 
 **Files:**
+
 - Modify: `README.md` (if exists) or create `docs/extension-system.md`
 
 **Step 1: Add extension system documentation**
 
 Create `docs/extension-system.md`:
 
-```markdown
+````markdown
 # Gollum Extension System
 
 Gollum's extension system enables custom functionality through two mechanisms:
@@ -2639,8 +2680,10 @@ func Hello(name string) string {
     return "Hello, " + name
 }
 ```
+````
 
 Use in flow:
+
 ```xml
 <step type="func" function="Hello">
     <params>
@@ -2676,19 +2719,21 @@ func Init() error {
 ## Architecture
 
 The extension system uses:
+
 - **Scriggo VM** for func steps (compiled, ~10x faster)
 - **Yaegi** for extensions (interpreted, full Go support)
 - **samber/do** for DI integration
 
 See [design document](../plans/2025-03-08-extension-system-design.md) for details.
-```
+
+````
 
 **Step 2: Commit**
 
 ```bash
 git add docs/extension-system.md
 git commit -m "docs: add extension system overview documentation"
-```
+````
 
 ---
 

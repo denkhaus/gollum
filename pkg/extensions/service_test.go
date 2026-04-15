@@ -54,6 +54,7 @@ func TestExtensionService_GetFuncRunner(t *testing.T) {
 }
 
 // Mocks
+// TODO use generated mocks if possible. If not, due dependency issues, add note here why a custom mock is needed.
 type mockLogger struct{}
 
 func (m *mockLogger) Info(msg string, fields ...zap.Field)                              {}
@@ -76,15 +77,19 @@ func (m *mockLogger) IsTUIMode() bool                                           
 func (m *mockLogger) EnableFileLogging(gollumDir string, sessionID uuid.UUID) error     { return nil }
 func (m *mockLogger) CloseFileLogging() error                                           { return nil }
 func (m *mockLogger) Flush() error                                                      { return nil }
-func (m *mockLogger) InfoWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {}
-func (m *mockLogger) DebugWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {}
-func (m *mockLogger) ErrorWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {}
-func (m *mockLogger) WarnWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {}
-func (m *mockLogger) InfoWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {}
+func (m *mockLogger) InfoWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {
+}
+func (m *mockLogger) DebugWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {
+}
+func (m *mockLogger) ErrorWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {
+}
+func (m *mockLogger) WarnWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {
+}
+func (m *mockLogger) InfoWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field)  {}
 func (m *mockLogger) ErrorWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {}
 func (m *mockLogger) DebugWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {}
-func (m *mockLogger) WarnWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {}
-func (m *mockLogger) SetLogForwarder(forwarder shared.LogForwarder) {}
+func (m *mockLogger) WarnWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field)  {}
+func (m *mockLogger) SetLogForwarder(forwarder shared.LogForwarder)                               {}
 
 type mockWorkspace struct{}
 

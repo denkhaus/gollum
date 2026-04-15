@@ -14,6 +14,7 @@ import (
 )
 
 // mockFlowExecutor is a mock implementation of flows.Executor
+// TODO use generated mocks if possible. If not, due dependency issues, add note here why a custom mock is needed.
 type mockFlowExecutor struct {
 	executeFunc func(ctx context.Context, flow *flows.Flow, inputs map[string]any) (*flows.FlowExecutionResult, error)
 }

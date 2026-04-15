@@ -20,11 +20,20 @@ func TestService_AuditLogging(t *testing.T) {
 	mockLogger.EXPECT().Info("Extension service: load complete", gomock.Any()).Times(1)
 	mockLogger.EXPECT().Error(gomock.Any(), gomock.Any()).AnyTimes() // For any errors that might occur
 
+	// Create mocks for the dependencies
+	mockYaegiLoader := NewMockYaegiLoader(ctrl)
+	mockYaegiLoader.EXPECT().ListExtensions().Return([]string{}).AnyTimes()
+	mockYaegiLoader.EXPECT().LoadExtension(gomock.Any()).Return(nil, nil).AnyTimes()
+	mockYaegiLoader.EXPECT().InitExtension(gomock.Any()).Return(nil).AnyTimes()
+
+	mockYaegiFuncRunner := NewMockYaegiFuncRunner(ctrl)
+	mockYaegiFuncRunner.EXPECT().ListFuncs().Return([]string{}).AnyTimes()
+
 	// Create a minimal service implementation for testing
 	service := &extensionServiceImpl{
 		logService:      mockLogger,
-		yaegiLoader:     &mockYaegiLoader{},
-		yaegiFuncRunner: &mockYaegiFuncRunner{},
+		yaegiLoader:     mockYaegiLoader,
+		yaegiFuncRunner: mockYaegiFuncRunner,
 		loadedFuncs:     make(map[string]string),
 	}
 
@@ -36,72 +45,3 @@ func TestService_AuditLogging(t *testing.T) {
 	// We don't care if LoadAll succeeds or fails for this test
 	_ = err
 }
-
-// Mock implementations for testing
-// TODO use generated mocks if possible
-type mockYaegiLoader struct{}
-
-func (m *mockYaegiLoader) LoadExtension(path string) (*Extension, error) {
-	return nil, nil
-}
-
-func (m *mockYaegiLoader) InitExtension(ext *Extension) error {
-	return nil
-}
-
-func (m *mockYaegiLoader) UnloadExtension(ext *Extension) error {
-	return nil
-}
-
-func (m *mockYaegiLoader) GetExtension(name string) (*Extension, error) {
-	return nil, nil
-}
-
-func (m *mockYaegiLoader) ListExtensions() []string {
-	return []string{}
-}
-
-func (m *mockYaegiLoader) LoadExtensions(workspaceDir string) error {
-	return nil
-}
-
-// TODO use generated mocks if possible
-type mockYaegiFuncRunner struct{}
-
-func (m *mockYaegiFuncRunner) LoadFunc(name, source string) error {
-	return nil
-}
-
-func (m *mockYaegiFuncRunner) ExecuteFunc(name string, args map[string]any) (any, error) {
-	return nil, nil
-}
-
-func (m *mockYaegiFuncRunner) ListFuncs() []string {
-	return []string{}
-}
-
-// mockYaegiFuncRunner provides a minimal mock for YaegiFuncRunner
-// TODO use generated mocks if possible
-type mockYaegiFuncRunner struct{}
-
-func (m *mockYaegiFuncRunner) LoadFunc(name, source string) error { return nil }
-
-func (m *mockYaegiFuncRunner) ExecuteFunc(name string, args map[string]any) (any, error) {
-	return nil, nil
-}
-
-func (m *mockYaegiFuncRunner) ListFuncs() []string { return []string{} }
-
-// mockYaegiLoader provides a minimal mock for YaegiLoader
-// TODO use generated mocks if possible
-type mockYaegiLoader struct{}
-
-func (m *mockYaegiLoader) LoadExtension(path string) (*Extension, error) { return nil, nil }
-
-func (m *mockYaegiLoader) InitExtension(ext *Extension) error { return nil }
-
-func (m *mockYaegiLoader) UnloadExtension(ext *Extension) error { return nil }
-
-func (m *mockYaegiLoader) GetExtension(name string) (*Extension, error) { return nil, nil }
-
-func (m *mockYaegiLoader) ListExtensions() []string { return []string{} }

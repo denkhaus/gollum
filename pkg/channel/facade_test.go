@@ -143,13 +143,6 @@ func (m *mockCommandManager) IsCommand(input string) bool {
 	return false
 }
 
-// mockAgentRegistry is a test double for registry.AgentRegistry
-type mockAgentRegistry struct{}
-
-func (m *mockAgentRegistry) Register(agent shared.Agent, config *shared.AgentConfig, cancel ...context.CancelFunc) error {
-	return nil
-}
-
 // mockAgentFactory is a test double for shared.AgentFactory
 type mockAgentFactory struct {
 	supervisor shared.Agent
@@ -169,79 +162,6 @@ func (m *mockAgentFactory) CreateSupervisorAgent(ctx context.Context, opts ...sh
 		return m.supervisor, m.config, nil
 	}
 	return nil, nil, fmt.Errorf("mock agent factory: no supervisor available")
-}
-
-// mockAgentRegistryWithSupervisor is a configurable mock that can return a supervisor agent
-type mockAgentRegistryWithSupervisor struct {
-	supervisor shared.Agent
-	err        error
-}
-
-func (m *mockAgentRegistryWithSupervisor) Register(agent shared.Agent, config *shared.AgentConfig, cancel ...context.CancelFunc) error {
-	return nil
-}
-
-func (m *mockAgentRegistryWithSupervisor) Unregister(agentID uuid.UUID) error {
-	return nil
-}
-
-func (m *mockAgentRegistryWithSupervisor) GetAgent(agentID uuid.UUID) (shared.Agent, bool) {
-	return nil, false
-}
-
-func (m *mockAgentRegistryWithSupervisor) GetChildren(parentID uuid.UUID) []shared.Agent {
-	return nil
-}
-
-func (m *mockAgentRegistryWithSupervisor) GetParent(agentID uuid.UUID) (shared.Agent, bool) {
-	return nil, false
-}
-
-func (m *mockAgentRegistryWithSupervisor) IsDirectParent(callerID, targetID uuid.UUID) bool {
-	return false
-}
-
-func (m *mockAgentRegistryWithSupervisor) ListAll() map[uuid.UUID]shared.Agent {
-	return nil
-}
-
-func (m *mockAgentRegistryWithSupervisor) Cleanup(agentID uuid.UUID) error {
-	return nil
-}
-
-func (m *mockAgentRegistryWithSupervisor) GetTotalAgentCount() int {
-	return 0
-}
-
-func (m *mockAgentRegistryWithSupervisor) GetSubAgentCount(parentID uuid.UUID) int {
-	return 0
-}
-
-func (m *mockAgentRegistryWithSupervisor) StoreAgentResult(result shared.AgentResult) error {
-	return nil
-}
-
-func (m *mockAgentRegistryWithSupervisor) GetAgentResult(agentID uuid.UUID) (*shared.AgentResult, bool) {
-	return nil, false
-}
-
-func (m *mockAgentRegistryWithSupervisor) WaitForAgent(ctx context.Context, agentID uuid.UUID, timeout time.Duration) (*shared.AgentResult, error) {
-	return nil, nil
-}
-
-func (m *mockAgentRegistryWithSupervisor) SetCancelFunc(agentID uuid.UUID, cancel context.CancelFunc) error {
-	return nil
-}
-
-func (m *mockAgentRegistryWithSupervisor) DeleteAgentResult(agentID uuid.UUID) error {
-	return nil
-}
-
-func (m *mockAgentRegistryWithSupervisor) GetSupervisorAgent() (shared.Agent, error) {
-	if m.err != nil {
-		return nil, m.err
-	}
-	return m.supervisor, nil
 }
 
 // mockAgent is a test double for shared.Agent
@@ -295,14 +215,19 @@ func (m *mockAgent) ToLoggingContext() shared.LoggingContext {
 
 // setupTestInjector creates an injector with all mock dependencies for testing
 func setupTestInjector() do.Injector {
+	ctrl := gomock.NewController(&testing.T{})
 	injector := do.New()
 	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
+
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockRegistry.EXPECT().GetSupervisorAgent().Return(nil, fmt.Errorf("no supervisor agent registered")).AnyTimes()
+	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
+
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
 	// Add a mock logger
-	ctrl := gomock.NewController(&testing.T{})
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
@@ -318,7 +243,12 @@ func setupTestInjectorWithLogger(logService logger.LoggerService) do.Injector {
 	ctrl := gomock.NewController(&testing.T{})
 	injector := do.New()
 	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
+
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockRegistry.EXPECT().GetSupervisorAgent().Return(nil, fmt.Errorf("no supervisor agent registered")).AnyTimes()
+	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
+
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	mockSM := session.NewMockSessionManager(ctrl)
 	do.ProvideValue[session.SessionManager](injector, mockSM)
@@ -330,80 +260,25 @@ func setupTestInjectorWithLogger(logService logger.LoggerService) do.Injector {
 
 // setupTestInjectorWithConfig creates an injector with a specific config
 func setupTestInjectorWithConfig(cfg config.ConfigService) do.Injector {
+	ctrl := gomock.NewController(&testing.T{})
 	injector := do.New()
 	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
+
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockRegistry.EXPECT().GetSupervisorAgent().Return(nil, fmt.Errorf("no supervisor agent registered")).AnyTimes()
+	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
+
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(&testing.T{})))
+	mockSM := session.NewMockSessionManager(ctrl)
+	do.ProvideValue[session.SessionManager](injector, mockSM)
 	do.ProvideValue(injector, cfg)
 
 	// Add a mock logger
-	ctrl := gomock.NewController(&testing.T{})
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
 	return injector
-}
-
-// TODO use generated mocks if possible
-func (m *mockAgentRegistry) Unregister(agentID uuid.UUID) error {
-	return nil
-}
-
-func (m *mockAgentRegistry) GetAgent(agentID uuid.UUID) (shared.Agent, bool) {
-	return nil, false
-}
-
-func (m *mockAgentRegistry) GetChildren(parentID uuid.UUID) []shared.Agent {
-	return nil
-}
-
-func (m *mockAgentRegistry) GetParent(agentID uuid.UUID) (shared.Agent, bool) {
-	return nil, false
-}
-
-func (m *mockAgentRegistry) IsDirectParent(callerID, targetID uuid.UUID) bool {
-	return false
-}
-
-func (m *mockAgentRegistry) ListAll() map[uuid.UUID]shared.Agent {
-	return nil
-}
-
-func (m *mockAgentRegistry) Cleanup(agentID uuid.UUID) error {
-	return nil
-}
-
-func (m *mockAgentRegistry) GetTotalAgentCount() int {
-	return 0
-}
-
-func (m *mockAgentRegistry) GetSubAgentCount(parentID uuid.UUID) int {
-	return 0
-}
-
-func (m *mockAgentRegistry) StoreAgentResult(result shared.AgentResult) error {
-	return nil
-}
-
-func (m *mockAgentRegistry) GetAgentResult(agentID uuid.UUID) (*shared.AgentResult, bool) {
-	return nil, false
-}
-
-func (m *mockAgentRegistry) WaitForAgent(ctx context.Context, agentID uuid.UUID, timeout time.Duration) (*shared.AgentResult, error) {
-	return nil, nil
-}
-
-func (m *mockAgentRegistry) SetCancelFunc(agentID uuid.UUID, cancel context.CancelFunc) error {
-	return nil
-}
-
-func (m *mockAgentRegistry) DeleteAgentResult(agentID uuid.UUID) error {
-	return nil
-}
-
-func (m *mockAgentRegistry) GetSupervisorAgent() (shared.Agent, error) {
-	return nil, fmt.Errorf("no supervisor agent registered")
 }
 
 // mockConfigService is a test double for config.ConfigService
@@ -699,6 +574,9 @@ func TestChannelFacade_DisplayMessage_NoBroadcast(t *testing.T) {
 
 // TestChannelFacade_SubmitInput_SlashCommand tests that SubmitInput routes slash commands to CommandManager
 func TestChannelFacade_SubmitInput_SlashCommand(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := do.New()
 
 	// Mock command manager that handles the command
@@ -711,14 +589,17 @@ func TestChannelFacade_SubmitInput_SlashCommand(t *testing.T) {
 		},
 	}
 	do.ProvideValue[command.ManagerService](injector, cmdMgr)
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
+
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockRegistry.EXPECT().GetSupervisorAgent().Return(nil, fmt.Errorf("no supervisor agent registered")).AnyTimes()
+	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
+
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(t)))
+	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(ctrl))
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
 	// Add mock logger
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
@@ -738,6 +619,9 @@ func TestChannelFacade_SubmitInput_SlashCommand(t *testing.T) {
 
 // TestChannelFacade_SubmitInput_NonCommand_NoAgentRegistry tests that SubmitInput returns error for non-command when no agent routing
 func TestChannelFacade_SubmitInput_NonCommand_NoAgentRouting(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := do.New()
 
 	// Mock command manager that doesn't handle the input
@@ -748,12 +632,13 @@ func TestChannelFacade_SubmitInput_NonCommand_NoAgentRouting(t *testing.T) {
 	}
 
 	do.ProvideValue[command.ManagerService](injector, cmdMgr)
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 
-	// Set up mocks
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockRegistry.EXPECT().GetSupervisorAgent().Return(nil, fmt.Errorf("no supervisor agent registered")).AnyTimes()
+	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
+
+	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 
 	mockSessionManager := session.NewMockSessionManager(ctrl)
 	testSession := &shared.Session{
@@ -783,6 +668,9 @@ func TestChannelFacade_SubmitInput_NonCommand_NoAgentRouting(t *testing.T) {
 
 // TestChannelFacade_SubmitInput_CommandError tests that SubmitInput returns command errors
 func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := do.New()
 
 	// Mock command manager that returns an error
@@ -793,14 +681,17 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 	}
 
 	do.ProvideValue[command.ManagerService](injector, cmdMgr)
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
+
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockRegistry.EXPECT().GetSupervisorAgent().Return(nil, fmt.Errorf("no supervisor agent registered")).AnyTimes()
+	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
+
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(gomock.NewController(t)))
+	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(ctrl))
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
 	// Add mock logger
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
@@ -928,6 +819,9 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 
 // TestChannelFacade_SubmitInput_RoutesToSupervisorAgent tests that SubmitInput routes to the singleton Supervisor-Agent
 func TestChannelFacade_SubmitInput_RoutesToSupervisorAgent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := do.New()
 
 	// Mock command manager that doesn't handle the input
@@ -942,11 +836,10 @@ func TestChannelFacade_SubmitInput_RoutesToSupervisorAgent(t *testing.T) {
 	supervisorID := uuid.New()
 	supervisor := newMockAgent(supervisorID)
 
-	// Mock registry (no longer used for supervisor routing)
-	mockRegistry := &mockAgentRegistryWithSupervisor{
-		supervisor: supervisor,
-		err:        nil,
-	}
+	// Mock registry that returns the supervisor
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockRegistry.EXPECT().GetSupervisorAgent().Return(supervisor, nil).AnyTimes()
 	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
 
 	// Mock agent factory that returns the supervisor
@@ -958,9 +851,6 @@ func TestChannelFacade_SubmitInput_RoutesToSupervisorAgent(t *testing.T) {
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
 
 	// Set up mocks
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	mockSessionManager := session.NewMockSessionManager(ctrl)
 	testChannelID := uuid.New()
 	testSession := &shared.Session{
@@ -990,6 +880,9 @@ func TestChannelFacade_SubmitInput_RoutesToSupervisorAgent(t *testing.T) {
 
 // TestChannelFacade_SubmitInput_NoSupervisorError tests that SubmitInput returns error when supervisor not available
 func TestChannelFacade_SubmitInput_NoSupervisorError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := do.New()
 
 	// Mock command manager that doesn't handle the input
@@ -1001,17 +894,12 @@ func TestChannelFacade_SubmitInput_NoSupervisorError(t *testing.T) {
 	do.ProvideValue[command.ManagerService](injector, cmdMgr)
 
 	// Mock registry that returns error for supervisor
-	mockRegistry := &mockAgentRegistryWithSupervisor{
-		supervisor: nil,
-		err:        fmt.Errorf("no supervisor agent registered"),
-	}
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockRegistry.EXPECT().GetSupervisorAgent().Return(nil, fmt.Errorf("no supervisor agent registered")).AnyTimes()
 	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
 
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-
-	// Set up mocks
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	mockSessionManager := session.NewMockSessionManager(ctrl)
 	testSession := &shared.Session{
@@ -1076,15 +964,19 @@ func TestChannelFacade_CancelInput_Success(t *testing.T) {
 
 // TestChannelFacade_CancelInput_SessionNotFound tests that CancelInput returns error for non-existent session
 func TestChannelFacade_CancelInput_SessionNotFound(t *testing.T) {
-	injector := do.New()
-	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
-	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
-
-	// Set up mocks
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	injector := do.New()
+	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
+
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockRegistry.EXPECT().GetSupervisorAgent().Return(nil, fmt.Errorf("no supervisor agent registered")).AnyTimes()
+	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
+
+	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
 	mockSessionManager := session.NewMockSessionManager(ctrl)
 	// Expect GetSession to return not found
@@ -1106,6 +998,9 @@ func TestChannelFacade_CancelInput_SessionNotFound(t *testing.T) {
 
 // TestChannelFacade_SubmitInput_ExecuteError tests that SubmitInput handles supervisor execution errors
 func TestChannelFacade_SubmitInput_ExecuteError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := do.New()
 
 	// Mock command manager that doesn't handle the input
@@ -1125,20 +1020,19 @@ func TestChannelFacade_SubmitInput_ExecuteError(t *testing.T) {
 		},
 	}
 
+	// Mock registry that returns the supervisor
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockRegistry.EXPECT().GetSupervisorAgent().Return(supervisor, nil).AnyTimes()
+	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
+
 	// Mock agent factory that returns the supervisor
 	mockAgentFactory := &mockAgentFactory{
 		supervisor: supervisor,
 		config:     &shared.AgentConfig{ID: supervisorID},
 		err:        nil,
 	}
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistryWithSupervisor{
-		supervisor: supervisor,
-		err:        nil,
-	})
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
-
-	// Set up mocks
-	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockSessionManager := session.NewMockSessionManager(ctrl)
@@ -1170,6 +1064,9 @@ func TestChannelFacade_SubmitInput_ExecuteError(t *testing.T) {
 
 // TestChannelFacade_SubmitInput_ExecuteEmptyResponse tests that SubmitInput handles empty supervisor response
 func TestChannelFacade_SubmitInput_ExecuteEmptyResponse(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := do.New()
 
 	// Mock command manager that doesn't handle the input
@@ -1191,21 +1088,19 @@ func TestChannelFacade_SubmitInput_ExecuteEmptyResponse(t *testing.T) {
 		},
 	}
 
+	// Mock registry that returns the supervisor
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockRegistry.EXPECT().GetSupervisorAgent().Return(supervisor, nil).AnyTimes()
+	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
+
 	// Mock agent factory that returns the supervisor
 	mockAgentFactory := &mockAgentFactory{
 		supervisor: supervisor,
 		config:     &shared.AgentConfig{ID: supervisorID},
 		err:        nil,
 	}
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistryWithSupervisor{
-		supervisor: supervisor,
-		err:        nil,
-	})
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
-
-	// Set up mocks
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	mockSessionManager := session.NewMockSessionManager(ctrl)
 	testSession := &shared.Session{
@@ -1236,6 +1131,9 @@ func TestChannelFacade_SubmitInput_ExecuteEmptyResponse(t *testing.T) {
 
 // TestChannelFacade_SubmitInput_ExecuteNilResponse tests that SubmitInput handles nil supervisor response
 func TestChannelFacade_SubmitInput_ExecuteNilResponse(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := do.New()
 
 	// Mock command manager that doesn't handle the input
@@ -1255,21 +1153,19 @@ func TestChannelFacade_SubmitInput_ExecuteNilResponse(t *testing.T) {
 		},
 	}
 
+	// Mock registry that returns the supervisor
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockRegistry.EXPECT().GetSupervisorAgent().Return(supervisor, nil).AnyTimes()
+	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
+
 	// Mock agent factory that returns the supervisor
 	mockAgentFactory := &mockAgentFactory{
 		supervisor: supervisor,
 		config:     &shared.AgentConfig{ID: supervisorID},
 		err:        nil,
 	}
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistryWithSupervisor{
-		supervisor: supervisor,
-		err:        nil,
-	})
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
-
-	// Set up mocks
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	mockSessionManager := session.NewMockSessionManager(ctrl)
 	testSession := &shared.Session{
@@ -1300,6 +1196,9 @@ func TestChannelFacade_SubmitInput_ExecuteNilResponse(t *testing.T) {
 
 // TestChannelFacade_SubmitInput_MultipleTextsInResponse tests that SubmitInput joins multiple response texts
 func TestChannelFacade_SubmitInput_MultipleTextsInResponse(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	injector := do.New()
 
 	// Mock command manager that doesn't handle the input
@@ -1321,21 +1220,19 @@ func TestChannelFacade_SubmitInput_MultipleTextsInResponse(t *testing.T) {
 		},
 	}
 
+	// Mock registry that returns the supervisor
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockRegistry.EXPECT().GetSupervisorAgent().Return(supervisor, nil).AnyTimes()
+	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
+
 	// Mock agent factory that returns the supervisor
 	mockAgentFactory := &mockAgentFactory{
 		supervisor: supervisor,
 		config:     &shared.AgentConfig{ID: supervisorID},
 		err:        nil,
 	}
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistryWithSupervisor{
-		supervisor: supervisor,
-		err:        nil,
-	})
 	do.ProvideValue[shared.AgentFactory](injector, mockAgentFactory)
-
-	// Set up mocks
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	mockSessionManager := session.NewMockSessionManager(ctrl)
 	testSession := &shared.Session{
@@ -1368,7 +1265,12 @@ func TestChannelFacade_SubmitInput_MultipleTextsInResponse(t *testing.T) {
 func setupTestInjectorWithSessionManager(ctrl *gomock.Controller) do.Injector {
 	injector := do.New()
 	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
-	do.ProvideValue[registry.AgentRegistry](injector, &mockAgentRegistry{})
+
+	mockRegistry := registry.NewMockAgentRegistry(ctrl)
+	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockRegistry.EXPECT().GetSupervisorAgent().Return(nil, fmt.Errorf("no supervisor agent registered")).AnyTimes()
+	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
+
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 
