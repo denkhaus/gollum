@@ -23,6 +23,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/session"
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/testutil"
 )
 
 // mockChannel is a test double for Channel interface
@@ -214,9 +215,11 @@ func (m *mockAgent) ToLoggingContext() shared.LoggingContext {
 }
 
 // setupTestInjector creates an injector with all mock dependencies for testing
-func setupTestInjector() do.Injector {
-	ctrl := gomock.NewController(&testing.T{})
-	injector := do.New()
+func setupTestInjector(t testing.TB) do.Injector {
+	injector := testutil.NewTestInjector(t)
+
+	// Add channel-specific mocks
+	ctrl := gomock.NewController(t)
 	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
 
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
@@ -225,11 +228,6 @@ func setupTestInjector() do.Injector {
 	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
 
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
-
-	// Add a mock logger
-	mockLogger := logger.NewMockLoggerService(ctrl)
-	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
 	// Add a mock session manager
 	mockSM := session.NewMockSessionManager(ctrl)
@@ -239,8 +237,9 @@ func setupTestInjector() do.Injector {
 }
 
 // setupTestInjectorWithLogger creates an injector with a specific logger mock
-func setupTestInjectorWithLogger(logService logger.LoggerService) do.Injector {
-	ctrl := gomock.NewController(&testing.T{})
+// Note: This doesn't use testutil.NewTestInjector because it needs to override the logger service
+func setupTestInjectorWithLogger(t testing.TB, logService logger.LoggerService) do.Injector {
+	ctrl := gomock.NewController(t)
 	injector := do.New()
 	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
 
@@ -250,17 +249,19 @@ func setupTestInjectorWithLogger(logService logger.LoggerService) do.Injector {
 	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
 
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-	mockSM := session.NewMockSessionManager(ctrl)
-	do.ProvideValue[session.SessionManager](injector, mockSM)
 	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
 	do.ProvideValue(injector, logService)
+
+	mockSM := session.NewMockSessionManager(ctrl)
+	do.ProvideValue[session.SessionManager](injector, mockSM)
 
 	return injector
 }
 
 // setupTestInjectorWithConfig creates an injector with a specific config
-func setupTestInjectorWithConfig(cfg config.ConfigService) do.Injector {
-	ctrl := gomock.NewController(&testing.T{})
+// Note: This doesn't use testutil.NewTestInjector because it needs to override the config service
+func setupTestInjectorWithConfig(t testing.TB, cfg config.ConfigService) do.Injector {
+	ctrl := gomock.NewController(t)
 	injector := do.New()
 	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
 
@@ -270,9 +271,10 @@ func setupTestInjectorWithConfig(cfg config.ConfigService) do.Injector {
 	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
 
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
+	do.ProvideValue(injector, cfg)
+
 	mockSM := session.NewMockSessionManager(ctrl)
 	do.ProvideValue[session.SessionManager](injector, mockSM)
-	do.ProvideValue(injector, cfg)
 
 	// Add a mock logger
 	mockLogger := logger.NewMockLoggerService(ctrl)
@@ -362,7 +364,7 @@ func (m *mockConfigService) GetSupervisorConfig() *config.SupervisorConfig {
 
 // TestNewChannelFacade tests that NewChannelFacade creates a valid instance
 func TestNewChannelFacade(t *testing.T) {
-	injector := setupTestInjector()
+	injector := setupTestInjector(t)
 
 	service, err := NewChannelFacade(injector)
 
@@ -376,7 +378,7 @@ func TestNewChannelFacade(t *testing.T) {
 
 // TestChannelFacade_RegisterChannel_Success tests successful channel registration
 func TestChannelFacade_RegisterChannel_Success(t *testing.T) {
-	injector := setupTestInjector()
+	injector := setupTestInjector(t)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -389,7 +391,7 @@ func TestChannelFacade_RegisterChannel_Success(t *testing.T) {
 
 // TestChannelFacade_RegisterChannel_Duplicate tests that registering a duplicate channel returns an error
 func TestChannelFacade_RegisterChannel_Duplicate(t *testing.T) {
-	injector := setupTestInjector()
+	injector := setupTestInjector(t)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -409,7 +411,7 @@ func TestChannelFacade_RegisterChannel_Duplicate(t *testing.T) {
 
 // TestChannelFacade_UnregisterChannel_Success tests successful channel unregistration
 func TestChannelFacade_UnregisterChannel_Success(t *testing.T) {
-	injector := setupTestInjector()
+	injector := setupTestInjector(t)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -425,7 +427,7 @@ func TestChannelFacade_UnregisterChannel_Success(t *testing.T) {
 
 // TestChannelFacade_UnregisterChannel_NonExistent tests that unregistering a non-existent channel doesn't error
 func TestChannelFacade_UnregisterChannel_NonExistent(t *testing.T) {
-	injector := setupTestInjector()
+	injector := setupTestInjector(t)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -441,7 +443,7 @@ func TestChannelFacade_DisplayMessage_RoutesToTargetChannel(t *testing.T) {
 	defer ctrl.Finish()
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
-	injector := setupTestInjectorWithLogger(mockLogger)
+	injector := setupTestInjectorWithLogger(t, mockLogger)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -490,7 +492,7 @@ func TestChannelFacade_DisplayMessage_ChannelNotFound(t *testing.T) {
 	defer ctrl.Finish()
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
-	injector := setupTestInjectorWithLogger(mockLogger)
+	injector := setupTestInjectorWithLogger(t, mockLogger)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -535,7 +537,7 @@ func TestChannelFacade_DisplayMessage_NoBroadcast(t *testing.T) {
 	defer ctrl.Finish()
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
-	injector := setupTestInjectorWithLogger(mockLogger)
+	injector := setupTestInjectorWithLogger(t, mockLogger)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -711,7 +713,7 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 
 // TestChannelFacade_NotifyAgentLifecycle_TargetsSpecificChannel tests that NotifyAgentLifecycle sends event only to the specified channel
 func TestChannelFacade_NotifyAgentLifecycle_TargetsSpecificChannel(t *testing.T) {
-	injector := setupTestInjector()
+	injector := setupTestInjector(t)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -754,7 +756,7 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 	defer ctrl.Finish()
 	mockLogger := logger.NewMockLoggerService(ctrl)
 
-	injector := setupTestInjectorWithLogger(mockLogger)
+	injector := setupTestInjectorWithLogger(t, mockLogger)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -930,7 +932,7 @@ func TestChannelFacade_SubmitInput_NoSupervisorError(t *testing.T) {
 // TestChannelFacade_CancelInput_Success tests that CancelInput successfully cancels a session
 func TestChannelFacade_CancelInput_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	injector := setupTestInjector()
+	injector := setupTestInjector(t)
 
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
@@ -1262,8 +1264,10 @@ func TestChannelFacade_SubmitInput_MultipleTextsInResponse(t *testing.T) {
 }
 
 // setupTestInjectorWithSessionManager creates an injector with a session manager mock with proper expectations
-func setupTestInjectorWithSessionManager(ctrl *gomock.Controller) do.Injector {
-	injector := do.New()
+func setupTestInjectorWithSessionManager(t testing.TB, ctrl *gomock.Controller) do.Injector {
+	injector := testutil.NewTestInjector(t)
+
+	// Add channel-specific mocks
 	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
 
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
@@ -1272,15 +1276,6 @@ func setupTestInjectorWithSessionManager(ctrl *gomock.Controller) do.Injector {
 	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
 
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-	do.ProvideValue[config.ConfigService](injector, &mockConfigService{logBufferSize: 100})
-
-	// Add a mock logger with expectations
-	mockLogger := logger.NewMockLoggerService(ctrl)
-	mockLogger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
-	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
-	mockLogger.EXPECT().Error(gomock.Any(), gomock.Any()).AnyTimes()
-	mockLogger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
-	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
 	// Add a mock session manager with expectations
 	mockSM := session.NewMockSessionManager(ctrl)

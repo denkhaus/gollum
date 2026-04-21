@@ -22,7 +22,7 @@ func TestChannelFacade_Integration_SupervisorRouting(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	injector := setupTestInjectorWithSessionManager(ctrl)
+	injector := setupTestInjectorWithSessionManager(t, ctrl)
 
 	// Create test session expectations are already set in setupTestInjectorWithSessionManager
 
@@ -50,7 +50,7 @@ func TestChannelFacade_Integration_SupervisorRouting(t *testing.T) {
 		assert.Error(t, err, "should error without supervisor")
 		// When there's an error, result might be empty/nil, so only check Handled if result is valid
 		if err != nil {
-			return // Test passed - error was returned as expected
+			return
 		}
 		assert.False(t, result.Handled, "should not be handled without supervisor")
 	})
