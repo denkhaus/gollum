@@ -14,6 +14,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/denkhaus/gollum/pkg/prompt"
+	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 type fileStore struct {
@@ -271,7 +272,7 @@ func (f *fileStore) Delete(ctx context.Context, versionedID prompt.VersionedProm
 	// Load the prompt first to check if it's builtin
 	p, err := f.Load(ctx, versionedID)
 	if err != nil {
-		return err
+		return shared.WrapInternal(err, "failed to load prompt for deletion")
 	}
 	if p == nil {
 		return nil
@@ -288,7 +289,7 @@ func (f *fileStore) Delete(ctx context.Context, versionedID prompt.VersionedProm
 		// Delete all versions
 		versions, err := f.ListVersions(ctx, baseID)
 		if err != nil {
-			return err
+			return shared.WrapInternal(err, "failed to list prompt versions for deletion")
 		}
 
 		for _, v := range versions {
@@ -605,7 +606,7 @@ func (f *fileStore) SetLatestAlias(ctx context.Context, baseID prompt.PromptID, 
 	// Find the target prompt
 	targetPrompt, err := f.Load(ctx, targetVersionedID)
 	if err != nil {
-		return err
+		return shared.WrapInternal(err, "failed to load prompt for setting latest alias")
 	}
 	if targetPrompt == nil {
 		return ErrPromptNotFound
@@ -616,7 +617,7 @@ func (f *fileStore) SetLatestAlias(ctx context.Context, baseID prompt.PromptID, 
 	// List all versions
 	versions, err := f.ListVersions(ctx, baseID)
 	if err != nil {
-		return err
+		return shared.WrapInternal(err, "failed to list prompt versions for setting latest alias")
 	}
 
 	// Remove @latest tag from all versions
@@ -634,7 +635,7 @@ func (f *fileStore) SetLatestAlias(ctx context.Context, baseID prompt.PromptID, 
 
 		// Write updated file
 		if err := f.writePromptLocked(v); err != nil {
-			return err
+			return shared.WrapInternal(err, "failed to write prompt version")
 		}
 
 		// Update cache
@@ -654,7 +655,7 @@ func (f *fileStore) SetLatestAlias(ctx context.Context, baseID prompt.PromptID, 
 
 	// Write target prompt
 	if err := f.writePromptLocked(targetPrompt); err != nil {
-		return err
+		return shared.WrapInternal(err, "failed to write target prompt with latest alias")
 	}
 
 	// Update cache
