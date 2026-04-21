@@ -7,21 +7,26 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/testutil"
 	"github.com/denkhaus/gollum/pkg/workspace"
-	"github.com/google/uuid"
+	"go.uber.org/mock/gomock"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
 func TestExtensionService_NewExtensionServiceWithWorkspace(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	testutil.SetupMockLoggerPassThrough(mockLogger)
+
 	injector := do.New()
 
 	// Mock required dependencies
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) {
-		return &mockLogger{}, nil
+		return mockLogger, nil
 	})
 	do.Provide(injector, func(i do.Injector) (DIGateway, error) {
 		return NewGatewayService(i)
@@ -54,43 +59,6 @@ func TestExtensionService_GetFuncRunner(t *testing.T) {
 }
 
 // Mocks
-// TODO use generated mocks if possible. If not, due dependency issues, add note here why a custom mock is needed.
-type mockLogger struct{}
-
-func (m *mockLogger) Info(msg string, fields ...zap.Field)                              {}
-func (m *mockLogger) Infof(template string, args ...interface{})                        {}
-func (m *mockLogger) Error(msg string, fields ...zap.Field)                             {}
-func (m *mockLogger) Errorf(template string, args ...interface{})                       {}
-func (m *mockLogger) Debug(msg string, fields ...zap.Field)                             {}
-func (m *mockLogger) Debugf(template string, args ...interface{})                       {}
-func (m *mockLogger) Warn(msg string, fields ...zap.Field)                              {}
-func (m *mockLogger) Warnf(template string, args ...interface{})                        {}
-func (m *mockLogger) InfoWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)  {}
-func (m *mockLogger) ErrorWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {}
-func (m *mockLogger) DebugWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {}
-func (m *mockLogger) WarnWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)  {}
-func (m *mockLogger) GetLogger() *zap.Logger                                            { return nil }
-func (m *mockLogger) GetLogs(filter logger.LogFilter) []logger.LogEntry                 { return nil }
-func (m *mockLogger) GetLogStats() map[string]interface{}                               { return nil }
-func (m *mockLogger) SetTUIMode(enabled bool)                                           {}
-func (m *mockLogger) IsTUIMode() bool                                                   { return false }
-func (m *mockLogger) EnableFileLogging(gollumDir string, sessionID uuid.UUID) error     { return nil }
-func (m *mockLogger) CloseFileLogging() error                                           { return nil }
-func (m *mockLogger) Flush() error                                                      { return nil }
-func (m *mockLogger) InfoWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {
-}
-func (m *mockLogger) DebugWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {
-}
-func (m *mockLogger) ErrorWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {
-}
-func (m *mockLogger) WarnWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {
-}
-func (m *mockLogger) InfoWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field)  {}
-func (m *mockLogger) ErrorWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {}
-func (m *mockLogger) DebugWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {}
-func (m *mockLogger) WarnWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field)  {}
-func (m *mockLogger) SetLogForwarder(forwarder shared.LogForwarder)                               {}
-
 type mockWorkspace struct{}
 
 func (m *mockWorkspace) GetCurrentWorkspace() string   { return "/test/workspace" }
@@ -124,11 +92,17 @@ func Init() error {
 	require.NoError(t, err)
 
 	// Setup DI container
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	testutil.SetupMockLoggerPassThrough(mockLogger)
+
 	injector := do.New()
 
 	// Mock workspace to return our temp directory
 	do.Provide(injector, func(i do.Injector) (logger.LoggerService, error) {
-		return &mockLogger{}, nil
+		return mockLogger, nil
 	})
 	do.Provide(injector, func(i do.Injector) (workspace.Service, error) {
 		return &mockWorkspaceWithDir{dir: tempDir}, nil
