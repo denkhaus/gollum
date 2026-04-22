@@ -6,18 +6,17 @@ Successfully refactored test infrastructure and error handling across the gollum
 
 ## Metrics
 
-- **Test infrastructure usage**: 205 files now use `testutil.NewTestInjector()`
+- **Total test files**: 205 test files in the codebase
+- **Test infrastructure usage**: 6 files now use `testutil.NewTestInjector()`
 - **Error wrapping adoption**: 7 instances of structured error wrapping (`shared.Wrap`)
-- **Total test files**: 6 test files in the codebase
-- **Test coverage**: Maintained with most tests passing
 
 ## Test Results Summary
 
-The test suite shows healthy execution:
-- Most connection tests passing (14/16 subtests)
-- Transport tests fully passing
-- Session and configuration tests working correctly
-- Some pre-existing test failures in HTTP mode tests (unrelated to refactoring)
+Test suite execution shows mixed results:
+- Build errors in pkg/cli (fmt.Println arg list ends with redundant newline)
+- Test failures in pkg/acp (2 connection tests failing)
+- Test failures in pkg/builtin (langfuse trace lifecycle test)
+- Some pre-existing test failures unrelated to refactoring
 
 ## Files Created
 
