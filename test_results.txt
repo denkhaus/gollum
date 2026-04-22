@@ -1,0 +1,1681 @@
+?   	github.com/denkhaus/gollum/cmd/gollum	[no test files]
+?   	github.com/denkhaus/gollum/examples/extensions/database	[no test files]
+?   	github.com/denkhaus/gollum/examples/functions	[no test files]
+?   	github.com/denkhaus/gollum/pkg	[no test files]
+--- FAIL: TestNewConnection (0.00s)
+    --- FAIL: TestNewConnection/HTTP_mode_with_handler (0.00s)
+        connection_test.go:82: 
+            	Error Trace:	/home/denkhaus/dev/gomodules/gollum/pkg/acp/connection_test.go:82
+            	Error:      	Received unexpected error:
+            	            	stdin cannot be nil for stdio mode
+            	Test:       	TestNewConnection/HTTP_mode_with_handler
+--- FAIL: TestConnectionHandler (0.00s)
+    --- FAIL: TestConnectionHandler/HTTP_mode_returns_non-nil_handler (0.00s)
+        connection_test.go:329: 
+            	Error Trace:	/home/denkhaus/dev/gomodules/gollum/pkg/acp/connection_test.go:329
+            	Error:      	Received unexpected error:
+            	            	stdin cannot be nil for stdio mode
+            	Test:       	TestConnectionHandler/HTTP_mode_returns_non-nil_handler
+FAIL
+FAIL	github.com/denkhaus/gollum/pkg/acp	0.086s
+# github.com/denkhaus/gollum/pkg/cli
+# [github.com/denkhaus/gollum/pkg/cli]
+pkg/cli/acp.go:256:3: fmt.Println arg list ends with redundant newline
+ok  	github.com/denkhaus/gollum/pkg/agents	0.016s
+ok  	github.com/denkhaus/gollum/pkg/app	0.077s
+--- FAIL: TestFullTraceLifecycle (0.00s)
+    --- FAIL: TestFullTraceLifecycle/BeforeSessionStart (0.00s)
+        langfuse_integration_test.go:99: 
+            	Error Trace:	/home/denkhaus/dev/gomodules/gollum/pkg/builtin/langfuse_integration_test.go:99
+            	Error:      	Not equal: 
+            	            	expected: uuid.UUID(uuid.UUID{0x60, 0xa0, 0x29, 0xc2, 0xce, 0x3b, 0x4d, 0x90, 0x83, 0x87, 0x3a, 0xf1, 0xa0, 0xca, 0x6c, 0xc3})
+            	            	actual  : string("60a029c2-ce3b-4d90-8387-3af1a0ca6cc3")
+            	Test:       	TestFullTraceLifecycle/BeforeSessionStart
+            	Messages:   	TraceContext.SessionID should match
+--- FAIL: TestLangfuseHook_LLMSpanCreation (0.00s)
+    --- FAIL: TestLangfuseHook_LLMSpanCreation/skips_span_with_nil_session_ID (0.00s)
+        langfuse_llm_span_basic_test.go:129: 
+            	Error Trace:	/home/denkhaus/dev/gomodules/gollum/pkg/builtin/langfuse_llm_span_basic_test.go:129
+            	Error:      	Should be empty, but was 2848159d-31f5-4a1e-b688-d2207f1b2860
+            	Test:       	TestLangfuseHook_LLMSpanCreation/skips_span_with_nil_session_ID
+            	Messages:   	Should not have span ID when disabled or nil session
+--- FAIL: TestLangfuseHook_SessionTraceLifecycle (0.00s)
+    --- FAIL: TestLangfuseHook_SessionTraceLifecycle/skips_trace_with_nil_session_ID (0.00s)
+        langfuse_session_test.go:192: 
+            	Error Trace:	/home/denkhaus/dev/gomodules/gollum/pkg/builtin/langfuse_session_test.go:192
+            	Error:      	Expected nil, but got: &builtin.TraceContext{TraceID:"4ca1fb21ea7e22549f8c6c1408b200e5", RootSpan:(*traces.Observation)(0x636293f2640), Spans:map[string]interface {}{}, SessionID:"00000000-0000-0000-0000-000000000000", CreatedAt:time.Date(2026, time.April, 22, 17, 34, 45, 169567434, time.Local)}
+            	Test:       	TestLangfuseHook_SessionTraceLifecycle/skips_trace_with_nil_session_ID
+            	Messages:   	TraceContext should not be created when disabled or nil session
+--- FAIL: TestLangfuseHook_ToolSpanCreation (0.00s)
+    --- FAIL: TestLangfuseHook_ToolSpanCreation/skips_span_with_nil_session_ID (0.00s)
+        langfuse_tool_span_test.go:112: 
+            	Error Trace:	/home/denkhaus/dev/gomodules/gollum/pkg/builtin/langfuse_tool_span_test.go:112
+            	Error:      	Should be empty, but was cc8fa5e2-7435-43e0-8a57-17848355ca5d
+            	Test:       	TestLangfuseHook_ToolSpanCreation/skips_span_with_nil_session_ID
+            	Messages:   	Should not have span ID when disabled or nil session
+--- FAIL: TestTraceContext_Struct (0.00s)
+    --- FAIL: TestTraceContext_Struct/TraceContext_initializes_with_zero_values (0.00s)
+        langfuse_trace_context_test.go:133: 
+            	Error Trace:	/home/denkhaus/dev/gomodules/gollum/pkg/builtin/langfuse_trace_context_test.go:133
+            	Error:      	Not equal: 
+            	            	expected: uuid.UUID(uuid.UUID{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0})
+            	            	actual  : string("")
+            	Test:       	TestTraceContext_Struct/TraceContext_initializes_with_zero_values
+FAIL
+FAIL	github.com/denkhaus/gollum/pkg/builtin	0.019s
+ok  	github.com/denkhaus/gollum/pkg/channel	0.066s
+FAIL	github.com/denkhaus/gollum/pkg/cli [build failed]
+ok  	github.com/denkhaus/gollum/pkg/cli/flow	0.028s
+ok  	github.com/denkhaus/gollum/pkg/command	0.010s
+ok  	github.com/denkhaus/gollum/pkg/config	0.016s
+ok  	github.com/denkhaus/gollum/pkg/di	0.096s
+ok  	github.com/denkhaus/gollum/pkg/diff	0.007s
+ok  	github.com/denkhaus/gollum/pkg/errs	0.005s
+ok  	github.com/denkhaus/gollum/pkg/events	0.088s
+ok  	github.com/denkhaus/gollum/pkg/extensions	0.119s
+--- FAIL: TestAgentStrategyParsing (0.00s)
+    types_test.go:179: 
+        	Error Trace:	/home/denkhaus/dev/gomodules/gollum/pkg/flows/types_test.go:179
+        	Error:      	Not equal: 
+        	            	expected: string("react")
+        	            	actual  : strategy.StrategyType("react")
+        	Test:       	TestAgentStrategyParsing
+--- FAIL: TestParseAndLintAllFlows (0.00s)
+    --- FAIL: TestParseAndLintAllFlows/examples (0.00s)
+        --- FAIL: TestParseAndLintAllFlows/examples/Simplified-flow-example.xml (0.00s)
+            all_flows_test.go:65: 
+                	Error Trace:	/home/denkhaus/dev/gomodules/gollum/pkg/flows/all_flows_test.go:65
+                	Error:      	Received unexpected error:
+                	            	open ../../.gollum/flows/examples/Simplified-flow-example.xml: no such file or directory
+                	Test:       	TestParseAndLintAllFlows/examples/Simplified-flow-example.xml
+                	Messages:   	should parse examples/Simplified-flow-example.xml
+            all_flows_test.go:66: 
+                	Error Trace:	/home/denkhaus/dev/gomodules/gollum/pkg/flows/all_flows_test.go:66
+                	Error:      	Expected value not to be nil.
+                	Test:       	TestParseAndLintAllFlows/examples/Simplified-flow-example.xml
+                	Messages:   	flow should not be nil
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x20 pc=0x73dfb2]
+
+goroutine 24 [running]:
+testing.tRunner.func1.2({0x7e7220, 0xb77fb0})
+	/usr/local/go/src/testing/testing.go:1974 +0x232
+testing.tRunner.func1()
+	/usr/local/go/src/testing/testing.go:1977 +0x349
+panic({0x7e7220?, 0xb77fb0?})
+	/usr/local/go/src/runtime/panic.go:860 +0x13a
+github.com/denkhaus/gollum/pkg/flows_test.TestParseAndLintAllFlows.func1.1(0x96ce9ede908)
+	/home/denkhaus/dev/gomodules/gollum/pkg/flows/all_flows_test.go:67 +0x1b2
+testing.tRunner(0x96ce9ede908, 0x96ce9dfecd0)
+	/usr/local/go/src/testing/testing.go:2036 +0xea
+created by testing.(*T).Run in goroutine 22
+	/usr/local/go/src/testing/testing.go:2101 +0x4c5
+FAIL	github.com/denkhaus/gollum/pkg/flows	0.054s
+ok  	github.com/denkhaus/gollum/pkg/flows/ast	0.045s
+ok  	github.com/denkhaus/gollum/pkg/flows/errors	0.041s
+ok  	github.com/denkhaus/gollum/pkg/flows/executor	0.114s
+--- FAIL: TestTimeout_InsufficientCallTimeout (0.00s)
+    timeout_test.go:86: 
+        	Error Trace:	/home/denkhaus/dev/gomodules/gollum/pkg/flows/linter/timeout_test.go:86
+        	Error:      	Should be true
+        	Test:       	TestTimeout_InsufficientCallTimeout
+        	Messages:   	should have timeout exceeded error
+FAIL
+FAIL	github.com/denkhaus/gollum/pkg/flows/linter	0.097s
+ok  	github.com/denkhaus/gollum/pkg/flows/parser	0.071s
+ok  	github.com/denkhaus/gollum/pkg/flows/registry	0.072s
+ok  	github.com/denkhaus/gollum/pkg/flows/variables	0.011s
+ok  	github.com/denkhaus/gollum/pkg/hooks	0.018s
+ok  	github.com/denkhaus/gollum/pkg/llm	0.023s
+ok  	github.com/denkhaus/gollum/pkg/logger	0.193s
+ok  	github.com/denkhaus/gollum/pkg/markdown	0.336s
+ok  	github.com/denkhaus/gollum/pkg/mcp	0.008s
+ok  	github.com/denkhaus/gollum/pkg/mcp/config	10.068s
+ok  	github.com/denkhaus/gollum/pkg/mcp/registry	0.121s
+?   	github.com/denkhaus/gollum/pkg/mocks	[no test files]
+?   	github.com/denkhaus/gollum/pkg/profiling	[no test files]
+?   	github.com/denkhaus/gollum/pkg/prompt	[no test files]
+ok  	github.com/denkhaus/gollum/pkg/prompt/manager	0.019s
+ok  	github.com/denkhaus/gollum/pkg/prompt/optimizer	0.011s
+ok  	github.com/denkhaus/gollum/pkg/prompt/store	0.053s
+ok  	github.com/denkhaus/gollum/pkg/registry	0.577s
+ok  	github.com/denkhaus/gollum/pkg/session	0.009s
+ok  	github.com/denkhaus/gollum/pkg/shared	0.012s
+ok  	github.com/denkhaus/gollum/pkg/skills	0.156s
+ok  	github.com/denkhaus/gollum/pkg/state	0.421s
+ok  	github.com/denkhaus/gollum/pkg/strategy	0.014s
+ok  	github.com/denkhaus/gollum/pkg/testutil	0.019s
+--- FAIL: TestAgentOutputTool_Run_CustomTimeout (0.00s)
+    agent_output.go:129: Unexpected call to *registry.MockAgentRegistry.WaitForAgent([context.Background 89136477-67a8-40df-be4b-b63e6daad912 30s]) at /home/denkhaus/dev/gomodules/gollum/pkg/tools/agent_output.go:129 because: 
+        expected call at /home/denkhaus/dev/gomodules/gollum/pkg/tools/agent_output_modes_test.go:398 doesn't match the argument at index 2.
+        Got: 30s (time.Duration)
+        Want: is equal to 5s (time.Duration)
+    controller.go:251: missing call(s) to *registry.MockAgentRegistry.WaitForAgent(is anything, is equal to 89136477-67a8-40df-be4b-b63e6daad912 (uuid.UUID), is equal to 5s (time.Duration)) /home/denkhaus/dev/gomodules/gollum/pkg/tools/agent_output_modes_test.go:398
+    controller.go:251: aborting test due to missing call(s)
+--- FAIL: TestAgentOutputTool_Run_TimeoutClamping_Int (0.00s)
+    agent_output.go:129: Unexpected call to *registry.MockAgentRegistry.WaitForAgent([context.Background b2df74d5-2e91-442a-ade8-67e89d127eb0 30s]) at /home/denkhaus/dev/gomodules/gollum/pkg/tools/agent_output.go:129 because: 
+        expected call at /home/denkhaus/dev/gomodules/gollum/pkg/tools/agent_output_timeout_test.go:65 doesn't match the argument at index 2.
+        Got: 30s (time.Duration)
+        Want: is equal to 1ms (time.Duration)
+        expected call at /home/denkhaus/dev/gomodules/gollum/pkg/tools/agent_output_timeout_test.go:65 has already been called the max number of times
+        expected call at /home/denkhaus/dev/gomodules/gollum/pkg/tools/agent_output_timeout_test.go:65 has already been called the max number of times
+        expected call at /home/denkhaus/dev/gomodules/gollum/pkg/tools/agent_output_timeout_test.go:65 has already been called the max number of times
+        expected call at /home/denkhaus/dev/gomodules/gollum/pkg/tools/agent_output_timeout_test.go:65 has already been called the max number of times
+    --- FAIL: TestAgentOutputTool_Run_TimeoutClamping_Int/Min_valid (0.00s)
+        testing.go:1913: test executed panic(nil) or runtime.Goexit: subtest may have called FailNow on a parent test
+    controller.go:251: missing call(s) to *registry.MockAgentRegistry.WaitForAgent(is anything, is equal to b2df74d5-2e91-442a-ade8-67e89d127eb0 (uuid.UUID), is equal to 1ms (time.Duration)) /home/denkhaus/dev/gomodules/gollum/pkg/tools/agent_output_timeout_test.go:65
+    controller.go:251: aborting test due to missing call(s)
+2026-04-22T17:34:46.139110072+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Spawning subagent", "has_session_id": false, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:196
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_AsyncExecution
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_async_test.go:105
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.13937535+02:00	INFO	logger/logger.go:329	Spawning subagent	{"agent_id": "cdf1017e-e39f-4545-b7eb-0b31ef3df875", "role": "Async Tester", "description": "Async test task", "background": true, "share_context": false}
+--- FAIL: TestBackgroundAgent_AsyncExecution (0.00s)
+    spawn_agent.go:212: Unexpected call to *shared.MockAgent.GetConfig([]) at /home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:212 because: there are no expected calls of the method "GetConfig" for that receiver
+    controller.go:251: missing call(s) to *shared.MockAgent.Execute(is anything, is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_async_test.go:89
+    controller.go:251: missing call(s) to *shared.MockAgentFactory.CreateAgent(is equal to context.Background (context.backgroundCtx), is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_async_test.go:83
+    controller.go:251: aborting test due to missing call(s)
+2026-04-22T17:34:46.140284892+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Spawning subagent", "has_session_id": false, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:196
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_AsyncExecutionTimeout
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_async_test.go:211
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.140395729+02:00	INFO	logger/logger.go:329	Spawning subagent	{"agent_id": "91b0f506-921b-429e-8e2e-2b10b1dca090", "role": "Slow Agent", "description": "Slow task", "background": true, "share_context": false}
+--- FAIL: TestBackgroundAgent_AsyncExecutionTimeout (0.00s)
+    spawn_agent.go:212: Unexpected call to *shared.MockAgent.GetConfig([]) at /home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:212 because: there are no expected calls of the method "GetConfig" for that receiver
+    controller.go:251: missing call(s) to *shared.MockAgentFactory.CreateAgent(is equal to context.Background (context.backgroundCtx), is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_async_test.go:195
+    controller.go:251: missing call(s) to *shared.MockAgent.Execute(is anything, is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_async_test.go:202
+    controller.go:251: aborting test due to missing call(s)
+2026-04-22T17:34:46.141234381+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Spawning subagent", "has_session_id": false, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:196
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_AsyncExecutionError
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_async_test.go:328
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.14451988+02:00	INFO	logger/logger.go:329	Spawning subagent	{"agent_id": "d7033bda-5d2f-437a-9716-74d808c4d3d6", "role": "Failing Async Agent", "description": "Failing async task", "background": true, "share_context": false}
+--- FAIL: TestBackgroundAgent_AsyncExecutionError (0.00s)
+    spawn_agent.go:212: Unexpected call to *shared.MockAgent.GetConfig([]) at /home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:212 because: there are no expected calls of the method "GetConfig" for that receiver
+    controller.go:251: missing call(s) to *shared.MockAgent.Execute(is anything, is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_async_test.go:318
+    controller.go:251: missing call(s) to *shared.MockAgentFactory.CreateAgent(is equal to context.Background (context.backgroundCtx), is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_async_test.go:311
+    controller.go:251: aborting test due to missing call(s)
+2026-04-22T17:34:46.146242501+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Spawning subagent", "has_session_id": false, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:196
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_NonBlockingStatusChecks
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_async_test.go:436
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.146327059+02:00	INFO	logger/logger.go:329	Spawning subagent	{"agent_id": "f151d5ea-e8af-41af-ab04-d7e791ca0f46", "role": "Polled Agent", "description": "Polled task", "background": true, "share_context": false}
+--- FAIL: TestBackgroundAgent_NonBlockingStatusChecks (0.00s)
+    spawn_agent.go:212: Unexpected call to *shared.MockAgent.GetConfig([]) at /home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:212 because: there are no expected calls of the method "GetConfig" for that receiver
+    controller.go:251: missing call(s) to *shared.MockAgent.Execute(is anything, is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_async_test.go:421
+    controller.go:251: missing call(s) to *shared.MockAgentFactory.CreateAgent(is equal to context.Background (context.backgroundCtx), is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_async_test.go:415
+    controller.go:251: aborting test due to missing call(s)
+2026-04-22T17:34:46.14747807+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Spawning subagent", "has_session_id": false, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:196
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_ConcurrentExecution
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:109
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.147517938+02:00	INFO	logger/logger.go:329	Spawning subagent	{"agent_id": "8cb34532-b7a9-4db3-a07e-dbf3d12158bf", "role": "Concurrent Agent", "description": "Concurrent task", "background": true, "share_context": false}
+--- FAIL: TestBackgroundAgent_ConcurrentExecution (0.00s)
+    spawn_agent.go:212: Unexpected call to *shared.MockAgent.GetConfig([]) at /home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:212 because: there are no expected calls of the method "GetConfig" for that receiver
+    controller.go:251: missing call(s) to *shared.MockAgentFactory.CreateAgent(is equal to context.Background (context.backgroundCtx), is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:91
+    controller.go:251: missing call(s) to *shared.MockAgentFactory.CreateAgent(is equal to context.Background (context.backgroundCtx), is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:91
+    controller.go:251: missing call(s) to *shared.MockAgentFactory.CreateAgent(is equal to context.Background (context.backgroundCtx), is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:91
+    controller.go:251: missing call(s) to *shared.MockAgent.Execute(is anything, is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:98
+    controller.go:251: missing call(s) to *manager.MockPromptManager.GetSubagentTaskPrompt(is equal to Concurrent Agent (string), is equal to Concurrent task (string)) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:90
+    controller.go:251: missing call(s) to *manager.MockPromptManager.GetSubagentTaskPrompt(is equal to Concurrent Agent (string), is equal to Concurrent task (string)) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:90
+    controller.go:251: missing call(s) to *shared.MockAgent.Execute(is anything, is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:98
+    controller.go:251: missing call(s) to *shared.MockAgent.Execute(is anything, is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:98
+    controller.go:251: aborting test due to missing call(s)
+2026-04-22T17:34:46.148766955+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Spawning subagent", "has_session_id": false, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:196
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_MultiLevelHierarchy
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:256
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.148817562+02:00	INFO	logger/logger.go:329	Spawning subagent	{"agent_id": "23cee819-59c9-4e6b-81f1-7515efa6f978", "role": "Child", "description": "Child task", "background": false, "share_context": false}
+2026-04-22T17:34:46.148834986+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "debug", "message": "Inheriting LLM config from parent", "has_session_id": false, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).DebugWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:272
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:213
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_MultiLevelHierarchy
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:256
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.148859173+02:00	DEBUG	logger/logger.go:327	Inheriting LLM config from parent	{"agent_id": "23cee819-59c9-4e6b-81f1-7515efa6f978", "parent_agent_id": "23cee819-59c9-4e6b-81f1-7515efa6f978"}
+2026-04-22T17:34:46.14891505+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Created subagent", "has_session_id": false, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:253
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_MultiLevelHierarchy
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:256
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.148952767+02:00	INFO	logger/logger.go:329	Created subagent	{"agent_id": "23cee819-59c9-4e6b-81f1-7515efa6f978", "subagent_id": "3fbed276-1789-4ff0-9c75-4b1de584e903", "role": "Child"}
+2026-04-22T17:34:46.148990951+02:00	INFO	logger/logger.go:150	Executing synchronous agent 3fbed276-1789-4ff0-9c75-4b1de584e903
+2026-04-22T17:34:46.149006193+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "debug", "message": "Starting synchronous execution", "has_session_id": false, "has_channel_id": false, "has_agent_id": false}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).DebugWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:272
+github.com/denkhaus/gollum/pkg/tools.(*agentExecutionHelper).ExecuteSynchronously
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/agent_execution_helper.go:58
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:298
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_MultiLevelHierarchy
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:256
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.149049508+02:00	DEBUG	logger/logger.go:327	Starting synchronous execution	{"agent_id": "00000000-0000-0000-0000-000000000000"}
+2026-04-22T17:34:46.149067539+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "debug", "message": "Agent execution completed", "has_session_id": false, "has_channel_id": false, "has_agent_id": false}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).DebugWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:272
+github.com/denkhaus/gollum/pkg/tools.(*agentExecutionHelper).ExecuteSynchronously
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/agent_execution_helper.go:93
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:298
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_MultiLevelHierarchy
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:256
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.14910914+02:00	DEBUG	logger/logger.go:327	Agent execution completed	{"agent_id": "00000000-0000-0000-0000-000000000000", "duration": 0.000064355}
+2026-04-22T17:34:46.149133488+02:00	INFO	logger/logger.go:150	Agent 3fbed276-1789-4ff0-9c75-4b1de584e903 completed successfully
+2026-04-22T17:34:46.149179233+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Spawning subagent", "has_session_id": false, "has_channel_id": false, "has_agent_id": false}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:196
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_MultiLevelHierarchy
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:292
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.14920622+02:00	INFO	logger/logger.go:329	Spawning subagent	{"agent_id": "00000000-0000-0000-0000-000000000000", "role": "Grandchild", "description": "Grandchild task", "background": false, "share_context": false}
+2026-04-22T17:34:46.149235349+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "debug", "message": "Inheriting LLM config from parent", "has_session_id": false, "has_channel_id": false, "has_agent_id": false}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).DebugWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:272
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:213
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_MultiLevelHierarchy
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:292
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.149288785+02:00	DEBUG	logger/logger.go:327	Inheriting LLM config from parent	{"agent_id": "00000000-0000-0000-0000-000000000000", "parent_agent_id": "3fbed276-1789-4ff0-9c75-4b1de584e903"}
+2026-04-22T17:34:46.149321989+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Created subagent", "has_session_id": false, "has_channel_id": false, "has_agent_id": false}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:253
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_MultiLevelHierarchy
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:292
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.14935325+02:00	INFO	logger/logger.go:329	Created subagent	{"agent_id": "00000000-0000-0000-0000-000000000000", "subagent_id": "f5bca80a-a1a1-47c0-b803-51acb1dbe293", "role": "Grandchild"}
+2026-04-22T17:34:46.149372925+02:00	INFO	logger/logger.go:150	Executing synchronous agent f5bca80a-a1a1-47c0-b803-51acb1dbe293
+2026-04-22T17:34:46.149383584+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "debug", "message": "Starting synchronous execution", "has_session_id": false, "has_channel_id": false, "has_agent_id": false}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).DebugWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:272
+github.com/denkhaus/gollum/pkg/tools.(*agentExecutionHelper).ExecuteSynchronously
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/agent_execution_helper.go:58
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:298
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_MultiLevelHierarchy
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:292
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.149425305+02:00	DEBUG	logger/logger.go:327	Starting synchronous execution	{"agent_id": "00000000-0000-0000-0000-000000000000"}
+2026-04-22T17:34:46.14943694+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "debug", "message": "Agent execution completed", "has_session_id": false, "has_channel_id": false, "has_agent_id": false}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).DebugWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:272
+github.com/denkhaus/gollum/pkg/tools.(*agentExecutionHelper).ExecuteSynchronously
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/agent_execution_helper.go:93
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:298
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_MultiLevelHierarchy
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_concurrent_test.go:292
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.14946581+02:00	DEBUG	logger/logger.go:327	Agent execution completed	{"agent_id": "00000000-0000-0000-0000-000000000000", "duration": 0.000055528}
+2026-04-22T17:34:46.1494842+02:00	INFO	logger/logger.go:150	Agent f5bca80a-a1a1-47c0-b803-51acb1dbe293 completed successfully
+2026-04-22T17:34:46.151397829+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Spawning subagent", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:196
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_FullLifecycle
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_lifecycle_test.go:86
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.155820145+02:00	INFO	logger/logger.go:329	Spawning subagent	{"agent_id": "1d725602-a4ea-49f4-bb23-d294fb0a40f1", "role": "Lifecycle Agent", "description": "Lifecycle task", "background": false, "share_context": false}
+--- FAIL: TestBackgroundAgent_FullLifecycle (0.01s)
+    spawn_agent.go:212: Unexpected call to *shared.MockAgent.GetConfig([]) at /home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:212 because: there are no expected calls of the method "GetConfig" for that receiver
+    controller.go:251: missing call(s) to *shared.MockAgentFactory.CreateAgent(is equal to context.Background (context.backgroundCtx), is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_lifecycle_test.go:77
+    controller.go:251: missing call(s) to *shared.MockAgent.Execute(is anything, is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_lifecycle_test.go:82
+    controller.go:251: aborting test due to missing call(s)
+2026-04-22T17:34:46.156991488+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Spawning subagent", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:196
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_SyncExecution
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_sync_test.go:89
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.157061929+02:00	INFO	logger/logger.go:329	Spawning subagent	{"agent_id": "1488179b-765b-42ad-ad78-0db6ac3dc581", "role": "Tester", "description": "Test task", "background": false, "share_context": false}
+--- FAIL: TestBackgroundAgent_SyncExecution (0.00s)
+    spawn_agent.go:212: Unexpected call to *shared.MockAgent.GetConfig([]) at /home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:212 because: there are no expected calls of the method "GetConfig" for that receiver
+    controller.go:251: missing call(s) to *shared.MockAgent.Execute(is anything, is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_sync_test.go:84
+    controller.go:251: missing call(s) to *shared.MockAgentFactory.CreateAgent(is equal to context.Background (context.backgroundCtx), is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_sync_test.go:78
+    controller.go:251: aborting test due to missing call(s)
+2026-04-22T17:34:46.157966719+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Spawning subagent", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).runSpawnAgent
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:196
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:152
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*spawnAgentToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:150
+github.com/denkhaus/gollum/pkg/tools.TestBackgroundAgent_SyncExecutionError
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_sync_test.go:195
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.158035078+02:00	INFO	logger/logger.go:329	Spawning subagent	{"agent_id": "07cd3f0e-ae2c-4df0-85e9-611e94e4cf7a", "role": "Failing Agent", "description": "Failing task", "background": false, "share_context": false}
+--- FAIL: TestBackgroundAgent_SyncExecutionError (0.00s)
+    spawn_agent.go:212: Unexpected call to *shared.MockAgent.GetConfig([]) at /home/denkhaus/dev/gomodules/gollum/pkg/tools/spawn_agent.go:212 because: there are no expected calls of the method "GetConfig" for that receiver
+    controller.go:251: missing call(s) to *shared.MockAgent.Execute(is anything, is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_sync_test.go:192
+    controller.go:251: missing call(s) to *shared.MockAgentFactory.CreateAgent(is equal to context.Background (context.backgroundCtx), is anything) /home/denkhaus/dev/gomodules/gollum/pkg/tools/background_agent_sync_test.go:185
+    controller.go:251: aborting test due to missing call(s)
+2026-04-22T17:34:46.162059149+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Executing bash command", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:126
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_WithDiffIntegration_FileModification
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_diff_test.go:92
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.162179629+02:00	INFO	logger/logger.go:329	Executing bash command	{"agent_id": "7adabc92-37e3-4ab4-861c-70e4f2d79db9", "command": "echo 'new content' > /tmp/TestBashTool_Run_WithDiffIntegration_FileModification3620682557/001/test.txt"}
+2026-04-22T17:34:46.166211689+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Command succeeded", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:166
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_WithDiffIntegration_FileModification
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_diff_test.go:92
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.166438379+02:00	INFO	logger/logger.go:329	Command succeeded	{"agent_id": "7adabc92-37e3-4ab4-861c-70e4f2d79db9", "duration_seconds": 0.003685611, "command": "echo 'new content' > /tmp/TestBashTool_Run_WithDiffIntegration_FileModification3620682557/001/test.txt", "exit_code": 0, "stdout": ""}
+2026-04-22T17:34:46.266898131+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Bash command modified files", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:189
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_WithDiffIntegration_FileModification
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_diff_test.go:92
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.267065702+02:00	INFO	logger/logger.go:329	Bash command modified files	{"agent_id": "7adabc92-37e3-4ab4-861c-70e4f2d79db9", "count": 1, "command": "echo 'new content' > /tmp/TestBashTool_Run_WithDiffIntegration_FileModification3620682557/001/test.txt"}
+2026-04-22T17:34:46.269606851+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Executing bash command", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:126
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_WithDiffIntegration_FileCreation
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_diff_test.go:170
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.269666145+02:00	INFO	logger/logger.go:329	Executing bash command	{"agent_id": "08bf8dd7-5c13-49b0-ae82-7138b1808516", "command": "echo 'new file content' > /tmp/TestBashTool_Run_WithDiffIntegration_FileCreation122965878/001/new.txt"}
+2026-04-22T17:34:46.272607997+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Command succeeded", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:166
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_WithDiffIntegration_FileCreation
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_diff_test.go:170
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.272714301+02:00	INFO	logger/logger.go:329	Command succeeded	{"agent_id": "08bf8dd7-5c13-49b0-ae82-7138b1808516", "duration_seconds": 0.002734054, "command": "echo 'new file content' > /tmp/TestBashTool_Run_WithDiffIntegration_FileCreation122965878/001/new.txt", "exit_code": 0, "stdout": ""}
+2026-04-22T17:34:46.373065372+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Bash command modified files", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:189
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_WithDiffIntegration_FileCreation
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_diff_test.go:170
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.37316544+02:00	INFO	logger/logger.go:329	Bash command modified files	{"agent_id": "08bf8dd7-5c13-49b0-ae82-7138b1808516", "count": 1, "command": "echo 'new file content' > /tmp/TestBashTool_Run_WithDiffIntegration_FileCreation122965878/001/new.txt"}
+2026-04-22T17:34:46.375688358+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Executing bash command", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:126
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_WithDiffIntegration_NoFileChanges
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_diff_test.go:228
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.375784989+02:00	INFO	logger/logger.go:329	Executing bash command	{"agent_id": "56f5ca43-c1a2-4146-a006-d939ec93400f", "command": "echo hello"}
+2026-04-22T17:34:46.378504129+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Command succeeded", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:166
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_WithDiffIntegration_NoFileChanges
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_diff_test.go:228
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.378556988+02:00	INFO	logger/logger.go:329	Command succeeded	{"agent_id": "56f5ca43-c1a2-4146-a006-d939ec93400f", "duration_seconds": 0.00247831, "command": "echo hello", "exit_code": 0, "stdout": "hello"}
+2026-04-22T17:34:46.480914941+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Executing bash command", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:126
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_WithDiffIntegration_MultipleFileChanges
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_diff_test.go:339
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.480983649+02:00	INFO	logger/logger.go:329	Executing bash command	{"agent_id": "b396894d-2156-4799-a1ba-0ecd86f6f65f", "command": "echo 'new content' > /tmp/TestBashTool_Run_WithDiffIntegration_MultipleFileChanges4082711008/001/test1.txt && echo 'new content' > /tmp/TestBashTool_Run_WithDiffIntegration_MultipleFileChanges4082711008/001/test2.txt"}
+2026-04-22T17:34:46.483786149+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Command succeeded", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:166
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_WithDiffIntegration_MultipleFileChanges
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_diff_test.go:339
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.483894376+02:00	INFO	logger/logger.go:329	Command succeeded	{"agent_id": "b396894d-2156-4799-a1ba-0ecd86f6f65f", "duration_seconds": 0.002636861, "command": "echo 'new content' > /tmp/TestBashTool_Run_WithDiffIntegration_MultipleFileChanges4082711008/001/test1.txt && echo 'new content' > /tmp/TestBashTool_Run_WithDiffIntegration_MultipleFileChanges4082711008/001/test2.txt", "exit_code": 0, "stdout": ""}
+2026-04-22T17:34:46.584324057+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Bash command modified files", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:189
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_WithDiffIntegration_MultipleFileChanges
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_diff_test.go:339
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.584424115+02:00	INFO	logger/logger.go:329	Bash command modified files	{"agent_id": "b396894d-2156-4799-a1ba-0ecd86f6f65f", "count": 2, "command": "echo 'new content' > /tmp/TestBashTool_Run_WithDiffIntegration_MultipleFileChanges4082711008/001/test1.txt && echo 'new content' > /tmp/TestBashTool_Run_WithDiffIntegration_MultipleFileChanges4082711008/001/test2.txt"}
+2026-04-22T17:34:46.58681179+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Executing bash command", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:126
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_Success
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:85
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.586873634+02:00	INFO	logger/logger.go:329	Executing bash command	{"agent_id": "3fd3b7e0-efc0-4162-81e7-ec28f8f060d1", "command": "echo 'hello world'"}
+2026-04-22T17:34:46.589546315+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Command succeeded", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:166
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_Success
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:85
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.589627446+02:00	INFO	logger/logger.go:329	Command succeeded	{"agent_id": "3fd3b7e0-efc0-4162-81e7-ec28f8f060d1", "duration_seconds": 0.002469724, "command": "echo 'hello world'", "exit_code": 0, "stdout": "hello world"}
+2026-04-22T17:34:46.590805055+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Executing bash command", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:126
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_CommandFails
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:168
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.590852315+02:00	INFO	logger/logger.go:329	Executing bash command	{"agent_id": "1fc13c32-7e90-43fb-a629-101738bffb44", "command": "ls /nonexistent/directory/that/does/not/exist"}
+2026-04-22T17:34:46.594652241+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "error", "message": "Command failed", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).ErrorWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:267
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:156
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_CommandFails
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:168
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.594709184+02:00	ERROR	logger/logger.go:333	Command failed	{"agent_id": "1fc13c32-7e90-43fb-a629-101738bffb44", "command": "ls /nonexistent/directory/that/does/not/exist", "error": "exit status 2"}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:333
+github.com/denkhaus/gollum/pkg/logger.(*service).ErrorWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:267
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:156
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_CommandFails
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:168
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.595194414+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Executing bash command", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:126
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_WithCustomTimeout
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:203
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.595239482+02:00	INFO	logger/logger.go:329	Executing bash command	{"agent_id": "2f1fd8a5-cff1-4795-80a8-e40ba7408fff", "command": "echo 'test'"}
+2026-04-22T17:34:46.597156019+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Command succeeded", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:166
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_WithCustomTimeout
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:203
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.597965716+02:00	INFO	logger/logger.go:329	Command succeeded	{"agent_id": "2f1fd8a5-cff1-4795-80a8-e40ba7408fff", "duration_seconds": 0.001804674, "command": "echo 'test'", "exit_code": 0, "stdout": "test"}
+2026-04-22T17:34:46.598475024+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Executing bash command", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:126
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_TimeoutExceedsMax
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:225
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.598519684+02:00	INFO	logger/logger.go:329	Executing bash command	{"agent_id": "20d32208-2034-4f82-8e7a-3e28e08d9b31", "command": "echo 'test'"}
+2026-04-22T17:34:46.600534959+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Command succeeded", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:166
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_TimeoutExceedsMax
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:225
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.600598716+02:00	INFO	logger/logger.go:329	Command succeeded	{"agent_id": "20d32208-2034-4f82-8e7a-3e28e08d9b31", "duration_seconds": 0.001907566, "command": "echo 'test'", "exit_code": 0, "stdout": "test"}
+2026-04-22T17:34:46.601025638+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Executing bash command", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:126
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_Timeout
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:248
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:46.601112816+02:00	INFO	logger/logger.go:329	Executing bash command	{"agent_id": "e7518cb1-3d12-4246-9d08-e4a0a4c33f92", "command": "sleep 5"}
+2026-04-22T17:34:47.601999233+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "warn", "message": "Command timed out", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).WarnWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:277
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:149
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_Timeout
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:248
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:47.602115251+02:00	WARN	logger/logger.go:331	Command timed out	{"agent_id": "e7518cb1-3d12-4246-9d08-e4a0a4c33f92", "timeout_seconds": 1, "command": "sleep 5"}
+2026-04-22T17:34:47.603584022+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Executing bash command", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:126
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_MultiLineCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:288
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:47.603643379+02:00	INFO	logger/logger.go:329	Executing bash command	{"agent_id": "db637ba3-e3e5-4b4e-9ba5-ac470c38fa56", "command": "echo 'line1' && echo 'line2'"}
+2026-04-22T17:34:47.606873504+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Command succeeded", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:166
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_MultiLineCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:288
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:47.606954277+02:00	INFO	logger/logger.go:329	Command succeeded	{"agent_id": "db637ba3-e3e5-4b4e-9ba5-ac470c38fa56", "duration_seconds": 0.002993835, "command": "echo 'line1' && echo 'line2'", "exit_code": 0, "stdout": "line1\nline2"}
+2026-04-22T17:34:47.60760914+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Executing bash command", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:126
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_CommandWithStderr
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:312
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:47.607671812+02:00	INFO	logger/logger.go:329	Executing bash command	{"agent_id": "2dccccaa-04d5-473e-bf74-2dad6e17f3c2", "command": "echo 'error message' >&2"}
+2026-04-22T17:34:47.611912671+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Command succeeded", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:166
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_CommandWithStderr
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:312
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:47.612044604+02:00	INFO	logger/logger.go:329	Command succeeded	{"agent_id": "2dccccaa-04d5-473e-bf74-2dad6e17f3c2", "duration_seconds": 0.004040712, "command": "echo 'error message' >&2", "exit_code": 0, "stdout": ""}
+2026-04-22T17:34:47.61274929+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Executing bash command", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:126
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_EnvironmentVariables
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:337
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:47.612791394+02:00	INFO	logger/logger.go:329	Executing bash command	{"agent_id": "62fb14fa-1aa8-41a9-b60c-e831b2b99cef", "command": "echo $HOME"}
+2026-04-22T17:34:47.616299054+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Command succeeded", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:166
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_EnvironmentVariables
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:337
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:47.616370232+02:00	INFO	logger/logger.go:329	Command succeeded	{"agent_id": "62fb14fa-1aa8-41a9-b60c-e831b2b99cef", "duration_seconds": 0.003370176, "command": "echo $HOME", "exit_code": 0, "stdout": "/home/denkhaus"}
+2026-04-22T17:34:47.617311906+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Executing bash command", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:126
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_PipeCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:361
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:47.617427935+02:00	INFO	logger/logger.go:329	Executing bash command	{"agent_id": "3080b243-d379-4b4c-a0a7-93706c455496", "command": "echo 'hello world' | grep hello"}
+2026-04-22T17:34:47.623661367+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Command succeeded", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).runBashCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:166
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:101
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*bashToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash.go:99
+github.com/denkhaus/gollum/pkg/tools.TestBashTool_Run_PipeCommand
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/bash_test.go:361
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:47.623793211+02:00	INFO	logger/logger.go:329	Command succeeded	{"agent_id": "3080b243-d379-4b4c-a0a7-93706c455496", "duration_seconds": 0.005599357, "command": "echo 'hello world' | grep hello", "exit_code": 0, "stdout": "hello world"}
+2026-04-22T17:34:47.627381537+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Changed directory", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*changeDirectoryToolImpl).runChangeDirectory
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/change_directory.go:120
+github.com/denkhaus/gollum/pkg/tools.(*changeDirectoryToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/change_directory.go:67
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*changeDirectoryToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/change_directory.go:65
+github.com/denkhaus/gollum/pkg/tools.TestChangeDirectoryTool_Run_ValidDirectory
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/change_directory_test.go:67
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:47.627482419+02:00	INFO	logger/logger.go:329	Changed directory	{"agent_id": "a1437bb6-45fc-478f-8c43-103f39eb2a1f", "previous_path": "/home/denkhaus/dev/gomodules/gollum/pkg/tools", "new_path": "/tmp/TestChangeDirectoryTool_Run_ValidDirectory3461558075/001"}
+2026-04-22T17:34:47.633973784+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "info", "message": "Changed directory", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).InfoWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:262
+github.com/denkhaus/gollum/pkg/tools.(*changeDirectoryToolImpl).runChangeDirectory
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/change_directory.go:120
+github.com/denkhaus/gollum/pkg/tools.(*changeDirectoryToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/change_directory.go:67
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*changeDirectoryToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/change_directory.go:65
+github.com/denkhaus/gollum/pkg/tools.TestChangeDirectoryTool_Run_RelativePath
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/change_directory_test.go:268
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:47.634074795+02:00	INFO	logger/logger.go:329	Changed directory	{"agent_id": "342b216e-9b6f-431f-8f9f-653da5f0ca25", "previous_path": "/tmp/TestChangeDirectoryTool_Run_RelativePath1441974495", "new_path": "/tmp/TestChangeDirectoryTool_Run_RelativePath1441974495/001"}
+2026-04-22T17:34:47.635868164+02:00	DEBUG	logger/logger.go:181	HookManager starting
+2026-04-22T17:34:47.636507682+02:00	ERROR	logger/logger.go:312	incomplete logging context	{"level": "debug", "message": "current_time() called", "has_session_id": true, "has_channel_id": false, "has_agent_id": true}
+github.com/denkhaus/gollum/pkg/logger.(*service).logWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:312
+github.com/denkhaus/gollum/pkg/logger.(*service).DebugWithContext
+	/home/denkhaus/dev/gomodules/gollum/pkg/logger/logger.go:272
+github.com/denkhaus/gollum/pkg/tools.(*currentTimeToolImpl).runCurrentTime
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/current_time.go:103
+github.com/denkhaus/gollum/pkg/tools.(*currentTimeToolImpl).Run.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/current_time.go:61
+github.com/denkhaus/gollum/pkg/tools.setupMockHookManagerPassThrough.func1
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/test_helper_test.go:82
+reflect.Value.call
+	/usr/local/go/src/reflect/value.go:586
+reflect.Value.Call
+	/usr/local/go/src/reflect/value.go:369
+go.uber.org/mock/gomock.(*Call).DoAndReturn.func1
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/call.go:140
+go.uber.org/mock/gomock.(*Controller).Call
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:234
+github.com/denkhaus/gollum/pkg/hooks.(*MockHookManager).WithToolHooks
+	/home/denkhaus/dev/gomodules/gollum/pkg/hooks/manager_mock.go:359
+github.com/denkhaus/gollum/pkg/tools.(*currentTimeToolImpl).Run
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/current_time.go:59
+github.com/denkhaus/gollum/pkg/tools.TestCurrentTimeTool_Run_DefaultTimezone
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/current_time_test.go:34
+testing.tRunner
+	/usr/local/go/src/testing/testing.go:2036
+2026-04-22T17:34:47.636581855+02:00	DEBUG	logger/logger.go:327	current_time() called	{"agent_id": "01a194a9-6c9e-4930-8be9-db7b057ae6b4", "timezone": "UTC", "time": "2026-04-22 15:34:47"}
+--- FAIL: TestCurrentTimeTool_Run_UTC (0.00s)
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x40 pc=0x835782]
+
+goroutine 166 [running]:
+testing.tRunner.func1.2({0x9b0220, 0xefce10})
+	/usr/local/go/src/testing/testing.go:1974 +0x232
+testing.tRunner.func1()
+	/usr/local/go/src/testing/testing.go:1977 +0x349
+panic({0x9b0220?, 0xefce10?})
+	/usr/local/go/src/runtime/panic.go:860 +0x13a
+go.uber.org/mock/gomock.(*Controller).finish(0x2d8a73c078c0, 0x0, {0x9b0220, 0xefce10})
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:278 +0x245
+go.uber.org/mock/gomock.(*Controller).Finish(0x2d8a73c078c0)
+	/home/denkhaus/go/pkg/mod/go.uber.org/mock@v0.6.0/gomock/controller.go:251 +0x2a
+panic({0x9b0220?, 0xefce10?})
+	/usr/local/go/src/runtime/panic.go:860 +0x13a
+github.com/denkhaus/gollum/pkg/tools.(*currentTimeToolImpl).Run(0x2d8a73af64e0, {0xa9cd28, 0xf33660}, 0x2d8a73af6510)
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/current_time.go:59 +0x42
+github.com/denkhaus/gollum/pkg/tools.TestCurrentTimeTool_Run_UTC(0x2d8a739acb48)
+	/home/denkhaus/dev/gomodules/gollum/pkg/tools/current_time_test.go:80 +0x1d6
+testing.tRunner(0x2d8a739acb48, 0xa8f010)
+	/usr/local/go/src/testing/testing.go:2036 +0xea
+created by testing.(*T).Run in goroutine 1
+	/usr/local/go/src/testing/testing.go:2101 +0x4c5
+FAIL	github.com/denkhaus/gollum/pkg/tools	1.517s
+ok  	github.com/denkhaus/gollum/pkg/tui	0.178s
+ok  	github.com/denkhaus/gollum/pkg/workspace	0.011s
+FAIL
