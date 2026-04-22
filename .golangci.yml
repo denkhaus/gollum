@@ -20,8 +20,22 @@ linters:
     - revive
     - goconst
     - forbidigo
+    - errorlint  # Check that errors are wrapped
+    - wrapcheck  # Check that errors returned from external packages are wrapped
 
 formatters:
   enable:
     - gofmt
     - goimports
+
+linters-settings:
+  errorlint:
+    errorf: true
+    asserts: true
+    comparison: true
+
+  wrapcheck:
+    # Ignore these packages as they don't need wrapping
+    ignoreSigs:
+      - fmt.Errorf
+      - errors.New
