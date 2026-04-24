@@ -720,26 +720,11 @@ type FlowExecutionResult struct {
 	Outputs map[string]any
 }
 
-// Executor is an interface for executing flows (implemented by executor package to avoid circular imports)
+// Executor is an interface for executing flows.
+// Implementations should be provided via dependency injection.
 type Executor interface {
 	// Execute executes a flow with the given inputs and returns the result
 	Execute(ctx context.Context, flow *Flow, inputs map[string]any) (*FlowExecutionResult, error)
-}
-
-// executor is set by the executor package to provide the actual implementation
-var executor Executor
-
-// RegisterExecutor registers the executor implementation (called by executor package init)
-func RegisterExecutor(e Executor) {
-	executor = e
-}
-
-// Execute executes a flow using the registered executor
-func (f *Flow) Execute(ctx context.Context, inputs map[string]any) (*FlowExecutionResult, error) {
-	if executor == nil {
-		return nil, fmt.Errorf("executor not initialized - import executor package to enable flow execution")
-	}
-	return executor.Execute(ctx, f, inputs)
 }
 
 // Lint runs all linter phases on a flow

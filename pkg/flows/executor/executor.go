@@ -171,10 +171,13 @@ type FlowExecutorInstance interface {
 	Close() error
 }
 
-// FlowExecutorService defines the DI service that creates executor instances
+// FlowExecutorService defines the DI service that creates and executes flow instances
 type FlowExecutorService interface {
 	// New creates a new executor instance for a flow
 	New(flow *flows.Flow) FlowExecutorInstance
+
+	// Execute executes a flow with the given inputs and returns the result
+	Execute(ctx context.Context, flow *flows.Flow, inputs map[string]any) (*flows.FlowExecutionResult, error)
 }
 
 // ErrorContext holds error lifecycle information
@@ -281,6 +284,42 @@ func (p *flowExecutorServiceImpl) New(flow *flows.Flow) FlowExecutorInstance {
 		strategyBuilder:   p.strategyBuilder,
 		clientProvider:    p.clientProvider,
 	}
+}
+
+// Execute executes a flow with the given inputs and returns the result
+func (p *flowExecutorServiceImpl) Execute(ctx context.Context, flow *flows.Flow, inputs map[string]any) (*flows.FlowExecutionResult, error) {
+	// Create executor instance for the flow
+	instance := p.New(flow)
+
+	// Convert inputs to string map
+	stringInputs := make(map[string]string)
+	for key, val := range inputs {
+		stringInputs[key] = shared.AnyToString(val)
+	}
+
+	// Set inputs
+	if err := instance.SetInput(stringInputs); err != nil {
+		return nil, fmt.Errorf("failed to set inputs: %w", err)
+	}
+
+	// Validate flow
+	if err := instance.Validate(); err != nil {
+		return nil, fmt.Errorf("flow validation failed: %w", err)
+	}
+
+	// Execute flow
+	result, err := instance.Run()
+	if err != nil {
+		return nil, fmt.Errorf("flow execution failed: %w", err)
+	}
+
+	// Close instance to release resources
+	defer instance.Close()
+
+	// Convert result to flows.FlowExecutionResult
+	return &flows.FlowExecutionResult{
+		Outputs: result.Outputs,
+	}, nil
 }
 
 // SetInput sets input field values with validation

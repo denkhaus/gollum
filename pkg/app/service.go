@@ -108,9 +108,9 @@ func (p *applicationServiceImpl) Run(ctx context.Context) error {
 	// Check for default flow first
 	defaultFlow, err := p.flowRegistry.GetDefaultFlow()
 	if err == nil && defaultFlow != nil {
-		// Default flow found, execute it using flow.Execute()
+		// Default flow found, execute it using flowExecutorService
 		p.logService.Infof("Default flow found: %s", defaultFlow.Name)
-		result, err := defaultFlow.Execute(ctx, make(map[string]any))
+		result, err := p.flowExecutorService.Execute(ctx, defaultFlow, make(map[string]any))
 		if err != nil {
 			return fmt.Errorf("default flow execution failed: %w", err)
 		}
