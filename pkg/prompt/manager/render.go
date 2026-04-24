@@ -161,5 +161,13 @@ func (p *promptManager) buildTemplateData(renderCtx *prompt.RenderContext) map[s
 		data["Workspace"] = renderCtx.Workspace
 	}
 
+	// Startup context - inject if available
+	if p.startupContextService.HasContent() {
+		contextText := p.startupContextService.GetContextText()
+		if contextText != "" {
+			data["StartupContext"] = contextText
+		}
+	}
+
 	return data
 }
