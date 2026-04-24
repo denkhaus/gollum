@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow name="startup" xmlns="http://gollum.dev/schema/flow">
+    <description>
+        Example startup flow that analyzes the workspace
+        and provides context to the main agent.
+    </description>
+
+    <input>
+        <strings>
+            <field name="workspace_path" type="string" default="${env.PWD}" />
+        </strings>
+    </input>
+
+    <states>
+        <state name="analyze" initial="true">
+            <steps>
+                <!-- Read project README if it exists -->
+                <func builtin="assign">
+                    <params>
+                        <param name="from" value="${input.workspace_path}/README.md" />
+                        <param name="to" value="${local.readme_path}" />
+                    </params>
+                </func>
+
+                <func builtin="file_exists">
+                    <params>
+                        <param name="path" value="${local.readme_path}" />
+                    </params>
+                </func>
+
+                <!-- If README exists, read it and create context -->
+                <transition event="file_exists.true" target="read_readme" />
+                <transition event="file_exists.false" target="set_default_context" />
+            </steps>
+        </state>
+
+        <state name="read_readme">
+            <steps>
+                <func builtin="read_file">
+                    <params>
+                        <param name="path" value="${local.readme_path}" />
+                    </params>
+                </func>
+
+                <func builtin="assign">
+                    <params>
+                        <param name="from" value="Project Context: Based on the README, this project's main focus is described in the documentation file. Use this information to better understand the codebase and provide relevant assistance." />
+                        <param name="to" value="${output.context}" />
+                    </params>
+                </func>
+
+                <transition event="done" target="done" />
+            </steps>
+        </state>
+
+        <state name="set_default_context">
+            <steps>
+                <func builtin="assign">
+                    <params>
+                        <param name="from" value="Project Context: No README.md found. This appears to be a development project. Analyze the codebase structure to understand the project's purpose." />
+                        <param name="to" value="${output.context}" />
+                    </params>
+                </func>
+
+                <transition event="done" target="done" />
+            </steps>
+        </state>
+
+        <state name="done" final="true" />
+    </states>
+
+    <output>
+        <strings>
+            <field name="context" type="string" />
+        </strings>
+    </output>
+</flow>
