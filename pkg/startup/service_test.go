@@ -128,3 +128,20 @@ func TestStartupContextService_ConcurrentAccess(t *testing.T) {
 	wg.Wait()
 	// If we got here without deadlock/race, test passes
 }
+
+func TestStartupContextService_SetContext_DefensiveCopy(t *testing.T) {
+	service := NewStartupContextService()
+
+	// Create a map and set it
+	original := map[string]any{"key": "value"}
+	service.SetContext(original)
+
+	// Modify the original map after SetContext
+	original["key"] = "modified"
+	original["newKey"] = "newValue"
+
+	// Service should still have the original values (defensive copy worked)
+	assert.Contains(t, service.GetContextText(), "key: value")
+	assert.NotContains(t, service.GetContextText(), "key: modified")
+	assert.NotContains(t, service.GetContextText(), "newKey")
+}
