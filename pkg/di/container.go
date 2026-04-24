@@ -124,7 +124,6 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 
 	// Startup context service
 	do.Provide(p.injector, startup.NewStartupContextService)
-
 	// ACP (Agent Client Protocol) services
 	do.Provide(p.injector, acp.NewAcpService)
 
