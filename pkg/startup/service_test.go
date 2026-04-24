@@ -9,20 +9,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// newTestService creates a new service for testing (bypasses DI)
+func newTestService() StartupContextService {
+	return &startupContextServiceImpl{
+		outputs: make(map[string]any),
+	}
+}
+
 func TestNewStartupContextService(t *testing.T) {
-	service := NewStartupContextService()
+	service := newTestService()
 	require.NotNil(t, service)
 }
 
 func TestStartupContextService_HasContent_Empty(t *testing.T) {
-	service := NewStartupContextService()
+	service := newTestService()
 
 	assert.False(t, service.HasContent())
 	assert.Empty(t, service.GetContextText())
 }
 
 func TestStartupContextService_SetAndGet_Context(t *testing.T) {
-	service := NewStartupContextService()
+	service := newTestService()
 
 	outputs := map[string]any{
 		"context": "Test context text",
@@ -34,7 +41,7 @@ func TestStartupContextService_SetAndGet_Context(t *testing.T) {
 }
 
 func TestStartupContextService_SetAndGet_Text(t *testing.T) {
-	service := NewStartupContextService()
+	service := newTestService()
 
 	outputs := map[string]any{
 		"text": "Alternative text field",
@@ -46,7 +53,7 @@ func TestStartupContextService_SetAndGet_Text(t *testing.T) {
 }
 
 func TestStartupContextService_SetAndGet_MultipleFields(t *testing.T) {
-	service := NewStartupContextService()
+	service := newTestService()
 
 	outputs := map[string]any{
 		"project": "E-commerce",
@@ -63,7 +70,7 @@ func TestStartupContextService_SetAndGet_MultipleFields(t *testing.T) {
 }
 
 func TestStartupContextService_Clear(t *testing.T) {
-	service := NewStartupContextService()
+	service := newTestService()
 
 	service.SetContext(map[string]any{"test": "value"})
 	assert.True(t, service.HasContent())
@@ -74,7 +81,7 @@ func TestStartupContextService_Clear(t *testing.T) {
 }
 
 func TestStartupContextService_ReplaceContext(t *testing.T) {
-	service := NewStartupContextService()
+	service := newTestService()
 
 	// Set initial context
 	service.SetContext(map[string]any{"old": "value"})
@@ -87,7 +94,7 @@ func TestStartupContextService_ReplaceContext(t *testing.T) {
 }
 
 func TestStartupContextService_HasContent_EmptyString(t *testing.T) {
-	service := NewStartupContextService()
+	service := newTestService()
 
 	// Empty string should not count as content
 	service.SetContext(map[string]any{"context": ""})
@@ -95,7 +102,7 @@ func TestStartupContextService_HasContent_EmptyString(t *testing.T) {
 }
 
 func TestStartupContextService_HasContent_WithNilValues(t *testing.T) {
-	service := NewStartupContextService()
+	service := newTestService()
 
 	// Map with nil values still has content
 	service.SetContext(map[string]any{"key": nil})
@@ -103,7 +110,7 @@ func TestStartupContextService_HasContent_WithNilValues(t *testing.T) {
 }
 
 func TestStartupContextService_ConcurrentAccess(t *testing.T) {
-	service := NewStartupContextService()
+	service := newTestService()
 	var wg sync.WaitGroup
 
 	// Concurrent writes
@@ -130,7 +137,7 @@ func TestStartupContextService_ConcurrentAccess(t *testing.T) {
 }
 
 func TestStartupContextService_SetContext_DefensiveCopy(t *testing.T) {
-	service := NewStartupContextService()
+	service := newTestService()
 
 	// Create a map and set it
 	original := map[string]any{"key": "value"}

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+
+	"github.com/samber/do/v2"
 )
 
 // StartupContextService stores and provides startup flow context.
@@ -30,11 +32,11 @@ type startupContextServiceImpl struct {
 // Compile-time interface check
 var _ StartupContextService = (*startupContextServiceImpl)(nil)
 
-// NewStartupContextService creates a new StartupContextService.
-func NewStartupContextService() StartupContextService {
+// NewStartupContextService creates a new StartupContextService for DI.
+func NewStartupContextService(_ do.Injector) (StartupContextService, error) {
 	return &startupContextServiceImpl{
 		outputs: make(map[string]any),
-	}
+	}, nil
 }
 
 func (p *startupContextServiceImpl) SetContext(outputs map[string]any) {

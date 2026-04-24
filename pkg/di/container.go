@@ -31,6 +31,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/session"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/skills"
+	"github.com/denkhaus/gollum/pkg/startup"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/denkhaus/gollum/pkg/strategy"
 	"github.com/denkhaus/gollum/pkg/tools"
@@ -120,6 +121,9 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	do.Provide(p.injector, flowregistry.NewFlowRegistryService)
 	do.Provide(p.injector, executor.NewFlowExecutor)
 	do.Provide(p.injector, strategy.NewBuilder)
+
+	// Startup context service
+	do.Provide(p.injector, startup.NewStartupContextService)
 
 	// ACP (Agent Client Protocol) services
 	do.Provide(p.injector, acp.NewAcpService)
