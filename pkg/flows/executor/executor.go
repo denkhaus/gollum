@@ -576,7 +576,6 @@ func (p *flowExecutorImpl) executeStep(step *flows.Step, stateName string) error
 	return err
 }
 
-
 // substituteTemplate replaces ${input.field}, ${output.field}, ${context.field} placeholders
 
 // parseAssignTarget parses assignTo value and returns (scope, fieldName)
@@ -601,9 +600,6 @@ func (p *flowExecutorImpl) executeStep(step *flows.Step, stateName string) error
 // 1. {"Result": {...}} - Direct result map
 // 2. {"content": [{"type": "text", "text": "{\"key\": ...}"}]} - Standard MCP format
 // This function extracts the actual data from whichever format is present
-
-
-
 
 // executeCall executes a call step (sub-flow invocation)
 
@@ -829,45 +825,4 @@ func (p *flowExecutorImpl) findInputField(name string) *flows.FieldDef {
 	}
 
 	return nil
-}
-
-// executorAdapter implements flows.Executor interface using FlowExecutorService
-type executorAdapter struct {
-	service FlowExecutorService
-}
-
-// Execute executes a flow with the given inputs and returns the result
-func (a *executorAdapter) Execute(ctx context.Context, flow *flows.Flow, inputs map[string]any) (*flows.FlowExecutionResult, error) {
-	// Create executor instance for the flow
-	instance := a.service.New(flow)
-
-	// Convert inputs to string map
-	stringInputs := make(map[string]string)
-	for key, val := range inputs {
-		stringInputs[key] = shared.AnyToString(val)
-	}
-
-	// Set inputs
-	if err := instance.SetInput(stringInputs); err != nil {
-		return nil, fmt.Errorf("failed to set inputs: %w", err)
-	}
-
-	// Validate flow
-	if err := instance.Validate(); err != nil {
-		return nil, fmt.Errorf("flow validation failed: %w", err)
-	}
-
-	// Execute flow
-	result, err := instance.Run()
-	if err != nil {
-		return nil, fmt.Errorf("flow execution failed: %w", err)
-	}
-
-	// Close instance to release resources
-	defer instance.Close()
-
-	// Convert result to flows.FlowExecutionResult
-	return &flows.FlowExecutionResult{
-		Outputs: result.Outputs,
-	}, nil
 }

@@ -485,7 +485,8 @@ type State struct {
 
 // Step is a single execution step
 type Step struct {
-	XMLName  xml.Name
+	XMLName xml.Name
+	// TODO: make Type a proper StepType type, not a string
 	Type     string             `xml:"type,attr"`
 	Name     string             `xml:"name,attr"`
 	Agent    string             `xml:"agent,attr"`
