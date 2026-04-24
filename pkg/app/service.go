@@ -114,19 +114,15 @@ func (p *applicationServiceImpl) Run(ctx context.Context) error {
 	if err == nil && startupFlow != nil {
 		// Default flow found, execute it using flowExecutorService
 		p.logService.Infof("Startup flow found: %s", startupFlow.Name)
-		result, err := p.flowExecutorService.Execute(ctx, startupFlow, make(map[string]any))
-		if err != nil {
-			return fmt.Errorf("default flow execution failed: %w", err)
+		result, execErr := p.flowExecutorService.Execute(ctx, startupFlow, make(map[string]any))
+		if execErr != nil {
+			p.logService.Errorf("Startup flow failed: %v", execErr)
+			// Continue anyway - startup flow failure should not block the app
+		} else if result != nil && len(result.Outputs) > 0 {
+			// Store outputs in StartupContextService
+			p.startupContextService.SetContext(result.Outputs)
+			p.logService.Info("Startup flow completed successfully, context stored")
 		}
-		// Display flow outputs
-		if len(result.Outputs) > 0 {
-			p.logService.Info("Flow outputs:")
-			for name, value := range result.Outputs {
-				p.logService.Infof("  %s: %v", name, value)
-			}
-		}
-		p.logService.Info("Startup flow completed successfully")
-		return nil
 	}
 
 	p.logService.Info("no startup flow found -> run tui")
