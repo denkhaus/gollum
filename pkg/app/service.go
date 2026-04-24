@@ -15,6 +15,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/startup"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/denkhaus/gollum/pkg/tui"
 	"github.com/denkhaus/gollum/pkg/workspace"
@@ -34,19 +35,20 @@ type ApplicationService interface {
 
 // applicationServiceImpl implements the ApplicationService interface
 type applicationServiceImpl struct {
-	gollumDir           string
-	sessionID           uuid.UUID
-	logService          logger.LoggerService
-	fsm                 state.FileStateManager
-	agentRegistry       registry.AgentRegistry
-	promptMgr           manager.PromptManager
-	agentFactory        shared.AgentFactory
-	markdownRenderer    markdown.Renderer
-	workspaceService    workspace.Service
-	mcpRegistry         mcpregistry.MCPRegistry
-	channelFacade       channel.ChannelFacade
-	flowExecutorService executor.FlowExecutorService
-	flowRegistry        flowregistry.FlowRegistry
+	gollumDir            string
+	sessionID            uuid.UUID
+	logService           logger.LoggerService
+	fsm                  state.FileStateManager
+	agentRegistry        registry.AgentRegistry
+	promptMgr            manager.PromptManager
+	agentFactory         shared.AgentFactory
+	markdownRenderer     markdown.Renderer
+	workspaceService     workspace.Service
+	mcpRegistry          mcpregistry.MCPRegistry
+	channelFacade        channel.ChannelFacade
+	flowExecutorService  executor.FlowExecutorService
+	flowRegistry         flowregistry.FlowRegistry
+	startupContextService startup.StartupContextService
 }
 
 // Ensure implementation satisfies interface
@@ -65,6 +67,7 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 	channelFacade := do.MustInvoke[channel.ChannelFacade](injector)
 	flowExecutorService := do.MustInvoke[executor.FlowExecutorService](injector)
 	flowRegistry := do.MustInvoke[flowregistry.FlowRegistry](injector)
+	startupContextService := do.MustInvoke[startup.StartupContextService](injector)
 
 	return &applicationServiceImpl{
 		sessionID:        uuid.New(),
@@ -73,13 +76,14 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 		agentRegistry:    agentRegistry,
 		workspaceService: workspaceService,
 
-		promptMgr:           promptMgr,
-		agentFactory:        agentFactory,
-		markdownRenderer:    markdownRenderer,
-		mcpRegistry:         mcpRegistry,
-		channelFacade:       channelFacade,
-		flowExecutorService: flowExecutorService,
-		flowRegistry:        flowRegistry,
+		promptMgr:            promptMgr,
+		agentFactory:         agentFactory,
+		markdownRenderer:     markdownRenderer,
+		mcpRegistry:          mcpRegistry,
+		channelFacade:        channelFacade,
+		flowExecutorService:  flowExecutorService,
+		flowRegistry:         flowRegistry,
+		startupContextService: startupContextService,
 	}, nil
 }
 
