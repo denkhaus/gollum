@@ -16,14 +16,18 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	StartupFlowIdentifier string = "startup"
+)
+
 // FlowRegistry defines the interface for looking up and registering flows
 type FlowRegistry interface {
 	// Register adds a flow to the registry
 	Register(name string, flow *flows.Flow)
 	// GetFlow retrieves a flow by reference name
 	GetFlow(ref string) (*flows.Flow, error)
-	// GetDefaultFlow returns the default flow if one exists (looks for "default/main.xml")
-	GetDefaultFlow() (*flows.Flow, error)
+	// GetStartupFlow returns the startup flow if one exists (looks for "startup/main.xml")
+	GetStartupFlow() (*flows.Flow, error)
 	// GetFlowInfo returns information about a specific flow
 	GetFlowInfo(name string) (*FlowInfo, error)
 	// ListFlows returns information about all registered flows
@@ -107,24 +111,24 @@ func (s *flowRegistryServiceImpl) GetFlow(ref string) (*flows.Flow, error) {
 	return flow, nil
 }
 
-// GetDefaultFlow returns the default flow if one exists.
+// GetStartupFlow returns the default flow if one exists.
 // It checks for flows named "default" in the registry first,
 // then falls back to checking for default/main.xml in standard locations.
-func (s *flowRegistryServiceImpl) GetDefaultFlow() (*flows.Flow, error) {
+func (s *flowRegistryServiceImpl) GetStartupFlow() (*flows.Flow, error) {
 	// First, check if a flow named "default" is already registered
-	if flow, ok := s.flows["default"]; ok {
+	if flow, ok := s.flows[StartupFlowIdentifier]; ok {
 		return flow, nil
 	}
 
 	// Not in registry, check filesystem for default/main.xml
 	// Check workspace-local first: .gollum/flows/default/main.xml
 	workspacePaths := []string{
-		".gollum/flows/default/main.xml",
+		filepath.Join(".gollum/flows/", StartupFlowIdentifier, "/main.xml"),
 	}
 
-	// Check global config: ~/.config/gollum/flows/default/main.xml
+	// Check global config: ~/.config/gollum/flows/startup/main.xml
 	if homeDir, err := os.UserHomeDir(); err == nil {
-		workspacePaths = append(workspacePaths, filepath.Join(homeDir, ".config", "gollum", "flows", "default", "main.xml"))
+		workspacePaths = append(workspacePaths, filepath.Join(homeDir, ".config", "gollum", "flows", StartupFlowIdentifier, "main.xml"))
 	}
 
 	// Try each path
@@ -133,15 +137,15 @@ func (s *flowRegistryServiceImpl) GetDefaultFlow() (*flows.Flow, error) {
 			// File exists, parse and register it
 			flow, err := parser.Parse(path)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse default flow at %s: %w", path, err)
+				return nil, fmt.Errorf("failed to parse startup flow at %s: %w", path, err)
 			}
 			// Register it for future use
-			s.Register("default", flow)
+			s.Register(StartupFlowIdentifier, flow)
 			return flow, nil
 		}
 	}
 
-	return nil, fmt.Errorf("no default flow found")
+	return nil, fmt.Errorf("no startup flow found")
 }
 
 // GetFlowInfo returns information about a specific flow

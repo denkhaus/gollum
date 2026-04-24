@@ -10,6 +10,7 @@
 package executor
 
 import (
+	context "context"
 	reflect "reflect"
 
 	flows "github.com/denkhaus/gollum/pkg/flows"
@@ -133,6 +134,21 @@ func NewMockFlowExecutorService(ctrl *gomock.Controller) *MockFlowExecutorServic
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockFlowExecutorService) EXPECT() *MockFlowExecutorServiceMockRecorder {
 	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockFlowExecutorService) Execute(ctx context.Context, flow *flows.Flow, inputs map[string]any) (*flows.FlowExecutionResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute", ctx, flow, inputs)
+	ret0, _ := ret[0].(*flows.FlowExecutionResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockFlowExecutorServiceMockRecorder) Execute(ctx, flow, inputs any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockFlowExecutorService)(nil).Execute), ctx, flow, inputs)
 }
 
 // New mocks base method.

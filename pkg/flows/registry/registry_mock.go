@@ -40,21 +40,6 @@ func (m *MockFlowRegistry) EXPECT() *MockFlowRegistryMockRecorder {
 	return m.recorder
 }
 
-// GetDefaultFlow mocks base method.
-func (m *MockFlowRegistry) GetDefaultFlow() (*flows.Flow, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDefaultFlow")
-	ret0, _ := ret[0].(*flows.Flow)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetDefaultFlow indicates an expected call of GetDefaultFlow.
-func (mr *MockFlowRegistryMockRecorder) GetDefaultFlow() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDefaultFlow", reflect.TypeOf((*MockFlowRegistry)(nil).GetDefaultFlow))
-}
-
 // GetFlow mocks base method.
 func (m *MockFlowRegistry) GetFlow(ref string) (*flows.Flow, error) {
 	m.ctrl.T.Helper()
@@ -83,6 +68,21 @@ func (m *MockFlowRegistry) GetFlowInfo(name string) (*FlowInfo, error) {
 func (mr *MockFlowRegistryMockRecorder) GetFlowInfo(name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFlowInfo", reflect.TypeOf((*MockFlowRegistry)(nil).GetFlowInfo), name)
+}
+
+// GetStartupFlow mocks base method.
+func (m *MockFlowRegistry) GetStartupFlow() (*flows.Flow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetStartupFlow")
+	ret0, _ := ret[0].(*flows.Flow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetStartupFlow indicates an expected call of GetStartupFlow.
+func (mr *MockFlowRegistryMockRecorder) GetStartupFlow() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStartupFlow", reflect.TypeOf((*MockFlowRegistry)(nil).GetStartupFlow))
 }
 
 // ListFlows mocks base method.

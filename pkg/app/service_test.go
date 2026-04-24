@@ -198,22 +198,6 @@ func (m *mockMCPRegistry) Close() error {
 	return nil
 }
 
-// TestCreateSupervisorAgent_ToolSetSuccess tests that tool set creation succeeds
-// REMOVED: createSupervisorAgent method no longer exists in applicationServiceImpl
-// Supervisor agent creation is now handled by agentFactory.CreateSupervisorAgent directly
-
-// TestCreateSupervisorAgent_PromptError tests error handling when prompt retrieval fails
-// REMOVED: createSupervisorAgent method no longer exists in applicationServiceImpl
-// Supervisor agent creation is now handled by agentFactory.CreateSupervisorAgent directly
-
-// TestCreateSupervisorAgent_AgentFactoryError tests error handling when agent creation fails
-// REMOVED: createSupervisorAgent method no longer exists in applicationServiceImpl
-// Supervisor agent creation is now handled by agentFactory.CreateSupervisorAgent directly
-
-// TestCreateSupervisorAgent_RegistryError tests error handling when registration fails
-// REMOVED: createSupervisorAgent method no longer exists in applicationServiceImpl
-// Supervisor agent creation is now handled by agentFactory.CreateSupervisorAgent directly
-
 // TestCleanup_NoOp tests that Cleanup is a no-op (kept for interface compatibility)
 func TestCleanup_NoOp(t *testing.T) {
 	p := &applicationServiceImpl{}
@@ -234,14 +218,14 @@ func TestRun_NoDefaultFlowRunsTUI(t *testing.T) {
 	tempDir := t.TempDir()
 
 	mockFlowRegistry := flowregistry.NewMockFlowRegistry(ctrl)
-	mockFlowRegistry.EXPECT().GetDefaultFlow().Return(nil, fmt.Errorf("no default flow found")).Times(1)
+	mockFlowRegistry.EXPECT().GetStartupFlow().Return(nil, fmt.Errorf("no startup flow found")).Times(1)
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().EnableFileLogging(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mockLogger.EXPECT().CloseFileLogging().Return(nil).Times(1)
 	mockLogger.EXPECT().Infof("Priming FileStateManager - scanning working directory...").Times(1)
 	mockLogger.EXPECT().Infof("FileStateManager primed successfully").Times(1)
-	mockLogger.EXPECT().Info("no default flow found -> run tui").Times(1)
+	mockLogger.EXPECT().Info("no startup flow found -> run tui").Times(1)
 
 	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockFSM.EXPECT().Prime(ctx).Return(nil).Times(1)

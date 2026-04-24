@@ -68,7 +68,10 @@
       "Bash(go fmt:*)",
       "mcp__tavily__tavily-search",
       "mcp__tavily__tavily-extract",
-      "Bash(./gollum flow *)"
+      "Bash(./gollum flow *)",
+      "mcp__claude-context__get_indexing_status",
+      "mcp__claude-context__index_codebase",
+      "mcp__claude-context__search_code"
     ],
     "deny": [],
     "ask": []
