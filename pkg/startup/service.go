@@ -109,3 +109,11 @@ func (p *startupContextServiceImpl) formatOutputs() string {
 	}
 	return result.String()
 }
+
+// NewTestService creates a new StartupContextService for testing purposes.
+// This bypasses DI and creates a service instance directly for use in unit tests.
+func NewTestService() StartupContextService {
+	return &startupContextServiceImpl{
+		outputs: make(map[string]any),
+	}
+}

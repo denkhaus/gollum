@@ -11,6 +11,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	promptstore "github.com/denkhaus/gollum/pkg/prompt/store"
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/denkhaus/gollum/pkg/startup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -271,7 +272,7 @@ func TestRenderPrompt_WithVariables(t *testing.T) {
 	}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Render the prompt
 	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
@@ -306,7 +307,7 @@ func TestRenderPrompt_AgentContext(t *testing.T) {
 	}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Render the prompt
 	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
@@ -341,7 +342,7 @@ func TestRenderPrompt_ValuesContext(t *testing.T) {
 	}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Render the prompt
 	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
@@ -370,7 +371,7 @@ func TestGetPromptWithContext(t *testing.T) {
 	}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Get and render prompt
 	rendered, err := pm.GetPromptWithContext(ctx, "test-context", renderCtx)
@@ -384,7 +385,7 @@ func TestBackwardCompatibility_GetSystemPrompt(t *testing.T) {
 	st := promptstore.NewMemoryStore()
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Call GetSystemPrompt
 	result, err := pm.GetPromptWithContext(context.Background(), prompt.PromptIDSubagentSystem, nil)
@@ -399,7 +400,7 @@ func TestBackwardCompatibility_GetSubagentPrompt(t *testing.T) {
 	st := promptstore.NewMemoryStore()
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Call GetSubagentPrompt
 	result, err := pm.GetSubagentTaskPrompt("coder", "write clean code")
@@ -416,7 +417,7 @@ func TestBackwardCompatibility_GetSupervisorPrompt(t *testing.T) {
 	st := promptstore.NewMemoryStore()
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Call GetSupervisorPrompt
 	result, err := pm.GetPromptWithContext(context.Background(),
@@ -434,7 +435,7 @@ func TestCompacterPrompt(t *testing.T) {
 	st := promptstore.NewMemoryStore()
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Get the compacter prompt by ID
 	compacterPrompt, err := pm.GetPromptByID(context.Background(), prompt.PromptIDCompacter)
@@ -455,7 +456,7 @@ func TestCompacterPromptWithCustomTemplate(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Create render context with data
 	renderCtx := &prompt.RenderContext{
@@ -492,7 +493,7 @@ func TestRenderPrompt_MissingVariable(t *testing.T) {
 	renderCtx := &prompt.RenderContext{}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Render the prompt - text/template handles missing variables gracefully
 	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
@@ -518,7 +519,7 @@ func TestRenderPrompt_NilContext(t *testing.T) {
 	require.NotNil(t, loaded)
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Render the prompt with nil context
 	rendered, err := pm.RenderPrompt(ctx, loaded, nil)
@@ -534,7 +535,7 @@ func TestRenderPrompt_NilPrompt(t *testing.T) {
 	st := promptstore.NewMemoryStore()
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Try to render nil prompt
 	_, err := pm.RenderPrompt(ctx, nil, &prompt.RenderContext{})
@@ -573,7 +574,7 @@ func TestRenderPrompt_AllContextFields(t *testing.T) {
 	}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Render the prompt
 	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
@@ -637,7 +638,7 @@ func TestRenderPrompt_WithMessageHistory(t *testing.T) {
 	}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Render the prompt
 	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
@@ -672,7 +673,7 @@ func TestRenderPrompt_EmptyMessageHistory(t *testing.T) {
 	}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Render the prompt - should handle nil MessageHistory gracefully
 	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
@@ -715,7 +716,7 @@ End of prompt.`
 	}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Render the prompt
 	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)
@@ -758,7 +759,7 @@ End of prompt.`
 	}
 
 	// Create prompt manager
-	pm := manager.NewPromptManager(st)
+	pm := manager.NewPromptManager(st, startup.NewTestService())
 
 	// Render the prompt
 	rendered, err := pm.RenderPrompt(ctx, loaded, renderCtx)

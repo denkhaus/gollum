@@ -7,6 +7,7 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/prompt"
 	promptstore "github.com/denkhaus/gollum/pkg/prompt/store"
+	"github.com/denkhaus/gollum/pkg/startup"
 )
 
 //go:embed templates/*.md templates/partials/*.md
@@ -26,12 +27,14 @@ type PromptManager interface {
 }
 
 type promptManager struct {
-	store promptstore.PromptStore
+	store                  promptstore.PromptStore
+	startupContextService startup.StartupContextService
 }
 
-// NewPromptManager creates a new Manager instance with PromptStore.
-func NewPromptManager(store promptstore.PromptStore) PromptManager {
+// NewPromptManager creates a new Manager instance with PromptStore and StartupContextService.
+func NewPromptManager(store promptstore.PromptStore, startupContextService startup.StartupContextService) PromptManager {
 	return &promptManager{
-		store: store,
+		store:                  store,
+		startupContextService: startupContextService,
 	}
 }

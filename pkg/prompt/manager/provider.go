@@ -2,7 +2,8 @@
 package manager
 
 import (
-	promptstore "github.com/denkhaus/gollum/pkg/prompt/store"
+	"github.com/denkhaus/gollum/pkg/prompt/store"
+	"github.com/denkhaus/gollum/pkg/startup"
 	"github.com/samber/do/v2"
 )
 
@@ -10,10 +11,12 @@ import (
 // This provider requires PromptStore to be registered in the DI container.
 func NewPromptManagerProvider(injector do.Injector) (PromptManager, error) {
 	// Inject PromptStore from DI container
-	store := do.MustInvoke[promptstore.PromptStore](injector)
+	store := do.MustInvoke[store.PromptStore](injector)
+	// Inject StartupContextService from DI container
+	startupContextService := do.MustInvoke[startup.StartupContextService](injector)
 
-	// Create manager with store
-	mgr := NewPromptManager(store)
+	// Create manager with store and startup context service
+	mgr := NewPromptManager(store, startupContextService)
 
 	return mgr, nil
 }
