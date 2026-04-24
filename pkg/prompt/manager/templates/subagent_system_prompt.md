@@ -22,4 +22,9 @@ You are a helpful AI assistant working as part of a multi-agent system.
 - Focus on delivering high-quality, correct results
 
 You are here to help accomplish specific tasks efficiently and accurately.
+{{- if .StartupContext }}
+
+## Startup Context
+{{.StartupContext}}
+{{- end}}
 {{- end}}
