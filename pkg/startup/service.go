@@ -76,14 +76,20 @@ func (p *startupContextServiceImpl) HasContent() bool {
 		return false
 	}
 
-	// Check if there's actual content (not just empty values)
+	// Check if there's actual content
+	// For strings: must be non-empty
+	// For nil values: key existence counts as content
 	for _, v := range p.outputs {
-		if str, ok := v.(string); ok && str != "" {
-			return true
+		if str, ok := v.(string); ok {
+			if str != "" {
+				return true
+			}
+			// Empty string doesn't count as content, but continue checking other values
+			continue
 		}
-		if v != nil {
-			return true
-		}
+		// Non-nil non-string values count as content
+		// Also, nil values in map count as content (key exists)
+		return true
 	}
 	return false
 }
