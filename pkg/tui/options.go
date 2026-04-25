@@ -46,11 +46,3 @@ func WithChannelRenderer(r markdown.Renderer) TUIOption {
 		return nil
 	}}
 }
-
-// WithChannelFacade sets the channel facade for agent execution.
-func WithChannelFacade(facade channel.ChannelFacade) TUIOption {
-	return TUIOption{applyFunc: func(c *TUIChannel) error {
-		c.facade = facade
-		return nil
-	}}
-}

@@ -12,6 +12,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
+	"github.com/samber/do/v2"
 )
 
 // Identifier is the unique channel identifier for registration.
@@ -44,6 +45,29 @@ func NewTUIChannel(opts ...TUIOption) *TUIChannel {
 	}
 
 	return ch
+}
+
+// NewTUIChannelWithOptions creates a new TUIChannel with DI injector.
+// This follows the same pattern as ACP's NewAcpServiceWithOptions.
+func NewTUIChannelWithOptions(injector do.Injector, opts ...channel.ChannelOption) (*TUIChannel, error) {
+	// Get facade from DI (same pattern as ACP)
+	facade := do.MustInvoke[channel.ChannelFacade](injector)
+
+	ch := &TUIChannel{
+		id:        uuid.New(),
+		agentID:   uuid.Nil, // Will be set by SetAgentInfo
+		agentRole: "assistant",
+		facade:    facade,
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		if err := opt.Apply(ch); err != nil {
+			return nil, err
+		}
+	}
+
+	return ch, nil
 }
 
 // SetAgentInfo sets the agent ID and role for messages sent via this channel.
