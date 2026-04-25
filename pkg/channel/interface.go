@@ -97,16 +97,25 @@ type Channel interface {
 
 // ChannelFacade is the central coordinator for all channels
 // It also implements shared.LogForwarder for routing logs to channels
+//
+// The facade delegates input handling business logic (command execution,
+// session/supervisor management) to the InputHandler interface, allowing
+// for easier testing and potential strategy swapping.
 type ChannelFacade interface {
 	shared.LogForwarder
 
 	// DisplayMessage sends a message to all registered channels
 	DisplayMessage(msg Message)
 
-	// SubmitInput handles user input from any channel
+	// SubmitInput handles user input from any channel.
+	// Delegates to InputHandler for business logic including:
+	// - Slash command detection and execution
+	// - Session creation/retrieval
+	// - Supervisor agent creation and execution
 	SubmitInput(ctx context.Context, channelID uuid.UUID, sessionID string, input string) (*InputResult, error)
 
-	// CancelInput cancels an in-flight input for the given session
+	// CancelInput cancels an in-flight input for the given session.
+	// Delegates to InputHandler for session cancellation logic.
 	CancelInput(sessionID string) error
 
 	// RegisterChannel adds a channel to receive events

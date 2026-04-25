@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 
@@ -29,6 +28,7 @@ type channelFacadeImpl struct {
 	sessionManager session.SessionManager
 	logger         logger.LoggerService
 	providers      map[ChannelIdentifier]ChannelFactory
+	inputHandler   InputHandler
 }
 
 // Ensure channelFacadeImpl implements ChannelFacade at compile time
@@ -45,6 +45,9 @@ func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 	sm := do.MustInvoke[session.SessionManager](injector)
 	log := do.MustInvoke[logger.LoggerService](injector)
 
+	// Create InputHandler for session/supervisor business logic
+	inputHandler := NewInputHandler(cm, sm, reg, af, log)
+
 	return &channelFacadeImpl{
 		commandManager: cm,
 		registry:       reg,
@@ -52,6 +55,7 @@ func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 		sessionManager: sm,
 		channels:       make(map[uuid.UUID]Channel),
 		logger:         log,
+		inputHandler:   inputHandler,
 	}, nil
 }
 
@@ -168,62 +172,15 @@ func (p *channelFacadeImpl) DisplayMessage(msg Message) {
 // SubmitInput handles user input from any channel
 // channelID is used to assign each agent message to a channel
 // sessionID is used to get or create a session for this interaction
+// Delegates to InputHandler for business logic (command execution, session/supervisor management)
 func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID, sessionID string, input string) (*InputResult, error) {
-	// First check if it's a slash command
-	handled, response, err := p.commandManager.Execute(ctx, sessionID, input)
-	if handled {
-		return &InputResult{
-			Handled:   true,
-			IsCommand: true,
-			Response:  response,
-			Error:     err,
-		}, nil
-	}
-
-	// Get or create session for this interaction
-	session, err := p.sessionManager.GetOrCreateSession(sessionID, channelID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get/create session: %w", err)
-	}
-
-	// Get or create supervisor for this session (lazy, thread-safe)
-	supervisor, err := session.GetOrCreateSupervisor(p.agentFactory)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get/create supervisor: %w", err)
-	}
-
-	// Execute supervisor agent with session context
-	resp, err := supervisor.Execute(session.Context, gollem.Text(input))
-	if err != nil {
-		return &InputResult{
-			Handled: true,
-			Error:   err,
-		}, nil
-	}
-
-	// Extract response
-	var content string
-	if resp != nil && len(resp.Texts) > 0 {
-		content = strings.Join(resp.Texts, "\n")
-	}
-
-	return &InputResult{
-		Handled:  true,
-		Response: content,
-	}, nil
+	return p.inputHandler.HandleInput(ctx, channelID, sessionID, input)
 }
 
 // CancelInput cancels an in-flight input for the given session
+// Delegates to InputHandler for session cancellation logic
 func (p *channelFacadeImpl) CancelInput(sessionID string) error {
-	session, ok := p.sessionManager.GetSession(sessionID)
-	if !ok {
-		return fmt.Errorf("session %s not found", sessionID)
-	}
-
-	// Cancel the session context
-	session.CancelFunc()
-
-	return nil
+	return p.inputHandler.CancelInput(sessionID)
 }
 
 // NotifyAgentLifecycle sends agent lifecycle event to specific channel
