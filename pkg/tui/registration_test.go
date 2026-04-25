@@ -7,10 +7,16 @@ import (
 	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func TestRegisterChannels(t *testing.T) {
 	injector := do.New()
+
+	// Register a mock ChannelFacade first (required by NewTUIChannelWithOptions)
+	ctrl := gomock.NewController(t)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
+	do.ProvideValue[channel.ChannelFacade](injector, mockFacade)
 
 	RegisterChannels(injector)
 
@@ -27,10 +33,19 @@ func TestRegisterChannels(t *testing.T) {
 	// Type check
 	_, ok := ch.(*TUIChannel)
 	assert.True(t, ok, "Factory should create *TUIChannel")
+
+	// Verify TUIChannel implements Channel interface
+	_, ok = ch.(channel.Channel)
+	assert.True(t, ok, "TUIChannel should implement channel.Channel")
 }
 
 func TestRegisterChannels_Duplicate(t *testing.T) {
 	injector := do.New()
+
+	// Register a mock ChannelFacade first
+	ctrl := gomock.NewController(t)
+	mockFacade := channel.NewMockChannelFacade(ctrl)
+	do.ProvideValue[channel.ChannelFacade](injector, mockFacade)
 
 	// First registration should succeed
 	RegisterChannels(injector)

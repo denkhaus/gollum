@@ -24,8 +24,9 @@ func createTestService(t *testing.T, stdin io.Reader, stdout io.Writer) *acpServ
 	mockSvc.EXPECT().SetSessionStore(gomock.Any()).AnyTimes()
 
 	return &acpServiceImpl{
-		stdin:  stdin,
-		stdout: stdout,
+		stdin:         stdin,
+		stdout:        stdout,
+		transportType: TransportStdio, // Default to stdio mode
 	}
 }
 
@@ -70,6 +71,11 @@ func TestNewConnection(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := createTestService(t, tt.reader, tt.writer)
+
+			// Set transport type based on handler presence
+			if tt.handler != nil {
+				svc.transportType = TransportHTTP
+			}
 
 			// Execute
 			conn, err := svc.newConnection(tt.handler)
@@ -325,6 +331,12 @@ func TestConnectionHandler(t *testing.T) {
 			}
 
 			svc := createTestService(t, reader, writer)
+
+			// Set transport type based on handler presence
+			if tt.handler != nil {
+				svc.transportType = TransportHTTP
+			}
+
 			conn, err := svc.newConnection(tt.handler)
 			require.NoError(t, err)
 			require.NotNil(t, conn)

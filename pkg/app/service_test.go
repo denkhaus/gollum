@@ -198,16 +198,6 @@ func (m *mockMCPRegistry) Close() error {
 	return nil
 }
 
-// TestCleanup_NoOp tests that Cleanup is a no-op (kept for interface compatibility)
-func TestCleanup_NoOp(t *testing.T) {
-	p := &applicationServiceImpl{}
-
-	// Should not panic
-	assert.NotPanics(t, func() {
-		p.Cleanup()
-	})
-}
-
 func TestRun_NoDefaultFlowRunsTUI(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

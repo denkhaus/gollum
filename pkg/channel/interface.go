@@ -11,10 +11,10 @@
 // - Example: TUI shows all system logs in a dedicated panel
 //
 // MULTI-SESSION CHANNELS (e.g., ACP):
-// - MUST route logs to specific sessions when entry.SessionID is set
-// - MAY broadcast system-wide logs (no session ID) to all active sessions
-// - Example: ACP forwards session-specific logs to that session only,
-//            but broadcasts agent lifecycle events to all sessions
+//   - MUST route logs to specific sessions when entry.SessionID is set
+//   - MAY broadcast system-wide logs (no session ID) to all active sessions
+//   - Example: ACP forwards session-specific logs to that session only,
+//     but broadcasts agent lifecycle events to all sessions
 //
 // LOG ENTRY ROUTING:
 // - entry.ChannelID determines which channel receives the log

@@ -29,25 +29,23 @@ const gollumDirName = ".gollum"
 type ApplicationService interface {
 	// Run starts the application, performing all initialization and running the interactive loop
 	Run(ctx context.Context) error
-	// Cleanup restores terminal state and performs other cleanup
-	Cleanup()
 }
 
 // applicationServiceImpl implements the ApplicationService interface
 type applicationServiceImpl struct {
-	gollumDir            string
-	sessionID            uuid.UUID
-	logService           logger.LoggerService
-	fsm                  state.FileStateManager
-	agentRegistry        registry.AgentRegistry
-	promptMgr            manager.PromptManager
-	agentFactory         shared.AgentFactory
-	markdownRenderer     markdown.Renderer
-	workspaceService     workspace.Service
-	mcpRegistry          mcpregistry.MCPRegistry
-	channelFacade        channel.ChannelFacade
-	flowExecutorService  executor.FlowExecutorService
-	flowRegistry         flowregistry.FlowRegistry
+	gollumDir             string
+	sessionID             uuid.UUID
+	logService            logger.LoggerService
+	fsm                   state.FileStateManager
+	agentRegistry         registry.AgentRegistry
+	promptMgr             manager.PromptManager
+	agentFactory          shared.AgentFactory
+	markdownRenderer      markdown.Renderer
+	workspaceService      workspace.Service
+	mcpRegistry           mcpregistry.MCPRegistry
+	channelFacade         channel.ChannelFacade
+	flowExecutorService   executor.FlowExecutorService
+	flowRegistry          flowregistry.FlowRegistry
 	startupContextService startup.StartupContextService
 }
 
@@ -76,13 +74,13 @@ func NewService(injector do.Injector) (ApplicationService, error) {
 		agentRegistry:    agentRegistry,
 		workspaceService: workspaceService,
 
-		promptMgr:            promptMgr,
-		agentFactory:         agentFactory,
-		markdownRenderer:     markdownRenderer,
-		mcpRegistry:          mcpRegistry,
-		channelFacade:        channelFacade,
-		flowExecutorService:  flowExecutorService,
-		flowRegistry:         flowRegistry,
+		promptMgr:             promptMgr,
+		agentFactory:          agentFactory,
+		markdownRenderer:      markdownRenderer,
+		mcpRegistry:           mcpRegistry,
+		channelFacade:         channelFacade,
+		flowExecutorService:   flowExecutorService,
+		flowRegistry:          flowRegistry,
 		startupContextService: startupContextService,
 	}, nil
 }
@@ -109,7 +107,7 @@ func (p *applicationServiceImpl) Run(ctx context.Context) error {
 		return err
 	}
 
-	// Check for default flow first
+	// Check for startup flow first
 	startupFlow, err := p.flowRegistry.GetStartupFlow()
 	if err != nil {
 		p.logService.Warnf("Failed to get startup flow: %v", err)
@@ -129,7 +127,7 @@ func (p *applicationServiceImpl) Run(ctx context.Context) error {
 		p.logService.Info("No startup flow found -> run TUI")
 	}
 
-	// No default flow, run TUI
+	// No startup flow, run TUI
 	return p.runChannel(ctx, tui.Identifier,
 		tui.WithChannelLogger(p.logService),
 		tui.WithChannelRenderer(p.markdownRenderer),
@@ -166,11 +164,4 @@ func (p *applicationServiceImpl) primeFileStateManager(ctx context.Context) erro
 	}
 	p.logService.Infof("FileStateManager primed successfully")
 	return nil
-}
-
-// Cleanup performs any necessary cleanup when the application exits.
-// Note: Bubbletea handles terminal state restoration automatically.
-func (p *applicationServiceImpl) Cleanup() {
-	// Bubbletea handles terminal state restoration automatically
-	// This method is kept for interface compatibility
 }

@@ -20,7 +20,7 @@ type (
 
 	channelMiddlewareProvider struct {
 		injector do.Injector
-		facade  ChannelFacade // Lazily set to break circular dependency
+		facade   ChannelFacade // Lazily set to break circular dependency
 	}
 )
 
@@ -49,7 +49,7 @@ func NewChannelMiddleware(facade ChannelFacade, agentID uuid.UUID, agentRole str
 func NewChannelMiddlewareProvider(injector do.Injector) (ChannelMiddlewareProvider, error) {
 	return &channelMiddlewareProvider{
 		injector: injector,
-		facade:  nil, // Will be set later to break circular dependency
+		facade:   nil, // Will be set later to break circular dependency
 	}, nil
 }
 
