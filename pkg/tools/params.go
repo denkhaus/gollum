@@ -71,23 +71,28 @@ func (p ToolRequestParams) MustGetBool(key shared.ToolParamKeys) (bool, map[stri
 	return val, nil
 }
 
-// GetInt returns an int value for the given key (from float64 JSON representation),
+// GetInt returns an int value for the given key (from float64 JSON representation or int),
 // or the default if not present or not a number.
 func (p ToolRequestParams) GetInt(key shared.ToolParamKeys, def int) int {
 	if val, ok := p[string(key)].(float64); ok {
 		return int(val)
 	}
+	if val, ok := p[string(key)].(int); ok {
+		return val
+	}
 	return def
 }
 
-// MustGetInt returns an int value for the given key (from float64 JSON representation).
+// MustGetInt returns an int value for the given key (from float64 JSON representation or int).
 // Returns an error response map if the key is missing or not a number.
 func (p ToolRequestParams) MustGetInt(key shared.ToolParamKeys) (int, map[string]any) {
-	val, ok := p[string(key)].(float64)
-	if !ok {
-		return 0, ErrorResponse("%s is required and must be a number", key)
+	if val, ok := p[string(key)].(float64); ok {
+		return int(val), nil
 	}
-	return int(val), nil
+	if val, ok := p[string(key)].(int); ok {
+		return val, nil
+	}
+	return 0, ErrorResponse("%s is required and must be a number", key)
 }
 
 // GetInt64 returns an int64 value for the given key (from float64 JSON representation),
