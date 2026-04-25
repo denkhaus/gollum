@@ -253,7 +253,7 @@ func startHTTPServer(ctx context.Context, cmd *cli.Command, ch channel.Channel, 
 	case <-readyChan:
 		// Server is ready, print clear user-facing message first
 		fmt.Printf("\n✅ ACP HTTP server started on http://%s\n\n", addr)
-		fmt.Println("Ready to accept connections. Press Ctrl+C to stop.\n")
+		fmt.Println("Ready to accept connections. Press Ctrl+C to stop.")
 		os.Stdout.Sync() // Force flush output buffer
 
 	case err := <-serverErr:
