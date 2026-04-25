@@ -283,7 +283,7 @@ func (p *flowExecutorImpl) SetInput(vals map[string]string) error {
 	// Build a map with defaults and provided values
 	processedVals := make(map[string]string)
 
-	// First, apply defaults for all fields
+	// First, apply defaults for all fields (raw, not substituted yet)
 	if p.flow.Input != nil {
 		for _, field := range p.flow.Input.GetAllFields() {
 			if field.Default != "" {
@@ -320,6 +320,27 @@ func (p *flowExecutorImpl) SetInput(vals map[string]string) error {
 	}
 
 	ctx := newContext(p.flow.Input, p.flow.Output, p.flow.Context, processedVals)
+
+	// Validate and cache environment variables referenced in the flow
+	if err := ctx.ValidateEnvVars(p.flow); err != nil {
+		return fmt.Errorf("environment variable validation failed: %w", err)
+	}
+
+	// Substitute template variables in default values (e.g., ${env.VAR})
+	// This must happen after ValidateEnvVars so env vars are cached
+	for fieldName, value := range processedVals {
+		// Only substitute if no explicit value was provided (it's a default)
+		if _, wasProvided := vals[fieldName]; !wasProvided {
+			substituted := ctx.SubstituteTemplate(value)
+			if substituted != value {
+				// Update the processed value with the substituted value
+				processedVals[fieldName] = substituted
+			}
+		}
+	}
+
+	// Recreate context with substituted values
+	ctx = newContext(p.flow.Input, p.flow.Output, p.flow.Context, processedVals)
 
 	// Initialize computed fields from ComputedBlock
 	if p.flow.Computed != nil {

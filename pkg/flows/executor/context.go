@@ -2,6 +2,7 @@ package executor
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -81,6 +82,8 @@ type ExecutionContext interface {
 	GetComputedField(name string) (any, error)
 	GetInput(name string) any
 	GetSysField(field string) any
+	GetEnvField(field string) (any, error)
+	ValidateEnvVars(flow *flows.Flow) error
 	EvaluateComputed() error
 	SetError(ctx *ErrorContext)
 	GetError() *ErrorContext
@@ -100,6 +103,8 @@ type contextImpl struct {
 	computedEval  *variables.ComputedEvaluator // Reference to mark dirty when fields change
 	eval          *Evaluator
 	lastError     *ErrorContext
+	envCache      map[string]string
+	envValidated  bool
 }
 
 func NewContext(
@@ -127,6 +132,8 @@ func newContext(
 		computedBlock: nil,                              // Will be set from flow.Computed if available
 		computedVals:  variables.NewComputedValues(nil), // Empty initially, will be populated from flow
 		eval:          NewEvaluator(),
+		envCache:      make(map[string]string),
+		envValidated:  false,
 	}
 
 	// Initialize input values or defaults
@@ -500,6 +507,96 @@ func (c *contextImpl) EvaluateComputed() error {
 
 	// Evaluate all computed fields
 	return eval.ComputeDirty()
+}
+
+// GetEnvField returns a cached environment variable value
+func (c *contextImpl) GetEnvField(field string) (any, error) {
+	if !c.envValidated {
+		return nil, fmt.Errorf("environment variables not validated, call ValidateEnvVars() first")
+	}
+
+	val, ok := c.envCache[field]
+	if !ok {
+		return nil, &errors.EnvVarNotFoundError{
+			VarName: field,
+		}
+	}
+	return val, nil
+}
+
+// ValidateEnvVars validates and caches all environment variables referenced in the flow
+func (c *contextImpl) ValidateEnvVars(flow *flows.Flow) error {
+	refs := c.extractEnvVarRefs(flow)
+
+	// No env vars referenced? Skip validation
+	if len(refs) == 0 {
+		c.envValidated = true
+		return nil
+	}
+
+	// Validate each referenced env var
+	for varName := range refs {
+		// Use LookupEnv to distinguish missing from empty
+		value, exists := os.LookupEnv(varName)
+		if !exists {
+			return &errors.EnvVarNotFoundError{
+				VarName: varName,
+			}
+		}
+		if value == "" {
+			return &errors.EnvVarEmptyError{
+				VarName: varName,
+			}
+		}
+		c.envCache[varName] = value
+	}
+
+	c.envValidated = true
+	return nil
+}
+
+// extractEnvVarRefs finds all ${env.VAR} references in prompt templates and input defaults
+func (c *contextImpl) extractEnvVarRefs(flow *flows.Flow) map[string]bool {
+	refs := make(map[string]bool)
+
+	// Scan input field defaults for env var references
+	if flow.Input != nil {
+		for _, field := range flow.Input.GetAllFields() {
+			if field.Default != "" {
+				matches := subRegex.FindAllStringSubmatch(field.Default, -1)
+				for _, match := range matches {
+					if len(match) >= 3 {
+						scope := flows.FlowVariableScope(match[1])
+						if scope == flows.FlowVariableScopeEnv {
+							refs[match[2]] = true
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Scan all steps for env var references
+	if flow.States != nil {
+		for _, state := range flow.States {
+			for _, step := range state.Steps {
+				// Check prompt template
+				if step.Prompt != "" {
+					matches := subRegex.FindAllStringSubmatch(step.Prompt, -1)
+					for _, match := range matches {
+						if len(match) >= 3 {
+							scope := flows.FlowVariableScope(match[1])
+							if scope == flows.FlowVariableScopeEnv {
+								refs[match[2]] = true
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return refs
 }
 
 // GetComputedEvaluator returns a configured ComputedEvaluator for this context
