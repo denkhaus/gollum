@@ -6,7 +6,6 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/command"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/session"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -28,11 +27,10 @@ func TestInputHandler_HandleInput_SlashCommand(t *testing.T) {
 	cmdMgr.EXPECT().Execute(ctx, sessionID, "/help").Return(true, "Help text", nil)
 
 	sm := session.NewMockSessionManager(ctrl)
-	reg := registry.NewMockAgentRegistry(ctrl)
 	af := shared.NewMockAgentFactory(ctrl)
 	log := logger.NewMockLoggerService(ctrl)
 
-	handler := NewInputHandler(cmdMgr, sm, reg, af, log)
+	handler := NewInputHandler(cmdMgr, sm, af, log)
 
 	result, err := handler.HandleInput(ctx, channelID, sessionID, "/help")
 
@@ -54,7 +52,6 @@ func TestInputHandler_HandleInput_NonCommand(t *testing.T) {
 	cmdMgr.EXPECT().Execute(ctx, sessionID, "hello").Return(false, "", nil)
 
 	sm := session.NewMockSessionManager(ctrl)
-	reg := registry.NewMockAgentRegistry(ctrl)
 	mockCtx, mockCancel := context.WithCancel(ctx)
 	mockSession := &shared.Session{
 		ID:         sessionID,
@@ -74,7 +71,7 @@ func TestInputHandler_HandleInput_NonCommand(t *testing.T) {
 
 	log := logger.NewMockLoggerService(ctrl)
 
-	handler := NewInputHandler(cmdMgr, sm, reg, af, log)
+	handler := NewInputHandler(cmdMgr, sm, af, log)
 
 	result, err := handler.HandleInput(ctx, channelID, sessionID, "hello")
 
@@ -99,7 +96,7 @@ func TestInputHandler_CancelInput(t *testing.T) {
 	}
 	sm.EXPECT().GetSession(sessionID).Return(mockSession, true)
 
-	handler := NewInputHandler(nil, sm, nil, nil, nil)
+	handler := NewInputHandler(nil, sm, nil, nil)
 
 	err := handler.CancelInput(sessionID)
 	require.NoError(t, err)
@@ -122,7 +119,7 @@ func TestInputHandler_CancelInput_SessionNotFound(t *testing.T) {
 	sm := session.NewMockSessionManager(ctrl)
 	sm.EXPECT().GetSession(sessionID).Return(nil, false)
 
-	handler := NewInputHandler(nil, sm, nil, nil, nil)
+	handler := NewInputHandler(nil, sm, nil, nil)
 
 	err := handler.CancelInput(sessionID)
 	require.Error(t, err)

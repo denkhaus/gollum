@@ -8,7 +8,6 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/command"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/session"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
@@ -30,17 +29,15 @@ type InputHandler interface {
 type inputHandlerImpl struct {
 	commandManager command.Manager
 	sessionManager session.SessionManager
-	registry       registry.AgentRegistry
 	agentFactory   shared.AgentFactory
 	logger         logger.LoggerService
 }
 
 // NewInputHandler creates a new InputHandler instance.
-func NewInputHandler(cm command.Manager, sm session.SessionManager, reg registry.AgentRegistry, af shared.AgentFactory, log logger.LoggerService) InputHandler {
+func NewInputHandler(cm command.Manager, sm session.SessionManager, af shared.AgentFactory, log logger.LoggerService) InputHandler {
 	return &inputHandlerImpl{
 		commandManager: cm,
 		sessionManager: sm,
-		registry:       reg,
 		agentFactory:   af,
 		logger:         log,
 	}

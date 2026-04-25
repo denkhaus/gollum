@@ -46,7 +46,7 @@ func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 	log := do.MustInvoke[logger.LoggerService](injector)
 
 	// Create InputHandler for session/supervisor business logic
-	inputHandler := NewInputHandler(cm, sm, reg, af, log)
+	inputHandler := NewInputHandler(cm, sm, af, log)
 
 	return &channelFacadeImpl{
 		commandManager: cm,
