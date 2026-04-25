@@ -14,6 +14,7 @@ Provides basic workspace context to the main agent.
 
     <output>
         <string name="context" />
+        <string name="workspace" assignFrom="input.workspace_path" />
     </output>
 
     <agents>
@@ -35,10 +36,10 @@ You are a startup flow that provides workspace context. Based on the directory n
 DO NOT use any tools. Just write the description based on the path.
 
 Example response format:
-"This is the [name] workspace for [purpose]."
+"This is the [name] workspace for [purpose] in path [file path]."
                     ]]></prompt>
                     <timeout>10s</timeout>
-                    <result assignTo="output.context"/>
+                    <result assignTo="output.context" />
                 </step>
             </steps>
             <transitions>
