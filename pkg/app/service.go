@@ -133,6 +133,7 @@ func (p *applicationServiceImpl) Run(ctx context.Context) error {
 	return p.runChannel(ctx, tui.Identifier,
 		tui.WithChannelLogger(p.logService),
 		tui.WithChannelRenderer(p.markdownRenderer),
+		tui.WithChannelFacade(p.channelFacade),
 	)
 }
 

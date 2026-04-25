@@ -26,7 +26,7 @@ type TUIChannel struct {
 	agentRole   string
 	logger      logger.LoggerService
 	renderer    markdown.Renderer
-	executor    shared.Agent
+	facade      channel.ChannelFacade
 }
 
 // NewTUIChannel creates a new TUIChannel instance with optional configuration.
@@ -167,13 +167,16 @@ func (c *TUIChannel) GetRenderer() markdown.Renderer {
 
 // Start begins the TUI channel's lifecycle by creating and running the Bubbletea program.
 func (c *TUIChannel) Start(ctx context.Context) error {
-	if c.executor == nil {
-		log.Print("TUIChannel: no executor configured, cannot start TUI")
-		return errors.New("TUIChannel: no executor configured")
+	if c.facade == nil {
+		log.Print("TUIChannel: no facade configured, cannot start TUI")
+		return errors.New("TUIChannel: no facade configured")
 	}
 
 	// Create agent executor adapter
-	executor := &agentExecutorAdapter{agent: c.executor}
+	executor := &agentExecutorAdapter{
+		facade:    c.facade,
+		channelID: c.id,
+	}
 
 	// Create options for the TUI program
 	opts := []func(*Model){
@@ -196,14 +199,30 @@ func (c *TUIChannel) Start(ctx context.Context) error {
 	return err
 }
 
-// agentExecutorAdapter adapts shared.Agent to tui.AgentExecutor
+// agentExecutorAdapter adapts channel.ChannelFacade to tui.AgentExecutor
 type agentExecutorAdapter struct {
-	agent shared.Agent
+	facade    channel.ChannelFacade
+	channelID uuid.UUID
 }
 
-// Execute implements tui.AgentExecutor by delegating to the underlying agent
+// Execute implements tui.AgentExecutor by delegating to the channel facade
 func (a *agentExecutorAdapter) Execute(ctx context.Context, input string) (*gollem.ExecuteResponse, error) {
-	return a.agent.Execute(ctx, gollem.Text(input))
+	// Use empty session ID for TUI (single session)
+	result, err := a.facade.SubmitInput(ctx, a.channelID, "", input)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the response text from InputResult
+	// If there's an error, return it wrapped in the response
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	// Create ExecuteResponse with the response text
+	return &gollem.ExecuteResponse{
+		Texts: []string{result.Response},
+	}, nil
 }
 
 // Compile-time check to ensure TUIChannel implements channel.Channel
