@@ -78,4 +78,36 @@ func TestErrorCodes(t *testing.T) {
 	assert.Equal(t, "EXPRESSION_ERROR", errors.ErrCodeExpression)
 	assert.Equal(t, "IMMUTABLE_FIELD", errors.ErrCodeImmutable)
 	assert.Equal(t, "VALIDATION_FAILED", errors.ErrCodeValidation)
+	assert.Equal(t, "ENV_VAR_NOT_FOUND", errors.ErrCodeEnvVarNotFound)
+	assert.Equal(t, "ENV_VAR_EMPTY", errors.ErrCodeEnvVarEmpty)
+}
+
+func TestEnvVarNotFoundError(t *testing.T) {
+	err := &errors.EnvVarNotFoundError{
+		FlowError: errors.FlowError{
+			Code:    errors.ErrCodeEnvVarNotFound,
+			Message: "environment variable 'API_KEY' not found",
+		},
+		VarName: "API_KEY",
+	}
+
+	expected := "ENV_VAR_NOT_FOUND: environment variable 'API_KEY' not found"
+	assert.Equal(t, expected, err.Error())
+	assert.Equal(t, "API_KEY", err.VarName)
+	assert.Equal(t, errors.ErrCodeEnvVarNotFound, err.Code)
+}
+
+func TestEnvVarEmptyError(t *testing.T) {
+	err := &errors.EnvVarEmptyError{
+		FlowError: errors.FlowError{
+			Code:    errors.ErrCodeEnvVarEmpty,
+			Message: "environment variable 'API_KEY' is empty",
+		},
+		VarName: "API_KEY",
+	}
+
+	expected := "ENV_VAR_EMPTY: environment variable 'API_KEY' is empty"
+	assert.Equal(t, expected, err.Error())
+	assert.Equal(t, "API_KEY", err.VarName)
+	assert.Equal(t, errors.ErrCodeEnvVarEmpty, err.Code)
 }

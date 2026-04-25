@@ -72,3 +72,15 @@ type NoSchemaError struct {
 	FlowError
 	Scope flows.FlowVariableScope // "context", "output", "input"
 }
+
+// EnvVarNotFoundError indicates an environment variable referenced in flow was not found
+type EnvVarNotFoundError struct {
+	FlowError
+	VarName string
+}
+
+// EnvVarEmptyError indicates an environment variable is set but empty
+type EnvVarEmptyError struct {
+	FlowError
+	VarName string
+}
