@@ -31,7 +31,7 @@ func TestSyntaxChecker_ExpressionWithDollarSign(t *testing.T) {
 	// Should have a warning about ${} in expression
 	hasDollarWarning := false
 	for _, w := range result.Warnings {
-		if w.Code == "W001" && strings.Contains(w.Message, "${}") {
+		if w.Code == flows.ErrTemplateNotation && strings.Contains(w.Message, "${}") {
 			hasDollarWarning = true
 			break
 		}
@@ -61,7 +61,7 @@ func TestSyntaxChecker_TemplateWithoutDollarSign(t *testing.T) {
 	// Should have a warning about missing $() in template
 	hasTemplateWarning := false
 	for _, w := range result.Warnings {
-		if w.Code == "W002" && strings.Contains(w.Message, "field references") {
+		if w.Code == flows.ErrMissingTemplateNotation && strings.Contains(w.Message, "field references") {
 			hasTemplateWarning = true
 			break
 		}
@@ -90,7 +90,7 @@ func TestSyntaxChecker_ValidExpression(t *testing.T) {
 
 	// Should not have syntax warnings about ${}
 	for _, w := range result.Warnings {
-		if w.Code == "W001" && strings.Contains(w.Message, "${}") {
+		if w.Code == flows.ErrTemplateNotation && strings.Contains(w.Message, "${}") {
 			t.Errorf("Should not warn about ${} in valid expression: %s", w.Message)
 		}
 	}
@@ -117,7 +117,7 @@ func TestSyntaxChecker_ValidTemplate(t *testing.T) {
 
 	// Should not have syntax warnings about templates
 	for _, w := range result.Warnings {
-		if w.Code == "W002" && strings.Contains(w.Message, "field references") {
+		if w.Code == flows.ErrMissingTemplateNotation && strings.Contains(w.Message, "field references") {
 			t.Errorf("Should not warn about $() in valid template: %s", w.Message)
 		}
 	}

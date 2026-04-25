@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow name="slow-flow" xmlns="urn:gollum:flow:v1">
+    <input>
+        <field name="code" type="string"/>
+    </input>
+    <output>
+        <field name="complexity" type="integer"/>
+    </output>
+    <states>
+        <state name="analyze" initial="true">
+            <steps>
+                <step ref="analyze-complexity" timeout="60s"/>
+            </steps>
+            <transitions>
+                <transition target="done"/>
+            </transitions>
+        </state>
+        <state name="done"/>
+    </states>
+</flow>

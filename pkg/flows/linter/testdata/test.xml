@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow name="test" xmlns="urn:gollum:flow:v1">
+    <input>
+        <field name="input" type="string"/>
+    </input>
+    <output>
+        <field name="output" type="string"/>
+    </output>
+    <states>
+        <state name="init" initial="true">
+            <transitions>
+                <transition target="done"/>
+            </transitions>
+        </state>
+        <state name="done"/>
+    </states>
+</flow>

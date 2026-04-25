@@ -26,7 +26,7 @@ func (s *SyntaxChecker) checkExpressions(flow *flows.Flow, result *flows.LinterR
 		for _, trans := range state.Transitions {
 			if trans.When != "" && strings.Contains(trans.When, "${") {
 				result.Warnings = append(result.Warnings, flows.LinterError{
-					Code:    "W001",
+					Code:    flows.ErrTemplateNotation,
 					Message: "Expression contains ${} syntax - expressions should reference fields directly (e.g., 'computed.value' not '${computed.value}')",
 					Context: trans.When,
 				})
@@ -37,7 +37,7 @@ func (s *SyntaxChecker) checkExpressions(flow *flows.Flow, result *flows.LinterR
 		for _, call := range state.Calls {
 			if call.When != "" && strings.Contains(call.When, "${") {
 				result.Warnings = append(result.Warnings, flows.LinterError{
-					Code:    "W001",
+					Code:    flows.ErrTemplateNotation,
 					Message: "Expression contains ${} syntax - expressions should reference fields directly (e.g., 'input.value' not '${input.value}')",
 					Context: call.When,
 				})
@@ -49,7 +49,7 @@ func (s *SyntaxChecker) checkExpressions(flow *flows.Flow, result *flows.LinterR
 			for _, field := range flow.Computed.GetAllFields() {
 				if strings.Contains(field.Eval, "${") {
 					result.Warnings = append(result.Warnings, flows.LinterError{
-						Code:    "W001",
+						Code:    flows.ErrTemplateNotation,
 						Message: "Computed expression contains ${} syntax - expressions should reference fields directly (e.g., 'input.value' not '${input.value}')",
 						Context: field.Eval,
 					})
@@ -62,7 +62,25 @@ func (s *SyntaxChecker) checkExpressions(flow *flows.Flow, result *flows.LinterR
 // checkTemplates validates that templates use $() for variable substitution
 func (s *SyntaxChecker) checkTemplates(flow *flows.Flow, result *flows.LinterResult) {
 	// Define patterns that look like field references but are missing ${}
-	fieldRefPattern := `\b(input\.|output\.|context\.|computed\.|sys\.)[a-zA-Z_][a-zA-Z0-9_]*\b`
+	fieldRefPattern := `\b(input\.|output\.|context\.|computed\.|sys\.|env\.)[a-zA-Z_][a-zA-Z0-9_]*\b`
+
+	// Check input field defaults for proper ${} syntax
+	if flow.Input != nil {
+		for _, field := range flow.Input.GetAllFields() {
+			if field.Default != "" {
+				s.checkDefaultAttribute(field.Default, "input."+field.Name, result, fieldRefPattern)
+			}
+		}
+	}
+
+	// Check context field defaults for proper ${} syntax
+	if flow.Context != nil {
+		for _, field := range flow.Context.GetAllFields() {
+			if field.Default != "" {
+				s.checkDefaultAttribute(field.Default, "context."+field.Name, result, fieldRefPattern)
+			}
+		}
+	}
 
 	for _, state := range flow.States {
 		for _, step := range state.Steps {
@@ -82,6 +100,23 @@ func (s *SyntaxChecker) checkTemplates(flow *flows.Flow, result *flows.LinterRes
 
 		// Call input/output values use direct field references - no ${} needed
 		// Skip checking call fields as they use the correct syntax
+	}
+}
+
+// checkDefaultAttribute validates that default attribute values use ${} syntax for references
+func (s *SyntaxChecker) checkDefaultAttribute(value, fieldName string, result *flows.LinterResult, pattern string) {
+	// If the value contains ${} syntax, it's properly formatted
+	if strings.Contains(value, "${") {
+		return
+	}
+
+	// Check if value looks like a field reference without ${}
+	if s.containsFieldRefWithoutBrackets(value, pattern) {
+		result.Warnings = append(result.Warnings, flows.LinterError{
+			Code:    flows.ErrMissingTemplateNotation,
+			Message: "Default attribute contains field reference without ${} syntax - use ${input.field}, ${env.VAR}, etc.",
+			Context: fieldName + " default=\"" + value + "\"",
+		})
 	}
 }
 
@@ -108,7 +143,7 @@ func (s *SyntaxChecker) checkTemplateForFieldRefsWithContext(template, context s
 		result.Warnings = append(result.Warnings, flows.LinterError{
 			Line:     line,
 			Column:   col,
-			Code:     "W002",
+			Code:     flows.ErrMissingTemplateNotation,
 			Message:  "Template may contain field references without ${} syntax - use ${input.field}, ${context.field}, etc.",
 			Context:  template,
 		})
@@ -119,7 +154,7 @@ func (s *SyntaxChecker) checkTemplateForFieldRefsWithContext(template, context s
 func (s *SyntaxChecker) containsFieldRefWithoutBrackets(template, pattern string) bool {
 	// This is a basic implementation - we check if the template contains
 	// known prefixes followed by field names, but not wrapped in ${}
-	knownPrefixes := []string{"input.", "output.", "context.", "computed.", "sys."}
+	knownPrefixes := []string{"input.", "output.", "context.", "computed.", "sys.", "env."}
 
 	for _, prefix := range knownPrefixes {
 		// Look for prefix followed by identifier (but not as part of ${})
