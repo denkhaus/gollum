@@ -96,7 +96,7 @@ func TestFullTraceLifecycle(t *testing.T) {
 		require.NotNil(t, tc, "TraceContext should exist for session")
 		assert.Equal(t, traceID, tc.TraceID, "TraceContext.TraceID should match propagated trace ID")
 		assert.NotNil(t, tc.RootSpan, "TraceContext.RootSpan should be created")
-		assert.Equal(t, sessionID, tc.SessionID, "TraceContext.SessionID should match")
+		assert.Equal(t, sessionID.String(), tc.SessionID, "TraceContext.SessionID should match")
 	})
 
 	// Step 2: beforeLLMRequestHook + afterLLMResponseHook - verify LLM span created

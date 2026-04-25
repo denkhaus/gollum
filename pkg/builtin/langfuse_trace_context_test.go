@@ -120,7 +120,7 @@ func TestTraceContext_Struct(t *testing.T) {
 		assert.Equal(t, "test-trace-123", tc.TraceID)
 		assert.Nil(t, tc.RootSpan)
 		assert.NotNil(t, tc.Spans)
-		assert.NotEqual(t, uuid.Nil, tc.SessionID)
+		assert.NotEmpty(t, tc.SessionID)
 		assert.False(t, tc.CreatedAt.IsZero())
 	})
 
@@ -130,7 +130,7 @@ func TestTraceContext_Struct(t *testing.T) {
 		assert.Empty(t, tc.TraceID)
 		assert.Nil(t, tc.RootSpan)
 		assert.Nil(t, tc.Spans)
-		assert.Equal(t, uuid.Nil, tc.SessionID)
+		assert.Empty(t, tc.SessionID)
 		assert.True(t, tc.CreatedAt.IsZero())
 	})
 }

@@ -29,6 +29,12 @@ type LangfuseHook struct {
 	traceCtxsMu *sync.RWMutex // Protects traceCtxs map for concurrent access
 }
 
+// isSessionIDEmpty returns true if the session ID is empty or represents a nil UUID.
+// This handles both empty strings and the string representation of uuid.Nil.
+func isSessionIDEmpty(sessionID string) bool {
+	return sessionID == "" || sessionID == uuid.Nil.String()
+}
+
 // TraceContext holds Langfuse trace state for a single session.
 // It manages spans hierarchy and trace lifecycle.
 type TraceContext struct {
@@ -40,6 +46,9 @@ type TraceContext struct {
 	// Keys are span IDs for lookup during trace assembly.
 	Spans map[string]interface{}
 	// SessionID is the ACP compatible session identifier.
+	// NOTE: SessionID is a string (not uuid.UUID) because the ACP SDK delivers
+	// session IDs as strings, not as UUIDs. We use these ACP-provided session IDs
+	// throughout the codebase to map sessions to channels.
 	SessionID string
 	// CreatedAt is when this trace context was created.
 	CreatedAt time.Time
@@ -311,7 +320,7 @@ func RegisterLangfuseHooks(hm hooks.HookManager, hook *LangfuseHook) error {
 // Session lifecycle hook methods - creates actual Langfuse SDK trace
 func (h *LangfuseHook) beforeSessionStartHook(ctx context.Context, hookCtx *hooks.TypedHookContext[hooks.SessionPayload], next func() error) error {
 	// Only create trace if Langfuse is enabled
-	if !h.config.LangfuseEnabled || hookCtx.SessionID == "" {
+	if !h.config.LangfuseEnabled || isSessionIDEmpty(hookCtx.SessionID) {
 		return next()
 	}
 
@@ -362,7 +371,7 @@ func (h *LangfuseHook) afterSessionEndHook(_ context.Context, hookCtx *hooks.Typ
 	}
 
 	// Only flush if Langfuse is enabled
-	if !h.config.LangfuseEnabled || hookCtx.SessionID == "" {
+	if !h.config.LangfuseEnabled || isSessionIDEmpty(hookCtx.SessionID) {
 		return nil
 	}
 
@@ -430,7 +439,7 @@ func (h *LangfuseHook) propagateTracingToContext(sessionID string, tracing *hook
 // Agent lifecycle hook methods (span creation in Phase 9)
 func (h *LangfuseHook) beforeAgentSpawnHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.AgentPayload], next func() error) error {
 	// Only create spans if Langfuse is enabled and client is available
-	if !h.config.LangfuseEnabled || hookCtx.SessionID == "" {
+	if !h.config.LangfuseEnabled || isSessionIDEmpty(hookCtx.SessionID) {
 		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return next()
 	}
@@ -485,7 +494,7 @@ func (h *LangfuseHook) afterAgentSpawnHook(_ context.Context, hookCtx *hooks.Typ
 	}
 
 	// Only update spans if Langfuse is enabled
-	if !h.config.LangfuseEnabled || hookCtx.SessionID == "" {
+	if !h.config.LangfuseEnabled || isSessionIDEmpty(hookCtx.SessionID) {
 		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
@@ -537,7 +546,7 @@ func (h *LangfuseHook) afterAgentSpawnHook(_ context.Context, hookCtx *hooks.Typ
 
 func (h *LangfuseHook) beforeAgentRemoveHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.AgentPayload], next func() error) error {
 	// Only create spans if Langfuse is enabled and client is available
-	if !h.config.LangfuseEnabled || hookCtx.SessionID == "" {
+	if !h.config.LangfuseEnabled || isSessionIDEmpty(hookCtx.SessionID) {
 		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return next()
 	}
@@ -589,7 +598,7 @@ func (h *LangfuseHook) afterAgentRemoveHook(_ context.Context, hookCtx *hooks.Ty
 	}
 
 	// Only update spans if Langfuse is enabled
-	if !h.config.LangfuseEnabled || hookCtx.SessionID == "" {
+	if !h.config.LangfuseEnabled || isSessionIDEmpty(hookCtx.SessionID) {
 		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
@@ -638,7 +647,7 @@ func (h *LangfuseHook) afterAgentRemoveHook(_ context.Context, hookCtx *hooks.Ty
 // Tool execution hook methods
 func (h *LangfuseHook) beforeToolExecutionHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.ToolPayload], next func() error) error {
 	// Only create spans if Langfuse is enabled and client is available
-	if !h.config.LangfuseEnabled || hookCtx.SessionID == "" {
+	if !h.config.LangfuseEnabled || isSessionIDEmpty(hookCtx.SessionID) {
 		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return next()
 	}
@@ -689,7 +698,7 @@ func (h *LangfuseHook) afterToolExecutionHook(_ context.Context, hookCtx *hooks.
 	}
 
 	// Only update spans if Langfuse is enabled
-	if !h.config.LangfuseEnabled || hookCtx.SessionID == "" {
+	if !h.config.LangfuseEnabled || isSessionIDEmpty(hookCtx.SessionID) {
 		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
@@ -746,7 +755,7 @@ func (h *LangfuseHook) onToolErrorHook(_ context.Context, hookCtx *hooks.TypedHo
 	}
 
 	// Only update spans if Langfuse is enabled
-	if !h.config.LangfuseEnabled || hookCtx.SessionID == "" {
+	if !h.config.LangfuseEnabled || isSessionIDEmpty(hookCtx.SessionID) {
 		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
@@ -875,7 +884,7 @@ type AgentSpanContext struct {
 // LLM hook methods
 func (h *LangfuseHook) beforeLLMRequestHook(_ context.Context, hookCtx *hooks.TypedHookContext[hooks.LLMPayload], next func() error) error {
 	// Only create spans if Langfuse is enabled and client is available
-	if !h.config.LangfuseEnabled || hookCtx.SessionID == "" {
+	if !h.config.LangfuseEnabled || isSessionIDEmpty(hookCtx.SessionID) {
 		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return next()
 	}
@@ -926,7 +935,7 @@ func (h *LangfuseHook) afterLLMResponseHook(_ context.Context, hookCtx *hooks.Ty
 	}
 
 	// Only update spans if Langfuse is enabled
-	if !h.config.LangfuseEnabled || hookCtx.SessionID == "" {
+	if !h.config.LangfuseEnabled || isSessionIDEmpty(hookCtx.SessionID) {
 		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
@@ -993,7 +1002,7 @@ func (h *LangfuseHook) onLLMErrorHook(_ context.Context, hookCtx *hooks.TypedHoo
 	}
 
 	// Only update spans if Langfuse is enabled
-	if !h.config.LangfuseEnabled || hookCtx.SessionID == "" {
+	if !h.config.LangfuseEnabled || isSessionIDEmpty(hookCtx.SessionID) {
 		h.propagateTracingToContext(hookCtx.SessionID, &hookCtx.Tracing)
 		return nil
 	}
