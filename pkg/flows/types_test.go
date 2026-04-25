@@ -176,7 +176,7 @@ func TestAgentStrategyParsing(t *testing.T) {
 	assert.NotNil(t, agents[0].Strategy)
 	assert.Equal(t, 10, agents[0].Strategy.MaxIterations)
 	assert.Equal(t, 2, agents[0].Strategy.MaxRepeatedActions)
-	assert.Equal(t, "react", agents[0].Strategy.Type)
+	assert.Equal(t, "react", string(agents[0].Strategy.Type))
 
 	// Agent without strategy
 	assert.Nil(t, agents[1].Strategy)
