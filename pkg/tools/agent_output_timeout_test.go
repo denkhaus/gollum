@@ -36,12 +36,12 @@ func TestAgentOutputTool_Run_TimeoutClamping_Int(t *testing.T) {
 		inputTimeout    int
 		expectedTimeout time.Duration
 	}{
-		{"Too low", 0, 30 * time.Second},
-		{"Negative", -100, 30 * time.Second},
-		{"Too high", 700000, 30 * time.Second},
-		{"Valid", 30000, 30 * time.Second},
-		{"Min valid", 1, 1 * time.Millisecond},
-		{"Max valid", 600000, 30 * time.Second},
+		{"Too low", 0, 1 * time.Millisecond},       // Clamped to minimum
+		{"Negative", -100, 1 * time.Millisecond},   // Clamped to minimum
+		{"Too high", 700000, 600 * time.Second},    // Clamped to maximum (600000ms = 600s)
+		{"Valid", 30000, 30 * time.Second},         // Valid value
+		{"Min valid", 1, 1 * time.Millisecond},     // Minimum value
+		{"Max valid", 600000, 600 * time.Second},   // Maximum value (600000ms = 600s)
 	}
 
 	for _, tt := range tests {
