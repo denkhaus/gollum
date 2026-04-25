@@ -8,6 +8,8 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"go.uber.org/mock/gomock"
 )
@@ -20,8 +22,13 @@ func TestGlobTool_Run_SimplePattern(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
-	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	tmpDir := t.TempDir()
 
@@ -69,8 +76,13 @@ func TestGlobTool_Run_NoMatches(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
-	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	tmpDir := t.TempDir()
 
@@ -115,8 +127,13 @@ func TestGlobTool_Run_DefaultPath(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
-	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	// Change to temp directory for this test
 	originalDir, err := os.Getwd()
@@ -165,8 +182,13 @@ func TestGlobTool_Run_NestedPath(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
-	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	tmpDir := t.TempDir()
 
@@ -208,8 +230,13 @@ func TestGlobTool_Run_SubdirectoryPattern(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
-	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	tmpDir := t.TempDir()
 
@@ -266,8 +293,13 @@ func TestGlobTool_Run_AllFilesPattern(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
-	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	tmpDir := t.TempDir()
 

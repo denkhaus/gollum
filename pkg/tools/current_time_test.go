@@ -71,7 +71,13 @@ func TestCurrentTimeTool_Run_UTC(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
+	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	args := map[string]any{
 		"timezone": "UTC",
@@ -106,7 +112,13 @@ func TestCurrentTimeTool_Run_AmericaNewYork(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
+	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	args := map[string]any{
 		"timezone": "America/New_York",
@@ -148,7 +160,13 @@ func TestCurrentTimeTool_Run_EuropeBerlin(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
+	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	args := map[string]any{
 		"timezone": "Europe/Berlin",
@@ -183,7 +201,13 @@ func TestCurrentTimeTool_Run_InvalidTimezone(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
+	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	args := map[string]any{
 		"timezone": "Invalid/Timezone",
@@ -219,7 +243,13 @@ func TestCurrentTimeTool_Run_EmptyTimezone(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
+	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	args := map[string]any{
 		"timezone": "",
@@ -245,7 +275,13 @@ func TestCurrentTimeTool_Run_NonStringTimezone(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
+	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	args := map[string]any{
 		"timezone": 12345,
@@ -272,7 +308,13 @@ func TestCurrentTimeTool_Run_AsiaTokyo(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager}
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+
+	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	args := map[string]any{
 		"timezone": "Asia/Tokyo",

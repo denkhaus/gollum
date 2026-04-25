@@ -6,6 +6,8 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"go.uber.org/mock/gomock"
 )
@@ -18,8 +20,13 @@ func TestGlobTool_Run_MissingPattern(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
-	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	args := map[string]any{
 		"path": "/some/path",
@@ -47,8 +54,13 @@ func TestGlobTool_Run_EmptyPattern(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
-	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	args := map[string]any{
 		"pattern": "",
@@ -72,8 +84,13 @@ func TestGlobTool_Run_NonStringPattern(t *testing.T) {
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
 
-	tool := &globToolImpl{logService: logService, hookManager: mockHookManager}
+	tool := &globToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	args := map[string]any{
 		"pattern": 12345,
