@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow name="slow-flow" version="1.0">
+    <description>Test flow with slow step for timeout testing.</description>
+
+    <input>
+        <string name="input" required="true" />
+    </input>
+
+    <output>
+        <string name="output" />
+    </output>
+
+    <context>
+        <string name="input" required="true" />
+        <string name="output" />
+    </context>
+
+    <states>
+        <state name="process" initial="true">
+            <steps>
+                <step type="shell" name="slow-operation">
+                    <cmd><![CDATA[echo "processing..."]]></cmd>
+                    <result>
+                        <string path="stdout" assignTo="output.output" />
+                    </result>
+                    <timeout>60s</timeout>
+                </step>
+            </steps>
+
+            <transitions>
+                <transition to="done" />
+            </transitions>
+        </state>
+
+        <state name="done" />
+    </states>
+</flow>
