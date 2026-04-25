@@ -929,41 +929,6 @@ func TestChannelFacade_SubmitInput_NoSupervisorError(t *testing.T) {
 	assert.Empty(t, result)
 }
 
-// TestChannelFacade_CancelInput_Success tests that CancelInput successfully cancels a session
-func TestChannelFacade_CancelInput_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	injector := setupTestInjector(t)
-
-	service, err := NewChannelFacade(injector)
-	require.NoError(t, err)
-
-	// Create a mock session manager
-	mockSM := session.NewMockSessionManager(ctrl)
-	sessionID := "test-session-id"
-	cancelCalled := false
-
-	// Create a test session with a cancel func that sets our flag
-	ctx, cancel := context.WithCancel(context.Background())
-	testSession := &shared.Session{
-		ID:         sessionID,
-		Context:    ctx,
-		CancelFunc: func() { cancelCalled = true; cancel() },
-	}
-
-	// Setup mock expectations
-	mockSM.EXPECT().GetSession(sessionID).Return(testSession, true)
-
-	// Replace the session manager in the service
-	serviceImpl := service.(*channelFacadeImpl)
-	serviceImpl.sessionManager = mockSM
-
-	// Call CancelInput
-	err = service.CancelInput(sessionID)
-
-	assert.NoError(t, err)
-	assert.True(t, cancelCalled, "CancelFunc should have been called")
-}
-
 // TestChannelFacade_CancelInput_SessionNotFound tests that CancelInput returns error for non-existent session
 func TestChannelFacade_CancelInput_SessionNotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -1288,4 +1253,56 @@ func setupTestInjectorWithSessionManager(t testing.TB, ctrl *gomock.Controller) 
 	do.ProvideValue[session.SessionManager](injector, mockSM)
 
 	return injector
+}
+
+// TestChannelFacade_SubmitInput_DelegatesToHandler tests that facade properly delegates to InputHandler
+func TestChannelFacade_SubmitInput_DelegatesToHandler(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHandler := NewMockInputHandler(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
+
+	// Create a minimal facade implementation for testing
+	mockFacade := &channelFacadeImpl{
+		inputHandler: mockHandler,
+		channels:     make(map[uuid.UUID]Channel),
+		logger:       mockLogger,
+	}
+
+	ctx := context.Background()
+	channelID := uuid.New()
+	sessionID := "test"
+	input := "hello"
+
+	expectedResult := &InputResult{Handled: true, Response: "Hi there"}
+	mockHandler.EXPECT().HandleInput(ctx, channelID, sessionID, input).Return(expectedResult, nil)
+
+	result, err := mockFacade.SubmitInput(ctx, channelID, sessionID, input)
+
+	require.NoError(t, err)
+	assert.Equal(t, expectedResult, result)
+}
+
+// TestChannelFacade_CancelInput_DelegatesToHandler tests that facade properly delegates CancelInput to InputHandler
+func TestChannelFacade_CancelInput_DelegatesToHandler(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHandler := NewMockInputHandler(ctrl)
+	mockLogger := logger.NewMockLoggerService(ctrl)
+
+	// Create a minimal facade implementation for testing
+	mockFacade := &channelFacadeImpl{
+		inputHandler: mockHandler,
+		channels:     make(map[uuid.UUID]Channel),
+		logger:       mockLogger,
+	}
+
+	sessionID := "test-session"
+	mockHandler.EXPECT().CancelInput(sessionID).Return(nil)
+
+	err := mockFacade.CancelInput(sessionID)
+
+	require.NoError(t, err)
 }
