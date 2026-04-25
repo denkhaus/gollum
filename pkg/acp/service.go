@@ -250,7 +250,13 @@ func (s *acpServiceImpl) OnMessage(msg channel.Message) {
 	}
 }
 
-// OnLog receives log entries from the agent system and forwards them to the appropriate ACP session
+// OnLog receives log entries from the agent system and forwards them to ACP sessions.
+//
+// Log routing behavior:
+// - Session-specific logs (entry.SessionID set) → routed to that session only
+// - System-wide logs (no session ID) → broadcast to all active sessions
+//
+// See pkg/channel package documentation for general log routing patterns.
 func (s *acpServiceImpl) OnLog(entry shared.LogEntry) {
 	// Log locally for debugging
 	s.logger.Debug("log entry from agent system",

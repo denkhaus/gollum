@@ -1,4 +1,30 @@
 // Package channel provides the channel abstraction layer for Gollum.
+//
+// LOG ROUTING BEHAVIOR:
+//
+// Channels receive log entries via the OnLog(entry) method. The routing
+// behavior depends on the channel type and use case:
+//
+// SINGLE-SESSION CHANNELS (e.g., TUI):
+// - Receive all logs for display in the UI
+// - Logs are not session-scoped
+// - Example: TUI shows all system logs in a dedicated panel
+//
+// MULTI-SESSION CHANNELS (e.g., ACP):
+// - MUST route logs to specific sessions when entry.SessionID is set
+// - MAY broadcast system-wide logs (no session ID) to all active sessions
+// - Example: ACP forwards session-specific logs to that session only,
+//            but broadcasts agent lifecycle events to all sessions
+//
+// LOG ENTRY ROUTING:
+// - entry.ChannelID determines which channel receives the log
+// - entry.SessionID provides session-specific routing (optional)
+// - Channels MUST handle logs even if no session is active
+//
+// IMPLEMENTATION NOTES:
+// - Use non-blocking sends to prevent log system deadlocks
+// - Filter/handle logs appropriately for the channel type
+// - Document channel-specific log behavior in channel documentation
 package channel
 
 import (
@@ -75,7 +101,22 @@ type AgentLifecycleEvent struct {
 	ChannelID uuid.UUID
 }
 
-// Channel is the interface that all channel implementations must satisfy
+// Channel is the interface that all channel implementations must satisfy.
+//
+// Channels receive data FROM the system via three methods:
+// - OnMessage(msg): Agent responses, tool executions, thinking blocks
+// - OnLog(entry): Log entries from the system (see package docs for routing behavior)
+// - OnAgentLifecycle(event): Agent registration/removal notifications
+//
+// Channels send data TO the system via the ChannelFacade:
+// - SubmitInput(): User input from the channel
+//
+// IMPLEMENTATION GUIDELINES:
+// 1. Use non-blocking sends for channels to prevent deadlocks
+// 2. Handle all message types (MessageType* constants)
+// 3. Document session handling behavior (single vs multi-session)
+// 4. Implement Start() to block until channel is complete
+// 5. See package documentation for log routing behavior
 type Channel interface {
 	// ID returns a unique identifier for this channel
 	ID() uuid.UUID
@@ -84,6 +125,7 @@ type Channel interface {
 	OnMessage(msg Message)
 
 	// OnLog is called for log entries (channel can ignore if not applicable)
+	// See package documentation for log routing behavior
 	OnLog(entry shared.LogEntry)
 
 	// OnAgentLifecycle is called when agent registration/removal events occur

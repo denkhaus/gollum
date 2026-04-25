@@ -99,8 +99,13 @@ func (c *TUIChannel) OnMessage(msg channel.Message) {
 	}
 }
 
-// OnLog handles log entries from the channel.
-// Log entries are converted to system messages and sent to the TUI.
+// OnLog handles log entries from the channel system.
+//
+// Log routing behavior for TUI (single-session channel):
+// - All logs are displayed in the TUI UI
+// - No session routing (TUI uses empty session ID)
+//
+// See pkg/channel package documentation for general log routing patterns.
 func (c *TUIChannel) OnLog(entry shared.LogEntry) {
 	if c.messageChan == nil {
 		log.Printf("[TUIChannel] No message channel configured, log entry not displayed: %+v", entry)
