@@ -251,7 +251,7 @@ func TestListFlowsTool_Run_Success(t *testing.T) {
 
 	// Expect logging calls
 	mockLogger.EXPECT().InfoWithContext("ListFlows operation started", gomock.Any(), gomock.Any()).Times(1)
-	mockLogger.EXPECT().InfoWithContext("ListFlows operation completed successfully", gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().InfoWithContext("ListFlows operation completed successfully", gomock.Any(), gomock.Any()).Times(1)
 
 	// Run the tool
 	result, err := tool.Run(context.Background(), map[string]any{})
@@ -278,7 +278,7 @@ func TestListFlowsTool_Run_ListFlowsError(t *testing.T) {
 
 	// Expect logging calls
 	mockLogger.EXPECT().InfoWithContext("ListFlows operation started", gomock.Any(), gomock.Any()).Times(1)
-	mockLogger.EXPECT().ErrorWithContext("Failed to list flows", gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().ErrorWithContext("Failed to list flows", gomock.Any(), gomock.Any()).Times(1)
 
 	// Run the tool - should return error response map
 	result, err := tool.Run(context.Background(), map[string]any{})

@@ -499,8 +499,12 @@ func (t *executeFlowTool) runExecuteFlow(ctx context.Context, args ToolRequestPa
 	}
 
 	// Log operation start
+	logCtx := shared.LoggingContext{}
+	if t.agent != nil {
+		logCtx = t.agent.ToLoggingContext()
+	}
 	t.logService.InfoWithContext("ExecuteFlow operation started",
-		t.agent.ToLoggingContext(),
+		logCtx,
 		zap.String("flow_name", flowName))
 
 	// Get inputs (optional)
@@ -518,7 +522,7 @@ func (t *executeFlowTool) runExecuteFlow(ctx context.Context, args ToolRequestPa
 	flow, err := t.flowRegistry.GetFlow(flowName)
 	if err != nil {
 		t.logService.ErrorWithContext("Flow not found",
-			t.agent.ToLoggingContext(),
+			logCtx,
 			zap.String("flow_name", flowName),
 			zap.Error(err))
 		return ErrorResponse("flow not found: %s", flowName), nil
@@ -528,7 +532,7 @@ func (t *executeFlowTool) runExecuteFlow(ctx context.Context, args ToolRequestPa
 	result, err := t.executor.Execute(ctx, flow, inputsAny)
 	if err != nil {
 		t.logService.ErrorWithContext("Flow execution failed",
-			t.agent.ToLoggingContext(),
+			logCtx,
 			zap.String("flow_name", flowName),
 			zap.Error(err))
 		return ErrorResponse("flow execution failed: %v", err), nil
@@ -536,7 +540,7 @@ func (t *executeFlowTool) runExecuteFlow(ctx context.Context, args ToolRequestPa
 
 	// Log success
 	t.logService.InfoWithContext("ExecuteFlow operation completed successfully",
-		t.agent.ToLoggingContext(),
+		logCtx,
 		zap.String("flow_name", flowName),
 		zap.Int("output_count", len(result.Outputs)))
 
@@ -621,22 +625,28 @@ func (t *listFlowsTool) Run(ctx context.Context, args map[string]any) (map[strin
 
 // runListFlows implements the core list flows logic
 func (t *listFlowsTool) runListFlows(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
+	// Setup logging context (may be empty for tests)
+	logCtx := shared.LoggingContext{}
+	if t.agent != nil {
+		logCtx = t.agent.ToLoggingContext()
+	}
+
 	// Log operation start
 	t.logService.InfoWithContext("ListFlows operation started",
-		t.agent.ToLoggingContext())
+		logCtx)
 
 	// Get all flows from registry
 	flows, err := t.flowRegistry.ListFlows()
 	if err != nil {
 		t.logService.ErrorWithContext("Failed to list flows",
-			t.agent.ToLoggingContext(),
+			logCtx,
 			zap.Error(err))
 		return ErrorResponse("failed to list flows: %v", err), nil
 	}
 
 	// Log success
 	t.logService.InfoWithContext("ListFlows operation completed successfully",
-		t.agent.ToLoggingContext(),
+		logCtx,
 		zap.Int("flow_count", len(flows)))
 
 	// Return success with flows array
