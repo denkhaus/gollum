@@ -50,6 +50,13 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 	mockSenderAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
 		AgentID: senderID,
 	}).AnyTimes()
+	mockSenderAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
+		Role:         "Parent",
+		SystemPrompt: "parent",
+	}).AnyTimes()
 
 	// Create mock agent - ID will be determined at spawn time
 	mockAgent := shared.NewMockAgent(ctrl)
@@ -63,6 +70,10 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 		Role:         "Async Tester",
 		SystemPrompt: "test",
 	}).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().DoAndReturn(func() shared.LoggingContext {
+		return *shared.NewLoggingContext("test-session", spawnedAgentID, uuid.Nil)
+	}).AnyTimes()
+	mockAgent.EXPECT().GetMessageHistory(gomock.Any()).Return(nil, nil).AnyTimes()
 
 	// Create spawn tool
 	tool := &spawnAgentToolImpl{
@@ -162,6 +173,13 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 	mockSenderAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
 		AgentID: senderID,
 	}).AnyTimes()
+	mockSenderAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
+		Role:         "Parent",
+		SystemPrompt: "parent",
+	}).AnyTimes()
 
 	// Create mock agent - ID will be determined at spawn time
 	mockAgent := shared.NewMockAgent(ctrl)
@@ -175,6 +193,10 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 		Role:         "Slow Agent",
 		SystemPrompt: "test",
 	}).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().DoAndReturn(func() shared.LoggingContext {
+		return *shared.NewLoggingContext("test-session", spawnedAgentID, uuid.Nil)
+	}).AnyTimes()
+	mockAgent.EXPECT().GetMessageHistory(gomock.Any()).Return(nil, nil).AnyTimes()
 
 	// Create spawn tool
 	tool := &spawnAgentToolImpl{
@@ -278,6 +300,13 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 	mockSenderAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
 		AgentID: senderID,
 	}).AnyTimes()
+	mockSenderAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
+		Role:         "Parent",
+		SystemPrompt: "parent",
+	}).AnyTimes()
 
 	// Create mock agent - ID will be determined at spawn time
 	mockAgent := shared.NewMockAgent(ctrl)
@@ -291,6 +320,10 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 		Role:         "Failing Async Agent",
 		SystemPrompt: "test",
 	}).AnyTimes()
+	mockAgent.EXPECT().ToLoggingContext().DoAndReturn(func() shared.LoggingContext {
+		return *shared.NewLoggingContext("test-session", spawnedAgentID, uuid.Nil)
+	}).AnyTimes()
+	mockAgent.EXPECT().GetMessageHistory(gomock.Any()).Return(nil, nil).AnyTimes()
 
 	// Create spawn tool
 	tool := &spawnAgentToolImpl{
@@ -382,6 +415,13 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 	mockSenderAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
 		AgentID: senderID,
 	}).AnyTimes()
+	mockSenderAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
+		Role:         "Parent",
+		SystemPrompt: "parent",
+	}).AnyTimes()
 
 	// Create mock agent - ID will be determined at spawn time
 	mockAgent := shared.NewMockAgent(ctrl)
@@ -415,8 +455,12 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, config *shared.AgentConfig) (shared.Agent, error) {
 		spawnedAgentID = config.ID
 		return mockAgent, nil
-	})
 
+	})
+		mockAgent.EXPECT().ToLoggingContext().DoAndReturn(func() shared.LoggingContext {
+			return *shared.NewLoggingContext("test-session", spawnedAgentID, uuid.Nil)
+		}).AnyTimes()
+		mockAgent.EXPECT().GetMessageHistory(gomock.Any()).Return(nil, nil).AnyTimes()
 	// Agent will complete after delay
 	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).Return(&gollem.ExecuteResponse{
 		Texts: []string{"Done after delay"},

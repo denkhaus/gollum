@@ -49,6 +49,13 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 	mockSenderAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
 		AgentID: senderID,
 	}).AnyTimes()
+	mockSenderAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
+		LLMClientConfig: &shared.LLMClientConfig{
+			Model: "anthropic/claude-3-5-sonnet-20241022",
+		},
+		Role:         "Parent",
+		SystemPrompt: "parent",
+	}).AnyTimes()
 
 	// Create spawn tool
 	tool := &spawnAgentToolImpl{
@@ -85,6 +92,10 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 			Role:         "Concurrent Agent",
 			SystemPrompt: "test",
 		}).AnyTimes()
+			mockAgent.EXPECT().ToLoggingContext().DoAndReturn(func() shared.LoggingContext {
+				return *shared.NewLoggingContext("test-session", spawnedID, uuid.Nil)
+			}).AnyTimes()
+			mockAgent.EXPECT().GetMessageHistory(gomock.Any()).Return(nil, nil).AnyTimes()
 
 		// Expect factory call - capture the config to get the agent ID
 		mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Concurrent Agent", "Concurrent task").Return("You are a helpful assistant", nil)
