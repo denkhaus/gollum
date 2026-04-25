@@ -181,3 +181,15 @@ func TestAgentStrategyParsing(t *testing.T) {
 	// Agent without strategy
 	assert.Nil(t, agents[1].Strategy)
 }
+
+func TestFlowVariableScopeEnv(t *testing.T) {
+	scope := FlowVariableScopeEnv
+	if scope != "env" {
+		t.Errorf("expected 'env', got %q", scope)
+	}
+
+	err := scope.Validate()
+	if err != nil {
+		t.Errorf("expected nil, got %v", err)
+	}
+}

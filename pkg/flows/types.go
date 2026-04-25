@@ -43,10 +43,11 @@ func (p FlowVariableScope) Validate() error {
 		FlowVariableScopeOutput:   true,
 		FlowVariableScopeComputed: true,
 		FlowVariableScopeSys:      true,
+		FlowVariableScopeEnv:      true,
 	}
 
 	if !valid[p] {
-		return fmt.Errorf("invalid flow variable scope: %s (expected one of: input, context, output, computed, sys)", p)
+		return fmt.Errorf("invalid flow variable scope: %s (expected one of: input, context, output, computed, sys, env)", p)
 	}
 	return nil
 }
@@ -64,6 +65,7 @@ const (
 	FlowVariableScopeOutput   FlowVariableScope = "output"
 	FlowVariableScopeComputed FlowVariableScope = "computed"
 	FlowVariableScopeSys      FlowVariableScope = "sys"
+	FlowVariableScopeEnv      FlowVariableScope = "env"
 
 	// Field type constants
 	TypeString ValueType = "string"
