@@ -1,77 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<flow name="startup" xmlns="http://gollum.dev/schema/flow">
+<!--
+Startup Flow - Simple Workspace Context
+Provides basic workspace context to the main agent.
+-->
+<flow name="startup" version="1.0">
     <description>
-        Example startup flow that analyzes the workspace
-        and provides context to the main agent.
+        Startup flow that provides basic workspace context to the main agent.
     </description>
 
     <input>
-        <strings>
-            <field name="workspace_path" type="string" default="${env.PWD}" />
-        </strings>
+        <string name="workspace_path" default="${env.PWD}" />
     </input>
+
+    <output>
+        <string name="context" />
+    </output>
+
+    <agents>
+        <agent name="supervisor" model="anthropic/claude-opus-4-6">
+            <prompt>You are a helpful assistant that provides workspace context.</prompt>
+            <temperature>0.3</temperature>
+        </agent>
+    </agents>
 
     <states>
         <state name="analyze" initial="true">
             <steps>
-                <!-- Read project README if it exists -->
-                <func builtin="assign">
-                    <params>
-                        <param name="from" value="${input.workspace_path}/README.md" />
-                        <param name="to" value="${local.readme_path}" />
-                    </params>
-                </func>
+                <step type="llm" agent="supervisor">
+                    <prompt><![CDATA[
+Workspace path: `${input.workspace_path}`
 
-                <func builtin="file_exists">
-                    <params>
-                        <param name="path" value="${local.readme_path}" />
-                    </params>
-                </func>
+You are a startup flow that provides workspace context. Based on the directory name in the path above, write 1-2 sentences describing what this workspace is for.
 
-                <!-- If README exists, read it and create context -->
-                <transition event="file_exists.true" target="read_readme" />
-                <transition event="file_exists.false" target="set_default_context" />
+DO NOT use any tools. Just write the description based on the path.
+
+Example response format:
+"This is the [name] workspace for [purpose]."
+                    ]]></prompt>
+                    <timeout>10s</timeout>
+                    <result assignTo="output.context"/>
+                </step>
             </steps>
+            <transitions>
+                <transition to="done" />
+            </transitions>
         </state>
 
-        <state name="read_readme">
-            <steps>
-                <func builtin="read_file">
-                    <params>
-                        <param name="path" value="${local.readme_path}" />
-                    </params>
-                </func>
-
-                <func builtin="assign">
-                    <params>
-                        <param name="from" value="Project Context: Based on the README, this project's main focus is described in the documentation file. Use this information to better understand the codebase and provide relevant assistance." />
-                        <param name="to" value="${output.context}" />
-                    </params>
-                </func>
-
-                <transition event="done" target="done" />
-            </steps>
-        </state>
-
-        <state name="set_default_context">
-            <steps>
-                <func builtin="assign">
-                    <params>
-                        <param name="from" value="Project Context: No README.md found. This appears to be a development project. Analyze the codebase structure to understand the project's purpose." />
-                        <param name="to" value="${output.context}" />
-                    </params>
-                </func>
-
-                <transition event="done" target="done" />
-            </steps>
-        </state>
-
-        <state name="done" final="true" />
+        <state name="done" />
     </states>
-
-    <output>
-        <strings>
-            <field name="context" type="string" />
-        </strings>
-    </output>
 </flow>
