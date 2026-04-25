@@ -79,8 +79,16 @@ type EnvVarNotFoundError struct {
 	VarName string
 }
 
+func (e *EnvVarNotFoundError) Error() string {
+	return fmt.Sprintf("%s: environment variable '%s' not found", e.Code, e.VarName)
+}
+
 // EnvVarEmptyError indicates an environment variable is set but empty
 type EnvVarEmptyError struct {
 	FlowError
 	VarName string
+}
+
+func (e *EnvVarEmptyError) Error() string {
+	return fmt.Sprintf("%s: environment variable '%s' is empty", e.Code, e.VarName)
 }

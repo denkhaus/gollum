@@ -29,11 +29,12 @@ const (
 	ErrInvalidRef            ErrorCode = "E006" // invalid field reference format
 	ErrInvalidScope          ErrorCode = "E007" // invalid scope in field reference
 	ErrCircularDep           ErrorCode = "E008" // circular dependency
-	ErrTemplateNotation      ErrorCode = "E009" // ${} notation not allowed in assignTo/assignFrom
+	ErrTemplateNotation      ErrorCode = "E009" // ${} notation not allowed (expressions, assignTo/assignFrom)
 	ErrMissingScope          ErrorCode = "E010" // missing scope prefix in field reference
 	ErrInvalidEval           ErrorCode = "E011" // eval only allows function calls
 	ErrInvalidAssignFromScope ErrorCode = "E012" // invalid scope in assignFrom (e.g., output)
 	ErrInvalidAssignToScope   ErrorCode = "E013" // invalid scope in assignTo (e.g., input, computed)
+	ErrMissingTemplateNotation ErrorCode = "E015" // missing ${} in templates/defaults
 
 	// Graph errors (Gxxx)
 	ErrNoInitialState    ErrorCode = "G001"
