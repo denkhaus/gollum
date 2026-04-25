@@ -72,7 +72,7 @@ func TestTimeout_InsufficientCallTimeout(t *testing.T) {
 				Initial: true,
 				Calls: []flows.Call{
 					{
-						Ref:     "code-analysis/complexity-check", // Has a 60s step
+						Ref:     "test-flows/slow-flow", // Has a 60s step in slow-flow
 						Timeout: "30s",                            // Insufficient
 					},
 				},
@@ -80,7 +80,7 @@ func TestTimeout_InsufficientCallTimeout(t *testing.T) {
 		},
 	}
 
-	result := LintPath(".gollum/flows/test.xml", flow)
+	result := LintPath("testdata/test.xml", flow)
 
 	// Should have timeout exceeded error
 	assert.True(t, hasErrorCode(result, flows.ErrTimeoutExceeded), "should have timeout exceeded error")
@@ -98,7 +98,7 @@ func TestTimeout_SufficientCallTimeout(t *testing.T) {
 				Initial: true,
 				Calls: []flows.Call{
 					{
-						Ref:     "code-analysis/complexity-check", // Has a 60s step
+						Ref:     "test-flows/slow-flow", // Has a 60s step in slow-flow
 						Timeout: "120s",                           // Sufficient
 					},
 				},
@@ -106,7 +106,7 @@ func TestTimeout_SufficientCallTimeout(t *testing.T) {
 		},
 	}
 
-	result := LintPath(".gollum/flows/test.xml", flow)
+	result := LintPath("testdata/test.xml", flow)
 
 	// Should NOT have timeout exceeded error
 	assert.False(t, hasErrorCode(result, flows.ErrTimeoutExceeded), "should not have timeout exceeded error when timeout is sufficient")
@@ -124,7 +124,7 @@ func TestTimeout_ExactTimeoutMatch(t *testing.T) {
 				Initial: true,
 				Calls: []flows.Call{
 					{
-						Ref:     "code-analysis/complexity-check", // Has a 60s step
+						Ref:     "test-flows/slow-flow", // Has a 60s step in slow-flow
 						Timeout: "60s",                            // Exact match
 					},
 				},
@@ -132,7 +132,7 @@ func TestTimeout_ExactTimeoutMatch(t *testing.T) {
 		},
 	}
 
-	result := LintPath(".gollum/flows/test.xml", flow)
+	result := LintPath("testdata/test.xml", flow)
 
 	// Should NOT have timeout exceeded error (exact match is OK)
 	assert.False(t, hasErrorCode(result, flows.ErrTimeoutExceeded), "should not have timeout exceeded error when timeout matches exactly")
@@ -158,7 +158,7 @@ func TestTimeout_NoExplicitTimeout(t *testing.T) {
 		},
 	}
 
-	result := LintPath(".gollum/flows/test.xml", flow)
+	result := LintPath("testdata/test.xml", flow)
 
 	// Should NOT have timeout exceeded error (no timeout to validate)
 	assert.False(t, hasErrorCode(result, flows.ErrTimeoutExceeded), "should not have timeout exceeded error when no explicit timeout")
@@ -184,7 +184,7 @@ func TestTimeout_InvalidTimeoutFormat(t *testing.T) {
 		},
 	}
 
-	result := LintPath(".gollum/flows/test.xml", flow)
+	result := LintPath("testdata/test.xml", flow)
 
 	// Should have invalid expression error
 	assert.True(t, hasErrorCode(result, flows.ErrInvalidExpr), "should have invalid expression error for invalid timeout format")
@@ -211,7 +211,7 @@ func TestTimeout_MultipleStepsSummed(t *testing.T) {
 		},
 	}
 
-	result := LintPath(".gollum/flows/test.xml", flow)
+	result := LintPath("testdata/test.xml", flow)
 
 	// Should have timeout exceeded error
 	assert.True(t, hasErrorCode(result, flows.ErrTimeoutExceeded), "should have timeout exceeded error for security-scan")
@@ -239,7 +239,7 @@ func TestTimeout_RecursiveCallTimeout(t *testing.T) {
 		},
 	}
 
-	result := LintPath(".gollum/flows/test.xml", flow)
+	result := LintPath("testdata/test.xml", flow)
 
 	// Should have timeout exceeded error
 	// Note: This depends on how we calculate nested timeouts
