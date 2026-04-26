@@ -32,6 +32,9 @@ type SessionError struct {
 
 // Error returns the error message.
 func (e *SessionError) Error() string {
+	if e.SessionID == uuid.Nil {
+		return fmt.Sprintf("session: %s failed: %v", e.Op, e.Err)
+	}
 	return fmt.Sprintf("session %s: %s failed: %v", e.SessionID, e.Op, e.Err)
 }
 
