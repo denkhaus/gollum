@@ -525,3 +525,63 @@ func (s *acpServiceImpl) Cancel(ctx context.Context, params *acppkg.CancelNotifi
 
 	return nil
 }
+
+// ListSessions implements ACP session/list protocol method.
+func (s *acpServiceImpl) ListSessions(ctx context.Context) ([]*shared.Session, error) {
+	return s.sessionManager.ListSessions(ctx)
+}
+
+// LoadSession loads an existing session (ACP: session/load).
+func (s *acpServiceImpl) LoadSession(ctx context.Context, sessionID acppkg.SessionID) (*shared.ACPSession, error) {
+	uuidSessionID, err := uuid.Parse(string(sessionID))
+	if err != nil {
+		return nil, fmt.Errorf("invalid session ID: %w", err)
+	}
+
+	session, err := s.sessionManager.LoadSession(ctx, uuidSessionID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &shared.ACPSession{
+		Context:    session.Context,
+		CancelFunc: session.CancelFunc,
+		SessionID:  session.ID,
+		Cwd:        session.Cwd,
+	}, nil
+}
+
+// ResumeSession resumes a closed session (ACP: session/resume).
+func (s *acpServiceImpl) ResumeSession(ctx context.Context, sessionID acppkg.SessionID) error {
+	uuidSessionID, err := uuid.Parse(string(sessionID))
+	if err != nil {
+		return fmt.Errorf("invalid session ID: %w", err)
+	}
+
+	return s.sessionManager.ResumeSession(ctx, uuidSessionID)
+}
+
+// CloseSession closes a session (ACP: session/close).
+func (s *acpServiceImpl) CloseSession(ctx context.Context, sessionID acppkg.SessionID) error {
+	uuidSessionID, err := uuid.Parse(string(sessionID))
+	if err != nil {
+		return fmt.Errorf("invalid session ID: %w", err)
+	}
+
+	return s.sessionManager.CloseSession(uuidSessionID)
+}
+
+// ForkSession creates a copy of a session (ACP: session/fork).
+func (s *acpServiceImpl) ForkSession(ctx context.Context, sessionID acppkg.SessionID) (acppkg.SessionID, error) {
+	uuidSessionID, err := uuid.Parse(string(sessionID))
+	if err != nil {
+		return "", fmt.Errorf("invalid session ID: %w", err)
+	}
+
+	newSession, err := s.sessionManager.ForkSession(ctx, uuidSessionID)
+	if err != nil {
+		return "", err
+	}
+
+	return acppkg.SessionID(newSession.ID.String()), nil
+}

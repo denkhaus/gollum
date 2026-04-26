@@ -10,6 +10,7 @@
 package session
 
 import (
+	context "context"
 	reflect "reflect"
 
 	shared "github.com/denkhaus/gollum/pkg/shared"
@@ -70,6 +71,21 @@ func (mr *MockSessionManagerMockRecorder) CreateSession(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSession", reflect.TypeOf((*MockSessionManager)(nil).CreateSession), ctx)
 }
 
+// ForkSession mocks base method.
+func (m *MockSessionManager) ForkSession(ctx context.Context, sessionID uuid.UUID) (*shared.Session, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ForkSession", ctx, sessionID)
+	ret0, _ := ret[0].(*shared.Session)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ForkSession indicates an expected call of ForkSession.
+func (mr *MockSessionManagerMockRecorder) ForkSession(ctx, sessionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForkSession", reflect.TypeOf((*MockSessionManager)(nil).ForkSession), ctx, sessionID)
+}
+
 // GetOrCreateSession mocks base method.
 func (m *MockSessionManager) GetOrCreateSession(ctx *shared.SessionContext) (*shared.Session, error) {
 	m.ctrl.T.Helper()
@@ -112,4 +128,48 @@ func (m *MockSessionManager) GetSessionsByChannel(channelID uuid.UUID) []*shared
 func (mr *MockSessionManagerMockRecorder) GetSessionsByChannel(channelID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionsByChannel", reflect.TypeOf((*MockSessionManager)(nil).GetSessionsByChannel), channelID)
+}
+
+// ListSessions mocks base method.
+func (m *MockSessionManager) ListSessions(ctx context.Context) ([]*shared.Session, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListSessions", ctx)
+	ret0, _ := ret[0].([]*shared.Session)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListSessions indicates an expected call of ListSessions.
+func (mr *MockSessionManagerMockRecorder) ListSessions(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSessions", reflect.TypeOf((*MockSessionManager)(nil).ListSessions), ctx)
+}
+
+// LoadSession mocks base method.
+func (m *MockSessionManager) LoadSession(ctx context.Context, sessionID uuid.UUID) (*shared.Session, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LoadSession", ctx, sessionID)
+	ret0, _ := ret[0].(*shared.Session)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LoadSession indicates an expected call of LoadSession.
+func (mr *MockSessionManagerMockRecorder) LoadSession(ctx, sessionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadSession", reflect.TypeOf((*MockSessionManager)(nil).LoadSession), ctx, sessionID)
+}
+
+// ResumeSession mocks base method.
+func (m *MockSessionManager) ResumeSession(ctx context.Context, sessionID uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResumeSession", ctx, sessionID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResumeSession indicates an expected call of ResumeSession.
+func (mr *MockSessionManagerMockRecorder) ResumeSession(ctx, sessionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResumeSession", reflect.TypeOf((*MockSessionManager)(nil).ResumeSession), ctx, sessionID)
 }
