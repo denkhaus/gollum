@@ -58,7 +58,7 @@ func (r *EntRepository) Create(ctx context.Context, session *shared.Session) err
 	defer tx.Rollback()
 
 	// Create session
-	sessionEnt, err := tx.Session.
+	_, err = tx.Session.
 		Create().
 		SetSessionID(session.ID).
 		SetChannelID(session.ChannelID).
@@ -78,7 +78,7 @@ func (r *EntRepository) Create(ctx context.Context, session *shared.Session) err
 		}
 		_, err = tx.SupervisorConfig.
 			Create().
-			SetSession(sessionEnt). // Use edge to establish relationship
+			SetSessionID(session.ID). // Set FK field directly
 			SetModel(session.SupervisorID.String()).
 			SetConfigJSON(configJSON).
 			Save(ctx)
