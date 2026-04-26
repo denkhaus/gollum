@@ -58,7 +58,7 @@ func (r *EntRepository) Create(ctx context.Context, session *shared.Session) err
 	defer tx.Rollback()
 
 	// Create session
-	_, err = tx.Session.
+	sessionEnt, err := tx.Session.
 		Create().
 		SetSessionID(session.ID).
 		SetChannelID(session.ChannelID).
@@ -68,6 +68,23 @@ func (r *EntRepository) Create(ctx context.Context, session *shared.Session) err
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to create session: %w", err)
+	}
+
+	// Create supervisor config if SupervisorID is set
+	if session.SupervisorID != uuid.Nil {
+		// Use single model field format - store model name in ConfigJSON
+		configJSON := map[string]interface{}{
+			"model": session.SupervisorID.String(),
+		}
+		_, err = tx.SupervisorConfig.
+			Create().
+			SetSession(sessionEnt). // Use edge to establish relationship
+			SetModel(session.SupervisorID.String()).
+			SetConfigJSON(configJSON).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create supervisor config: %w", err)
+		}
 	}
 
 	return tx.Commit()
@@ -231,31 +248,21 @@ func (r *EntRepository) Delete(ctx context.Context, sessionID uuid.UUID) error {
 func (r *EntRepository) Archive(ctx context.Context, olderThan time.Duration) (int64, error) {
 	cutoff := time.Now().Add(-olderThan)
 
-	// First mark sessions as archived
-	updated, err := r.client.Session.
-		Update().
+	// Delete sessions older than cutoff in a single atomic operation.
+	// WHERE created_at <= cutoff prevents race conditions with new sessions.
+	deleted, err := r.client.Session.
+		Delete().
 		Where(
 			session.CreatedAtLTE(cutoff),
 			session.StateEQ(session.StateActive),
 		).
-		SetState(session.StateArchived).
-		Save(ctx)
+		Exec(ctx)
 
 	if err != nil {
 		return 0, err
 	}
 
-	// Then delete archived sessions
-	deleted, err := r.client.Session.
-		Delete().
-		Where(session.StateEQ(session.StateArchived)).
-		Exec(ctx)
-
-	if err != nil {
-		return int64(updated), err
-	}
-
-	return int64(updated) + int64(deleted), nil
+	return int64(deleted), nil
 }
 
 // AddMessage adds a message to a session.
@@ -323,16 +330,16 @@ func (r *EntRepository) GetMessages(ctx context.Context, sessionID uuid.UUID, li
 }
 
 // entityToSession converts an Ent Session entity to a shared.Session.
+// Note: The returned Session has a nil Context and CancelFunc.
+// The caller is responsible for setting the Context if needed.
 func (r *EntRepository) entityToSession(sessionEnt *ent.Session) (*shared.Session, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-
 	return &shared.Session{
 		ID:           sessionEnt.SessionID,
 		ChannelID:    sessionEnt.ChannelID,
 		SupervisorID: sessionEnt.AgentID,
 		Cwd:          sessionEnt.Cwd,
-		Context:      ctx,
-		CancelFunc:   cancel,
+		Context:      nil, // Caller must set context
+		CancelFunc:   nil, // Caller must set cancel func
 		CreatedAt:    sessionEnt.CreatedAt,
 	}, nil
 }
