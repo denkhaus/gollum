@@ -21,10 +21,8 @@ type SupervisorConfig struct {
 	ID uuid.UUID `json:"id,omitempty"`
 	// SessionID holds the value of the "session_id" field.
 	SessionID uuid.UUID `json:"session_id,omitempty"`
-	// LlmModel holds the value of the "llm_model" field.
-	LlmModel string `json:"llm_model,omitempty"`
-	// LlmProvider holds the value of the "llm_provider" field.
-	LlmProvider string `json:"llm_provider,omitempty"`
+	// Model holds the value of the "model" field.
+	Model string `json:"model,omitempty"`
 	// Temperature holds the value of the "temperature" field.
 	Temperature float32 `json:"temperature,omitempty"`
 	// MaxTokens holds the value of the "max_tokens" field.
@@ -70,7 +68,7 @@ func (*SupervisorConfig) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case supervisorconfig.FieldMaxTokens:
 			values[i] = new(sql.NullInt64)
-		case supervisorconfig.FieldLlmModel, supervisorconfig.FieldLlmProvider, supervisorconfig.FieldSystemPrompt:
+		case supervisorconfig.FieldModel, supervisorconfig.FieldSystemPrompt:
 			values[i] = new(sql.NullString)
 		case supervisorconfig.FieldID, supervisorconfig.FieldSessionID:
 			values[i] = new(uuid.UUID)
@@ -101,17 +99,11 @@ func (_m *SupervisorConfig) assignValues(columns []string, values []any) error {
 			} else if value != nil {
 				_m.SessionID = *value
 			}
-		case supervisorconfig.FieldLlmModel:
+		case supervisorconfig.FieldModel:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field llm_model", values[i])
+				return fmt.Errorf("unexpected type %T for field model", values[i])
 			} else if value.Valid {
-				_m.LlmModel = value.String
-			}
-		case supervisorconfig.FieldLlmProvider:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field llm_provider", values[i])
-			} else if value.Valid {
-				_m.LlmProvider = value.String
+				_m.Model = value.String
 			}
 		case supervisorconfig.FieldTemperature:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
@@ -183,11 +175,8 @@ func (_m *SupervisorConfig) String() string {
 	builder.WriteString("session_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SessionID))
 	builder.WriteString(", ")
-	builder.WriteString("llm_model=")
-	builder.WriteString(_m.LlmModel)
-	builder.WriteString(", ")
-	builder.WriteString("llm_provider=")
-	builder.WriteString(_m.LlmProvider)
+	builder.WriteString("model=")
+	builder.WriteString(_m.Model)
 	builder.WriteString(", ")
 	builder.WriteString("temperature=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Temperature))

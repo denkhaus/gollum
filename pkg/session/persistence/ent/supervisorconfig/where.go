@@ -59,14 +59,9 @@ func SessionID(v uuid.UUID) predicate.SupervisorConfig {
 	return predicate.SupervisorConfig(sql.FieldEQ(FieldSessionID, v))
 }
 
-// LlmModel applies equality check predicate on the "llm_model" field. It's identical to LlmModelEQ.
-func LlmModel(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldEQ(FieldLlmModel, v))
-}
-
-// LlmProvider applies equality check predicate on the "llm_provider" field. It's identical to LlmProviderEQ.
-func LlmProvider(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldEQ(FieldLlmProvider, v))
+// Model applies equality check predicate on the "model" field. It's identical to ModelEQ.
+func Model(v string) predicate.SupervisorConfig {
+	return predicate.SupervisorConfig(sql.FieldEQ(FieldModel, v))
 }
 
 // Temperature applies equality check predicate on the "temperature" field. It's identical to TemperatureEQ.
@@ -104,134 +99,69 @@ func SessionIDNotIn(vs ...uuid.UUID) predicate.SupervisorConfig {
 	return predicate.SupervisorConfig(sql.FieldNotIn(FieldSessionID, vs...))
 }
 
-// LlmModelEQ applies the EQ predicate on the "llm_model" field.
-func LlmModelEQ(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldEQ(FieldLlmModel, v))
+// ModelEQ applies the EQ predicate on the "model" field.
+func ModelEQ(v string) predicate.SupervisorConfig {
+	return predicate.SupervisorConfig(sql.FieldEQ(FieldModel, v))
 }
 
-// LlmModelNEQ applies the NEQ predicate on the "llm_model" field.
-func LlmModelNEQ(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldNEQ(FieldLlmModel, v))
+// ModelNEQ applies the NEQ predicate on the "model" field.
+func ModelNEQ(v string) predicate.SupervisorConfig {
+	return predicate.SupervisorConfig(sql.FieldNEQ(FieldModel, v))
 }
 
-// LlmModelIn applies the In predicate on the "llm_model" field.
-func LlmModelIn(vs ...string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldIn(FieldLlmModel, vs...))
+// ModelIn applies the In predicate on the "model" field.
+func ModelIn(vs ...string) predicate.SupervisorConfig {
+	return predicate.SupervisorConfig(sql.FieldIn(FieldModel, vs...))
 }
 
-// LlmModelNotIn applies the NotIn predicate on the "llm_model" field.
-func LlmModelNotIn(vs ...string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldNotIn(FieldLlmModel, vs...))
+// ModelNotIn applies the NotIn predicate on the "model" field.
+func ModelNotIn(vs ...string) predicate.SupervisorConfig {
+	return predicate.SupervisorConfig(sql.FieldNotIn(FieldModel, vs...))
 }
 
-// LlmModelGT applies the GT predicate on the "llm_model" field.
-func LlmModelGT(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldGT(FieldLlmModel, v))
+// ModelGT applies the GT predicate on the "model" field.
+func ModelGT(v string) predicate.SupervisorConfig {
+	return predicate.SupervisorConfig(sql.FieldGT(FieldModel, v))
 }
 
-// LlmModelGTE applies the GTE predicate on the "llm_model" field.
-func LlmModelGTE(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldGTE(FieldLlmModel, v))
+// ModelGTE applies the GTE predicate on the "model" field.
+func ModelGTE(v string) predicate.SupervisorConfig {
+	return predicate.SupervisorConfig(sql.FieldGTE(FieldModel, v))
 }
 
-// LlmModelLT applies the LT predicate on the "llm_model" field.
-func LlmModelLT(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldLT(FieldLlmModel, v))
+// ModelLT applies the LT predicate on the "model" field.
+func ModelLT(v string) predicate.SupervisorConfig {
+	return predicate.SupervisorConfig(sql.FieldLT(FieldModel, v))
 }
 
-// LlmModelLTE applies the LTE predicate on the "llm_model" field.
-func LlmModelLTE(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldLTE(FieldLlmModel, v))
+// ModelLTE applies the LTE predicate on the "model" field.
+func ModelLTE(v string) predicate.SupervisorConfig {
+	return predicate.SupervisorConfig(sql.FieldLTE(FieldModel, v))
 }
 
-// LlmModelContains applies the Contains predicate on the "llm_model" field.
-func LlmModelContains(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldContains(FieldLlmModel, v))
+// ModelContains applies the Contains predicate on the "model" field.
+func ModelContains(v string) predicate.SupervisorConfig {
+	return predicate.SupervisorConfig(sql.FieldContains(FieldModel, v))
 }
 
-// LlmModelHasPrefix applies the HasPrefix predicate on the "llm_model" field.
-func LlmModelHasPrefix(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldHasPrefix(FieldLlmModel, v))
+// ModelHasPrefix applies the HasPrefix predicate on the "model" field.
+func ModelHasPrefix(v string) predicate.SupervisorConfig {
+	return predicate.SupervisorConfig(sql.FieldHasPrefix(FieldModel, v))
 }
 
-// LlmModelHasSuffix applies the HasSuffix predicate on the "llm_model" field.
-func LlmModelHasSuffix(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldHasSuffix(FieldLlmModel, v))
+// ModelHasSuffix applies the HasSuffix predicate on the "model" field.
+func ModelHasSuffix(v string) predicate.SupervisorConfig {
+	return predicate.SupervisorConfig(sql.FieldHasSuffix(FieldModel, v))
 }
 
-// LlmModelEqualFold applies the EqualFold predicate on the "llm_model" field.
-func LlmModelEqualFold(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldEqualFold(FieldLlmModel, v))
+// ModelEqualFold applies the EqualFold predicate on the "model" field.
+func ModelEqualFold(v string) predicate.SupervisorConfig {
+	return predicate.SupervisorConfig(sql.FieldEqualFold(FieldModel, v))
 }
 
-// LlmModelContainsFold applies the ContainsFold predicate on the "llm_model" field.
-func LlmModelContainsFold(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldContainsFold(FieldLlmModel, v))
-}
-
-// LlmProviderEQ applies the EQ predicate on the "llm_provider" field.
-func LlmProviderEQ(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldEQ(FieldLlmProvider, v))
-}
-
-// LlmProviderNEQ applies the NEQ predicate on the "llm_provider" field.
-func LlmProviderNEQ(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldNEQ(FieldLlmProvider, v))
-}
-
-// LlmProviderIn applies the In predicate on the "llm_provider" field.
-func LlmProviderIn(vs ...string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldIn(FieldLlmProvider, vs...))
-}
-
-// LlmProviderNotIn applies the NotIn predicate on the "llm_provider" field.
-func LlmProviderNotIn(vs ...string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldNotIn(FieldLlmProvider, vs...))
-}
-
-// LlmProviderGT applies the GT predicate on the "llm_provider" field.
-func LlmProviderGT(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldGT(FieldLlmProvider, v))
-}
-
-// LlmProviderGTE applies the GTE predicate on the "llm_provider" field.
-func LlmProviderGTE(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldGTE(FieldLlmProvider, v))
-}
-
-// LlmProviderLT applies the LT predicate on the "llm_provider" field.
-func LlmProviderLT(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldLT(FieldLlmProvider, v))
-}
-
-// LlmProviderLTE applies the LTE predicate on the "llm_provider" field.
-func LlmProviderLTE(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldLTE(FieldLlmProvider, v))
-}
-
-// LlmProviderContains applies the Contains predicate on the "llm_provider" field.
-func LlmProviderContains(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldContains(FieldLlmProvider, v))
-}
-
-// LlmProviderHasPrefix applies the HasPrefix predicate on the "llm_provider" field.
-func LlmProviderHasPrefix(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldHasPrefix(FieldLlmProvider, v))
-}
-
-// LlmProviderHasSuffix applies the HasSuffix predicate on the "llm_provider" field.
-func LlmProviderHasSuffix(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldHasSuffix(FieldLlmProvider, v))
-}
-
-// LlmProviderEqualFold applies the EqualFold predicate on the "llm_provider" field.
-func LlmProviderEqualFold(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldEqualFold(FieldLlmProvider, v))
-}
-
-// LlmProviderContainsFold applies the ContainsFold predicate on the "llm_provider" field.
-func LlmProviderContainsFold(v string) predicate.SupervisorConfig {
-	return predicate.SupervisorConfig(sql.FieldContainsFold(FieldLlmProvider, v))
+// ModelContainsFold applies the ContainsFold predicate on the "model" field.
+func ModelContainsFold(v string) predicate.SupervisorConfig {
+	return predicate.SupervisorConfig(sql.FieldContainsFold(FieldModel, v))
 }
 
 // TemperatureEQ applies the EQ predicate on the "temperature" field.

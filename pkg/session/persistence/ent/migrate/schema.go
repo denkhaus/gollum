@@ -76,8 +76,7 @@ var (
 	// SupervisorConfigsColumns holds the columns for the "supervisor_configs" table.
 	SupervisorConfigsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
-		{Name: "llm_model", Type: field.TypeString, Default: ""},
-		{Name: "llm_provider", Type: field.TypeString, Default: ""},
+		{Name: "model", Type: field.TypeString, Default: ""},
 		{Name: "temperature", Type: field.TypeFloat32, Default: 0.7},
 		{Name: "max_tokens", Type: field.TypeInt, Default: 4096},
 		{Name: "system_prompt", Type: field.TypeString, Nullable: true, Size: 2147483647},
@@ -92,7 +91,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "supervisor_configs_sessions_supervisor",
-				Columns:    []*schema.Column{SupervisorConfigsColumns[7]},
+				Columns:    []*schema.Column{SupervisorConfigsColumns[6]},
 				RefColumns: []*schema.Column{SessionsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},

@@ -15,10 +15,8 @@ const (
 	FieldID = "id"
 	// FieldSessionID holds the string denoting the session_id field in the database.
 	FieldSessionID = "session_id"
-	// FieldLlmModel holds the string denoting the llm_model field in the database.
-	FieldLlmModel = "llm_model"
-	// FieldLlmProvider holds the string denoting the llm_provider field in the database.
-	FieldLlmProvider = "llm_provider"
+	// FieldModel holds the string denoting the model field in the database.
+	FieldModel = "model"
 	// FieldTemperature holds the string denoting the temperature field in the database.
 	FieldTemperature = "temperature"
 	// FieldMaxTokens holds the string denoting the max_tokens field in the database.
@@ -44,8 +42,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldSessionID,
-	FieldLlmModel,
-	FieldLlmProvider,
+	FieldModel,
 	FieldTemperature,
 	FieldMaxTokens,
 	FieldSystemPrompt,
@@ -63,10 +60,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
-	// DefaultLlmModel holds the default value on creation for the "llm_model" field.
-	DefaultLlmModel string
-	// DefaultLlmProvider holds the default value on creation for the "llm_provider" field.
-	DefaultLlmProvider string
+	// DefaultModel holds the default value on creation for the "model" field.
+	DefaultModel string
 	// DefaultTemperature holds the default value on creation for the "temperature" field.
 	DefaultTemperature float32
 	// DefaultMaxTokens holds the default value on creation for the "max_tokens" field.
@@ -88,14 +83,9 @@ func BySessionID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSessionID, opts...).ToFunc()
 }
 
-// ByLlmModel orders the results by the llm_model field.
-func ByLlmModel(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLlmModel, opts...).ToFunc()
-}
-
-// ByLlmProvider orders the results by the llm_provider field.
-func ByLlmProvider(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLlmProvider, opts...).ToFunc()
+// ByModel orders the results by the model field.
+func ByModel(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldModel, opts...).ToFunc()
 }
 
 // ByTemperature orders the results by the temperature field.

@@ -27,30 +27,16 @@ func (_c *SupervisorConfigCreate) SetSessionID(v uuid.UUID) *SupervisorConfigCre
 	return _c
 }
 
-// SetLlmModel sets the "llm_model" field.
-func (_c *SupervisorConfigCreate) SetLlmModel(v string) *SupervisorConfigCreate {
-	_c.mutation.SetLlmModel(v)
+// SetModel sets the "model" field.
+func (_c *SupervisorConfigCreate) SetModel(v string) *SupervisorConfigCreate {
+	_c.mutation.SetModel(v)
 	return _c
 }
 
-// SetNillableLlmModel sets the "llm_model" field if the given value is not nil.
-func (_c *SupervisorConfigCreate) SetNillableLlmModel(v *string) *SupervisorConfigCreate {
+// SetNillableModel sets the "model" field if the given value is not nil.
+func (_c *SupervisorConfigCreate) SetNillableModel(v *string) *SupervisorConfigCreate {
 	if v != nil {
-		_c.SetLlmModel(*v)
-	}
-	return _c
-}
-
-// SetLlmProvider sets the "llm_provider" field.
-func (_c *SupervisorConfigCreate) SetLlmProvider(v string) *SupervisorConfigCreate {
-	_c.mutation.SetLlmProvider(v)
-	return _c
-}
-
-// SetNillableLlmProvider sets the "llm_provider" field if the given value is not nil.
-func (_c *SupervisorConfigCreate) SetNillableLlmProvider(v *string) *SupervisorConfigCreate {
-	if v != nil {
-		_c.SetLlmProvider(*v)
+		_c.SetModel(*v)
 	}
 	return _c
 }
@@ -157,13 +143,9 @@ func (_c *SupervisorConfigCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *SupervisorConfigCreate) defaults() {
-	if _, ok := _c.mutation.LlmModel(); !ok {
-		v := supervisorconfig.DefaultLlmModel
-		_c.mutation.SetLlmModel(v)
-	}
-	if _, ok := _c.mutation.LlmProvider(); !ok {
-		v := supervisorconfig.DefaultLlmProvider
-		_c.mutation.SetLlmProvider(v)
+	if _, ok := _c.mutation.Model(); !ok {
+		v := supervisorconfig.DefaultModel
+		_c.mutation.SetModel(v)
 	}
 	if _, ok := _c.mutation.Temperature(); !ok {
 		v := supervisorconfig.DefaultTemperature
@@ -184,11 +166,8 @@ func (_c *SupervisorConfigCreate) check() error {
 	if _, ok := _c.mutation.SessionID(); !ok {
 		return &ValidationError{Name: "session_id", err: errors.New(`ent: missing required field "SupervisorConfig.session_id"`)}
 	}
-	if _, ok := _c.mutation.LlmModel(); !ok {
-		return &ValidationError{Name: "llm_model", err: errors.New(`ent: missing required field "SupervisorConfig.llm_model"`)}
-	}
-	if _, ok := _c.mutation.LlmProvider(); !ok {
-		return &ValidationError{Name: "llm_provider", err: errors.New(`ent: missing required field "SupervisorConfig.llm_provider"`)}
+	if _, ok := _c.mutation.Model(); !ok {
+		return &ValidationError{Name: "model", err: errors.New(`ent: missing required field "SupervisorConfig.model"`)}
 	}
 	if _, ok := _c.mutation.Temperature(); !ok {
 		return &ValidationError{Name: "temperature", err: errors.New(`ent: missing required field "SupervisorConfig.temperature"`)}
@@ -234,13 +213,9 @@ func (_c *SupervisorConfigCreate) createSpec() (*SupervisorConfig, *sqlgraph.Cre
 		_node.ID = id
 		_spec.ID.Value = &id
 	}
-	if value, ok := _c.mutation.LlmModel(); ok {
-		_spec.SetField(supervisorconfig.FieldLlmModel, field.TypeString, value)
-		_node.LlmModel = value
-	}
-	if value, ok := _c.mutation.LlmProvider(); ok {
-		_spec.SetField(supervisorconfig.FieldLlmProvider, field.TypeString, value)
-		_node.LlmProvider = value
+	if value, ok := _c.mutation.Model(); ok {
+		_spec.SetField(supervisorconfig.FieldModel, field.TypeString, value)
+		_node.Model = value
 	}
 	if value, ok := _c.mutation.Temperature(); ok {
 		_spec.SetField(supervisorconfig.FieldTemperature, field.TypeFloat32, value)

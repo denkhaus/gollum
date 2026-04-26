@@ -48,20 +48,16 @@ func init() {
 	session.DefaultID = sessionDescID.Default.(func() uuid.UUID)
 	supervisorconfigFields := schema.SupervisorConfig{}.Fields()
 	_ = supervisorconfigFields
-	// supervisorconfigDescLlmModel is the schema descriptor for llm_model field.
-	supervisorconfigDescLlmModel := supervisorconfigFields[2].Descriptor()
-	// supervisorconfig.DefaultLlmModel holds the default value on creation for the llm_model field.
-	supervisorconfig.DefaultLlmModel = supervisorconfigDescLlmModel.Default.(string)
-	// supervisorconfigDescLlmProvider is the schema descriptor for llm_provider field.
-	supervisorconfigDescLlmProvider := supervisorconfigFields[3].Descriptor()
-	// supervisorconfig.DefaultLlmProvider holds the default value on creation for the llm_provider field.
-	supervisorconfig.DefaultLlmProvider = supervisorconfigDescLlmProvider.Default.(string)
+	// supervisorconfigDescModel is the schema descriptor for model field.
+	supervisorconfigDescModel := supervisorconfigFields[2].Descriptor()
+	// supervisorconfig.DefaultModel holds the default value on creation for the model field.
+	supervisorconfig.DefaultModel = supervisorconfigDescModel.Default.(string)
 	// supervisorconfigDescTemperature is the schema descriptor for temperature field.
-	supervisorconfigDescTemperature := supervisorconfigFields[4].Descriptor()
+	supervisorconfigDescTemperature := supervisorconfigFields[3].Descriptor()
 	// supervisorconfig.DefaultTemperature holds the default value on creation for the temperature field.
 	supervisorconfig.DefaultTemperature = supervisorconfigDescTemperature.Default.(float32)
 	// supervisorconfigDescMaxTokens is the schema descriptor for max_tokens field.
-	supervisorconfigDescMaxTokens := supervisorconfigFields[5].Descriptor()
+	supervisorconfigDescMaxTokens := supervisorconfigFields[4].Descriptor()
 	// supervisorconfig.DefaultMaxTokens holds the default value on creation for the max_tokens field.
 	supervisorconfig.DefaultMaxTokens = supervisorconfigDescMaxTokens.Default.(int)
 	// supervisorconfigDescID is the schema descriptor for id field.

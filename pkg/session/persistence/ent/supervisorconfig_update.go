@@ -43,30 +43,16 @@ func (_u *SupervisorConfigUpdate) SetNillableSessionID(v *uuid.UUID) *Supervisor
 	return _u
 }
 
-// SetLlmModel sets the "llm_model" field.
-func (_u *SupervisorConfigUpdate) SetLlmModel(v string) *SupervisorConfigUpdate {
-	_u.mutation.SetLlmModel(v)
+// SetModel sets the "model" field.
+func (_u *SupervisorConfigUpdate) SetModel(v string) *SupervisorConfigUpdate {
+	_u.mutation.SetModel(v)
 	return _u
 }
 
-// SetNillableLlmModel sets the "llm_model" field if the given value is not nil.
-func (_u *SupervisorConfigUpdate) SetNillableLlmModel(v *string) *SupervisorConfigUpdate {
+// SetNillableModel sets the "model" field if the given value is not nil.
+func (_u *SupervisorConfigUpdate) SetNillableModel(v *string) *SupervisorConfigUpdate {
 	if v != nil {
-		_u.SetLlmModel(*v)
-	}
-	return _u
-}
-
-// SetLlmProvider sets the "llm_provider" field.
-func (_u *SupervisorConfigUpdate) SetLlmProvider(v string) *SupervisorConfigUpdate {
-	_u.mutation.SetLlmProvider(v)
-	return _u
-}
-
-// SetNillableLlmProvider sets the "llm_provider" field if the given value is not nil.
-func (_u *SupervisorConfigUpdate) SetNillableLlmProvider(v *string) *SupervisorConfigUpdate {
-	if v != nil {
-		_u.SetLlmProvider(*v)
+		_u.SetModel(*v)
 	}
 	return _u
 }
@@ -208,11 +194,8 @@ func (_u *SupervisorConfigUpdate) sqlSave(ctx context.Context) (_node int, err e
 			}
 		}
 	}
-	if value, ok := _u.mutation.LlmModel(); ok {
-		_spec.SetField(supervisorconfig.FieldLlmModel, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.LlmProvider(); ok {
-		_spec.SetField(supervisorconfig.FieldLlmProvider, field.TypeString, value)
+	if value, ok := _u.mutation.Model(); ok {
+		_spec.SetField(supervisorconfig.FieldModel, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Temperature(); ok {
 		_spec.SetField(supervisorconfig.FieldTemperature, field.TypeFloat32, value)
@@ -301,30 +284,16 @@ func (_u *SupervisorConfigUpdateOne) SetNillableSessionID(v *uuid.UUID) *Supervi
 	return _u
 }
 
-// SetLlmModel sets the "llm_model" field.
-func (_u *SupervisorConfigUpdateOne) SetLlmModel(v string) *SupervisorConfigUpdateOne {
-	_u.mutation.SetLlmModel(v)
+// SetModel sets the "model" field.
+func (_u *SupervisorConfigUpdateOne) SetModel(v string) *SupervisorConfigUpdateOne {
+	_u.mutation.SetModel(v)
 	return _u
 }
 
-// SetNillableLlmModel sets the "llm_model" field if the given value is not nil.
-func (_u *SupervisorConfigUpdateOne) SetNillableLlmModel(v *string) *SupervisorConfigUpdateOne {
+// SetNillableModel sets the "model" field if the given value is not nil.
+func (_u *SupervisorConfigUpdateOne) SetNillableModel(v *string) *SupervisorConfigUpdateOne {
 	if v != nil {
-		_u.SetLlmModel(*v)
-	}
-	return _u
-}
-
-// SetLlmProvider sets the "llm_provider" field.
-func (_u *SupervisorConfigUpdateOne) SetLlmProvider(v string) *SupervisorConfigUpdateOne {
-	_u.mutation.SetLlmProvider(v)
-	return _u
-}
-
-// SetNillableLlmProvider sets the "llm_provider" field if the given value is not nil.
-func (_u *SupervisorConfigUpdateOne) SetNillableLlmProvider(v *string) *SupervisorConfigUpdateOne {
-	if v != nil {
-		_u.SetLlmProvider(*v)
+		_u.SetModel(*v)
 	}
 	return _u
 }
@@ -496,11 +465,8 @@ func (_u *SupervisorConfigUpdateOne) sqlSave(ctx context.Context) (_node *Superv
 			}
 		}
 	}
-	if value, ok := _u.mutation.LlmModel(); ok {
-		_spec.SetField(supervisorconfig.FieldLlmModel, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.LlmProvider(); ok {
-		_spec.SetField(supervisorconfig.FieldLlmProvider, field.TypeString, value)
+	if value, ok := _u.mutation.Model(); ok {
+		_spec.SetField(supervisorconfig.FieldModel, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Temperature(); ok {
 		_spec.SetField(supervisorconfig.FieldTemperature, field.TypeFloat32, value)

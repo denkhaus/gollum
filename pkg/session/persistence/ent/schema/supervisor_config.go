@@ -20,9 +20,7 @@ func (SupervisorConfig) Fields() []ent.Field {
 			Unique(),
 		field.UUID("session_id", uuid.New()).
 			Unique(),
-		field.String("llm_model").
-			Default(""),
-		field.String("llm_provider").
+		field.String("model").
 			Default(""),
 		field.Float32("temperature").
 			Default(0.7),

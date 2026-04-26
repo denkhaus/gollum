@@ -1546,8 +1546,7 @@ type SupervisorConfigMutation struct {
 	op             Op
 	typ            string
 	id             *uuid.UUID
-	llm_model      *string
-	llm_provider   *string
+	model          *string
 	temperature    *float32
 	addtemperature *float32
 	max_tokens     *int
@@ -1702,76 +1701,40 @@ func (m *SupervisorConfigMutation) ResetSessionID() {
 	m.session = nil
 }
 
-// SetLlmModel sets the "llm_model" field.
-func (m *SupervisorConfigMutation) SetLlmModel(s string) {
-	m.llm_model = &s
+// SetModel sets the "model" field.
+func (m *SupervisorConfigMutation) SetModel(s string) {
+	m.model = &s
 }
 
-// LlmModel returns the value of the "llm_model" field in the mutation.
-func (m *SupervisorConfigMutation) LlmModel() (r string, exists bool) {
-	v := m.llm_model
+// Model returns the value of the "model" field in the mutation.
+func (m *SupervisorConfigMutation) Model() (r string, exists bool) {
+	v := m.model
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldLlmModel returns the old "llm_model" field's value of the SupervisorConfig entity.
+// OldModel returns the old "model" field's value of the SupervisorConfig entity.
 // If the SupervisorConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SupervisorConfigMutation) OldLlmModel(ctx context.Context) (v string, err error) {
+func (m *SupervisorConfigMutation) OldModel(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLlmModel is only allowed on UpdateOne operations")
+		return v, errors.New("OldModel is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLlmModel requires an ID field in the mutation")
+		return v, errors.New("OldModel requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLlmModel: %w", err)
+		return v, fmt.Errorf("querying old value for OldModel: %w", err)
 	}
-	return oldValue.LlmModel, nil
+	return oldValue.Model, nil
 }
 
-// ResetLlmModel resets all changes to the "llm_model" field.
-func (m *SupervisorConfigMutation) ResetLlmModel() {
-	m.llm_model = nil
-}
-
-// SetLlmProvider sets the "llm_provider" field.
-func (m *SupervisorConfigMutation) SetLlmProvider(s string) {
-	m.llm_provider = &s
-}
-
-// LlmProvider returns the value of the "llm_provider" field in the mutation.
-func (m *SupervisorConfigMutation) LlmProvider() (r string, exists bool) {
-	v := m.llm_provider
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldLlmProvider returns the old "llm_provider" field's value of the SupervisorConfig entity.
-// If the SupervisorConfig object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SupervisorConfigMutation) OldLlmProvider(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLlmProvider is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLlmProvider requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLlmProvider: %w", err)
-	}
-	return oldValue.LlmProvider, nil
-}
-
-// ResetLlmProvider resets all changes to the "llm_provider" field.
-func (m *SupervisorConfigMutation) ResetLlmProvider() {
-	m.llm_provider = nil
+// ResetModel resets all changes to the "model" field.
+func (m *SupervisorConfigMutation) ResetModel() {
+	m.model = nil
 }
 
 // SetTemperature sets the "temperature" field.
@@ -2045,15 +2008,12 @@ func (m *SupervisorConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SupervisorConfigMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 6)
 	if m.session != nil {
 		fields = append(fields, supervisorconfig.FieldSessionID)
 	}
-	if m.llm_model != nil {
-		fields = append(fields, supervisorconfig.FieldLlmModel)
-	}
-	if m.llm_provider != nil {
-		fields = append(fields, supervisorconfig.FieldLlmProvider)
+	if m.model != nil {
+		fields = append(fields, supervisorconfig.FieldModel)
 	}
 	if m.temperature != nil {
 		fields = append(fields, supervisorconfig.FieldTemperature)
@@ -2077,10 +2037,8 @@ func (m *SupervisorConfigMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case supervisorconfig.FieldSessionID:
 		return m.SessionID()
-	case supervisorconfig.FieldLlmModel:
-		return m.LlmModel()
-	case supervisorconfig.FieldLlmProvider:
-		return m.LlmProvider()
+	case supervisorconfig.FieldModel:
+		return m.Model()
 	case supervisorconfig.FieldTemperature:
 		return m.Temperature()
 	case supervisorconfig.FieldMaxTokens:
@@ -2100,10 +2058,8 @@ func (m *SupervisorConfigMutation) OldField(ctx context.Context, name string) (e
 	switch name {
 	case supervisorconfig.FieldSessionID:
 		return m.OldSessionID(ctx)
-	case supervisorconfig.FieldLlmModel:
-		return m.OldLlmModel(ctx)
-	case supervisorconfig.FieldLlmProvider:
-		return m.OldLlmProvider(ctx)
+	case supervisorconfig.FieldModel:
+		return m.OldModel(ctx)
 	case supervisorconfig.FieldTemperature:
 		return m.OldTemperature(ctx)
 	case supervisorconfig.FieldMaxTokens:
@@ -2128,19 +2084,12 @@ func (m *SupervisorConfigMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetSessionID(v)
 		return nil
-	case supervisorconfig.FieldLlmModel:
+	case supervisorconfig.FieldModel:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetLlmModel(v)
-		return nil
-	case supervisorconfig.FieldLlmProvider:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetLlmProvider(v)
+		m.SetModel(v)
 		return nil
 	case supervisorconfig.FieldTemperature:
 		v, ok := value.(float32)
@@ -2264,11 +2213,8 @@ func (m *SupervisorConfigMutation) ResetField(name string) error {
 	case supervisorconfig.FieldSessionID:
 		m.ResetSessionID()
 		return nil
-	case supervisorconfig.FieldLlmModel:
-		m.ResetLlmModel()
-		return nil
-	case supervisorconfig.FieldLlmProvider:
-		m.ResetLlmProvider()
+	case supervisorconfig.FieldModel:
+		m.ResetModel()
 		return nil
 	case supervisorconfig.FieldTemperature:
 		m.ResetTemperature()
