@@ -26,6 +26,7 @@ require (
 )
 
 require (
+	entgo.io/ent v0.14.6 // indirect
 	github.com/alecthomas/chroma/v2 v2.23.1 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
