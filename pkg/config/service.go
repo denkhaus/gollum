@@ -336,6 +336,7 @@ type ConfigService interface {
 	GetACPConfig() *ACPConfig
 	GetSubAgentConfig() *SubAgentConfig
 	GetSupervisorConfig() *SupervisorConfig
+	GetDatabaseConfig() DatabaseConfig
 }
 
 // serviceImpl implements the ConfigService interface
@@ -357,6 +358,7 @@ type serviceImpl struct {
 	ACP             ACPConfig             `envconfig:"ACP"`
 	SubAgent        SubAgentConfig        `envconfig:"SUBAGENT"`
 	Supervisor      SupervisorConfig      `envconfig:"SUPERVISOR"`
+	Database        DatabaseConfig        `envconfig:"DATABASE"`
 }
 
 // NewService creates a new configuration service

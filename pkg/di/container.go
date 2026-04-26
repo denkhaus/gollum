@@ -29,6 +29,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/prompt/store"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/session"
+	"github.com/denkhaus/gollum/pkg/session/persistence"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/skills"
 	"github.com/denkhaus/gollum/pkg/startup"
@@ -128,6 +129,7 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	do.Provide(p.injector, acp.NewAcpService)
 
 	// Session management
+	do.Provide(p.injector, persistence.NewSessionRepository)
 	do.Provide(p.injector, session.NewSessionManager)
 
 	// Extensions
