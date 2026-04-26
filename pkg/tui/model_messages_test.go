@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"github.com/denkhaus/gollum/pkg/channel"
 	"time"
+
+	"github.com/denkhaus/gollum/pkg/shared"
 
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
@@ -25,10 +26,10 @@ func TestAddMessageRingBuffer(t *testing.T) {
 
 	// Add 5 messages (at limit)
 	for i := 0; i < 5; i++ {
-		msg := channel.Message{
+		msg := shared.Message{
 			ID:        uuid.New(),
-			Type:      channel.MessageTypeAgentChat,
-			Content:   fmt.Sprintf("channel.Message %d", i),
+			Type:      shared.MessageTypeAgentChat,
+			Content:   fmt.Sprintf("shared.Message %d", i),
 			Timestamp: time.Now(),
 		}
 		m.addMessage(msg)
@@ -55,10 +56,10 @@ func TestAddMessageRingBuffer(t *testing.T) {
 	}
 
 	// Add 6th message (exceeds limit by 1)
-	newMsg := channel.Message{
+	newMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      channel.MessageTypeAgentChat,
-		Content:   "channel.Message 5",
+		Type:      shared.MessageTypeAgentChat,
+		Content:   "shared.Message 5",
 		Timestamp: time.Now(),
 	}
 	m.addMessage(newMsg)
@@ -103,10 +104,10 @@ func TestAddMessageWithZeroLimit(t *testing.T) {
 
 	// Add messages up to 501 (exceeds default of 500)
 	for i := 0; i < 501; i++ {
-		msg := channel.Message{
+		msg := shared.Message{
 			ID:        uuid.New(),
-			Type:      channel.MessageTypeAgentChat,
-			Content:   fmt.Sprintf("channel.Message %d", i),
+			Type:      shared.MessageTypeAgentChat,
+			Content:   fmt.Sprintf("shared.Message %d", i),
 			Timestamp: time.Now(),
 		}
 		m.addMessage(msg)
@@ -117,9 +118,9 @@ func TestAddMessageWithZeroLimit(t *testing.T) {
 		t.Errorf("Expected 500 messages (default limit), got %d", len(m.messages))
 	}
 
-	// Verify first message is "channel.Message 1" (index 1, since 0 was evicted)
-	if m.messages[0].Content != "channel.Message 1" {
-		t.Errorf("Expected first message to be 'channel.Message 1', got '%s'", m.messages[0].Content)
+	// Verify first message is "shared.Message 1" (index 1, since 0 was evicted)
+	if m.messages[0].Content != "shared.Message 1" {
+		t.Errorf("Expected first message to be 'shared.Message 1', got '%s'", m.messages[0].Content)
 	}
 }
 

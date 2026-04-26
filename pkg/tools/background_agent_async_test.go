@@ -47,7 +47,7 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 	// Create mock sender agent
 	mockSenderAgent := shared.NewMockAgent(ctrl)
 	mockSenderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockSenderAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
+	mockSenderAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{
 		AgentID: senderID,
 	}).AnyTimes()
 	mockSenderAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
@@ -70,8 +70,8 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 		Role:         "Async Tester",
 		SystemPrompt: "test",
 	}).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().DoAndReturn(func() shared.LoggingContext {
-		return *shared.NewLoggingContext("test-session", spawnedAgentID, uuid.Nil)
+	mockAgent.EXPECT().ToSessionContext().DoAndReturn(func() shared.SessionContext {
+		return *shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), spawnedAgentID, uuid.Nil, "")
 	}).AnyTimes()
 	mockAgent.EXPECT().GetMessageHistory(gomock.Any()).Return(nil, nil).AnyTimes()
 
@@ -84,7 +84,7 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        mockSenderAgent,
+		agent:           mockSenderAgent,
 	}
 
 	ctx := context.Background()
@@ -108,7 +108,7 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 	// Create agent output tool for result retrieval
 	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
-		agent:    mockSenderAgent,
+		agent:       mockSenderAgent,
 		hookManager: mockHookManager,
 	}
 
@@ -170,7 +170,7 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 	// Create mock sender agent
 	mockSenderAgent := shared.NewMockAgent(ctrl)
 	mockSenderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockSenderAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
+	mockSenderAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{
 		AgentID: senderID,
 	}).AnyTimes()
 	mockSenderAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
@@ -193,8 +193,8 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 		Role:         "Slow Agent",
 		SystemPrompt: "test",
 	}).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().DoAndReturn(func() shared.LoggingContext {
-		return *shared.NewLoggingContext("test-session", spawnedAgentID, uuid.Nil)
+	mockAgent.EXPECT().ToSessionContext().DoAndReturn(func() shared.SessionContext {
+		return *shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), spawnedAgentID, uuid.Nil, "")
 	}).AnyTimes()
 	mockAgent.EXPECT().GetMessageHistory(gomock.Any()).Return(nil, nil).AnyTimes()
 
@@ -207,7 +207,7 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        mockSenderAgent,
+		agent:           mockSenderAgent,
 	}
 
 	ctx := context.Background()
@@ -245,7 +245,7 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 	// Create agent output tool
 	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
-		agent:    mockSenderAgent,
+		agent:       mockSenderAgent,
 		hookManager: mockHookManager,
 	}
 
@@ -297,7 +297,7 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 	// Create mock sender agent
 	mockSenderAgent := shared.NewMockAgent(ctrl)
 	mockSenderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockSenderAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
+	mockSenderAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{
 		AgentID: senderID,
 	}).AnyTimes()
 	mockSenderAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
@@ -320,8 +320,8 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 		Role:         "Failing Async Agent",
 		SystemPrompt: "test",
 	}).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().DoAndReturn(func() shared.LoggingContext {
-		return *shared.NewLoggingContext("test-session", spawnedAgentID, uuid.Nil)
+	mockAgent.EXPECT().ToSessionContext().DoAndReturn(func() shared.SessionContext {
+		return *shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), spawnedAgentID, uuid.Nil, "")
 	}).AnyTimes()
 	mockAgent.EXPECT().GetMessageHistory(gomock.Any()).Return(nil, nil).AnyTimes()
 
@@ -334,7 +334,7 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        mockSenderAgent,
+		agent:           mockSenderAgent,
 	}
 
 	ctx := context.Background()
@@ -353,7 +353,7 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 	// Create agent output tool
 	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
-		agent:    mockSenderAgent,
+		agent:       mockSenderAgent,
 		hookManager: mockHookManager,
 	}
 
@@ -412,7 +412,7 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 	// Create mock sender agent
 	mockSenderAgent := shared.NewMockAgent(ctrl)
 	mockSenderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockSenderAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
+	mockSenderAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{
 		AgentID: senderID,
 	}).AnyTimes()
 	mockSenderAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
@@ -445,7 +445,7 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        mockSenderAgent,
+		agent:           mockSenderAgent,
 	}
 
 	ctx := context.Background()
@@ -457,10 +457,10 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 		return mockAgent, nil
 
 	})
-		mockAgent.EXPECT().ToLoggingContext().DoAndReturn(func() shared.LoggingContext {
-			return *shared.NewLoggingContext("test-session", spawnedAgentID, uuid.Nil)
-		}).AnyTimes()
-		mockAgent.EXPECT().GetMessageHistory(gomock.Any()).Return(nil, nil).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().DoAndReturn(func() shared.SessionContext {
+		return *shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), spawnedAgentID, uuid.Nil, "")
+	}).AnyTimes()
+	mockAgent.EXPECT().GetMessageHistory(gomock.Any()).Return(nil, nil).AnyTimes()
 	// Agent will complete after delay
 	mockAgent.EXPECT().Execute(gomock.Any(), gomock.Any()).Return(&gollem.ExecuteResponse{
 		Texts: []string{"Done after delay"},
@@ -472,7 +472,7 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 	// Create agent output tool
 	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
-		agent:    mockSenderAgent,
+		agent:       mockSenderAgent,
 		hookManager: mockHookManager,
 	}
 

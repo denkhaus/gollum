@@ -194,37 +194,37 @@ func (n *NoOpHookManager) TriggerExecutorHooks(_ context.Context, _ HookPoint, h
 }
 
 // WithSessionHooks is a no-op implementation of HookManager.WithSessionHooks.
-func (n *NoOpHookManager) WithSessionHooks(_ context.Context, _ shared.LoggingContext, work func() error) error {
+func (n *NoOpHookManager) WithSessionHooks(_ context.Context, _ shared.SessionContext, work func() error) error {
 	return work()
 }
 
 // WithAgentHooks is a no-op implementation of HookManager.WithAgentHooks.
-func (n *NoOpHookManager) WithAgentHooks(_ context.Context, _ shared.LoggingContext, _ HookPoint, work func() error) error {
+func (n *NoOpHookManager) WithAgentHooks(_ context.Context, _ shared.SessionContext, _ HookPoint, work func() error) error {
 	return work()
 }
 
 // WithToolHooks is a no-op implementation of HookManager.WithToolHooks.
-func (n *NoOpHookManager) WithToolHooks(_ context.Context, _ shared.LoggingContext, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+func (n *NoOpHookManager) WithToolHooks(_ context.Context, _ shared.SessionContext, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 	return work()
 }
 
 // WithFileReadHooks is a no-op implementation of HookManager.WithFileReadHooks.
-func (n *NoOpHookManager) WithFileReadHooks(_ context.Context, _ shared.LoggingContext, _ string, work func() (string, error)) (string, error) {
+func (n *NoOpHookManager) WithFileReadHooks(_ context.Context, _ shared.SessionContext, _ string, work func() (string, error)) (string, error) {
 	return work()
 }
 
 // WithFileWriteHooks is a no-op implementation of HookManager.WithFileWriteHooks.
-func (n *NoOpHookManager) WithFileWriteHooks(_ context.Context, _ shared.LoggingContext, _, _ string, work func(string) error) error {
+func (n *NoOpHookManager) WithFileWriteHooks(_ context.Context, _ shared.SessionContext, _, _ string, work func(string) error) error {
 	return work("")
 }
 
 // WithFileHooks is a no-op implementation of HookManager.WithFileHooks.
-func (n *NoOpHookManager) WithFileHooks(_ context.Context, _ shared.LoggingContext, _ HookPoint, _ string, work func() error) error {
+func (n *NoOpHookManager) WithFileHooks(_ context.Context, _ shared.SessionContext, _ HookPoint, _ string, work func() error) error {
 	return work()
 }
 
 // WithLLMHooks is a no-op implementation of HookManager.WithLLMHooks.
-func (n *NoOpHookManager) WithLLMHooks(_ context.Context, _ shared.LoggingContext, _, _ string, work func(string) (string, error)) (string, error) {
+func (n *NoOpHookManager) WithLLMHooks(_ context.Context, _ shared.SessionContext, _, _ string, work func(string) (string, error)) (string, error) {
 	return work("")
 }
 

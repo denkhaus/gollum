@@ -81,7 +81,7 @@ func (t *readFileToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the ReadFile tool to read file contents
 func (t *readFileToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameReadFile, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameReadFile, args,
 		func() (map[string]any, error) {
 			return t.runFileRead(ctx, args)
 		})
@@ -104,7 +104,7 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 	path, err := filepath.Abs(path)
 	if err != nil {
 		t.logService.ErrorWithContext("Failed to resolve absolute path",
-			t.agent.ToLoggingContext(),
+			t.agent.ToSessionContext(),
 			zap.String("file_path", path),
 			zap.Error(err),
 		)
@@ -115,7 +115,7 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 	}
 
 	t.logService.InfoWithContext("Reading file",
-		t.agent.ToLoggingContext(),
+		t.agent.ToSessionContext(),
 		zap.String("file_path", path),
 		zap.Int("offset", offset),
 		zap.Int("limit", limit),
@@ -127,20 +127,20 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 	},
 		func(_ context.Context, token *state.LockToken) (any, error) {
 			// Wrap the file read with file read hooks
-			content, err := t.hookManager.WithFileReadHooks(ctx, t.agent.ToLoggingContext(), path,
+			content, err := t.hookManager.WithFileReadHooks(ctx, t.agent.ToSessionContext(), path,
 				func() (string, error) {
 					// Check if file exists
 					_, err := os.Stat(path)
 					if err != nil {
 						if os.IsNotExist(err) {
 							t.logService.DebugWithContext("File not found",
-								t.agent.ToLoggingContext(),
+								t.agent.ToSessionContext(),
 								zap.String("file_path", path),
 							)
 							return "", nil // Return empty content, will be handled below
 						}
 						t.logService.ErrorWithContext("Failed to stat file",
-							t.agent.ToLoggingContext(),
+							t.agent.ToSessionContext(),
 							zap.String("file_path", path),
 							zap.Error(err),
 						)
@@ -153,7 +153,7 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 					contentBytes, err := os.ReadFile(path)
 					if err != nil {
 						t.logService.ErrorWithContext("Failed to read file",
-							t.agent.ToLoggingContext(),
+							t.agent.ToSessionContext(),
 							zap.String("file_path", path),
 							zap.Error(err),
 						)
@@ -187,7 +187,7 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 			// Validate offset
 			if offset > len(allLines) {
 				t.logService.WarnWithContext("Offset exceeds line count",
-					t.agent.ToLoggingContext(),
+					t.agent.ToSessionContext(),
 					zap.String("file_path", path),
 					zap.Int("offset", offset),
 					zap.Int("total_lines", len(allLines)),
@@ -214,7 +214,7 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 			stats, err := t.fsm.GetFileStats(path)
 			if err != nil {
 				t.logService.WarnWithContext("Failed to get file stats",
-					t.agent.ToLoggingContext(),
+					t.agent.ToSessionContext(),
 					zap.String("file_path", path),
 					zap.Error(err),
 				)
@@ -239,7 +239,7 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 				response["last_scanned"] = stats.LastScanned
 
 				t.logService.InfoWithContext("File read successfully",
-					t.agent.ToLoggingContext(),
+					t.agent.ToSessionContext(),
 					zap.String("file_path", path),
 					zap.Int64("size", stats.Size),
 					zap.String("checksum", stats.Checksum),
@@ -248,7 +248,7 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 				)
 			} else {
 				t.logService.InfoWithContext("File read successfully (no stats)",
-					t.agent.ToLoggingContext(),
+					t.agent.ToSessionContext(),
 					zap.String("file_path", path),
 					zap.Int("lines_returned", len(selectedLines)),
 					zap.Int("total_lines", len(allLines)),
@@ -259,7 +259,7 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 		})
 	if err != nil {
 		t.logService.ErrorWithContext("File read operation failed",
-			t.agent.ToLoggingContext(),
+			t.agent.ToSessionContext(),
 			zap.String("file_path", path),
 			zap.Error(err),
 		)
@@ -275,7 +275,7 @@ func (t *readFileToolImpl) runFileRead(ctx context.Context, args ToolRequestPara
 // ReadFileLines reads a file and returns lines (helper for common use case)
 func (t *readFileToolImpl) ReadFileLines(ctx context.Context, path string) ([]string, error) {
 	t.logService.DebugWithContext("ReadFileLines helper called",
-		t.agent.ToLoggingContext(),
+		t.agent.ToSessionContext(),
 		zap.String("file_path", path),
 	)
 
@@ -284,7 +284,7 @@ func (t *readFileToolImpl) ReadFileLines(ctx context.Context, path string) ([]st
 	})
 	if err != nil {
 		t.logService.ErrorWithContext("ReadFileLines helper failed",
-			t.agent.ToLoggingContext(),
+			t.agent.ToSessionContext(),
 			zap.String("file_path", path),
 			zap.Error(err),
 		)
@@ -293,7 +293,7 @@ func (t *readFileToolImpl) ReadFileLines(ctx context.Context, path string) ([]st
 
 	if success, ok := result["success"].(bool); !ok || !success {
 		t.logService.WarnWithContext("ReadFileLines helper returned unsuccessful",
-			t.agent.ToLoggingContext(),
+			t.agent.ToSessionContext(),
 			zap.String("file_path", path),
 			zap.Any("error", result["error"]),
 		)
@@ -305,7 +305,7 @@ func (t *readFileToolImpl) ReadFileLines(ctx context.Context, path string) ([]st
 	content, ok := result["content"].(string)
 	if !ok {
 		t.logService.ErrorWithContext("ReadFileLines helper: invalid content type in response",
-			t.agent.ToLoggingContext(),
+			t.agent.ToSessionContext(),
 			zap.String("file_path", path),
 			zap.String("content_type", fmt.Sprintf("%T", result["content"])),
 		)
@@ -317,7 +317,7 @@ func (t *readFileToolImpl) ReadFileLines(ctx context.Context, path string) ([]st
 
 	lines := strings.Split(content, "\n")
 	t.logService.DebugWithContext("ReadFileLines helper completed",
-		t.agent.ToLoggingContext(),
+		t.agent.ToSessionContext(),
 		zap.String("file_path", path),
 		zap.Int("lines_count", len(lines)),
 	)

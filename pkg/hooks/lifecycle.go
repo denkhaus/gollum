@@ -11,7 +11,7 @@ import (
 // WithSessionHooks wraps a function with session lifecycle hooks.
 func (p *hookManagerImpl) WithSessionHooks(
 	ctx context.Context,
-	loggingContext shared.LoggingContext,
+	loggingContext shared.SessionContext,
 	work func() error,
 ) error {
 	if !loggingContext.IsValid() {
@@ -52,7 +52,7 @@ func (p *hookManagerImpl) WithSessionHooks(
 // WithAgentHooks wraps a function with agent lifecycle hooks.
 func (p *hookManagerImpl) WithAgentHooks(
 	ctx context.Context,
-	loggingContext shared.LoggingContext,
+	loggingContext shared.SessionContext,
 	point HookPoint,
 	work func() error,
 ) error {

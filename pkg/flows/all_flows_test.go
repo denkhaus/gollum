@@ -17,13 +17,13 @@ func TestParseAndLintAllFlows(t *testing.T) {
 	projectRoot := filepath.Join("..", "..", ".gollum", "flows")
 
 	testCases := []struct {
-		name     string
-		dir      string
-		files    []string
+		name  string
+		dir   string
+		files []string
 	}{
 		{
-			name:  "examples",
-			dir:   filepath.Join(projectRoot, "examples"),
+			name: "examples",
+			dir:  filepath.Join(projectRoot, "examples"),
 			files: []string{
 				"simple-flow.xml",
 				"Simplified-flow-example.xml",
@@ -34,8 +34,8 @@ func TestParseAndLintAllFlows(t *testing.T) {
 			},
 		},
 		{
-			name:  "forgejo-workflow",
-			dir:   filepath.Join(projectRoot, "forgejo-workflow"),
+			name: "forgejo-workflow",
+			dir:  filepath.Join(projectRoot, "forgejo-workflow"),
 			files: []string{
 				"main.xml",
 				"determine-phase.xml",
@@ -44,8 +44,8 @@ func TestParseAndLintAllFlows(t *testing.T) {
 			},
 		},
 		{
-			name:  "code-analysis-module",
-			dir:   filepath.Join(projectRoot, "modules", "code-analysis"),
+			name: "code-analysis-module",
+			dir:  filepath.Join(projectRoot, "modules", "code-analysis"),
 			files: []string{
 				"main.xml",
 				"complexity-check.xml",

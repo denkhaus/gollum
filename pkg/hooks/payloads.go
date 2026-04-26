@@ -16,7 +16,7 @@ import (
 // Hooks can modify Args before execution (BeforeToolExecution) and
 // modify Result after execution (AfterToolExecution).
 type ToolPayload struct {
-	shared.LoggingContext
+	shared.SessionContext
 
 	// Name is the tool name being executed.
 	Name shared.ToolName
@@ -39,7 +39,7 @@ type ToolPayload struct {
 //
 // Hooks can modify Input before the request and Response after receiving it.
 type LLMPayload struct {
-	shared.LoggingContext
+	shared.SessionContext
 
 	// Input is the prompt sent to the LLM.
 	// Hooks can modify this before the request is sent.
@@ -81,7 +81,7 @@ const (
 // Hooks can modify Content before write operations and access both
 // OldContent and NewContent for modify operations.
 type FilePayload struct {
-	shared.LoggingContext
+	shared.SessionContext
 
 	// Path is the file path for the operation.
 	Path string
@@ -106,7 +106,7 @@ type FilePayload struct {
 // SessionPayload contains data for session lifecycle hooks.
 // Used with BeforeSessionStart and AfterSessionEnd hook points.
 type SessionPayload struct {
-	shared.LoggingContext
+	shared.SessionContext
 
 	// Metadata contains additional session-specific data.
 	// Hooks can use this to pass information between before/after hooks.
@@ -126,7 +126,7 @@ const (
 // AgentPayload contains data for agent lifecycle hooks.
 // Used with BeforeAgentSpawn/AfterAgentSpawn and BeforeAgentRemove/AfterAgentRemove hook points.
 type AgentPayload struct {
-	shared.LoggingContext
+	shared.SessionContext
 
 	// Event indicates whether this is a spawn or remove event.
 	Event AgentEvent
@@ -165,7 +165,7 @@ const (
 // SkillPayload contains data for skill invocation hooks.
 // Used with BeforeSkillInvoked, AfterSkillInvoked, and OnSkillError hook points.
 type SkillPayload struct {
-	shared.LoggingContext
+	shared.SessionContext
 
 	// Name is the skill name being invoked.
 	Name string
@@ -200,7 +200,7 @@ type SkillPayload struct {
 // This payload is available for all hook points to enable consistent
 // observability across the entire hook lifecycle.
 type TracingPayload struct {
-	shared.LoggingContext
+	shared.SessionContext
 
 	// SpanID is the unique identifier for this span within the trace.
 	SpanID string

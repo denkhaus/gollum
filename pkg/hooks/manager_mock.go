@@ -253,7 +253,7 @@ func (mr *MockHookManagerMockRecorder) UnregisterHook(name any) *gomock.Call {
 }
 
 // WithAgentHooks mocks base method.
-func (m *MockHookManager) WithAgentHooks(ctx context.Context, loggingContext shared.LoggingContext, point HookPoint, work func() error) error {
+func (m *MockHookManager) WithAgentHooks(ctx context.Context, loggingContext shared.SessionContext, point HookPoint, work func() error) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WithAgentHooks", ctx, loggingContext, point, work)
 	ret0, _ := ret[0].(error)
@@ -267,7 +267,7 @@ func (mr *MockHookManagerMockRecorder) WithAgentHooks(ctx, loggingContext, point
 }
 
 // WithFileHooks mocks base method.
-func (m *MockHookManager) WithFileHooks(ctx context.Context, loggingContext shared.LoggingContext, point HookPoint, filePath string, work func() error) error {
+func (m *MockHookManager) WithFileHooks(ctx context.Context, loggingContext shared.SessionContext, point HookPoint, filePath string, work func() error) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WithFileHooks", ctx, loggingContext, point, filePath, work)
 	ret0, _ := ret[0].(error)
@@ -281,7 +281,7 @@ func (mr *MockHookManagerMockRecorder) WithFileHooks(ctx, loggingContext, point,
 }
 
 // WithFileReadHooks mocks base method.
-func (m *MockHookManager) WithFileReadHooks(ctx context.Context, loggingContext shared.LoggingContext, filePath string, work func() (string, error)) (string, error) {
+func (m *MockHookManager) WithFileReadHooks(ctx context.Context, loggingContext shared.SessionContext, filePath string, work func() (string, error)) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WithFileReadHooks", ctx, loggingContext, filePath, work)
 	ret0, _ := ret[0].(string)
@@ -296,7 +296,7 @@ func (mr *MockHookManagerMockRecorder) WithFileReadHooks(ctx, loggingContext, fi
 }
 
 // WithFileWriteHooks mocks base method.
-func (m *MockHookManager) WithFileWriteHooks(ctx context.Context, loggingContext shared.LoggingContext, filePath, content string, work func(string) error) error {
+func (m *MockHookManager) WithFileWriteHooks(ctx context.Context, loggingContext shared.SessionContext, filePath, content string, work func(string) error) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WithFileWriteHooks", ctx, loggingContext, filePath, content, work)
 	ret0, _ := ret[0].(error)
@@ -325,7 +325,7 @@ func (mr *MockHookManagerMockRecorder) WithFlowStepHooks(ctx, sessionID, flowID,
 }
 
 // WithLLMHooks mocks base method.
-func (m *MockHookManager) WithLLMHooks(ctx context.Context, loggingContext shared.LoggingContext, prompt, model string, work func(string) (string, error)) (string, error) {
+func (m *MockHookManager) WithLLMHooks(ctx context.Context, loggingContext shared.SessionContext, prompt, model string, work func(string) (string, error)) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WithLLMHooks", ctx, loggingContext, prompt, model, work)
 	ret0, _ := ret[0].(string)
@@ -340,7 +340,7 @@ func (mr *MockHookManagerMockRecorder) WithLLMHooks(ctx, loggingContext, prompt,
 }
 
 // WithSessionHooks mocks base method.
-func (m *MockHookManager) WithSessionHooks(ctx context.Context, loggingContext shared.LoggingContext, work func() error) error {
+func (m *MockHookManager) WithSessionHooks(ctx context.Context, loggingContext shared.SessionContext, work func() error) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WithSessionHooks", ctx, loggingContext, work)
 	ret0, _ := ret[0].(error)
@@ -354,7 +354,7 @@ func (mr *MockHookManagerMockRecorder) WithSessionHooks(ctx, loggingContext, wor
 }
 
 // WithToolHooks mocks base method.
-func (m *MockHookManager) WithToolHooks(ctx context.Context, loggingContext shared.LoggingContext, toolName shared.ToolName, args map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+func (m *MockHookManager) WithToolHooks(ctx context.Context, loggingContext shared.SessionContext, toolName shared.ToolName, args map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WithToolHooks", ctx, loggingContext, toolName, args, work)
 	ret0, _ := ret[0].(map[string]any)

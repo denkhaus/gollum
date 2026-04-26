@@ -95,7 +95,7 @@ func (t *editToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the Edit tool to perform string replacements in files
 func (t *editToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameEdit, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameEdit, args,
 		func() (map[string]any, error) {
 			return t.runEdit(ctx, args)
 		})
@@ -126,7 +126,7 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 	filePath, err := filepath.Abs(filePath)
 	if err != nil {
 		t.logService.ErrorWithContext("Edit operation failed: failed to resolve absolute path",
-			t.agent.ToLoggingContext(),
+			t.agent.ToSessionContext(),
 			zap.String("file_path", originalPath),
 			zap.Error(err),
 		)
@@ -137,7 +137,7 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 	}
 
 	t.logService.InfoWithContext("Edit operation started",
-		t.agent.ToLoggingContext(),
+		t.agent.ToSessionContext(),
 		zap.String("file_path", filePath),
 		zap.Int("old_string_length", len(oldString)),
 		zap.Int("new_string_length", len(newString)),
@@ -148,7 +148,7 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 	fileStats, err := t.fsm.GetFileStats(filePath)
 	if err != nil || fileStats == nil {
 		t.logService.WarnWithContext("Edit operation failed: file must be read before editing",
-			t.agent.ToLoggingContext(),
+			t.agent.ToSessionContext(),
 			zap.String("file_path", filePath),
 			zap.String("required_tool", shared.ToolNameReadFile.String()),
 		)
@@ -162,7 +162,7 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 	isStale, err := t.fsm.IsFileStaleForAgent(t.agent.GetID(), filePath)
 	if err != nil {
 		t.logService.ErrorWithContext("Failed to check file staleness",
-			t.agent.ToLoggingContext(),
+			t.agent.ToSessionContext(),
 			zap.String("file_path", filePath),
 			zap.Error(err),
 		)
@@ -174,7 +174,7 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 
 	if isStale {
 		t.logService.WarnWithContext("Edit operation failed: file must be read before editing",
-			t.agent.ToLoggingContext(),
+			t.agent.ToSessionContext(),
 			zap.String("file_path", filePath),
 			zap.String("required_tool", shared.ToolNameReadFile.String()),
 		)
@@ -185,7 +185,7 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 	}
 
 	t.logService.DebugWithContext("Acquiring exclusive lock for edit operation",
-		t.agent.ToLoggingContext(),
+		t.agent.ToSessionContext(),
 		zap.String("file_path", filePath),
 	)
 
@@ -196,7 +196,7 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 		},
 		func(_ context.Context, token *state.LockToken) (any, error) {
 			t.logService.DebugWithContext("Edit lock acquired, reading file content",
-				t.agent.ToLoggingContext(),
+				t.agent.ToSessionContext(),
 				zap.String("file_path", filePath),
 				zap.String("lock_agent_id", token.AgentID.String()),
 				zap.String("lock_mode", string(token.Mode)),
@@ -206,7 +206,7 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 			content, err := os.ReadFile(filePath)
 			if err != nil {
 				t.logService.ErrorWithContext("Failed to read file for editing",
-					t.agent.ToLoggingContext(),
+					t.agent.ToSessionContext(),
 					zap.String("file_path", filePath),
 					zap.Error(err),
 				)
@@ -222,7 +222,7 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 
 			if count == 0 {
 				t.logService.WarnWithContext("Edit operation failed: old_string not found in file",
-					t.agent.ToLoggingContext(),
+					t.agent.ToSessionContext(),
 					zap.String("file_path", filePath),
 					zap.Int("old_string_length", len(oldString)),
 				)
@@ -235,7 +235,7 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 			// If not replacing all, verify uniqueness
 			if !replaceAll && count > 1 {
 				t.logService.WarnWithContext("Edit operation failed: old_string appears multiple times",
-					t.agent.ToLoggingContext(),
+					t.agent.ToSessionContext(),
 					zap.String("file_path", filePath),
 					zap.Int("occurrence_count", count),
 				)
@@ -255,7 +255,7 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 			}
 
 			t.logService.DebugWithContext("Writing modified content to file",
-				t.agent.ToLoggingContext(),
+				t.agent.ToSessionContext(),
 				zap.String("file_path", filePath),
 				zap.Int("replacements", count),
 				zap.Int("old_size", len(contentStr)),
@@ -263,12 +263,12 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 			)
 
 			// Wrap the file write with file write hooks (edit is a write operation)
-			err = t.hookManager.WithFileWriteHooks(ctx, t.agent.ToLoggingContext(), filePath, newContent,
+			err = t.hookManager.WithFileWriteHooks(ctx, t.agent.ToSessionContext(), filePath, newContent,
 				func(finalContent string) error {
 					// Write the modified content back
 					if err := os.WriteFile(filePath, []byte(finalContent), 0o644); err != nil {
 						t.logService.ErrorWithContext("Failed to write modified file",
-							t.agent.ToLoggingContext(),
+							t.agent.ToSessionContext(),
 							zap.String("file_path", filePath),
 							zap.Error(err),
 						)
@@ -287,7 +287,7 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 			stats, err := t.fsm.GetFileStats(filePath)
 			if err != nil {
 				t.logService.ErrorWithContext("Failed to get file stats after edit",
-					t.agent.ToLoggingContext(),
+					t.agent.ToSessionContext(),
 					zap.String("file_path", filePath),
 					zap.Error(err),
 				)
@@ -297,7 +297,7 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 			}
 
 			t.logService.InfoWithContext("Edit operation completed successfully",
-				t.agent.ToLoggingContext(),
+				t.agent.ToSessionContext(),
 				zap.String("file_path", filePath),
 				zap.Int("replacements", count),
 				zap.String("old_checksum", fileStats.Checksum),
@@ -309,7 +309,7 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 			diffStr, diffErr := t.diffProvider.GenerateDiff(filePath, filePath, contentStr, newContent)
 			if diffErr != nil {
 				t.logService.WarnWithContext("Failed to generate diff",
-					t.agent.ToLoggingContext(),
+					t.agent.ToSessionContext(),
 					zap.String("file_path", filePath),
 					zap.Error(diffErr),
 				)
@@ -338,7 +338,7 @@ func (t *editToolImpl) runEdit(ctx context.Context, args ToolRequestParams) (map
 		})
 	if err != nil {
 		t.logService.ErrorWithContext("Edit operation failed with error",
-			t.agent.ToLoggingContext(),
+			t.agent.ToSessionContext(),
 			zap.String("file_path", filePath),
 			zap.Error(err),
 		)

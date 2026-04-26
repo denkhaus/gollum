@@ -1,7 +1,6 @@
 package builtin
 
 import (
-
 	"context"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"sync"
@@ -13,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-
 )
 
 func TestLangfuseHook_DisabledConfig(t *testing.T) {
@@ -39,7 +37,7 @@ func TestLangfuseHook_DisabledConfig(t *testing.T) {
 		ctx := context.Background()
 		sessionID := uuid.New()
 		hookCtx := hooks.NewTypedHookContext(
-			shared.LoggingContext{SessionID: sessionID.String()},
+			shared.SessionContext{SessionID: sessionID},
 			hooks.SessionPayload{},
 		)
 
@@ -78,7 +76,7 @@ func TestLangfuseHook_DisabledConfig(t *testing.T) {
 
 		ctx := context.Background()
 		hookCtx := hooks.NewTypedHookContext(
-			shared.LoggingContext{SessionID: uuid.New().String()},
+			shared.SessionContext{SessionID: uuid.New()},
 			hooks.LLMPayload{
 				Model: "gpt-4",
 				Input: "test input",
@@ -119,7 +117,7 @@ func TestLangfuseHook_DisabledConfig(t *testing.T) {
 
 		ctx := context.Background()
 		hookCtx := hooks.NewTypedHookContext(
-			shared.LoggingContext{SessionID: uuid.New().String()},
+			shared.SessionContext{SessionID: uuid.New()},
 			hooks.ToolPayload{
 				Name: "test-tool",
 				Args: map[string]any{"arg": "value"},
@@ -164,7 +162,7 @@ func TestLangfuseHook_MissingSpanID(t *testing.T) {
 		ctx := context.Background()
 		sessionID := uuid.New()
 		hookCtx := hooks.NewTypedHookContext(
-			shared.LoggingContext{SessionID: sessionID.String()},
+			shared.SessionContext{SessionID: sessionID},
 			hooks.LLMPayload{
 				Model:    "gpt-4",
 				Response: "test response",
@@ -207,7 +205,7 @@ func TestLangfuseHook_MissingSpanID(t *testing.T) {
 		ctx := context.Background()
 		sessionID := uuid.New()
 		hookCtx := hooks.NewTypedHookContext(
-			shared.LoggingContext{SessionID: sessionID.String()},
+			shared.SessionContext{SessionID: sessionID},
 			hooks.ToolPayload{
 				Name:   "test-tool",
 				Result: map[string]any{"result": "value"},
@@ -250,7 +248,7 @@ func TestLangfuseHook_MissingSpanID(t *testing.T) {
 		ctx := context.Background()
 		sessionID := uuid.New()
 		hookCtx := hooks.NewTypedHookContext(
-			shared.LoggingContext{SessionID: sessionID.String(), AgentID: uuid.New()},
+			shared.SessionContext{SessionID: sessionID, AgentID: uuid.New()},
 			hooks.AgentPayload{},
 		)
 		// No Tracing.SpanID set
@@ -292,7 +290,7 @@ func TestLangfuseHook_NilContextHandling(t *testing.T) {
 
 		ctx := context.Background()
 		hookCtx := hooks.NewTypedHookContext(
-			shared.LoggingContext{SessionID: uuid.New().String()},
+			shared.SessionContext{SessionID: uuid.New()},
 			hooks.LLMPayload{
 				Model: "gpt-4",
 				Input: "test input",
@@ -338,7 +336,7 @@ func TestLangfuseHook_NilContextHandling(t *testing.T) {
 		tracing := &hooks.TracingPayload{}
 
 		// This should not panic - just return without setting anything
-		hook.propagateTracingToContext(sessionID.String(), tracing)
+		hook.propagateTracingToContext(sessionID, tracing)
 
 		assert.Empty(t, tracing.TraceID, "TraceID should remain empty")
 	})

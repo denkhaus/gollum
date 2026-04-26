@@ -35,13 +35,13 @@ type LoggerService interface {
 	// WarnWithFlowStep logs a warning message with flow and step context
 	WarnWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field)
 	// InfoWithContext logs an info message with session, channel, and agent context.
-	InfoWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field)
+	InfoWithContext(msg string, ctx shared.SessionContext, fields ...zap.Field)
 	// ErrorWithContext logs an error message with session, channel, and agent context.
-	ErrorWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field)
+	ErrorWithContext(msg string, ctx shared.SessionContext, fields ...zap.Field)
 	// DebugWithContext logs a debug message with session, channel, and agent context.
-	DebugWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field)
+	DebugWithContext(msg string, ctx shared.SessionContext, fields ...zap.Field)
 	// WarnWithContext logs a warning message with session, channel, and agent context.
-	WarnWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field)
+	WarnWithContext(msg string, ctx shared.SessionContext, fields ...zap.Field)
 	GetLogger() *zap.Logger
 	// GetLogs retrieves log entries from the session buffer
 	GetLogs(filter LogFilter) []LogEntry
@@ -258,22 +258,22 @@ func (s *service) WarnWithFlowStep(msg string, flowName, stateName, stepType str
 }
 
 // InfoWithContext logs an info message with session, channel, and agent context.
-func (s *service) InfoWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {
+func (s *service) InfoWithContext(msg string, ctx shared.SessionContext, fields ...zap.Field) {
 	s.logWithContext("info", msg, ctx, fields...)
 }
 
 // ErrorWithContext logs an error message with session, channel, and agent context.
-func (s *service) ErrorWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {
+func (s *service) ErrorWithContext(msg string, ctx shared.SessionContext, fields ...zap.Field) {
 	s.logWithContext("error", msg, ctx, fields...)
 }
 
 // DebugWithContext logs a debug message with session, channel, and agent context.
-func (s *service) DebugWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {
+func (s *service) DebugWithContext(msg string, ctx shared.SessionContext, fields ...zap.Field) {
 	s.logWithContext("debug", msg, ctx, fields...)
 }
 
 // WarnWithContext logs a warning message with session, channel, and agent context.
-func (s *service) WarnWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {
+func (s *service) WarnWithContext(msg string, ctx shared.SessionContext, fields ...zap.Field) {
 	s.logWithContext("warn", msg, ctx, fields...)
 }
 
@@ -286,33 +286,20 @@ func (s *service) storeInBuffer(level string, msg string, fields []zap.Field) {
 		Fields:    zapFieldsToMap(fields),
 	}
 
-	// Extract agent_id from fields if present
-	for _, field := range fields {
-		if field.Key == "agent_id" {
-			// For zap.String fields, the value is stored in field.String
-			if field.Type == zapcore.StringType {
-				entry.AgentID, _ = uuid.Parse(field.String)
-			} else if agentStr, ok := field.Interface.(string); ok {
-				entry.AgentID, _ = uuid.Parse(agentStr)
-			}
-			break
-		}
-	}
-
 	s.logBuffer.add(entry)
 }
 
 // logWithContext is the internal implementation for context-aware logging.
 // It validates the context, logs to zap, stores in buffer, and forwards to channels.
-// REQUIRES: Complete LoggingContext (all fields valid). Use IsValid() to validate.
-func (s *service) logWithContext(level string, msg string, ctx shared.LoggingContext, fields ...zap.Field) {
+// REQUIRES: Complete SessionContext (all fields valid). Use IsValid() to validate.
+func (s *service) logWithContext(level string, msg string, ctx shared.SessionContext, fields ...zap.Field) {
 	// STRICT VALIDATION: Reject incomplete contexts per Task 3 spec
 	if !ctx.IsValid() {
 		// Log error but still record locally - just don't forward to channels
 		s.logger.Error("incomplete logging context",
 			zap.String("level", level),
 			zap.String("message", msg),
-			zap.Bool("has_session_id", ctx.SessionID != ""),
+			zap.Bool("has_session_id", ctx.SessionID != uuid.Nil),
 			zap.Bool("has_channel_id", ctx.ChannelID != uuid.Nil),
 			zap.Bool("has_agent_id", ctx.AgentID != uuid.Nil),
 		)
@@ -340,7 +327,7 @@ func (s *service) logWithContext(level string, msg string, ctx shared.LoggingCon
 
 	// Context is valid - proceed with full logging and forwarding
 	allFields := append([]zap.Field{
-		zap.String("session_id", ctx.SessionID),
+		zap.String("session_id", ctx.SessionID.String()),
 		zap.String("channel_id", ctx.ChannelID.String()),
 		zap.String("agent_id", ctx.AgentID.String()),
 	}, fields...)
@@ -375,25 +362,22 @@ func (s *service) logWithContext(level string, msg string, ctx shared.LoggingCon
 
 	// Store in buffer with full context
 	entry := LogEntry{
-		Timestamp: time.Now(),
-		Level:     level,
-		Message:   msg,
-		Fields:    zapFieldsToMap(allFields),
-		AgentID:   ctx.AgentID,
-		SessionID: ctx.SessionID,
-		ChannelID: ctx.ChannelID,
+		Timestamp:      time.Now(),
+		Level:          level,
+		Message:        msg,
+		Fields:         zapFieldsToMap(allFields),
+		SessionContext: ctx,
 	}
 	s.logBuffer.add(entry)
 
 	// Forward to channel facade via LogForwarder
 	if s.forwarder != nil {
 		channelEntry := shared.LogEntry{
-			Level:     level,
-			Message:   msg,
-			Timestamp: entry.Timestamp,
-			Fields:    entry.Fields,
-			SessionID: ctx.SessionID,
-			ChannelID: ctx.ChannelID,
+			Level:          level,
+			Message:        msg,
+			Timestamp:      entry.Timestamp,
+			Fields:         entry.Fields,
+			SessionContext: ctx,
 		}
 		s.forwarder.ForwardLog(channelEntry)
 	}

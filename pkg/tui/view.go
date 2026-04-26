@@ -6,9 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/markdown"
 )
@@ -235,7 +236,7 @@ func NewProgramWithContext(ctx context.Context, agent AgentExecutor, opts ...fun
 func WithMessageChannel() func(*Model) {
 	return func(m *Model) {
 		// Create the internal message channel for the TUI
-		ch := make(chan channel.Message, 100)
+		ch := make(chan shared.Message, 100)
 		m.SetMessageChannel(ch)
 	}
 }
@@ -275,7 +276,7 @@ func WithMarkdownRenderer(renderer markdown.Renderer) func(*Model) {
 func WithTUIChannel() func(*Model) {
 	return func(m *Model) {
 		// Create the internal message channel for the TUI
-		ch := make(chan channel.Message, 100)
+		ch := make(chan shared.Message, 100)
 		m.SetMessageChannel(ch)
 
 		// Create TUIChannel that will send messages to the TUI

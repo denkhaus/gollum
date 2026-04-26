@@ -119,18 +119,18 @@ func (mr *MockAgentMockRecorder) Session() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Session", reflect.TypeOf((*MockAgent)(nil).Session))
 }
 
-// ToLoggingContext mocks base method.
-func (m *MockAgent) ToLoggingContext() LoggingContext {
+// ToSessionContext mocks base method.
+func (m *MockAgent) ToSessionContext() SessionContext {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ToLoggingContext")
-	ret0, _ := ret[0].(LoggingContext)
+	ret := m.ctrl.Call(m, "ToSessionContext")
+	ret0, _ := ret[0].(SessionContext)
 	return ret0
 }
 
-// ToLoggingContext indicates an expected call of ToLoggingContext.
-func (mr *MockAgentMockRecorder) ToLoggingContext() *gomock.Call {
+// ToSessionContext indicates an expected call of ToSessionContext.
+func (mr *MockAgentMockRecorder) ToSessionContext() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ToLoggingContext", reflect.TypeOf((*MockAgent)(nil).ToLoggingContext))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ToSessionContext", reflect.TypeOf((*MockAgent)(nil).ToSessionContext))
 }
 
 // UpdateHistory mocks base method.

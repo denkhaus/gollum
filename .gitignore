@@ -6,3 +6,6 @@ snippets.md
 .env
 gollum_export*
 .worktrees/
+
+# Test artifacts
+*.test

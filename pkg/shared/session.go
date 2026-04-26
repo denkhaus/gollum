@@ -11,12 +11,13 @@ import (
 
 // Session represents an active session with a supervisor agent.
 type Session struct {
-	ID           string
+	ID           uuid.UUID
 	ChannelID    uuid.UUID
 	SupervisorID uuid.UUID
 	Context      context.Context
 	CancelFunc   context.CancelFunc
 	CreatedAt    time.Time
+	Cwd          string // Current working directory for this session
 
 	// Session-owned supervisor (lazy initialized)
 	supervisor   Agent

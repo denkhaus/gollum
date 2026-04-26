@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
+	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 // TestChannelFacade_Integration_SupervisorRouting verifies the complete
@@ -43,10 +45,14 @@ func TestChannelFacade_Integration_SupervisorRouting(t *testing.T) {
 
 	// Test 2: Verify SubmitInput handles non-command input when no supervisor
 	t.Run("SubmitInput requires supervisor for non-commands", func(t *testing.T) {
-		channelID := uuid.New()
+		sessionCtx := &shared.SessionContext{
+			SessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+			ChannelID: uuid.New(),
+			AgentID:   uuid.New(),
+		}
 
 		// Submit non-command input - should fail without supervisor
-		result, err := facade.SubmitInput(ctx, channelID, "test-session", "test input")
+		result, err := facade.SubmitInput(ctx, sessionCtx, "test input")
 		assert.Error(t, err, "should error without supervisor")
 		// When there's an error, result might be empty/nil, so only check Handled if result is valid
 		if err != nil {

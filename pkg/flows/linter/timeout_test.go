@@ -73,7 +73,7 @@ func TestTimeout_InsufficientCallTimeout(t *testing.T) {
 				Calls: []flows.Call{
 					{
 						Ref:     "test-flows/slow-flow", // Has a 60s step in slow-flow
-						Timeout: "30s",                            // Insufficient
+						Timeout: "30s",                  // Insufficient
 					},
 				},
 			},
@@ -99,7 +99,7 @@ func TestTimeout_SufficientCallTimeout(t *testing.T) {
 				Calls: []flows.Call{
 					{
 						Ref:     "test-flows/slow-flow", // Has a 60s step in slow-flow
-						Timeout: "120s",                           // Sufficient
+						Timeout: "120s",                 // Sufficient
 					},
 				},
 			},
@@ -125,7 +125,7 @@ func TestTimeout_ExactTimeoutMatch(t *testing.T) {
 				Calls: []flows.Call{
 					{
 						Ref:     "test-flows/slow-flow", // Has a 60s step in slow-flow
-						Timeout: "60s",                            // Exact match
+						Timeout: "60s",                  // Exact match
 					},
 				},
 			},

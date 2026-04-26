@@ -145,11 +145,40 @@ func TestLogBuffer_FilterByAgentID(t *testing.T) {
 
 	agent1 := uuid.New()
 	agent2 := uuid.New()
+	sessionID := uuid.New()
+	channelID := uuid.New()
 
 	// Add entries with different agents
-	buf.add(LogEntry{Timestamp: time.Now(), Level: "info", Message: "msg1", AgentID: agent1})
-	buf.add(LogEntry{Timestamp: time.Now(), Level: "info", Message: "msg2", AgentID: agent2})
-	buf.add(LogEntry{Timestamp: time.Now(), Level: "info", Message: "msg3", AgentID: agent1})
+	buf.add(LogEntry{
+		Timestamp: time.Now(),
+		Level:     "info",
+		Message:   "msg1",
+		SessionContext: shared.SessionContext{
+			SessionID: sessionID,
+			ChannelID: channelID,
+			AgentID:   agent1,
+		},
+	})
+	buf.add(LogEntry{
+		Timestamp: time.Now(),
+		Level:     "info",
+		Message:   "msg2",
+		SessionContext: shared.SessionContext{
+			SessionID: sessionID,
+			ChannelID: channelID,
+			AgentID:   agent2,
+		},
+	})
+	buf.add(LogEntry{
+		Timestamp: time.Now(),
+		Level:     "info",
+		Message:   "msg3",
+		SessionContext: shared.SessionContext{
+			SessionID: sessionID,
+			ChannelID: channelID,
+			AgentID:   agent1,
+		},
+	})
 	buf.add(LogEntry{Timestamp: time.Now(), Level: "info", Message: "msg4"}) // No agent
 
 	// Filter by agent1
@@ -244,15 +273,62 @@ func TestLogBuffer_CombinedFilters(t *testing.T) {
 
 	agent1 := uuid.New()
 	agent2 := uuid.New()
+	sessionID := uuid.New()
+	channelID := uuid.New()
 	now := time.Now()
 
 	// Add varied entries
 	entries := []LogEntry{
-		{Timestamp: now, Level: "info", Message: "i1", AgentID: agent1},
-		{Timestamp: now, Level: "error", Message: "e1", AgentID: agent1},
-		{Timestamp: now, Level: "info", Message: "i2", AgentID: agent2},
-		{Timestamp: now, Level: "error", Message: "e2", AgentID: agent2},
-		{Timestamp: now.Add(-1 * time.Hour), Level: "info", Message: "old", AgentID: agent1},
+		{
+			Timestamp: now,
+			Level:     "info",
+			Message:   "i1",
+			SessionContext: shared.SessionContext{
+				SessionID: sessionID,
+				ChannelID: channelID,
+				AgentID:   agent1,
+			},
+		},
+		{
+			Timestamp: now,
+			Level:     "error",
+			Message:   "e1",
+			SessionContext: shared.SessionContext{
+				SessionID: sessionID,
+				ChannelID: channelID,
+				AgentID:   agent1,
+			},
+		},
+		{
+			Timestamp: now,
+			Level:     "info",
+			Message:   "i2",
+			SessionContext: shared.SessionContext{
+				SessionID: sessionID,
+				ChannelID: channelID,
+				AgentID:   agent2,
+			},
+		},
+		{
+			Timestamp: now,
+			Level:     "error",
+			Message:   "e2",
+			SessionContext: shared.SessionContext{
+				SessionID: sessionID,
+				ChannelID: channelID,
+				AgentID:   agent2,
+			},
+		},
+		{
+			Timestamp: now.Add(-1 * time.Hour),
+			Level:     "info",
+			Message:   "old",
+			SessionContext: shared.SessionContext{
+				SessionID: sessionID,
+				ChannelID: channelID,
+				AgentID:   agent1,
+			},
+		},
 	}
 
 	for _, entry := range entries {
@@ -434,8 +510,9 @@ func TestLogBuffer_AgentIDExtraction(t *testing.T) {
 
 		agentID := uuid.New()
 		channelID := uuid.New()
-		ctx := shared.LoggingContext{
-			SessionID: "test-session",
+		sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
+		ctx := shared.SessionContext{
+			SessionID: sessionID,
 			ChannelID: channelID,
 			AgentID:   agentID,
 		}
@@ -458,8 +535,9 @@ func TestLogBuffer_AgentIDExtraction(t *testing.T) {
 
 		agentID := uuid.New()
 		channelID := uuid.New()
-		ctx := shared.LoggingContext{
-			SessionID: "test-session",
+		sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440002")
+		ctx := shared.SessionContext{
+			SessionID: sessionID,
 			ChannelID: channelID,
 			AgentID:   agentID,
 		}

@@ -95,7 +95,6 @@ func Init() error {
 	}
 }
 
-
 func TestYaegiLoader_ListExtensions(t *testing.T) {
 	loader := &yaegiLoaderImpl{
 		gateway: nil,
@@ -195,4 +194,3 @@ func TestYaegiLoader_GetExtension(t *testing.T) {
 	_, err = loader.GetExtension("nonexistent")
 	assert.Error(t, err)
 }
-

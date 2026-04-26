@@ -76,7 +76,7 @@ func (t *globToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the Glob tool to find files matching a pattern
 func (t *globToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameGlob, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameGlob, args,
 		func() (map[string]any, error) {
 			return t.runGlob(ctx, args)
 		})
@@ -95,7 +95,7 @@ func (t *globToolImpl) runGlob(_ context.Context, args ToolRequestParams) (map[s
 	// Convert relative path to absolute
 	searchPath, err := filepath.Abs(searchPath)
 	if err != nil {
-		t.logService.ErrorWithContext("Failed to resolve absolute path", t.agent.ToLoggingContext(),
+		t.logService.ErrorWithContext("Failed to resolve absolute path", t.agent.ToSessionContext(),
 			zap.String("search_path", searchPath),
 			zap.Error(err))
 		return map[string]any{
@@ -104,19 +104,19 @@ func (t *globToolImpl) runGlob(_ context.Context, args ToolRequestParams) (map[s
 		}, nil
 	}
 
-	t.logService.InfoWithContext("Starting glob search", t.agent.ToLoggingContext(),
+	t.logService.InfoWithContext("Starting glob search", t.agent.ToSessionContext(),
 		zap.String("pattern", pattern),
 		zap.String("search_path", searchPath))
 
 	// Build the full pattern
 	fullPattern := filepath.Join(searchPath, pattern)
-	t.logService.DebugWithContext("Full glob pattern", t.agent.ToLoggingContext(),
+	t.logService.DebugWithContext("Full glob pattern", t.agent.ToSessionContext(),
 		zap.String("pattern", fullPattern))
 
 	// Match files
 	matches, err := filepath.Glob(fullPattern)
 	if err != nil {
-		t.logService.ErrorWithContext("Invalid glob pattern", t.agent.ToLoggingContext(),
+		t.logService.ErrorWithContext("Invalid glob pattern", t.agent.ToSessionContext(),
 			zap.String("pattern", pattern),
 			zap.Error(err))
 		return map[string]any{
@@ -128,11 +128,11 @@ func (t *globToolImpl) runGlob(_ context.Context, args ToolRequestParams) (map[s
 	// Handle double-star pattern (recursive matching)
 	// filepath.Glob doesn't support **, so we need to handle it manually
 	if len(matches) == 0 && containsDoubleStar(pattern) {
-		t.logService.DebugWithContext("Pattern contains **, using recursive glob search", t.agent.ToLoggingContext(),
+		t.logService.DebugWithContext("Pattern contains **, using recursive glob search", t.agent.ToSessionContext(),
 			zap.String("pattern", pattern))
-		matches, err = recursiveGlob(t.logService, t.agent.ToLoggingContext(), searchPath, pattern)
+		matches, err = recursiveGlob(t.logService, t.agent.ToSessionContext(), searchPath, pattern)
 		if err != nil {
-			t.logService.ErrorWithContext("Recursive glob failed", t.agent.ToLoggingContext(),
+			t.logService.ErrorWithContext("Recursive glob failed", t.agent.ToSessionContext(),
 				zap.String("pattern", pattern),
 				zap.Error(err))
 			return map[string]any{
@@ -142,14 +142,14 @@ func (t *globToolImpl) runGlob(_ context.Context, args ToolRequestParams) (map[s
 		}
 	}
 
-	t.logService.InfoWithContext("Glob search completed", t.agent.ToLoggingContext(),
+	t.logService.InfoWithContext("Glob search completed", t.agent.ToSessionContext(),
 		zap.String("pattern", pattern),
 		zap.Int("match_count", len(matches)))
 	if len(matches) > 0 {
-		t.logService.DebugWithContext("Found matches", t.agent.ToLoggingContext(),
+		t.logService.DebugWithContext("Found matches", t.agent.ToSessionContext(),
 			zap.Any("matches", matches))
 	} else {
-		t.logService.DebugWithContext("No matches found", t.agent.ToLoggingContext(),
+		t.logService.DebugWithContext("No matches found", t.agent.ToSessionContext(),
 			zap.String("pattern", pattern))
 	}
 
@@ -173,7 +173,7 @@ func containsDoubleStar(pattern string) bool {
 }
 
 // recursiveGlob handles ** patterns by walking the directory tree
-func recursiveGlob(logService logger.LoggerService, logCtx shared.LoggingContext, root, pattern string) ([]string, error) {
+func recursiveGlob(logService logger.LoggerService, logCtx shared.SessionContext, root, pattern string) ([]string, error) {
 	var matches []string
 
 	logService.DebugWithContext("Starting recursive glob", logCtx,

@@ -20,7 +20,7 @@ import (
 // The returned content is the final content after any modifications by AfterFileRead hooks.
 func (p *hookManagerImpl) WithFileReadHooks(
 	ctx context.Context,
-	loggingContext shared.LoggingContext,
+	loggingContext shared.SessionContext,
 	filePath string,
 	work func() (string, error),
 ) (string, error) {
@@ -87,7 +87,7 @@ func (p *hookManagerImpl) WithFileReadHooks(
 // 3. AfterFileWrite hooks run - can log/audit
 func (p *hookManagerImpl) WithFileWriteHooks(
 	ctx context.Context,
-	loggingContext shared.LoggingContext,
+	loggingContext shared.SessionContext,
 	filePath string,
 	content string,
 	work func(string) error,
@@ -175,7 +175,7 @@ func (p *hookManagerImpl) WithFileWriteHooks(
 // 3. AfterFileModify hooks run - can log/audit the modification
 func (p *hookManagerImpl) WithFileHooks(
 	ctx context.Context,
-	loggingContext shared.LoggingContext,
+	loggingContext shared.SessionContext,
 	point HookPoint,
 	filePath string,
 	work func() error,

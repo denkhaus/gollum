@@ -65,19 +65,21 @@ import (
 	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/session"
 	"github.com/denkhaus/gollum/pkg/shared"
 )
 
 // acpServiceImpl implements Service and channel.Channel (PRIVATE)
 type acpServiceImpl struct {
-	facade   channel.ChannelFacade
-	logger   logger.LoggerService
-	config   config.ConfigService
-	client   acppkg.Client
-	store    acppkg.SessionStore[*shared.ACPSession]
-	id       uuid.UUID   // Channel ID
-	conn     Connection  // ACP connection (created in Start)
-	injector do.Injector // For connection creation
+	facade         channel.ChannelFacade
+	logger         logger.LoggerService
+	config         config.ConfigService
+	client         acppkg.Client
+	store          acppkg.SessionStore[*shared.ACPSession] // ACP-internal store for protocol
+	sessionManager session.SessionManager                  // Gollum session manager for system integration
+	id             uuid.UUID                               // Channel ID
+	conn           Connection                              // ACP connection (created in Start)
+	injector       do.Injector                             // For connection creation
 
 	// Transport-related fields
 	stdin         io.Reader     // For connection creation
@@ -96,6 +98,7 @@ func NewAcpService(injector do.Injector) (shared.ACPService, error) {
 	logger := do.MustInvoke[logger.LoggerService](injector)
 	facade := do.MustInvoke[channel.ChannelFacade](injector)
 	cfg := do.MustInvoke[config.ConfigService](injector)
+	sessionMgr := do.MustInvoke[session.SessionManager](injector)
 
 	logger.Debug("startup ACP service")
 
@@ -123,14 +126,15 @@ func NewAcpService(injector do.Injector) (shared.ACPService, error) {
 	port := acpConfig.Port
 
 	svc := &acpServiceImpl{
-		logger:        logger,
-		facade:        facade,
-		config:        cfg,
-		id:            id,
-		injector:      injector,
-		transportType: transportType,
-		host:          host,
-		port:          port,
+		logger:         logger,
+		facade:         facade,
+		config:         cfg,
+		sessionManager: sessionMgr,
+		id:             id,
+		injector:       injector,
+		transportType:  transportType,
+		host:           host,
+		port:           port,
 	}
 
 	logger.Debug("ACP service created", zap.String("channel_id", id.String()))
@@ -225,16 +229,16 @@ func (s *acpServiceImpl) GetHandler() http.Handler {
 }
 
 // OnMessage receives messages from the agent system and streams them to the ACP client
-func (s *acpServiceImpl) OnMessage(msg channel.Message) {
-	// Convert string SessionID to acppkg.SessionID
-	sessionID := acppkg.SessionID(msg.SessionID)
+func (s *acpServiceImpl) OnMessage(msg shared.Message) {
+	// Convert uuid.UUID SessionID to acppkg.SessionID (string)
+	sessionID := acppkg.SessionID(msg.SessionID.String())
 
 	// Get session from store using SessionID from message
 	session, ok := s.store.Get(sessionID)
 	if !ok {
 		s.logger.Warn("received message but session not found",
 			zap.String("channel_id", s.id.String()),
-			zap.String("session_id", msg.SessionID),
+			zap.String("session_id", msg.SessionID.String()),
 			zap.String("message_content", msg.Content),
 		)
 		return
@@ -244,7 +248,7 @@ func (s *acpServiceImpl) OnMessage(msg channel.Message) {
 	stream := acppkg.NewSessionStream(s.client, sessionID)
 	if err := stream.SendText(session.Context, msg.Content); err != nil {
 		s.logger.Error("failed to stream message to ACP client",
-			zap.String("session_id", msg.SessionID),
+			zap.String("session_id", msg.SessionID.String()),
 			zap.Error(err),
 		)
 	}
@@ -262,20 +266,19 @@ func (s *acpServiceImpl) OnLog(entry shared.LogEntry) {
 	s.logger.Debug("log entry from agent system",
 		zap.String("level", entry.Level),
 		zap.String("message", entry.Message),
-		zap.String("session_id", entry.SessionID),
-		zap.String("channel_id", entry.ChannelID.String()),
+		zap.String("context", entry.String()),
 	)
 
 	// Format: [LEVEL] message
 	logMsg := fmt.Sprintf("[%s] %s", entry.Level, entry.Message)
 
 	// If session is specified, route to that specific session
-	if entry.SessionID != "" {
-		sessionID := acppkg.SessionID(entry.SessionID)
+	if entry.SessionID != uuid.Nil {
+		sessionID := acppkg.SessionID(entry.SessionID.String())
 		session, ok := s.store.Get(sessionID)
 		if !ok {
 			s.logger.Warn("log entry specifies session but session not found",
-				zap.String("session_id", entry.SessionID),
+				zap.String("session_id", entry.SessionID.String()),
 			)
 			return
 		}
@@ -284,7 +287,7 @@ func (s *acpServiceImpl) OnLog(entry shared.LogEntry) {
 		stream := acppkg.NewSessionStream(s.client, sessionID)
 		if err := stream.SendText(session.Context, logMsg); err != nil {
 			s.logger.Error("failed to stream log to ACP client",
-				zap.String("session_id", entry.SessionID),
+				zap.String("session_id", entry.SessionID.String()),
 				zap.Error(err),
 			)
 		}
@@ -465,8 +468,13 @@ func (s *acpServiceImpl) Prompt(ctx context.Context, params *acppkg.PromptReques
 	}
 	promptContent := textContent.Text
 
-	// Submit to agent via channel facade using our channel ID
-	result, err := s.facade.SubmitInput(sessionCtx, s.id, string(params.SessionID), promptContent)
+	// Submit to agent via channel facade using SessionContext
+	result, err := s.facade.SubmitInput(sessionCtx, &shared.SessionContext{
+		SessionID: session.SessionID,
+		ChannelID: s.id,
+		AgentID:   uuid.Nil, // Will be set by session/supervisor
+		Cwd:       session.Cwd,
+	}, promptContent)
 	if err != nil {
 		if sessionCtx.Err() == context.Canceled {
 			return &acppkg.PromptResponse{
@@ -507,10 +515,10 @@ func (s *acpServiceImpl) Cancel(ctx context.Context, params *acppkg.CancelNotifi
 	session.CancelFunc()
 
 	// Also notify facade about the cancellation via session ID
-	if err := s.facade.CancelInput(string(params.SessionID)); err != nil {
+	if err := s.facade.CancelInput(session.SessionID); err != nil {
 		s.logger.Warn("failed to cancel input in facade",
 			zap.String("channel_id", s.id.String()),
-			zap.String("session_id", string(params.SessionID)),
+			zap.String("session_id", session.SessionID.String()),
 			zap.Error(err),
 		)
 	}

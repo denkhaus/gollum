@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/google/uuid"
-
-	"github.com/denkhaus/gollum/pkg/channel"
 )
 
 // addToHistory adds input to history with size limit enforcement.
@@ -50,12 +50,12 @@ func (m *Model) executeCommand(cmd string) (tea.Model, tea.Cmd) {
 	switch command {
 	case "/clear":
 		// Clear all messages and cache
-		m.messages = []channel.Message{}
+		m.messages = []shared.Message{}
 		m.clearFormatCache()
 		m.viewport.SetContent("")
-		systemMsg := channel.Message{
+		systemMsg := shared.Message{
 			ID:        uuid.New(),
-			Type:      channel.MessageTypeSystemInfo,
+			Type:      shared.MessageTypeSystemInfo,
 			Content:   "Messages cleared",
 			Timestamp: time.Now(),
 		}
@@ -67,9 +67,9 @@ func (m *Model) executeCommand(cmd string) (tea.Model, tea.Cmd) {
 	case "/quit":
 		// Quit the TUI
 		m.quit = true
-		goodbyeMsg := channel.Message{
+		goodbyeMsg := shared.Message{
 			ID:        uuid.New(),
-			Type:      channel.MessageTypeSystemInfo,
+			Type:      shared.MessageTypeSystemInfo,
 			Content:   "👋 Goodbye!",
 			Timestamp: time.Now(),
 		}
@@ -92,9 +92,9 @@ Enter     - Submit input
 Alt+Enter - New line (multi-line input)
 ↑/↓       - Navigate history
 Ctrl+R    - Search history (type query, use C-s/C-r to navigate)`
-		helpMsg := channel.Message{
+		helpMsg := shared.Message{
 			ID:        uuid.New(),
-			Type:      channel.MessageTypeSystemInfo,
+			Type:      shared.MessageTypeSystemInfo,
 			Content:   helpText,
 			Timestamp: time.Now(),
 		}
@@ -111,9 +111,9 @@ Ctrl+R    - Search history (type query, use C-s/C-r to navigate)`
 
 	default:
 		// Unknown command
-		errorMsg := channel.Message{
+		errorMsg := shared.Message{
 			ID:        uuid.New(),
-			Type:      channel.MessageTypeError,
+			Type:      shared.MessageTypeError,
 			Content:   fmt.Sprintf("Unknown command: %s. Type /help for available commands.", command),
 			Timestamp: time.Now(),
 		}

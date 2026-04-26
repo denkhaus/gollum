@@ -260,8 +260,7 @@ type AgentConfig struct {
 	AllowCompaction bool             `json:"allow_compaction"`
 	History         *gollem.History  `json:"history,omitempty"` // Optional parent message history for context awareness
 	IsSupervisor    bool             `json:"is_supervisor"`     // Indicates this is the singleton supervisor agent
-	SessionID       string           `json:"session_id"`        // Session identifier for multi-session support
-	ChannelID       uuid.UUID        `json:"channel_id"`        // Channel identifier for multi-session support
+	SessionContext  `json:"-"`       // Embedded session context (not marshaled directly)
 
 	// AllowedTools specifies which tools the agent can access.
 	// Built-in tools use ToolName constants (e.g., "bash", "current_time").

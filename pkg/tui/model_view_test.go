@@ -4,8 +4,9 @@ import (
 	"context"
 	"strings"
 	"testing"
-	"github.com/denkhaus/gollum/pkg/channel"
 	"time"
+
+	"github.com/denkhaus/gollum/pkg/shared"
 
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
@@ -61,16 +62,16 @@ func TestViewWithMessages(t *testing.T) {
 	m.viewport.Width = 80
 	m.viewport.Height = 20
 
-	m.messages = []channel.Message{
+	m.messages = []shared.Message{
 		{
 			ID:        uuid.New(),
-			Type:      channel.MessageTypeSystemInfo,
+			Type:      shared.MessageTypeSystemInfo,
 			Content:   "message 1",
 			Timestamp: time.Now(),
 		},
 		{
 			ID:        uuid.New(),
-			Type:      channel.MessageTypeSystemInfo,
+			Type:      shared.MessageTypeSystemInfo,
 			Content:   "message 2",
 			Timestamp: time.Now(),
 		},

@@ -26,7 +26,7 @@ func TestAgentOutputTool_Spec(t *testing.T) {
 	mockAgent := shared.NewMockAgent(ctrl)
 	agentID := uuid.New()
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
@@ -66,7 +66,7 @@ func TestAgentOutputTool_Run_MissingAgentID(t *testing.T) {
 	mockAgent := shared.NewMockAgent(ctrl)
 	agentID := uuid.New()
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
@@ -93,7 +93,7 @@ func TestAgentOutputTool_Run_EmptyAgentID(t *testing.T) {
 	mockAgent := shared.NewMockAgent(ctrl)
 	agentID := uuid.New()
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
@@ -121,7 +121,7 @@ func TestAgentOutputTool_Run_InvalidUUID(t *testing.T) {
 	mockAgent := shared.NewMockAgent(ctrl)
 	agentID := uuid.New()
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &agentOutputToolImpl{
 		hookManager: mockHookManager,
@@ -151,7 +151,7 @@ func TestAgentOutputTool_Run_AgentNotFound(t *testing.T) {
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), senderID, uuid.Nil, "")).AnyTimes()
 
 	// Permission check: sender is direct parent
 	mockRegistry.EXPECT().

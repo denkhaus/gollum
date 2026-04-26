@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
@@ -14,7 +15,7 @@ import (
 type (
 	// ChannelMiddlewareProvider creates channel middleware instances via DI
 	ChannelMiddlewareProvider interface {
-		CreateChannelMiddleware(agentID uuid.UUID, agentRole string, sessionID string, channelID uuid.UUID) *ChannelMiddleware
+		CreateChannelMiddleware(sessionCtx shared.SessionContext, agentRole string) *ChannelMiddleware
 		SetChannelFacade(facade ChannelFacade)
 	}
 
@@ -27,21 +28,17 @@ type (
 // ChannelMiddleware sends agent outputs to channel facade.
 // This middleware bridges the agent execution pipeline with the channel system.
 type ChannelMiddleware struct {
-	facade    ChannelFacade
-	agentID   uuid.UUID
-	agentRole string
-	sessionID string
-	channelID uuid.UUID
+	facade                ChannelFacade
+	shared.SessionContext // Embedded session context
+	agentRole             string
 }
 
 // NewChannelMiddleware creates a new channel middleware
-func NewChannelMiddleware(facade ChannelFacade, agentID uuid.UUID, agentRole string, sessionID string, channelID uuid.UUID) *ChannelMiddleware {
+func NewChannelMiddleware(facade ChannelFacade, sessionCtx shared.SessionContext, agentRole string) *ChannelMiddleware {
 	return &ChannelMiddleware{
-		facade:    facade,
-		agentID:   agentID,
-		agentRole: agentRole,
-		sessionID: sessionID,
-		channelID: channelID,
+		facade:         facade,
+		SessionContext: sessionCtx,
+		agentRole:      agentRole,
 	}
 }
 
@@ -60,13 +57,11 @@ func (p *channelMiddlewareProvider) SetChannelFacade(facade ChannelFacade) {
 
 // CreateChannelMiddleware creates a new channel middleware for a specific agent
 func (p *channelMiddlewareProvider) CreateChannelMiddleware(
-	agentID uuid.UUID,
+	sessionCtx shared.SessionContext,
 	agentRole string,
-	sessionID string,
-	channelID uuid.UUID,
 ) *ChannelMiddleware {
 	// Use stored facade reference to avoid circular dependency
-	return NewChannelMiddleware(p.facade, agentID, agentRole, sessionID, channelID)
+	return NewChannelMiddleware(p.facade, sessionCtx, agentRole)
 }
 
 // ContentBlockMiddleware processes text content blocks and sends to channel
@@ -87,13 +82,15 @@ func (p *ChannelMiddleware) ContentBlockMiddleware(next gollem.ContentBlockHandl
 			}
 			if len(nonEmptyTexts) > 0 {
 				combinedText := strings.Join(nonEmptyTexts, "")
-				p.facade.DisplayMessage(Message{
+				p.facade.DisplayMessage(shared.Message{
 					ID:        uuid.New(),
-					Type:      MessageTypeAgentChat,
-					AgentID:   p.agentID,
+					Type:      shared.MessageTypeAgentChat,
 					AgentRole: p.agentRole,
-					SessionID: p.sessionID,
-					ChannelID: p.channelID,
+					SessionContext: shared.SessionContext{
+						AgentID:   p.AgentID,
+						SessionID: p.SessionID,
+						ChannelID: p.ChannelID,
+					},
 					Content:   combinedText,
 					Timestamp: time.Now(),
 				})
@@ -108,13 +105,15 @@ func (p *ChannelMiddleware) ContentBlockMiddleware(next gollem.ContentBlockHandl
 func (p *ChannelMiddleware) ToolMiddleware(next gollem.ToolHandler) gollem.ToolHandler {
 	return func(ctx context.Context, req *gollem.ToolExecRequest) (*gollem.ToolExecResponse, error) {
 		// Send tool request to channel
-		p.facade.DisplayMessage(Message{
+		p.facade.DisplayMessage(shared.Message{
 			ID:        uuid.New(),
-			Type:      MessageTypeToolRequest,
-			AgentID:   p.agentID,
+			Type:      shared.MessageTypeToolRequest,
 			AgentRole: p.agentRole,
-			SessionID: p.sessionID,
-			ChannelID: p.channelID,
+			SessionContext: shared.SessionContext{
+				AgentID:   p.AgentID,
+				SessionID: p.SessionID,
+				ChannelID: p.ChannelID,
+			},
 			Content:   fmt.Sprintf("Tool use: %s", req.Tool.Name),
 			Timestamp: time.Now(),
 			Metadata: map[string]any{
@@ -128,13 +127,15 @@ func (p *ChannelMiddleware) ToolMiddleware(next gollem.ToolHandler) gollem.ToolH
 
 		// Send tool result to channel
 		if err == nil && resp != nil && resp.Result != nil {
-			p.facade.DisplayMessage(Message{
+			p.facade.DisplayMessage(shared.Message{
 				ID:        uuid.New(),
-				Type:      MessageTypeToolResponse,
-				AgentID:   p.agentID,
+				Type:      shared.MessageTypeToolResponse,
 				AgentRole: p.agentRole,
-				SessionID: p.sessionID,
-				ChannelID: p.channelID,
+				SessionContext: shared.SessionContext{
+					AgentID:   p.AgentID,
+					SessionID: p.SessionID,
+					ChannelID: p.ChannelID,
+				},
 				Content:   fmt.Sprintf("Tool result: %s", req.Tool.Name),
 				Timestamp: time.Now(),
 				Metadata: map[string]any{

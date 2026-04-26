@@ -7,7 +7,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/denkhaus/gollum/pkg/channel"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
 )
@@ -22,17 +22,16 @@ func TestMessageSelectionWithBoldBorder(t *testing.T) {
 	m.width = 80
 
 	// Create a tool message and add it to the model
-	toolMsg := channel.Message{
-		ID:        uuid.New(),
-		Type:      channel.MessageTypeToolResponse,
-		Content:   "Tool output",
-		Timestamp: time.Now(),
-		AgentID:   uuid.New(),
-		AgentRole: "runner",
-		Metadata: map[string]any{"is_tool": true, "collapsed": true},
-		
+	toolMsg := shared.Message{
+		ID:             uuid.New(),
+		Type:           shared.MessageTypeToolResponse,
+		Content:        "Tool output",
+		Timestamp:      time.Now(),
+		SessionContext: shared.SessionContext{AgentID: uuid.New()},
+		AgentRole:      "runner",
+		Metadata:       map[string]any{"is_tool": true, "collapsed": true},
 	}
-	m.messages = []channel.Message{toolMsg}
+	m.messages = []shared.Message{toolMsg}
 
 	// Format without selection (index 0, not selected)
 	normalFormat := m.formatMessage(0, toolMsg)
@@ -85,9 +84,9 @@ func TestClickSelectsMessage(t *testing.T) {
 	m.viewport.Height = 20
 
 	// Add messages
-	m.messages = []channel.Message{
-		{ID: uuid.New(), Type: channel.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: channel.MessageTypeAgentChat, Content: "Response", Timestamp: time.Now()},
+	m.messages = []shared.Message{
+		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: shared.MessageTypeAgentChat, Content: "Response", Timestamp: time.Now()},
 	}
 
 	content := m.updateViewportContent()
@@ -101,7 +100,7 @@ func TestClickSelectsMessage(t *testing.T) {
 	// Click on first line (first message)
 	clickMsg := tea.MouseMsg{
 		Button: tea.MouseButtonLeft,
-		Y:    0,
+		Y:      0,
 	}
 
 	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
@@ -116,7 +115,7 @@ func TestClickSelectsMessage(t *testing.T) {
 	secondMsgLine := m.getMessageStartLine(1)
 	clickMsg2 := tea.MouseMsg{
 		Button: tea.MouseButtonLeft,
-		Y:    secondMsgLine,
+		Y:      secondMsgLine,
 	}
 	t.Logf("Clicking on line %d (second message start)", secondMsgLine)
 
@@ -142,9 +141,9 @@ func TestDoubleClickThreshold(t *testing.T) {
 	m.viewport.Height = 20
 
 	// Add messages with a collapsed tool message
-	m.messages = []channel.Message{
-		{ID: uuid.New(), Type: channel.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: channel.MessageTypeToolResponse, Content: "Tool output", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
+	m.messages = []shared.Message{
+		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: shared.MessageTypeToolResponse, Content: "Tool output", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
 	}
 
 	content := m.updateViewportContent()
@@ -156,19 +155,19 @@ func TestDoubleClickThreshold(t *testing.T) {
 	toolStartLine := m.getMessageStartLine(1)
 	clickMsg := tea.MouseMsg{
 		Button: tea.MouseButtonLeft,
-		Y:    toolStartLine,
+		Y:      toolStartLine,
 	}
 	t.Logf("Clicking at line %d (tool message start)", toolStartLine)
 
 	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
 	result := resultModel.(Model)
 
-	// channel.Message should be selected but still collapsed
+	// shared.Message should be selected but still collapsed
 	if result.selectedMessageIndex != 1 {
 		t.Errorf("Expected message 1 selected, got %d", result.selectedMessageIndex)
 	}
 	if !getCollapsed(result.messages[1]) {
-		t.Error("channel.Message should still be collapsed after single click")
+		t.Error("shared.Message should still be collapsed after single click")
 	}
 
 	// Simulate a slow second click (beyond threshold)
@@ -180,7 +179,7 @@ func TestDoubleClickThreshold(t *testing.T) {
 
 	// Should still be collapsed (not a double-click due to timeout)
 	if !getCollapsed(result2.messages[1]) {
-		t.Error("channel.Message should still be collapsed after slow second click (not a double-click)")
+		t.Error("shared.Message should still be collapsed after slow second click (not a double-click)")
 	}
 
 	// Now test a quick second click (within threshold)
@@ -191,7 +190,7 @@ func TestDoubleClickThreshold(t *testing.T) {
 
 	// Should now be expanded (double-click detected)
 	if getCollapsed(result3.messages[1]) {
-		t.Error("channel.Message should be expanded after quick double-click")
+		t.Error("shared.Message should be expanded after quick double-click")
 	}
 }
 
@@ -208,9 +207,9 @@ func TestDoubleClickDifferentY(t *testing.T) {
 	m.viewport.Height = 20
 
 	// Add messages with collapsed tool messages
-	m.messages = []channel.Message{
-		{ID: uuid.New(), Type: channel.MessageTypeToolResponse, Content: "Tool 1", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
-		{ID: uuid.New(), Type: channel.MessageTypeToolResponse, Content: "Tool 2", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
+	m.messages = []shared.Message{
+		{ID: uuid.New(), Type: shared.MessageTypeToolResponse, Content: "Tool 1", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
+		{ID: uuid.New(), Type: shared.MessageTypeToolResponse, Content: "Tool 2", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
 	}
 
 	content := m.updateViewportContent()
@@ -222,25 +221,25 @@ func TestDoubleClickDifferentY(t *testing.T) {
 	// First click on first message (line 0)
 	clickMsg := tea.MouseMsg{
 		Button: tea.MouseButtonLeft,
-		Y:    0,
+		Y:      0,
 	}
 
 	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
 	result := resultModel.(Model)
 
-	// channel.Message 0 should be selected
+	// shared.Message 0 should be selected
 	if result.selectedMessageIndex != 0 {
 		t.Errorf("Expected message 0 selected, got %d", result.selectedMessageIndex)
 	}
 
 	// Find a line that belongs to message 1
 	msg1StartLine := m.getMessageStartLine(1)
-	t.Logf("channel.Message 1 starts at line %d", msg1StartLine)
+	t.Logf("shared.Message 1 starts at line %d", msg1StartLine)
 
 	// Second click on line belonging to message 1 (different message, within threshold time)
 	clickMsg2 := tea.MouseMsg{
 		Button: tea.MouseButtonLeft,
-		Y:    msg1StartLine,
+		Y:      msg1StartLine,
 	}
 
 	// Set quick time for double-click detection
@@ -249,16 +248,16 @@ func TestDoubleClickDifferentY(t *testing.T) {
 	resultModel2, _ := result.handleClickOnToolMessage(clickMsg2)
 	result2 := resultModel2.(Model)
 
-	// channel.Message 1 should be selected
+	// shared.Message 1 should be selected
 	if result2.selectedMessageIndex != 1 {
 		t.Errorf("Expected message 1 selected, got %d", result2.selectedMessageIndex)
 	}
 
 	// Both messages should still be collapsed (different message = not double-click)
 	if !getCollapsed(result2.messages[0]) {
-		t.Error("channel.Message 0 should still be collapsed (click was on different message)")
+		t.Error("shared.Message 0 should still be collapsed (click was on different message)")
 	}
 	if !getCollapsed(result2.messages[1]) {
-		t.Error("channel.Message 1 should still be collapsed (only one click on this message)")
+		t.Error("shared.Message 1 should still be collapsed (only one click on this message)")
 	}
 }

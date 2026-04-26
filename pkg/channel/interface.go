@@ -29,60 +29,11 @@ package channel
 
 import (
 	"context"
-	"time"
 
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 )
-
-// MessageType represents different types of messages
-type MessageType int
-
-const (
-	MessageTypeUserChat     MessageType = iota
-	MessageTypeAgentChat                // Chat response from agent
-	MessageTypeToolRequest              // Tool execution request
-	MessageTypeToolResponse             // Tool execution response
-	MessageTypeThinking                 // Agent thinking blocks
-	MessageTypeSystemInfo               // System information messages
-	MessageTypeError                    // Error messages
-)
-
-// String returns a string representation of the MessageType
-func (mt MessageType) String() string {
-	switch mt {
-	case MessageTypeUserChat:
-		return "user_chat"
-	case MessageTypeAgentChat:
-		return "agent_chat"
-	case MessageTypeToolRequest:
-		return "tool_request"
-	case MessageTypeToolResponse:
-		return "tool_response"
-	case MessageTypeThinking:
-		return "thinking"
-	case MessageTypeSystemInfo:
-		return "system_info"
-	case MessageTypeError:
-		return "error"
-	default:
-		return "unknown"
-	}
-}
-
-// Message represents a structured message data for displays
-type Message struct {
-	ID        uuid.UUID
-	Type      MessageType
-	AgentID   uuid.UUID
-	AgentRole string
-	SessionID string // Session identifier for multi-session support
-	ChannelID uuid.UUID
-	Content   string
-	Timestamp time.Time
-	Metadata  map[string]any // tool_name, duration, collapsed, etc.
-}
 
 // InputResult represents the result of user input submission
 type InputResult struct {
@@ -113,7 +64,7 @@ type AgentLifecycleEvent struct {
 //
 // IMPLEMENTATION GUIDELINES:
 // 1. Use non-blocking sends for channels to prevent deadlocks
-// 2. Handle all message types (MessageType* constants)
+// 2. Handle all message types (shared.MessageType* constants)
 // 3. Document session handling behavior (single vs multi-session)
 // 4. Implement Start() to block until channel is complete
 // 5. See package documentation for log routing behavior
@@ -122,7 +73,7 @@ type Channel interface {
 	ID() uuid.UUID
 
 	// OnMessage is called when a new message should be displayed
-	OnMessage(msg Message)
+	OnMessage(msg shared.Message)
 
 	// OnLog is called for log entries (channel can ignore if not applicable)
 	// See package documentation for log routing behavior
@@ -147,31 +98,31 @@ type ChannelFacade interface {
 	shared.LogForwarder
 
 	// DisplayMessage sends a message to all registered channels
-	DisplayMessage(msg Message)
+	DisplayMessage(msg shared.Message)
 
 	// SubmitInput handles user input from any channel.
 	// Delegates to InputHandler for business logic including:
 	// - Slash command detection and execution
 	// - Session creation/retrieval
 	// - Supervisor agent creation and execution
-	SubmitInput(ctx context.Context, channelID uuid.UUID, sessionID string, input string) (*InputResult, error)
+	SubmitInput(ctx context.Context, sessionCtx *shared.SessionContext, input string) (*InputResult, error)
 
 	// CancelInput cancels an in-flight input for the given session.
 	// Delegates to InputHandler for session cancellation logic.
-	CancelInput(sessionID string) error
+	CancelInput(sessionID uuid.UUID) error
 
-	// RegisterChannel adds a channel to receive events
-	RegisterChannel(channel Channel) error
-
-	// UnregisterChannel removes a channel
+	// UnregisterChannel removes a channel from the registry
 	UnregisterChannel(channelID uuid.UUID) error
 
 	// NotifyAgentLifecycle sends agent lifecycle event to specific channel
-	NotifyAgentLifecycle(agentID uuid.UUID, channelID uuid.UUID, sessionID string, role string, added bool)
+	NotifyAgentLifecycle(agentID uuid.UUID, channelID uuid.UUID, sessionID uuid.UUID, role string, added bool)
 
 	// DiscoverProviders scans DI for channel providers
 	DiscoverProviders(injector do.Injector) error
 
 	// CreateChannel creates a channel instance by identifier with options
 	CreateChannel(identifier ChannelIdentifier, opts ...ChannelOption) (Channel, error)
+
+	// CreateAndRegister creates and registers a channel in one step
+	CreateAndRegister(identifier ChannelIdentifier, opts ...ChannelOption) (Channel, error)
 }

@@ -17,8 +17,7 @@ import (
 
 func TestInputHandler_HandleInput_SlashCommand(t *testing.T) {
 	ctx := context.Background()
-	channelID := uuid.New()
-	sessionID := "test-session"
+	sessionID := uuid.New()
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -32,7 +31,8 @@ func TestInputHandler_HandleInput_SlashCommand(t *testing.T) {
 
 	handler := NewInputHandler(cmdMgr, sm, af, log)
 
-	result, err := handler.HandleInput(ctx, channelID, sessionID, "/help")
+	sessionCtx := shared.NewSessionContext(sessionID, uuid.Nil, uuid.Nil, "")
+	result, err := handler.HandleInput(ctx, sessionCtx, "/help")
 
 	require.NoError(t, err)
 	assert.True(t, result.Handled)
@@ -42,8 +42,8 @@ func TestInputHandler_HandleInput_SlashCommand(t *testing.T) {
 
 func TestInputHandler_HandleInput_NonCommand(t *testing.T) {
 	ctx := context.Background()
+	sessionID := uuid.New()
 	channelID := uuid.New()
-	sessionID := "test-session"
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -59,7 +59,7 @@ func TestInputHandler_HandleInput_NonCommand(t *testing.T) {
 		Context:    mockCtx,
 		CancelFunc: mockCancel,
 	}
-	sm.EXPECT().GetOrCreateSession(sessionID, channelID).Return(mockSession, nil)
+	sm.EXPECT().GetOrCreateSession(gomock.Any()).Return(mockSession, nil)
 
 	af := shared.NewMockAgentFactory(ctrl)
 	mockSupervisor := shared.NewMockAgent(ctrl)
@@ -73,7 +73,8 @@ func TestInputHandler_HandleInput_NonCommand(t *testing.T) {
 
 	handler := NewInputHandler(cmdMgr, sm, af, log)
 
-	result, err := handler.HandleInput(ctx, channelID, sessionID, "hello")
+	sessionCtx := shared.NewSessionContext(sessionID, uuid.Nil, channelID, "")
+	result, err := handler.HandleInput(ctx, sessionCtx, "hello")
 
 	require.NoError(t, err)
 	assert.True(t, result.Handled)
@@ -82,7 +83,7 @@ func TestInputHandler_HandleInput_NonCommand(t *testing.T) {
 }
 
 func TestInputHandler_CancelInput(t *testing.T) {
-	sessionID := "test-session"
+	sessionID := uuid.New()
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -111,7 +112,7 @@ func TestInputHandler_CancelInput(t *testing.T) {
 }
 
 func TestInputHandler_CancelInput_SessionNotFound(t *testing.T) {
-	sessionID := "non-existent-session"
+	sessionID := uuid.New()
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -123,5 +124,5 @@ func TestInputHandler_CancelInput_SessionNotFound(t *testing.T) {
 
 	err := handler.CancelInput(sessionID)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "session "+sessionID+" not found")
+	assert.Contains(t, err.Error(), "session "+sessionID.String()+" not found")
 }

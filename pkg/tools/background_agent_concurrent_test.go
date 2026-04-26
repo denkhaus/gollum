@@ -46,7 +46,7 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 	// Create mock sender agent
 	mockSenderAgent := shared.NewMockAgent(ctrl)
 	mockSenderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockSenderAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
+	mockSenderAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{
 		AgentID: senderID,
 	}).AnyTimes()
 	mockSenderAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
@@ -66,7 +66,7 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        mockSenderAgent,
+		agent:           mockSenderAgent,
 	}
 
 	ctx := context.Background()
@@ -92,10 +92,10 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 			Role:         "Concurrent Agent",
 			SystemPrompt: "test",
 		}).AnyTimes()
-			mockAgent.EXPECT().ToLoggingContext().DoAndReturn(func() shared.LoggingContext {
-				return *shared.NewLoggingContext("test-session", spawnedID, uuid.Nil)
-			}).AnyTimes()
-			mockAgent.EXPECT().GetMessageHistory(gomock.Any()).Return(nil, nil).AnyTimes()
+		mockAgent.EXPECT().ToSessionContext().DoAndReturn(func() shared.SessionContext {
+			return *shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), spawnedID, uuid.Nil, "")
+		}).AnyTimes()
+		mockAgent.EXPECT().GetMessageHistory(gomock.Any()).Return(nil, nil).AnyTimes()
 
 		// Expect factory call - capture the config to get the agent ID
 		mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Concurrent Agent", "Concurrent task").Return("You are a helpful assistant", nil)
@@ -134,7 +134,7 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 	// Create agent output tool
 	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
-		agent:    mockSenderAgent,
+		agent:       mockSenderAgent,
 		hookManager: mockHookManager,
 	}
 
@@ -189,7 +189,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	// Create mock agents for each level
 	rootAgent := shared.NewMockAgent(ctrl)
 	rootAgent.EXPECT().GetID().Return(rootID).AnyTimes()
-	rootAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
+	rootAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{
 		AgentID: rootID,
 	}).AnyTimes()
 	rootAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
@@ -204,7 +204,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	childAgent.EXPECT().GetID().DoAndReturn(func() uuid.UUID {
 		return childID
 	}).AnyTimes()
-	childAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
+	childAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{
 		AgentID: childID,
 	}).AnyTimes()
 	childAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
@@ -218,7 +218,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	grandchildAgent.EXPECT().GetID().DoAndReturn(func() uuid.UUID {
 		return grandchildID
 	}).AnyTimes()
-	grandchildAgent.EXPECT().ToLoggingContext().Return(shared.LoggingContext{
+	grandchildAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{
 		AgentID: grandchildID,
 	}).AnyTimes()
 	grandchildAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
@@ -250,7 +250,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        rootAgent,
+		agent:           rootAgent,
 	}
 
 	// Step 1: Root spawns child
@@ -287,7 +287,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 		executionHelper: execHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        childAgent,
+		agent:           childAgent,
 	}
 
 	mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Grandchild", "Grandchild task").Return("You are a helpful assistant", nil)
@@ -320,7 +320,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	// Verify permission checks: root can access child but not grandchild directly
 	outputTool := &agentOutputToolImpl{
 		registry:    agentRegistry,
-		agent:    rootAgent,
+		agent:       rootAgent,
 		hookManager: mockHookManager,
 	}
 

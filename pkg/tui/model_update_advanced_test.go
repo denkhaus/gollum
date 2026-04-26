@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/denkhaus/gollum/pkg/channel"
+	"github.com/denkhaus/gollum/pkg/shared"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"go.uber.org/mock/gomock"
 )
@@ -29,28 +30,28 @@ func TestUpdate_SlashCommands(t *testing.T) {
 		name         string
 		command      string
 		wantQuit     bool
-		wantMsgType  channel.MessageType
+		wantMsgType  shared.MessageType
 		wantMsgCount int
 	}{
 		{
 			name:         "/clear command",
 			command:      "/clear",
 			wantQuit:     false,
-			wantMsgType:  channel.MessageTypeSystemInfo,
+			wantMsgType:  shared.MessageTypeSystemInfo,
 			wantMsgCount: 1, // Messages cleared system message
 		},
 		{
 			name:         "/help command",
 			command:      "/help",
 			wantQuit:     false,
-			wantMsgType:  channel.MessageTypeSystemInfo,
+			wantMsgType:  shared.MessageTypeSystemInfo,
 			wantMsgCount: 1, // Help system message
 		},
 		{
 			name:         "/quit command",
 			command:      "/quit",
 			wantQuit:     true,
-			wantMsgType:  channel.MessageTypeSystemInfo,
+			wantMsgType:  shared.MessageTypeSystemInfo,
 			wantMsgCount: 1, // Goodbye message
 		},
 	}

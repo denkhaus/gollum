@@ -3,8 +3,8 @@ package executor
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/denkhaus/gollum/pkg/flows"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestOutputBinder_InitializeBindings(t *testing.T) {

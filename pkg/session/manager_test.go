@@ -1,18 +1,44 @@
 package session
 
 import (
+	"context"
 	"testing"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/session/repository"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
+	"go.uber.org/mock/gomock"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewSessionManager(t *testing.T) {
+func setupTestInjector(t *testing.T, ctrl *gomock.Controller) do.Injector {
 	injector := do.New()
+	mockRepo := repository.NewMockSessionRepository(ctrl)
+	// Set default expectations for methods called during setup
+	// Create is called by CreateSession - expect it for any session
+	mockRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	// Close is called by CloseSession after removing from in-memory cache
+	mockRepo.EXPECT().Close(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	// Update is called by ResumeSession
+	mockRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	// Get is called by LoadSession when not in cache
+	mockRepo.EXPECT().Get(gomock.Any(), gomock.Any()).Return(nil, repository.ErrSessionNotFound).AnyTimes()
+	// List is called by ListSessions
+	mockRepo.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*shared.Session{}, nil).AnyTimes()
+	// Fork is called by ForkSession
+	mockRepo.EXPECT().Fork(gomock.Any(), gomock.Any()).Return(nil, repository.ErrSessionNotFound).AnyTimes()
+	do.ProvideValue[repository.SessionRepository](injector, mockRepo)
+	return injector
+}
+
+func TestNewSessionManager(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, err := NewSessionManager(injector)
 
 	require.NoError(t, err)
@@ -20,12 +46,20 @@ func TestNewSessionManager(t *testing.T) {
 }
 
 func TestCreateSession(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 	channelID := uuid.New()
 
-	session, err := manager.CreateSession(sessionID, channelID)
+	ctx := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	session, err := manager.CreateSession(ctx)
 
 	require.NoError(t, err)
 	assert.Equal(t, sessionID, session.ID)
@@ -42,13 +76,21 @@ func TestCreateSession(t *testing.T) {
 }
 
 func TestCreateSession_WithExternalSessionID(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
 	// Simulate ACP-provided session ID
-	externalSessionID := "acp-session-12345"
+	externalSessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
 	channelID := uuid.New()
 
-	session, err := manager.CreateSession(externalSessionID, channelID)
+	ctx := &shared.SessionContext{
+		SessionID: externalSessionID,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	session, err := manager.CreateSession(ctx)
 
 	require.NoError(t, err)
 	assert.Equal(t, externalSessionID, session.ID)
@@ -61,16 +103,29 @@ func TestCreateSession_WithExternalSessionID(t *testing.T) {
 }
 
 func TestCreateSession_MultipleSessions(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
 	channelID := uuid.New()
-	sessionID1 := uuid.New().String()
-	sessionID2 := uuid.New().String()
+	sessionID1 := uuid.New()
+	sessionID2 := uuid.New()
 
-	_, err := manager.CreateSession(sessionID1, channelID)
+	ctx1 := &shared.SessionContext{
+		SessionID: sessionID1,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	_, err := manager.CreateSession(ctx1)
 	require.NoError(t, err)
 
-	_, err = manager.CreateSession(sessionID2, channelID)
+	ctx2 := &shared.SessionContext{
+		SessionID: sessionID2,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	_, err = manager.CreateSession(ctx2)
 	require.NoError(t, err)
 
 	// Sessions should have unique IDs
@@ -85,30 +140,50 @@ func TestCreateSession_MultipleSessions(t *testing.T) {
 }
 
 func TestGetSession_NotFound(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
 
-	session, exists := manager.GetSession("nonexistent")
+	nonExistentID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440999")
+	session, exists := manager.GetSession(nonExistentID)
 
 	assert.False(t, exists)
 	assert.Nil(t, session)
 }
 
 func TestCloseSession(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 	channelID := uuid.New()
 
-	_, err := manager.CreateSession(sessionID, channelID)
+	ctx := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	session, err := manager.CreateSession(ctx)
 	require.NoError(t, err)
+
+	// Verify session exists before closing
+	retrieved, exists := manager.GetSession(sessionID)
+	require.True(t, exists, "session should exist before closing")
+
+	// Verify the session ID matches
+	assert.Equal(t, sessionID, session.ID, "session ID should match")
+	assert.Equal(t, sessionID, retrieved.ID, "retrieved session ID should match")
 
 	// Close the session
 	err = manager.CloseSession(sessionID)
 	require.NoError(t, err)
 
 	// Session should no longer exist
-	_, exists := manager.GetSession(sessionID)
+	_, exists = manager.GetSession(sessionID)
 	assert.False(t, exists)
 
 	// Closing again should return error
@@ -118,12 +193,20 @@ func TestCloseSession(t *testing.T) {
 }
 
 func TestCloseSession_CancelsContext(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 	channelID := uuid.New()
 
-	sess, err := manager.CreateSession(sessionID, channelID)
+	ctx := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	sess, err := manager.CreateSession(ctx)
 	require.NoError(t, err)
 
 	// Verify context is not cancelled initially
@@ -147,30 +230,48 @@ func TestCloseSession_CancelsContext(t *testing.T) {
 }
 
 func TestGetSessionsByChannel(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
 	channelID1 := uuid.New()
 	channelID2 := uuid.New()
-	sessionID1 := uuid.New().String()
-	sessionID2 := uuid.New().String()
-	sessionID3 := uuid.New().String()
+	sessionID1 := uuid.New()
+	sessionID2 := uuid.New()
+	sessionID3 := uuid.New()
 
 	// Create sessions for channel1
-	session1, err := manager.CreateSession(sessionID1, channelID1)
+	ctx1 := &shared.SessionContext{
+		SessionID: sessionID1,
+		ChannelID: channelID1,
+		AgentID:   uuid.New(),
+	}
+	session1, err := manager.CreateSession(ctx1)
 	require.NoError(t, err)
 
-	session2, err := manager.CreateSession(sessionID2, channelID1)
+	ctx2 := &shared.SessionContext{
+		SessionID: sessionID2,
+		ChannelID: channelID1,
+		AgentID:   uuid.New(),
+	}
+	session2, err := manager.CreateSession(ctx2)
 	require.NoError(t, err)
 
 	// Create session for channel2
-	session3, err := manager.CreateSession(sessionID3, channelID2)
+	ctx3 := &shared.SessionContext{
+		SessionID: sessionID3,
+		ChannelID: channelID2,
+		AgentID:   uuid.New(),
+	}
+	session3, err := manager.CreateSession(ctx3)
 	require.NoError(t, err)
 
 	// Get sessions for channel1
 	sessions := manager.GetSessionsByChannel(channelID1)
 	assert.Len(t, sessions, 2)
 
-	sessionIDs := make(map[string]bool)
+	sessionIDs := make(map[uuid.UUID]bool)
 	for _, s := range sessions {
 		sessionIDs[s.ID] = true
 	}
@@ -185,7 +286,10 @@ func TestGetSessionsByChannel(t *testing.T) {
 }
 
 func TestGetSessionsByChannel_NoSessions(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
 
 	sessions := manager.GetSessionsByChannel(uuid.New())
@@ -194,17 +298,30 @@ func TestGetSessionsByChannel_NoSessions(t *testing.T) {
 }
 
 func TestGetSessionsByChannel_AfterClose(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
 	channelID := uuid.New()
-	sessionID1 := uuid.New().String()
-	sessionID2 := uuid.New().String()
+	sessionID1 := uuid.New()
+	sessionID2 := uuid.New()
 
 	// Create two sessions
-	_, err := manager.CreateSession(sessionID1, channelID)
+	ctx1 := &shared.SessionContext{
+		SessionID: sessionID1,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	_, err := manager.CreateSession(ctx1)
 	require.NoError(t, err)
 
-	sess2, err := manager.CreateSession(sessionID2, channelID)
+	ctx2 := &shared.SessionContext{
+		SessionID: sessionID2,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	sess2, err := manager.CreateSession(ctx2)
 	require.NoError(t, err)
 
 	// Close one session
@@ -218,13 +335,21 @@ func TestGetSessionsByChannel_AfterClose(t *testing.T) {
 }
 
 func TestGetSessionsByChannel_AfterCloseAll(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
 	channelID := uuid.New()
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 
 	// Create and close a session
-	_, err := manager.CreateSession(sessionID, channelID)
+	ctx := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	_, err := manager.CreateSession(ctx)
 	require.NoError(t, err)
 
 	err = manager.CloseSession(sessionID)
@@ -236,13 +361,21 @@ func TestGetSessionsByChannel_AfterCloseAll(t *testing.T) {
 }
 
 func TestSetSupervisorID(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 	channelID := uuid.New()
 	supervisorID := uuid.New()
 
-	session, err := manager.CreateSession(sessionID, channelID)
+	ctx := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	session, err := manager.CreateSession(ctx)
 	require.NoError(t, err)
 
 	// Set supervisor ID (this would typically be done by the caller)
@@ -255,16 +388,24 @@ func TestSetSupervisorID(t *testing.T) {
 }
 
 func TestConcurrentAccess(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
 
 	// Create multiple sessions concurrently
 	done := make(chan bool)
 	for i := 0; i < 10; i++ {
 		go func() {
-			sessionID := uuid.New().String()
+			sessionID := uuid.New()
 			channelID := uuid.New()
-			session, err := manager.CreateSession(sessionID, channelID)
+			ctx := &shared.SessionContext{
+				SessionID: sessionID,
+				ChannelID: channelID,
+				AgentID:   uuid.New(),
+			}
+			session, err := manager.CreateSession(ctx)
 			assert.NoError(t, err)
 			assert.NotNil(t, session)
 			done <- true
@@ -278,12 +419,20 @@ func TestConcurrentAccess(t *testing.T) {
 }
 
 func TestCreateSession_ContextCancellation(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 	channelID := uuid.New()
 
-	session, err := manager.CreateSession(sessionID, channelID)
+	ctx := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	session, err := manager.CreateSession(ctx)
 	require.NoError(t, err)
 
 	// Verify context is cancellable
@@ -302,7 +451,10 @@ func TestCreateSession_ContextCancellation(t *testing.T) {
 }
 
 func TestGetSessionsByChannel_MultipleChannels(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
 
 	// Create sessions across multiple channels
@@ -312,8 +464,13 @@ func TestGetSessionsByChannel_MultipleChannels(t *testing.T) {
 	for c := 0; c < len(channels); c++ {
 		channels[c] = uuid.New()
 		for s := 0; s < sessionsPerChannel; s++ {
-			sessionID := uuid.New().String()
-			_, err := manager.CreateSession(sessionID, channels[c])
+			sessionID := uuid.New()
+			ctx := &shared.SessionContext{
+				SessionID: sessionID,
+				ChannelID: channels[c],
+				AgentID:   uuid.New(),
+			}
+			_, err := manager.CreateSession(ctx)
 			require.NoError(t, err)
 		}
 	}
@@ -331,29 +488,46 @@ func TestGetSessionsByChannel_MultipleChannels(t *testing.T) {
 }
 
 func TestCloseSession_NonExistent(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
 
 	// Try to close a session that doesn't exist
-	err := manager.CloseSession("non-existent-session")
+	nonExistentID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440999")
+	err := manager.CloseSession(nonExistentID)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
 
 func TestCreateSession_WithSameID(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
-	sessionID := "duplicate-session-id"
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
 	channelID1 := uuid.New()
 	channelID2 := uuid.New()
 
 	// Create first session
-	session1, err := manager.CreateSession(sessionID, channelID1)
+	ctx1 := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID1,
+		AgentID:   uuid.New(),
+	}
+	session1, err := manager.CreateSession(ctx1)
 	require.NoError(t, err)
 	assert.Equal(t, sessionID, session1.ID)
 
 	// Create second session with same ID (should overwrite)
-	session2, err := manager.CreateSession(sessionID, channelID2)
+	ctx2 := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID2,
+		AgentID:   uuid.New(),
+	}
+	session2, err := manager.CreateSession(ctx2)
 	require.NoError(t, err)
 	assert.Equal(t, sessionID, session2.ID)
 
@@ -364,13 +538,21 @@ func TestCreateSession_WithSameID(t *testing.T) {
 }
 
 func TestCloseSession_ThenGet(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 	channelID := uuid.New()
 
 	// Create and verify session exists
-	_, err := manager.CreateSession(sessionID, channelID)
+	ctx := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	_, err := manager.CreateSession(ctx)
 	require.NoError(t, err)
 
 	_, exists := manager.GetSession(sessionID)
@@ -386,13 +568,21 @@ func TestCloseSession_ThenGet(t *testing.T) {
 }
 
 func TestSession_TimeFields(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 	channelID := uuid.New()
 
 	beforeCreation := time.Now()
-	session, err := manager.CreateSession(sessionID, channelID)
+	ctx := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	session, err := manager.CreateSession(ctx)
 	require.NoError(t, err)
 	afterCreation := time.Now()
 
@@ -403,13 +593,21 @@ func TestSession_TimeFields(t *testing.T) {
 }
 
 func TestGetSessionsByChannel_EmptyResult(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
 
 	// Create a session for one channel
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 	channelID := uuid.New()
-	_, err := manager.CreateSession(sessionID, channelID)
+	ctx := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	_, err := manager.CreateSession(ctx)
 	require.NoError(t, err)
 
 	// Query a different channel that has no sessions
@@ -421,12 +619,20 @@ func TestGetSessionsByChannel_EmptyResult(t *testing.T) {
 }
 
 func TestConcurrentCloseAndGet(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 	channelID := uuid.New()
 
-	_, err := manager.CreateSession(sessionID, channelID)
+	ctx := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	_, err := manager.CreateSession(ctx)
 	require.NoError(t, err)
 
 	// Perform concurrent operations
@@ -449,17 +655,25 @@ func TestConcurrentCloseAndGet(t *testing.T) {
 }
 
 func TestGetOrCreateSession_ExistingSession(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 	channelID := uuid.New()
 
+	ctx := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
 	// Create initial session
-	originalSession, err := manager.CreateSession(sessionID, channelID)
+	originalSession, err := manager.CreateSession(ctx)
 	require.NoError(t, err)
 
 	// GetOrCreate should return the existing session
-	retrievedSession, err := manager.GetOrCreateSession(sessionID, channelID)
+	retrievedSession, err := manager.GetOrCreateSession(ctx)
 	require.NoError(t, err)
 
 	// Should be the same session
@@ -469,13 +683,21 @@ func TestGetOrCreateSession_ExistingSession(t *testing.T) {
 }
 
 func TestGetOrCreateSession_NewSession(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 	channelID := uuid.New()
 
+	ctx := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
 	// GetOrCreate should create a new session
-	session, err := manager.GetOrCreateSession(sessionID, channelID)
+	session, err := manager.GetOrCreateSession(ctx)
 	require.NoError(t, err)
 
 	assert.Equal(t, sessionID, session.ID)
@@ -490,18 +712,26 @@ func TestGetOrCreateSession_NewSession(t *testing.T) {
 }
 
 func TestGetOrCreateSession_Concurrent(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 	channelID := uuid.New()
 
+	ctx := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
 	// Call GetOrCreateSession concurrently
 	done := make(chan bool)
 	sessions := make([]*shared.Session, 0, 10)
 
 	for i := 0; i < 10; i++ {
 		go func() {
-			session, err := manager.GetOrCreateSession(sessionID, channelID)
+			session, err := manager.GetOrCreateSession(ctx)
 			assert.NoError(t, err)
 			sessions = append(sessions, session)
 			done <- true
@@ -521,13 +751,25 @@ func TestGetOrCreateSession_Concurrent(t *testing.T) {
 }
 
 func TestCloseSession_CleansUpSupervisor(t *testing.T) {
-	injector := do.New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	injector := setupTestInjector(t, ctrl)
 	manager, _ := NewSessionManager(injector)
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 	channelID := uuid.New()
 
-	session, err := manager.CreateSession(sessionID, channelID)
+	ctx := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	session, err := manager.CreateSession(ctx)
 	require.NoError(t, err)
+
+	// Verify session exists before closing
+	_, exists := manager.GetSession(sessionID)
+	require.True(t, exists, "session should exist before closing")
 
 	// Create a mock supervisor to test cleanup
 	// We can't easily create a real agent without the full factory setup,
@@ -546,7 +788,238 @@ func TestCloseSession_CleansUpSupervisor(t *testing.T) {
 	}
 
 	// Session should no longer exist
-	_, exists := manager.GetSession(sessionID)
+	_, exists = manager.GetSession(sessionID)
 	assert.False(t, exists)
 }
 
+func TestLoadSession_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := repository.NewMockSessionRepository(ctrl)
+	sessionID := uuid.New()
+	channelID := uuid.New()
+	expectedSession := &shared.Session{
+		ID:        sessionID,
+		ChannelID: channelID,
+		CreatedAt: time.Now(),
+	}
+
+	// Expect Get to be called
+	mockRepo.EXPECT().Get(gomock.Any(), sessionID).Return(expectedSession, nil)
+
+	injector := do.New()
+	do.ProvideValue[repository.SessionRepository](injector, mockRepo)
+	manager, _ := NewSessionManager(injector)
+
+	// Load the session
+	ctx := context.Background()
+	session, err := manager.LoadSession(ctx, sessionID)
+
+	require.NoError(t, err)
+	assert.Equal(t, sessionID, session.ID)
+	assert.Equal(t, channelID, session.ChannelID)
+
+	// Verify session is cached
+	retrieved, exists := manager.GetSession(sessionID)
+	assert.True(t, exists)
+	assert.Equal(t, sessionID, retrieved.ID)
+}
+
+func TestLoadSession_FromCache(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := repository.NewMockSessionRepository(ctrl)
+	sessionID := uuid.New()
+	channelID := uuid.New()
+
+	injector := do.New()
+	do.ProvideValue[repository.SessionRepository](injector, mockRepo)
+	manager, _ := NewSessionManager(injector)
+
+	// Create a session first (this will cache it)
+	mockRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+	ctx := &shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	_, err := manager.CreateSession(ctx)
+	require.NoError(t, err)
+
+	// LoadSession should return from cache without calling repo
+	mockRepo.EXPECT().Get(gomock.Any(), gomock.Any()).Times(0) // Should not be called
+
+	session, err := manager.LoadSession(context.Background(), sessionID)
+
+	require.NoError(t, err)
+	assert.Equal(t, sessionID, session.ID)
+}
+
+func TestLoadSession_NotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := repository.NewMockSessionRepository(ctrl)
+	sessionID := uuid.New()
+
+	// Expect Get to return error
+	mockRepo.EXPECT().Get(gomock.Any(), sessionID).Return(nil, repository.ErrSessionNotFound)
+
+	injector := do.New()
+	do.ProvideValue[repository.SessionRepository](injector, mockRepo)
+	manager, _ := NewSessionManager(injector)
+
+	// Load should fail
+	ctx := context.Background()
+	session, err := manager.LoadSession(ctx, sessionID)
+
+	assert.Error(t, err)
+	assert.Nil(t, session)
+}
+
+func TestListSessions(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := repository.NewMockSessionRepository(ctrl)
+	sessionID1 := uuid.New()
+	sessionID2 := uuid.New()
+
+	expectedSessions := []*shared.Session{
+		{ID: sessionID1, ChannelID: uuid.New(), CreatedAt: time.Now()},
+		{ID: sessionID2, ChannelID: uuid.New(), CreatedAt: time.Now()},
+	}
+
+	// Expect List to be called
+	mockRepo.EXPECT().List(gomock.Any(), gomock.Any()).Return(expectedSessions, nil)
+
+	injector := do.New()
+	do.ProvideValue[repository.SessionRepository](injector, mockRepo)
+	manager, _ := NewSessionManager(injector)
+
+	// List sessions
+	ctx := context.Background()
+	sessions, err := manager.ListSessions(ctx)
+
+	require.NoError(t, err)
+	assert.Len(t, sessions, 2)
+	assert.Equal(t, sessionID1, sessions[0].ID)
+	assert.Equal(t, sessionID2, sessions[1].ID)
+}
+
+func TestResumeSession(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := repository.NewMockSessionRepository(ctrl)
+	sessionID := uuid.New()
+	channelID := uuid.New()
+
+	existingSession := &shared.Session{
+		ID:        sessionID,
+		ChannelID: channelID,
+		CreatedAt: time.Now(),
+	}
+
+	// LoadSession will call Get
+	mockRepo.EXPECT().Get(gomock.Any(), sessionID).Return(existingSession, nil)
+	// ResumeSession will call Update
+	mockRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+
+	injector := do.New()
+	do.ProvideValue[repository.SessionRepository](injector, mockRepo)
+	manager, _ := NewSessionManager(injector)
+
+	// Resume the session
+	ctx := context.Background()
+	err := manager.ResumeSession(ctx, sessionID)
+
+	require.NoError(t, err)
+
+	// Verify session has new context
+	session, exists := manager.GetSession(sessionID)
+	assert.True(t, exists)
+	assert.NotNil(t, session.Context)
+	assert.NotNil(t, session.CancelFunc)
+}
+
+func TestResumeSession_NotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := repository.NewMockSessionRepository(ctrl)
+	sessionID := uuid.New()
+
+	// LoadSession will call Get and return error
+	mockRepo.EXPECT().Get(gomock.Any(), sessionID).Return(nil, repository.ErrSessionNotFound)
+
+	injector := do.New()
+	do.ProvideValue[repository.SessionRepository](injector, mockRepo)
+	manager, _ := NewSessionManager(injector)
+
+	// Resume should fail
+	ctx := context.Background()
+	err := manager.ResumeSession(ctx, sessionID)
+
+	assert.Error(t, err)
+}
+
+func TestForkSession(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := repository.NewMockSessionRepository(ctrl)
+	sessionID := uuid.New()
+	channelID := uuid.New()
+	newSessionID := uuid.New()
+
+	forkedSession := &shared.Session{
+		ID:        newSessionID,
+		ChannelID: channelID,
+		CreatedAt: time.Now(),
+	}
+
+	// Expect Fork to be called
+	mockRepo.EXPECT().Fork(gomock.Any(), sessionID).Return(forkedSession, nil)
+
+	injector := do.New()
+	do.ProvideValue[repository.SessionRepository](injector, mockRepo)
+	manager, _ := NewSessionManager(injector)
+
+	// Fork the session
+	ctx := context.Background()
+	session, err := manager.ForkSession(ctx, sessionID)
+
+	require.NoError(t, err)
+	assert.Equal(t, newSessionID, session.ID)
+	assert.Equal(t, channelID, session.ChannelID)
+
+	// Verify session is cached
+	retrieved, exists := manager.GetSession(newSessionID)
+	assert.True(t, exists)
+	assert.Equal(t, newSessionID, retrieved.ID)
+}
+
+func TestForkSession_NotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := repository.NewMockSessionRepository(ctrl)
+	sessionID := uuid.New()
+
+	// Expect Fork to return error
+	mockRepo.EXPECT().Fork(gomock.Any(), sessionID).Return(nil, repository.ErrSessionNotFound)
+
+	injector := do.New()
+	do.ProvideValue[repository.SessionRepository](injector, mockRepo)
+	manager, _ := NewSessionManager(injector)
+
+	// Fork should fail
+	ctx := context.Background()
+	session, err := manager.ForkSession(ctx, sessionID)
+
+	assert.Error(t, err)
+	assert.Nil(t, session)
+}

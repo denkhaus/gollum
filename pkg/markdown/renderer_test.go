@@ -219,4 +219,3 @@ func TestRenderer_NoOSCSequences(t *testing.T) {
 	// Check for any other OSC sequences (general OSC format: \x1b]N;...)
 	assert.NotRegexp(t, `\x1b\][0-9]+;`, result, "Output should not contain any OSC sequences")
 }
-

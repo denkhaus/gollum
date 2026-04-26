@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/markdown"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
 )
@@ -36,13 +36,13 @@ func TestIntegrationMarkdownRendering(t *testing.T) {
 	m.height = 24
 
 	// Step 5: Create agent message with markdown
-	agentMsg := channel.Message{
-		ID:        uuid.New(),
-		Type:      channel.MessageTypeAgentChat,
-		Content:   "# Heading\n\nThis is **bold** and *italic*.",
-		Timestamp: time.Now(),
-		AgentID:   uuid.New(),
-		AgentRole: "assistant",
+	agentMsg := shared.Message{
+		ID:             uuid.New(),
+		Type:           shared.MessageTypeAgentChat,
+		Content:        "# Heading\n\nThis is **bold** and *italic*.",
+		Timestamp:      time.Now(),
+		SessionContext: shared.SessionContext{AgentID: uuid.New()},
+		AgentRole:      "assistant",
 	}
 
 	// Step 6: Format the message (index 0 = no selection)

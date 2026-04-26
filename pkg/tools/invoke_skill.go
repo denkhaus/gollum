@@ -125,7 +125,7 @@ func (t *invokeSkillToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the InvokeSkill tool
 func (t *invokeSkillToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameInvokeSkill, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameInvokeSkill, args,
 		func() (map[string]any, error) {
 			return t.runInvokeSkill(ctx, args)
 		})
@@ -147,7 +147,7 @@ func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args ToolReque
 	// Get the skill
 	skill, err := t.skillService.Get(skillName)
 	if err != nil {
-		t.logService.ErrorWithContext("Skill not found", t.agent.ToLoggingContext(),
+		t.logService.ErrorWithContext("Skill not found", t.agent.ToSessionContext(),
 			zap.String("skill_name", skillName),
 			zap.Error(err))
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("skill '%s' not found. Use list_skills to see available skills.", skillName)), nil
@@ -189,7 +189,7 @@ func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args ToolReque
 	// Build skill hook context with typed payload
 	modelName, _ := llmClientConfig.ModelName()
 	skillHookCtx := &hooks.TypedHookContext[hooks.SkillPayload]{
-		LoggingContext: t.agent.ToLoggingContext(),
+		SessionContext: t.agent.ToSessionContext(),
 		Payload: hooks.SkillPayload{
 			Name:        skill.Name,
 			Type:        hooks.SkillType(skill.Type),
@@ -203,12 +203,12 @@ func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args ToolReque
 	// Trigger BeforeSkillInvoked hooks
 	beforeResult := t.hookManager.TriggerSkillHooks(ctx, hooks.BeforeSkillInvoked, skillHookCtx)
 	if beforeResult.Stopped {
-		t.logService.WarnWithContext("Skill invocation blocked by hook", t.agent.ToLoggingContext(),
+		t.logService.WarnWithContext("Skill invocation blocked by hook", t.agent.ToSessionContext(),
 			zap.Error(beforeResult.Error))
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("skill invocation blocked: %v", beforeResult.Error)), nil
 	}
 
-	t.logService.InfoWithContext("Invoking skill", t.agent.ToLoggingContext(),
+	t.logService.InfoWithContext("Invoking skill", t.agent.ToSessionContext(),
 		zap.String("skill_name", skill.Name),
 		zap.String("context_mode", string(contextMode)),
 		zap.String("model", modelName))
@@ -229,7 +229,7 @@ func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args ToolReque
 	if contextMode == ContextModeInherited && hasParent {
 		history, err = parentAgent.GetMessageHistory(ctx)
 		if err != nil {
-			t.logService.WarnWithContext("Failed to get message history from parent", t.agent.ToLoggingContext(), zap.Error(err))
+			t.logService.WarnWithContext("Failed to get message history from parent", t.agent.ToSessionContext(), zap.Error(err))
 			// Continue without history - non-fatal error
 		}
 	}
@@ -252,7 +252,7 @@ func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args ToolReque
 	if len(skill.Tools) > 0 || skill.ToolScope != skills.ToolScopeAll {
 		// For now, we pass all default tools. Tool filtering could be implemented
 		// by modifying the agent factory or adding tool filtering logic here.
-		t.logService.DebugWithContext("Skill has tool restrictions", t.agent.ToLoggingContext(),
+		t.logService.DebugWithContext("Skill has tool restrictions", t.agent.ToSessionContext(),
 			zap.Any("tools", skill.Tools),
 			zap.String("scope", string(skill.ToolScope)))
 	}
@@ -260,20 +260,20 @@ func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args ToolReque
 	// Create the subagent using the factory
 	subagent, err := t.agentFactory.CreateAgent(ctx, subagentConfig)
 	if err != nil {
-		t.logService.ErrorWithContext("Failed to create skill subagent", t.agent.ToLoggingContext(), zap.Error(err))
+		t.logService.ErrorWithContext("Failed to create skill subagent", t.agent.ToSessionContext(), zap.Error(err))
 		// Trigger OnSkillError hooks
 		skillHookCtx.Payload.Error = err
 		t.hookManager.TriggerSkillHooks(ctx, hooks.OnSkillError, skillHookCtx)
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to create skill subagent: %v", err)), nil
 	}
 
-	t.logService.InfoWithContext("Created skill subagent", t.agent.ToLoggingContext(),
+	t.logService.InfoWithContext("Created skill subagent", t.agent.ToSessionContext(),
 		zap.String("subagent_id", subagent.GetID().String()),
 		zap.String("skill_name", skill.Name))
 
 	// Register and execute synchronously
 	if err := t.registry.Register(subagent, subagentConfig); err != nil {
-		t.logService.ErrorWithContext("Failed to register skill subagent", t.agent.ToLoggingContext(), zap.Error(err))
+		t.logService.ErrorWithContext("Failed to register skill subagent", t.agent.ToSessionContext(), zap.Error(err))
 		// Trigger OnSkillError hooks
 		skillHookCtx.Payload.Error = err
 		t.hookManager.TriggerSkillHooks(ctx, hooks.OnSkillError, skillHookCtx)
@@ -283,7 +283,7 @@ func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args ToolReque
 	// Execute the skill
 	response, err := t.executionHelper.ExecuteSynchronously(ctx, subagent, input)
 	if err != nil {
-		t.logService.ErrorWithContext("Skill execution failed", t.agent.ToLoggingContext(),
+		t.logService.ErrorWithContext("Skill execution failed", t.agent.ToSessionContext(),
 			zap.String("skill_name", skill.Name),
 			zap.Error(err))
 		// Trigger OnSkillError hooks
@@ -292,7 +292,7 @@ func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args ToolReque
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("skill execution failed: %v", err)), nil
 	}
 
-	t.logService.InfoWithContext("Skill completed successfully", t.agent.ToLoggingContext(),
+	t.logService.InfoWithContext("Skill completed successfully", t.agent.ToSessionContext(),
 		zap.String("skill_name", skill.Name))
 
 	// Add skill metadata to response

@@ -55,7 +55,7 @@ func ACPCommand() *cli.Command {
 }
 
 func runACPServer(ctx context.Context, cmd *cli.Command) error {
-	os.WriteFile("/tmp/acp_func_entered", []byte("runACPServer entered\n"), 0644)
+
 	// Parse transport type
 	transportStr := cmd.String("transport")
 	transportType, err := acp.ParseTransportType(transportStr)
@@ -95,16 +95,8 @@ func runACPServer(ctx context.Context, cmd *cli.Command) error {
 		)
 	}
 
-	// Create ACP channel via factory
-	os.WriteFile("/tmp/acp_before_create", []byte("About to call CreateChannel with ID: "+string(acp.Identifier)+"\n"), 0644)
-	ch, err := facade.CreateChannel(acp.Identifier, options...)
+	ch, err := facade.CreateAndRegister(acp.Identifier, options...)
 	if err != nil {
-		return err
-	}
-	os.WriteFile("/tmp/acp_after_create", []byte("CreateChannel returned, ch.ID(): "+ch.ID().String()+", type: "+fmt.Sprintf("%T", ch)+"\n"), 0644)
-
-	// Register channel with facade
-	if err := facade.RegisterChannel(ch); err != nil {
 		return err
 	}
 

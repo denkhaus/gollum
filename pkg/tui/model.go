@@ -33,12 +33,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
+
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/google/uuid"
 
-	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/markdown"
 )
@@ -55,7 +56,7 @@ type Model struct {
 	quit bool
 
 	// messages stores conversation history with full message metadata
-	messages []channel.Message
+	messages []shared.Message
 
 	// agent executes user commands
 	agent AgentExecutor
@@ -95,7 +96,7 @@ type Model struct {
 	activeViewport Viewport
 
 	// messageChan receives messages from AgentMessenger (optional, for TUI mode)
-	messageChan chan channel.Message
+	messageChan chan shared.Message
 
 	// viewport manages scrollable message display
 	viewport viewport.Model
@@ -207,7 +208,7 @@ func NewModel(ctx context.Context, agent AgentExecutor) Model {
 	return Model{
 		textInput:             ti,
 		quit:                  false,
-		messages:              []channel.Message{},
+		messages:              []shared.Message{},
 		agent:                 agent,
 		ctx:                   ctx,
 		inputHistory:          []string{},
@@ -252,7 +253,7 @@ func (m *Model) SetMarkdownRenderer(renderer markdown.Renderer) {
 // addMessage appends a message to the history while enforcing the MaxMessages limit.
 // When the limit is exceeded, oldest messages are removed (ring buffer behavior).
 // This also cleans up the format cache and differential rendering cache for evicted messages.
-func (m *Model) addMessage(msg channel.Message) {
+func (m *Model) addMessage(msg shared.Message) {
 	m.messages = append(m.messages, msg)
 
 	// Enforce message limit - remove oldest messages if exceeded
@@ -308,12 +309,12 @@ func (m Model) logTickCmd() tea.Cmd {
 
 // SetMessageChannel sets the channel for receiving messages from AgentMessenger.
 // This enables the TUI to receive messages instead of AgentMessenger printing to stdout.
-func (m *Model) SetMessageChannel(ch chan channel.Message) {
+func (m *Model) SetMessageChannel(ch chan shared.Message) {
 	m.messageChan = ch
 }
 
 // GetMessageChannel returns the message channel for AgentMessenger to send messages.
-func (m Model) GetMessageChannel() chan channel.Message {
+func (m Model) GetMessageChannel() chan shared.Message {
 	return m.messageChan
 }
 

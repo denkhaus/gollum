@@ -78,7 +78,7 @@ func (t *removeAgentToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the RemoveAgent tool to remove agents
 func (t *removeAgentToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameRemoveAgent, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameRemoveAgent, args,
 		func() (map[string]any, error) {
 			return t.runRemoveAgent(ctx, args)
 		})
@@ -93,7 +93,7 @@ func (t *removeAgentToolImpl) runRemoveAgent(_ context.Context, args ToolRequest
 
 	agentID, err := uuid.Parse(agentIDStr)
 	if err != nil {
-		t.logService.DebugWithContext("RemoveAgent: invalid UUID format", t.agent.ToLoggingContext(),
+		t.logService.DebugWithContext("RemoveAgent: invalid UUID format", t.agent.ToSessionContext(),
 			zap.String("agent_id_str", agentIDStr),
 			zap.String("sender_id", t.agent.GetID().String()))
 		return map[string]any{
@@ -102,13 +102,13 @@ func (t *removeAgentToolImpl) runRemoveAgent(_ context.Context, args ToolRequest
 		}, nil
 	}
 
-	t.logService.DebugWithContext("RemoveAgent: attempting to remove agent", t.agent.ToLoggingContext(),
+	t.logService.DebugWithContext("RemoveAgent: attempting to remove agent", t.agent.ToSessionContext(),
 		zap.String("target_agent_id", agentID.String()),
 		zap.String("sender_id", t.agent.GetID().String()))
 
 	// Prevent self-removal
 	if agentID == t.agent.GetID() {
-		t.logService.InfoWithContext("RemoveAgent: self-removal attempted", t.agent.ToLoggingContext(),
+		t.logService.InfoWithContext("RemoveAgent: self-removal attempted", t.agent.ToSessionContext(),
 			zap.String("sender_id", t.agent.GetID().String()))
 		return map[string]any{
 			"success": false,
@@ -119,7 +119,7 @@ func (t *removeAgentToolImpl) runRemoveAgent(_ context.Context, args ToolRequest
 	// Check if target agent exists
 	targetAgent, exists := t.registry.GetAgent(agentID)
 	if !exists {
-		t.logService.InfoWithContext("RemoveAgent: target agent not found", t.agent.ToLoggingContext(),
+		t.logService.InfoWithContext("RemoveAgent: target agent not found", t.agent.ToSessionContext(),
 			zap.String("target_agent_id", agentID.String()))
 		return map[string]any{
 			"success": false,
@@ -144,7 +144,7 @@ func (t *removeAgentToolImpl) runRemoveAgent(_ context.Context, args ToolRequest
 	}
 
 	if !hasPermission {
-		t.logService.WarnWithContext("RemoveAgent: permission denied", t.agent.ToLoggingContext(),
+		t.logService.WarnWithContext("RemoveAgent: permission denied", t.agent.ToSessionContext(),
 			zap.String("sender_id", t.agent.GetID().String()),
 			zap.String("target_agent_id", agentID.String()),
 			zap.String("reason", "not_parent"))
@@ -161,14 +161,14 @@ func (t *removeAgentToolImpl) runRemoveAgent(_ context.Context, args ToolRequest
 	children := t.registry.GetChildren(agentID)
 	childCount := len(children)
 
-	t.logService.DebugWithContext("RemoveAgent: agent has children", t.agent.ToLoggingContext(),
+	t.logService.DebugWithContext("RemoveAgent: agent has children", t.agent.ToSessionContext(),
 		zap.String("target_agent_id", agentID.String()),
 		zap.Int("child_count", childCount),
 		zap.Bool("force", force))
 
 	// Warn if agent has children and force is not set
 	if childCount > 0 && !force {
-		t.logService.InfoWithContext("RemoveAgent: agent has children but force=false", t.agent.ToLoggingContext(),
+		t.logService.InfoWithContext("RemoveAgent: agent has children but force=false", t.agent.ToSessionContext(),
 			zap.String("target_agent_id", agentID.String()),
 			zap.Int("child_count", childCount))
 		return map[string]any{
@@ -179,7 +179,7 @@ func (t *removeAgentToolImpl) runRemoveAgent(_ context.Context, args ToolRequest
 		}, nil
 	}
 
-	t.logService.InfoWithContext("RemoveAgent: removing agent with descendants", t.agent.ToLoggingContext(),
+	t.logService.InfoWithContext("RemoveAgent: removing agent with descendants", t.agent.ToSessionContext(),
 		zap.String("target_agent_id", agentID.String()),
 		zap.Int("descendant_count", childCount),
 		zap.String("sender_id", t.agent.GetID().String()))
@@ -187,7 +187,7 @@ func (t *removeAgentToolImpl) runRemoveAgent(_ context.Context, args ToolRequest
 	// Perform recursive removal using registry's Cleanup method
 	err = t.registry.Cleanup(agentID)
 	if err != nil {
-		t.logService.ErrorWithContext("RemoveAgent: failed to cleanup agent", t.agent.ToLoggingContext(),
+		t.logService.ErrorWithContext("RemoveAgent: failed to cleanup agent", t.agent.ToSessionContext(),
 			zap.String("target_agent_id", agentID.String()),
 			zap.Error(err))
 		return map[string]any{
@@ -196,7 +196,7 @@ func (t *removeAgentToolImpl) runRemoveAgent(_ context.Context, args ToolRequest
 		}, nil
 	}
 
-	t.logService.InfoWithContext("RemoveAgent: successfully removed agent", t.agent.ToLoggingContext(),
+	t.logService.InfoWithContext("RemoveAgent: successfully removed agent", t.agent.ToSessionContext(),
 		zap.String("target_agent_id", agentID.String()),
 		zap.Int("descendant_count", childCount))
 

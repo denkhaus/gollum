@@ -137,7 +137,7 @@ func TestExecuteLLMStep_SubstitutesPrompt(t *testing.T) {
 		},
 		States: []flows.State{
 			{Name: "init", Initial: true, Steps: []flows.Step{
-				{Type: "llm", Agent: "worker", Prompt: "Analyze PR #${input.pr_number}", Result:		&flows.StepResult{AssignTo: "output.text"}},
+				{Type: "llm", Agent: "worker", Prompt: "Analyze PR #${input.pr_number}", Result: &flows.StepResult{AssignTo: "output.text"}},
 			}},
 		},
 	}
@@ -146,7 +146,7 @@ func TestExecuteLLMStep_SubstitutesPrompt(t *testing.T) {
 	err := exec.SetInput(map[string]string{"pr_number": "123"})
 	require.NoError(t, err)
 
-	step := &flows.Step{Type: "llm", Agent: "worker", Prompt: "Analyze PR #${input.pr_number}", Result:		&flows.StepResult{AssignTo: "output.text"}}
+	step := &flows.Step{Type: "llm", Agent: "worker", Prompt: "Analyze PR #${input.pr_number}", Result: &flows.StepResult{AssignTo: "output.text"}}
 	err = exec.(*flowExecutorImpl).executeStep(step, "init")
 
 	// Should succeed without error

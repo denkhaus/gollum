@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
@@ -17,16 +18,17 @@ func TestNewChannelMiddleware(t *testing.T) {
 	mockFacade := NewMockChannelFacade(ctrl)
 	agentID := uuid.New()
 	agentRole := "assistant"
-	sessionID := "test-session-123"
+	sessionID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	channelID := uuid.New()
 
-	middleware := NewChannelMiddleware(mockFacade, agentID, agentRole, sessionID, channelID)
+	sessionCtx := *shared.NewSessionContext(sessionID, agentID, channelID, agentRole)
+	middleware := NewChannelMiddleware(mockFacade, sessionCtx, agentRole)
 
 	assert.NotNil(t, middleware)
-	assert.Equal(t, agentID, middleware.agentID)
+	assert.Equal(t, agentID, middleware.AgentID)
 	assert.Equal(t, agentRole, middleware.agentRole)
-	assert.Equal(t, sessionID, middleware.sessionID)
-	assert.Equal(t, channelID, middleware.channelID)
+	assert.Equal(t, sessionID, middleware.SessionID)
+	assert.Equal(t, channelID, middleware.ChannelID)
 }
 
 func TestChannelMiddlewareProvider_CreateChannelMiddleware(t *testing.T) {
@@ -41,26 +43,30 @@ func TestChannelMiddlewareProvider_CreateChannelMiddleware(t *testing.T) {
 	provider := &channelMiddlewareProvider{injector: injector}
 	agentID := uuid.New()
 	agentRole := "assistant"
-	sessionID := "test-session-456"
+	sessionID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 	channelID := uuid.New()
 
-	middleware := provider.CreateChannelMiddleware(agentID, agentRole, sessionID, channelID)
+	sessionCtx := *shared.NewSessionContext(sessionID, agentID, channelID, agentRole)
+	middleware := provider.CreateChannelMiddleware(sessionCtx, agentRole)
 
 	assert.NotNil(t, middleware)
-	assert.Equal(t, agentID, middleware.agentID)
+	assert.Equal(t, agentID, middleware.AgentID)
 	assert.Equal(t, agentRole, middleware.agentRole)
-	assert.Equal(t, sessionID, middleware.sessionID)
-	assert.Equal(t, channelID, middleware.channelID)
+	assert.Equal(t, sessionID, middleware.SessionID)
+	assert.Equal(t, channelID, middleware.ChannelID)
 }
 
 func TestMessage_Structure_HasSessionAndChannelIDs(t *testing.T) {
+	sessionID := uuid.MustParse("00000000-0000-0000-0000-000000000003")
 	msg := Message{
 		ID:        uuid.New(),
 		Type:      MessageTypeAgentChat,
-		AgentID:   uuid.New(),
+		SessionContext: shared.SessionContext{
+			SessionID: sessionID,
+			ChannelID: uuid.New(),
+			AgentID:   uuid.New(),
+		},
 		AgentRole: "assistant",
-		SessionID: "test-session-789",
-		ChannelID: uuid.New(),
 		Content:   "Test content",
 		Timestamp: time.Now(),
 		Metadata:  map[string]any{"key": "value"},
@@ -70,28 +76,28 @@ func TestMessage_Structure_HasSessionAndChannelIDs(t *testing.T) {
 	assert.Equal(t, MessageTypeAgentChat, msg.Type)
 	assert.NotEqual(t, uuid.Nil, msg.AgentID)
 	assert.Equal(t, "assistant", msg.AgentRole)
-	assert.Equal(t, "test-session-789", msg.SessionID)
+	assert.Equal(t, sessionID, msg.SessionID)
 	assert.NotEqual(t, uuid.Nil, msg.ChannelID)
 	assert.Equal(t, "Test content", msg.Content)
 	assert.NotZero(t, msg.Timestamp)
 	assert.NotNil(t, msg.Metadata)
 }
 
-func TestChannelMiddleware_WithEmptySessionID(t *testing.T) {
+func TestChannelMiddleware_WithNilSessionID(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockFacade := NewMockChannelFacade(ctrl)
 	agentID := uuid.New()
 	agentRole := "assistant"
-	sessionID := "" // Empty session ID
 	channelID := uuid.New()
 
-	middleware := NewChannelMiddleware(mockFacade, agentID, agentRole, sessionID, channelID)
+	sessionCtx := *shared.NewSessionContext(uuid.Nil, agentID, channelID, agentRole)
+	middleware := NewChannelMiddleware(mockFacade, sessionCtx, agentRole)
 
 	assert.NotNil(t, middleware)
-	assert.Equal(t, "", middleware.sessionID)
-	assert.Equal(t, channelID, middleware.channelID)
+	assert.Equal(t, uuid.Nil, middleware.SessionID)
+	assert.Equal(t, channelID, middleware.ChannelID)
 }
 
 func TestChannelMiddleware_WithNilChannelID(t *testing.T) {
@@ -101,14 +107,14 @@ func TestChannelMiddleware_WithNilChannelID(t *testing.T) {
 	mockFacade := NewMockChannelFacade(ctrl)
 	agentID := uuid.New()
 	agentRole := "assistant"
-	sessionID := "test-session"
-	channelID := uuid.Nil // Nil channel ID
+	sessionID := uuid.MustParse("00000000-0000-0000-0000-000000000008")
 
-	middleware := NewChannelMiddleware(mockFacade, agentID, agentRole, sessionID, channelID)
+	sessionCtx := *shared.NewSessionContext(sessionID, agentID, uuid.Nil, agentRole)
+	middleware := NewChannelMiddleware(mockFacade, sessionCtx, agentRole)
 
 	assert.NotNil(t, middleware)
-	assert.Equal(t, sessionID, middleware.sessionID)
-	assert.Equal(t, uuid.Nil, middleware.channelID)
+	assert.Equal(t, sessionID, middleware.SessionID)
+	assert.Equal(t, uuid.Nil, middleware.ChannelID)
 }
 
 func TestNewChannelMiddlewareProvider(t *testing.T) {
@@ -129,40 +135,41 @@ func TestNewChannelMiddlewareProvider(t *testing.T) {
 		name      string
 		agentID   uuid.UUID
 		agentRole string
-		sessionID string
+		sessionID uuid.UUID
 		channelID uuid.UUID
 	}{
 		{
 			name:      "Valid parameters",
 			agentID:   uuid.New(),
 			agentRole: "assistant",
-			sessionID: "session-1",
+			sessionID: uuid.MustParse("00000000-0000-0000-0000-000000000006"),
 			channelID: uuid.New(),
 		},
 		{
-			name:      "Empty session ID",
+			name:      "Nil session ID",
 			agentID:   uuid.New(),
 			agentRole: "user",
-			sessionID: "",
+			sessionID: uuid.Nil,
 			channelID: uuid.New(),
 		},
 		{
 			name:      "Different agent roles",
 			agentID:   uuid.New(),
 			agentRole: "system",
-			sessionID: "session-2",
+			sessionID: uuid.MustParse("00000000-0000-0000-0000-000000000007"),
 			channelID: uuid.New(),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			middleware := provider.CreateChannelMiddleware(tc.agentID, tc.agentRole, tc.sessionID, tc.channelID)
+			sessionCtx := *shared.NewSessionContext(tc.sessionID, tc.agentID, tc.channelID, tc.agentRole)
+			middleware := provider.CreateChannelMiddleware(sessionCtx, tc.agentRole)
 			assert.NotNil(t, middleware)
-			assert.Equal(t, tc.agentID, middleware.agentID)
+			assert.Equal(t, tc.agentID, middleware.AgentID)
 			assert.Equal(t, tc.agentRole, middleware.agentRole)
-			assert.Equal(t, tc.sessionID, middleware.sessionID)
-			assert.Equal(t, tc.channelID, middleware.channelID)
+			assert.Equal(t, tc.sessionID, middleware.SessionID)
+			assert.Equal(t, tc.channelID, middleware.ChannelID)
 		})
 	}
 }
@@ -174,15 +181,16 @@ func TestContentBlockMiddleware_MessagesIncludeSessionAndChannelIDs(t *testing.T
 	mockFacade := NewMockChannelFacade(ctrl)
 	agentID := uuid.New()
 	agentRole := "assistant"
-	sessionID := "test-session-content"
+	sessionID := uuid.MustParse("00000000-0000-0000-0000-000000000004")
 	channelID := uuid.New()
 
-	middleware := NewChannelMiddleware(mockFacade, agentID, agentRole, sessionID, channelID)
+	sessionCtx := *shared.NewSessionContext(sessionID, agentID, channelID, agentRole)
+	middleware := NewChannelMiddleware(mockFacade, sessionCtx, agentRole)
 
 	// Verify middleware has correct session and channel IDs
-	assert.Equal(t, sessionID, middleware.sessionID)
-	assert.Equal(t, channelID, middleware.channelID)
-	assert.Equal(t, agentID, middleware.agentID)
+	assert.Equal(t, sessionID, middleware.SessionID)
+	assert.Equal(t, channelID, middleware.ChannelID)
+	assert.Equal(t, agentID, middleware.AgentID)
 	assert.Equal(t, agentRole, middleware.agentRole)
 
 	// The ContentBlockMiddleware function should create a handler that,
@@ -199,15 +207,16 @@ func TestToolMiddleware_MessagesIncludeSessionAndChannelIDs(t *testing.T) {
 	mockFacade := NewMockChannelFacade(ctrl)
 	agentID := uuid.New()
 	agentRole := "assistant"
-	sessionID := "test-session-tool"
+	sessionID := uuid.MustParse("00000000-0000-0000-0000-000000000005")
 	channelID := uuid.New()
 
-	middleware := NewChannelMiddleware(mockFacade, agentID, agentRole, sessionID, channelID)
+	sessionCtx := *shared.NewSessionContext(sessionID, agentID, channelID, agentRole)
+	middleware := NewChannelMiddleware(mockFacade, sessionCtx, agentRole)
 
 	// Verify middleware has correct session and channel IDs
-	assert.Equal(t, sessionID, middleware.sessionID)
-	assert.Equal(t, channelID, middleware.channelID)
-	assert.Equal(t, agentID, middleware.agentID)
+	assert.Equal(t, sessionID, middleware.SessionID)
+	assert.Equal(t, channelID, middleware.ChannelID)
+	assert.Equal(t, agentID, middleware.AgentID)
 	assert.Equal(t, agentRole, middleware.agentRole)
 
 	// The ToolMiddleware function should create a handler that,

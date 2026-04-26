@@ -59,7 +59,7 @@ func TestSetCurrentWorkspace_AddsToHistory(t *testing.T) {
 	history := service.GetWorkspaceHistory()
 
 	assert.Len(t, history, 3)
-	assert.Equal(t, "/path3", history[0])  // Most recent first
+	assert.Equal(t, "/path3", history[0]) // Most recent first
 	assert.Equal(t, "/path2", history[1])
 	assert.Equal(t, "/path1", history[2])
 }
@@ -73,12 +73,12 @@ func TestSetCurrentWorkspace_DuplicatePath(t *testing.T) {
 
 	_ = service.setCurrentWorkspace("/path1")
 	_ = service.setCurrentWorkspace("/path2")
-	_ = service.setCurrentWorkspace("/path1")  // Duplicate
+	_ = service.setCurrentWorkspace("/path1") // Duplicate
 
 	history := service.GetWorkspaceHistory()
 
 	assert.Len(t, history, 2)
-	assert.Equal(t, "/path1", history[0])  // Moved to front
+	assert.Equal(t, "/path1", history[0]) // Moved to front
 	assert.Equal(t, "/path2", history[1])
 }
 
@@ -86,7 +86,7 @@ func TestSetCurrentWorkspace_TrimsHistory(t *testing.T) {
 	service := &serviceImpl{
 		currentPath:    "",
 		history:        []string{},
-		maxHistorySize: 3,  // Small max for testing
+		maxHistorySize: 3, // Small max for testing
 	}
 
 	// Add more items than maxHistorySize
@@ -97,7 +97,7 @@ func TestSetCurrentWorkspace_TrimsHistory(t *testing.T) {
 
 	history := service.GetWorkspaceHistory()
 
-	assert.Len(t, history, 3)  // Should be trimmed
+	assert.Len(t, history, 3) // Should be trimmed
 	assert.Equal(t, "/path4", history[0])
 	assert.Equal(t, "/path3", history[1])
 	assert.Equal(t, "/path2", history[2])
@@ -111,7 +111,7 @@ func TestSetCurrentWorkspace_EmptyString(t *testing.T) {
 	}
 
 	_ = service.setCurrentWorkspace("/path1")
-	_ = service.setCurrentWorkspace("")  // Empty string should be ignored
+	_ = service.setCurrentWorkspace("") // Empty string should be ignored
 
 	history := service.GetWorkspaceHistory()
 

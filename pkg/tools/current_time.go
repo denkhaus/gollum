@@ -56,7 +56,7 @@ func (p *currentTimeToolProvider) CreateTool(agent shared.Agent) gollem.Tool {
 
 // Run executes the CurrentTime tool to return the current time
 func (t *currentTimeToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameCurrentTime, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameCurrentTime, args,
 		func() (map[string]any, error) {
 			return t.runCurrentTime(ctx, args)
 		})
@@ -100,7 +100,7 @@ func (t *currentTimeToolImpl) runCurrentTime(ctx context.Context, args ToolReque
 	if fc := hooks.GetFlowStepContext(ctx); fc != nil {
 		t.logService.DebugWithFlowStep("current_time() called", fc.FlowName, fc.StateName, fc.StepType, zap.String("timezone", timezone), zap.String("time", timeStr))
 	} else {
-		t.logService.DebugWithContext("current_time() called", t.agent.ToLoggingContext(), zap.String("timezone", timezone), zap.String("time", timeStr))
+		t.logService.DebugWithContext("current_time() called", t.agent.ToSessionContext(), zap.String("timezone", timezone), zap.String("time", timeStr))
 	}
 
 	return result, nil

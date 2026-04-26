@@ -42,7 +42,7 @@ func (m *MockSessionManager) EXPECT() *MockSessionManagerMockRecorder {
 }
 
 // CloseSession mocks base method.
-func (m *MockSessionManager) CloseSession(sessionID string) error {
+func (m *MockSessionManager) CloseSession(sessionID uuid.UUID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CloseSession", sessionID)
 	ret0, _ := ret[0].(error)
@@ -56,37 +56,37 @@ func (mr *MockSessionManagerMockRecorder) CloseSession(sessionID any) *gomock.Ca
 }
 
 // CreateSession mocks base method.
-func (m *MockSessionManager) CreateSession(sessionID string, channelID uuid.UUID) (*shared.Session, error) {
+func (m *MockSessionManager) CreateSession(ctx *shared.SessionContext) (*shared.Session, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateSession", sessionID, channelID)
+	ret := m.ctrl.Call(m, "CreateSession", ctx)
 	ret0, _ := ret[0].(*shared.Session)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateSession indicates an expected call of CreateSession.
-func (mr *MockSessionManagerMockRecorder) CreateSession(sessionID, channelID any) *gomock.Call {
+func (mr *MockSessionManagerMockRecorder) CreateSession(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSession", reflect.TypeOf((*MockSessionManager)(nil).CreateSession), sessionID, channelID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSession", reflect.TypeOf((*MockSessionManager)(nil).CreateSession), ctx)
 }
 
 // GetOrCreateSession mocks base method.
-func (m *MockSessionManager) GetOrCreateSession(sessionID string, channelID uuid.UUID) (*shared.Session, error) {
+func (m *MockSessionManager) GetOrCreateSession(ctx *shared.SessionContext) (*shared.Session, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOrCreateSession", sessionID, channelID)
+	ret := m.ctrl.Call(m, "GetOrCreateSession", ctx)
 	ret0, _ := ret[0].(*shared.Session)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetOrCreateSession indicates an expected call of GetOrCreateSession.
-func (mr *MockSessionManagerMockRecorder) GetOrCreateSession(sessionID, channelID any) *gomock.Call {
+func (mr *MockSessionManagerMockRecorder) GetOrCreateSession(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrCreateSession", reflect.TypeOf((*MockSessionManager)(nil).GetOrCreateSession), sessionID, channelID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrCreateSession", reflect.TypeOf((*MockSessionManager)(nil).GetOrCreateSession), ctx)
 }
 
 // GetSession mocks base method.
-func (m *MockSessionManager) GetSession(sessionID string) (*shared.Session, bool) {
+func (m *MockSessionManager) GetSession(sessionID uuid.UUID) (*shared.Session, bool) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSession", sessionID)
 	ret0, _ := ret[0].(*shared.Session)

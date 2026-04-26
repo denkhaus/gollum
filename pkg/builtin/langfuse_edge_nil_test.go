@@ -1,7 +1,6 @@
 package builtin
 
 import (
-
 	"context"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"sync"
@@ -15,7 +14,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-
 )
 
 func TestLangfuseHook_NilSessionID(t *testing.T) {
@@ -41,7 +39,7 @@ func TestLangfuseHook_NilSessionID(t *testing.T) {
 
 		ctx := context.Background()
 		hookCtx := hooks.NewTypedHookContext(
-			shared.LoggingContext{SessionID: uuid.Nil.String()}, // Nil SessionID
+			shared.SessionContext{SessionID: uuid.Nil}, // Nil SessionID
 			hooks.SessionPayload{},
 		)
 
@@ -79,7 +77,7 @@ func TestLangfuseHook_NilSessionID(t *testing.T) {
 
 		ctx := context.Background()
 		hookCtx := hooks.NewTypedHookContext(
-			shared.LoggingContext{SessionID: uuid.Nil.String()}, // Nil SessionID
+			shared.SessionContext{SessionID: uuid.Nil}, // Nil SessionID
 			hooks.SessionPayload{},
 		)
 
@@ -122,7 +120,7 @@ func TestLangfuseHook_onToolErrorHook_NilError(t *testing.T) {
 		}
 
 		// Create trace context with tool span
-		tc := hook.createTraceContext(sessionID.String())
+		tc := hook.createTraceContext(sessionID)
 		tc.Spans[spanID] = &ToolSpanContext{
 			StartTime: time.Now(),
 			ToolName:  "test-tool",
@@ -130,7 +128,7 @@ func TestLangfuseHook_onToolErrorHook_NilError(t *testing.T) {
 
 		ctx := context.Background()
 		hookCtx := hooks.NewTypedHookContextWithTracing(
-			shared.LoggingContext{SessionID: sessionID.String()},
+			shared.SessionContext{SessionID: sessionID},
 			hooks.ToolPayload{
 				Name:  "test-tool",
 				Error: nil, // nil error
@@ -184,7 +182,7 @@ func TestLangfuseHook_onLLMErrorHook_NilError(t *testing.T) {
 		}
 
 		// Create trace context with LLM span
-		tc := hook.createTraceContext(sessionID.String())
+		tc := hook.createTraceContext(sessionID)
 		tc.Spans[spanID] = &LLMSpanContext{
 			StartTime: time.Now(),
 			Model:     "gpt-4",
@@ -192,7 +190,7 @@ func TestLangfuseHook_onLLMErrorHook_NilError(t *testing.T) {
 
 		ctx := context.Background()
 		hookCtx := hooks.NewTypedHookContextWithTracing(
-			shared.LoggingContext{SessionID: sessionID.String()},
+			shared.SessionContext{SessionID: sessionID},
 			hooks.LLMPayload{
 				Model: "gpt-4",
 				Error: nil, // nil error
@@ -254,7 +252,7 @@ func TestLangfuseHook_FileOperationHooks_AreStubs(t *testing.T) {
 		}
 
 		// Create a trace context for propagation
-		tc := hook.createTraceContext(sessionID.String())
+		tc := hook.createTraceContext(sessionID)
 
 		ctx := context.Background()
 		next := func() error { return nil }
@@ -280,7 +278,7 @@ func TestLangfuseHook_FileOperationHooks_AreStubs(t *testing.T) {
 		for _, fh := range fileHooks {
 			t.Run(fh.name, func(t *testing.T) {
 				hookCtx := hooks.NewTypedHookContext(
-					shared.LoggingContext{SessionID: sessionID.String()},
+					shared.SessionContext{SessionID: sessionID},
 					hooks.FilePayload{},
 				)
 

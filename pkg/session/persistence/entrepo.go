@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/session/repository"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -338,7 +337,7 @@ func (r *EntRepository) Archive(ctx context.Context, olderThan time.Duration) (i
 }
 
 // AddMessage adds a message to a session.
-func (r *EntRepository) AddMessage(ctx context.Context, sessionID uuid.UUID, msg channel.Message) error {
+func (r *EntRepository) AddMessage(ctx context.Context, sessionID uuid.UUID, msg shared.Message) error {
 	// Get session by session_id
 	sessionEnt, err := r.client.Session.
 		Query().
@@ -356,7 +355,7 @@ func (r *EntRepository) AddMessage(ctx context.Context, sessionID uuid.UUID, msg
 	metadata["agent_role"] = msg.AgentRole
 	metadata["message_id"] = msg.ID
 
-	// Convert channel.MessageType to message.Type
+	// Convert shared.MessageType to message.Type
 	msgType := message.Type(msg.Type.String())
 
 	// Create message
@@ -373,7 +372,7 @@ func (r *EntRepository) AddMessage(ctx context.Context, sessionID uuid.UUID, msg
 }
 
 // GetMessages retrieves messages from a session.
-func (r *EntRepository) GetMessages(ctx context.Context, sessionID uuid.UUID, limit, offset int) ([]channel.Message, error) {
+func (r *EntRepository) GetMessages(ctx context.Context, sessionID uuid.UUID, limit, offset int) ([]shared.Message, error) {
 	// Get session by session_id
 	sessionEnt, err := r.client.Session.
 		Query().
@@ -393,7 +392,7 @@ func (r *EntRepository) GetMessages(ctx context.Context, sessionID uuid.UUID, li
 		return nil, err
 	}
 
-	messages := make([]channel.Message, len(entities))
+	messages := make([]shared.Message, len(entities))
 	for i, ent := range entities {
 		messages[i] = r.entityToMessage(ent)
 	}
@@ -416,8 +415,8 @@ func (r *EntRepository) entityToSession(sessionEnt *ent.Session) (*shared.Sessio
 	}, nil
 }
 
-// entityToMessage converts an Ent Message entity to a channel.Message.
-func (r *EntRepository) entityToMessage(msgEnt *ent.Message) channel.Message {
+// entityToMessage converts an Ent Message entity to a shared.Message.
+func (r *EntRepository) entityToMessage(msgEnt *ent.Message) shared.Message {
 	metadata := msgEnt.Metadata
 	if metadata == nil {
 		metadata = make(map[string]any)
@@ -437,26 +436,26 @@ func (r *EntRepository) entityToMessage(msgEnt *ent.Message) channel.Message {
 		msgID, _ = uuid.Parse(idStr)
 	}
 
-	// Convert message.Type string to channel.MessageType
-	msgType := channel.MessageTypeUserChat // default
+	// Convert message.Type string to shared.MessageType
+	msgType := shared.MessageTypeUserChat // default
 	switch string(msgEnt.Type) {
 	case "user_chat":
-		msgType = channel.MessageTypeUserChat
+		msgType = shared.MessageTypeUserChat
 	case "agent_chat":
-		msgType = channel.MessageTypeAgentChat
+		msgType = shared.MessageTypeAgentChat
 	case "tool_request":
-		msgType = channel.MessageTypeToolRequest
+		msgType = shared.MessageTypeToolRequest
 	case "tool_response":
-		msgType = channel.MessageTypeToolResponse
+		msgType = shared.MessageTypeToolResponse
 	case "thinking":
-		msgType = channel.MessageTypeThinking
+		msgType = shared.MessageTypeThinking
 	case "system_info":
-		msgType = channel.MessageTypeSystemInfo
+		msgType = shared.MessageTypeSystemInfo
 	case "error":
-		msgType = channel.MessageTypeError
+		msgType = shared.MessageTypeError
 	}
 
-	return channel.Message{
+	return shared.Message{
 		ID:        msgID,
 		Type:      msgType,
 		AgentRole: agentRole,

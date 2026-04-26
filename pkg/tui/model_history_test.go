@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 	"time"
-	"github.com/denkhaus/gollum/pkg/channel"
+
+	"github.com/denkhaus/gollum/pkg/shared"
 
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
@@ -101,9 +102,9 @@ func TestGetMessageCount(t *testing.T) {
 		t.Error("getMessageCount should return 0 for empty model")
 	}
 
-	m.messages = []channel.Message{
-		{ID: uuid.New(), Type: channel.MessageTypeSystemInfo, Content: "msg1", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: channel.MessageTypeUserChat, Content: "msg2", Timestamp: time.Now()},
+	m.messages = []shared.Message{
+		{ID: uuid.New(), Type: shared.MessageTypeSystemInfo, Content: "msg1", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "msg2", Timestamp: time.Now()},
 	}
 
 	if m.getMessageCount() != 2 {

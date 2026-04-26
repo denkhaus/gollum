@@ -27,7 +27,7 @@ func TestCurrentTimeTool_Run_DefaultTimezone(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
@@ -75,7 +75,7 @@ func TestCurrentTimeTool_Run_UTC(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
@@ -116,7 +116,7 @@ func TestCurrentTimeTool_Run_AmericaNewYork(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
@@ -164,7 +164,7 @@ func TestCurrentTimeTool_Run_EuropeBerlin(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
@@ -205,7 +205,7 @@ func TestCurrentTimeTool_Run_InvalidTimezone(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
@@ -247,7 +247,7 @@ func TestCurrentTimeTool_Run_EmptyTimezone(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
@@ -279,7 +279,7 @@ func TestCurrentTimeTool_Run_NonStringTimezone(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
@@ -312,7 +312,7 @@ func TestCurrentTimeTool_Run_AsiaTokyo(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &currentTimeToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
@@ -385,7 +385,7 @@ func TestCurrentTimeToolProvider_CreateTool(t *testing.T) {
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(testUUID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", testUUID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), testUUID, uuid.Nil, "")).AnyTimes()
 
 	tool := provider.CreateTool(mockAgent)
 	toolImpl := tool.(*currentTimeToolImpl)
@@ -422,7 +422,7 @@ func TestNewCurrentTimeToolProvider(t *testing.T) {
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(testUUID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", testUUID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), testUUID, uuid.Nil, "")).AnyTimes()
 
 	tool := provider.CreateTool(mockAgent)
 

@@ -5,14 +5,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
+
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
 )
 
 // Helper function to get collapsed state from message metadata
-func getCollapsed(msg channel.Message) bool {
+func getCollapsed(msg shared.Message) bool {
 	if msg.Metadata == nil {
 		return false
 	}
@@ -34,10 +35,10 @@ func TestMultipleDoubleClicks(t *testing.T) {
 	m.viewport.Height = 40
 
 	// Create messages with collapsed tool messages
-	m.messages = []channel.Message{
-		{ID: uuid.New(), Type: channel.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: channel.MessageTypeToolResponse, Content: "Tool 1", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
-		{ID: uuid.New(), Type: channel.MessageTypeToolResponse, Content: "Tool 2", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
+	m.messages = []shared.Message{
+		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: shared.MessageTypeToolResponse, Content: "Tool 1", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
+		{ID: uuid.New(), Type: shared.MessageTypeToolResponse, Content: "Tool 2", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
 	}
 	m.updateViewportContent()
 	m.viewport.SetContent(m.cachedContent)
@@ -114,10 +115,10 @@ func TestDoubleClickLinePositionChange(t *testing.T) {
 	m.viewport.Height = 40
 
 	// Create messages with collapsed tool messages
-	m.messages = []channel.Message{
-		{ID: uuid.New(), Type: channel.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: channel.MessageTypeToolResponse, Content: "Tool 1", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
-		{ID: uuid.New(), Type: channel.MessageTypeAgentChat, Content: "Agent response", Timestamp: time.Now()},
+	m.messages = []shared.Message{
+		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: shared.MessageTypeToolResponse, Content: "Tool 1", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
+		{ID: uuid.New(), Type: shared.MessageTypeAgentChat, Content: "Agent response", Timestamp: time.Now()},
 	}
 	m.updateViewportContent()
 	m.viewport.SetContent(m.cachedContent)
@@ -167,10 +168,10 @@ func TestHandleClickOnToolMessage(t *testing.T) {
 	m.viewport.Height = 20 // Set viewport height
 
 	// Add messages with known positions
-	m.messages = []channel.Message{
-		{ID: uuid.New(), Type: channel.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: channel.MessageTypeToolResponse, Content: "Tool output", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
-		{ID: uuid.New(), Type: channel.MessageTypeAgentChat, Content: "Response", Timestamp: time.Now()},
+	m.messages = []shared.Message{
+		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: shared.MessageTypeToolResponse, Content: "Tool output", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
+		{ID: uuid.New(), Type: shared.MessageTypeAgentChat, Content: "Response", Timestamp: time.Now()},
 	}
 
 	// Set up the viewport content
@@ -183,7 +184,7 @@ func TestHandleClickOnToolMessage(t *testing.T) {
 	toolStartLine := m.getMessageStartLine(1)
 	clickMsg := tea.MouseMsg{
 		Button: tea.MouseButtonLeft,
-		Y:    toolStartLine, // Click on the tool message
+		Y:      toolStartLine, // Click on the tool message
 	}
 	t.Logf("Clicking at line %d (tool message start)", toolStartLine)
 
@@ -192,7 +193,7 @@ func TestHandleClickOnToolMessage(t *testing.T) {
 
 	// Verify the message is selected (single click behavior)
 	if result.selectedMessageIndex != 1 {
-		t.Errorf("channel.Message at index 1 should be selected, got %d", result.selectedMessageIndex)
+		t.Errorf("shared.Message at index 1 should be selected, got %d", result.selectedMessageIndex)
 	}
 
 	// Single click should NOT toggle collapse (still collapsed)
@@ -214,7 +215,7 @@ func TestHandleClickOnToolMessage(t *testing.T) {
 
 	// Selection should still be on message 1
 	if result2.selectedMessageIndex != 1 {
-		t.Errorf("channel.Message at index 1 should still be selected, got %d", result2.selectedMessageIndex)
+		t.Errorf("shared.Message at index 1 should still be selected, got %d", result2.selectedMessageIndex)
 	}
 }
 
@@ -231,9 +232,9 @@ func TestHandleClickOnNonToolMessage(t *testing.T) {
 	m.viewport.Height = 20
 
 	// Add messages
-	m.messages = []channel.Message{
-		{ID: uuid.New(), Type: channel.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: channel.MessageTypeAgentChat, Content: "Response", Timestamp: time.Now()},
+	m.messages = []shared.Message{
+		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: shared.MessageTypeAgentChat, Content: "Response", Timestamp: time.Now()},
 	}
 
 	content := m.updateViewportContent()
@@ -243,7 +244,7 @@ func TestHandleClickOnNonToolMessage(t *testing.T) {
 	// Click on line 0 (user message)
 	clickMsg := tea.MouseMsg{
 		Button: tea.MouseButtonLeft,
-		Y:    0,
+		Y:      0,
 	}
 
 	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
@@ -251,7 +252,7 @@ func TestHandleClickOnNonToolMessage(t *testing.T) {
 
 	// User message should be selected
 	if result.selectedMessageIndex != 0 {
-		t.Errorf("channel.Message at index 0 should be selected, got %d", result.selectedMessageIndex)
+		t.Errorf("shared.Message at index 0 should be selected, got %d", result.selectedMessageIndex)
 	}
 
 	// Messages should be unchanged (no collapse toggle for non-tool messages)
@@ -272,8 +273,8 @@ func TestHandleClickOutsideViewport(t *testing.T) {
 	m.height = 24
 	m.viewport.Height = 10
 
-	m.messages = []channel.Message{
-		{ID: uuid.New(), Type: channel.MessageTypeToolResponse, Content: "Tool", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
+	m.messages = []shared.Message{
+		{ID: uuid.New(), Type: shared.MessageTypeToolResponse, Content: "Tool", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
 	}
 
 	content := m.updateViewportContent()
@@ -283,7 +284,7 @@ func TestHandleClickOutsideViewport(t *testing.T) {
 	// Click outside viewport bounds (Y = 15, but viewport height is 10)
 	clickMsg := tea.MouseMsg{
 		Button: tea.MouseButtonLeft,
-		Y:    15, // Outside viewport
+		Y:      15, // Outside viewport
 	}
 
 	resultModel, _ := m.handleClickOnToolMessage(clickMsg)
@@ -312,7 +313,7 @@ func TestHandleClickOnInvalidLine(t *testing.T) {
 	// Click somewhere
 	clickMsg := tea.MouseMsg{
 		Button: tea.MouseButtonLeft,
-		Y:    5,
+		Y:      5,
 	}
 
 	resultModel, _ := m.handleClickOnToolMessage(clickMsg)

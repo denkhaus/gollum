@@ -78,25 +78,25 @@ func setupTestInjector() do.Injector {
 func setupMockHookManagerPassThrough(mockHookManager *hooks.MockHookManager) {
 	// WithToolHooks - pass through to work function
 	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ shared.LoggingContext, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
+		DoAndReturn(func(_ context.Context, _ shared.SessionContext, _ shared.ToolName, _ map[string]any, work func() (map[string]any, error)) (map[string]any, error) {
 			return work()
 		}).AnyTimes()
 
 	// WithFileReadHooks - pass through to work function
 	mockHookManager.EXPECT().WithFileReadHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ shared.LoggingContext, _ string, work func() (string, error)) (string, error) {
+		DoAndReturn(func(_ context.Context, _ shared.SessionContext, _ string, work func() (string, error)) (string, error) {
 			return work()
 		}).AnyTimes()
 
 	// WithFileWriteHooks - pass through to work function
 	mockHookManager.EXPECT().WithFileWriteHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ shared.LoggingContext, _ string, content string, work func(string) error) error {
+		DoAndReturn(func(_ context.Context, _ shared.SessionContext, _ string, content string, work func(string) error) error {
 			return work(content)
 		}).AnyTimes()
 
 	// WithAgentHooks - pass through to work function
 	mockHookManager.EXPECT().WithAgentHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ shared.LoggingContext, _ hooks.HookPoint, work func() error) error {
+		DoAndReturn(func(_ context.Context, _ shared.SessionContext, _ hooks.HookPoint, work func() error) error {
 			if work != nil {
 				return work()
 			}
@@ -105,19 +105,19 @@ func setupMockHookManagerPassThrough(mockHookManager *hooks.MockHookManager) {
 
 	// WithSessionHooks - pass through to work function
 	mockHookManager.EXPECT().WithSessionHooks(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ shared.LoggingContext, work func() error) error {
+		DoAndReturn(func(_ context.Context, _ shared.SessionContext, work func() error) error {
 			return work()
 		}).AnyTimes()
 
 	// WithFileHooks - pass through to work function
 	mockHookManager.EXPECT().WithFileHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ shared.LoggingContext, _ hooks.HookPoint, _ string, work func() error) error {
+		DoAndReturn(func(_ context.Context, _ shared.SessionContext, _ hooks.HookPoint, _ string, work func() error) error {
 			return work()
 		}).AnyTimes()
 
 	// WithLLMHooks - pass through to work function
 	mockHookManager.EXPECT().WithLLMHooks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ shared.LoggingContext, _ string, input string, work func(string) (string, error)) (string, error) {
+		DoAndReturn(func(_ context.Context, _ shared.SessionContext, _ string, input string, work func(string) (string, error)) (string, error) {
 			return work(input)
 		}).AnyTimes()
 

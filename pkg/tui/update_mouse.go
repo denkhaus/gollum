@@ -8,8 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
+
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/denkhaus/gollum/pkg/channel"
 )
 
 // Debug log file for click detection debugging
@@ -85,7 +86,7 @@ func (m Model) handleClickOnToolMessage(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	debugLog("clickY=%d, yOffset=%d, viewportHeight=%d", clickY, yOffset, viewportHeight)
 	debugLog("messages count: %d", len(m.messages))
 	for i, msg := range m.messages {
-		isTool := msg.Type == channel.MessageTypeToolRequest || msg.Type == channel.MessageTypeToolResponse
+		isTool := msg.Type == shared.MessageTypeToolRequest || msg.Type == shared.MessageTypeToolResponse
 		collapsed := false
 		if msg.Metadata != nil {
 			if c, ok := msg.Metadata["collapsed"].(bool); ok {
@@ -170,7 +171,7 @@ func (m Model) handleClickOnToolMessage(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 
 	// Select the message (always)
 	m.selectMessage(msgIdx)
-	isTool := m.messages[msgIdx].Type == channel.MessageTypeToolRequest || m.messages[msgIdx].Type == channel.MessageTypeToolResponse
+	isTool := m.messages[msgIdx].Type == shared.MessageTypeToolRequest || m.messages[msgIdx].Type == shared.MessageTypeToolResponse
 	debugLog("SELECTED message %d (type=%s, isTool=%v)", msgIdx, m.messages[msgIdx].Type.String(), isTool)
 
 	// On double-click, also toggle collapse state if it's a tool message

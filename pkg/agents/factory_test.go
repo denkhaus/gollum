@@ -28,7 +28,7 @@ func TestDefaultAgentFactory_ResolveTools_Empty(t *testing.T) {
 	mockMCPProvider := &mockMCPToolProvider{}
 
 	factory := &defaultAgentFactory{
-		logService:     mockLogger,
+		logService:      mockLogger,
 		mcpToolProvider: mockMCPProvider,
 		// Other fields can be nil for this test
 	}
@@ -49,7 +49,7 @@ func TestDefaultAgentFactory_ResolveTools_BashOnly(t *testing.T) {
 	mockMCPProvider := &mockMCPToolProvider{}
 
 	factory := &defaultAgentFactory{
-		logService:     mockLogger,
+		logService:      mockLogger,
 		mcpToolProvider: mockMCPProvider,
 		// Mock the bash provider
 		bashToolProv: &mockBashToolProviderImpl{},
@@ -57,7 +57,7 @@ func TestDefaultAgentFactory_ResolveTools_BashOnly(t *testing.T) {
 
 	// Create a minimal DefaultAgent for testing
 	testAgent := &DefaultAgent{
-		id: uuid.New(),
+		id:     uuid.New(),
 		config: &shared.AgentConfig{},
 	}
 	tools, err := factory.resolveTools(context.Background(), testAgent, []string{"bash"})
@@ -76,7 +76,7 @@ func TestDefaultAgentFactory_ResolveTools_InvalidBuiltin(t *testing.T) {
 	mockMCPProvider := &mockMCPToolProvider{}
 
 	factory := &defaultAgentFactory{
-		logService:     mockLogger,
+		logService:      mockLogger,
 		mcpToolProvider: mockMCPProvider,
 	}
 
@@ -104,7 +104,7 @@ func TestDefaultAgentFactory_ResolveTools_MCPTool_ValidFormat(t *testing.T) {
 	}
 
 	factory := &defaultAgentFactory{
-		logService:     mockLogger,
+		logService:      mockLogger,
 		mcpToolProvider: mockMCPProvider,
 	}
 
@@ -132,7 +132,7 @@ func TestDefaultAgentFactory_ResolveTools_MCPTool_NotFound(t *testing.T) {
 	}
 
 	factory := &defaultAgentFactory{
-		logService:     mockLogger,
+		logService:      mockLogger,
 		mcpToolProvider: mockMCPProvider,
 	}
 
@@ -161,7 +161,7 @@ func TestDefaultAgentFactory_ResolveTools_InvalidMCPFormat(t *testing.T) {
 	}
 
 	factory := &defaultAgentFactory{
-		logService:     mockLogger,
+		logService:      mockLogger,
 		mcpToolProvider: mockMCPProvider,
 	}
 
@@ -273,18 +273,18 @@ func (m *mockBashToolWithSpec) Run(ctx context.Context, args map[string]any) (ma
 func TestSupervisorAgentOptions_WithSessionContext(t *testing.T) {
 	// Test that new session context options work correctly
 	customID := uuid.MustParse("123e4567-e89b-12d3-a456-426614174000")
-	sessionID := "test-session-123"
+	sessionID := uuid.MustParse("987fcdeb-51a2-9f3b-a456-426614174001")
 	channelID := uuid.MustParse("987fcdeb-51a2-9f3b-a456-426614174000")
 
 	// Test WithSessionID
 	config1 := &shared.AgentConfig{}
 	shared.WithSessionID(sessionID)(config1)
-	assert.Equal(t, sessionID, config1.SessionID, "WithSessionID should set the config SessionID")
+	assert.Equal(t, sessionID, config1.SessionContext.SessionID, "WithSessionID should set the config SessionID")
 
 	// Test WithChannelID
 	config2 := &shared.AgentConfig{}
 	shared.WithChannelID(channelID)(config2)
-	assert.Equal(t, channelID, config2.ChannelID, "WithChannelID should set the config ChannelID")
+	assert.Equal(t, channelID, config2.SessionContext.ChannelID, "WithChannelID should set the config ChannelID")
 
 	// Test all options together
 	config3 := &shared.AgentConfig{}
@@ -292,31 +292,34 @@ func TestSupervisorAgentOptions_WithSessionContext(t *testing.T) {
 	shared.WithSessionID(sessionID)(config3)
 	shared.WithChannelID(channelID)(config3)
 
-	assert.Equal(t, customID, config3.ID, "WithAgentID should set the config ID")
-	assert.Equal(t, sessionID, config3.SessionID, "WithSessionID should set the config SessionID")
-	assert.Equal(t, channelID, config3.ChannelID, "WithChannelID should set the config ChannelID")
+	assert.Equal(t, customID, config3.SessionContext.AgentID, "WithAgentID should set the config AgentID")
+	assert.Equal(t, sessionID, config3.SessionContext.SessionID, "WithSessionID should set the config SessionID")
+	assert.Equal(t, channelID, config3.SessionContext.ChannelID, "WithChannelID should set the config ChannelID")
 }
 
 func TestAgentConfig_SessionContextDefaults(t *testing.T) {
 	// Test that empty/nil values are the default
 	config := &shared.AgentConfig{}
 
-	assert.Equal(t, "", config.SessionID, "SessionID should default to empty string")
-	assert.Equal(t, uuid.Nil, config.ChannelID, "ChannelID should default to Nil UUID")
+	assert.Equal(t, uuid.Nil, config.SessionContext.SessionID, "SessionID should default to Nil UUID")
+	assert.Equal(t, uuid.Nil, config.SessionContext.ChannelID, "ChannelID should default to Nil UUID")
+	assert.Equal(t, uuid.Nil, config.SessionContext.AgentID, "AgentID should default to Nil UUID")
 }
 
 func TestAgentConfig_SessionContextMarshaling(t *testing.T) {
 	// Test that session context fields are properly tagged for JSON
-	sessionID := "session-abc"
-	channelID := uuid.MustParse("11111111-2222-3333-4444-555555555555")
+	sessionID := uuid.MustParse("11111111-2222-3333-4444-555555555555")
+	channelID := uuid.MustParse("11111111-2222-3333-4444-555555555556")
 
 	config := &shared.AgentConfig{
-		SessionID: sessionID,
-		ChannelID: channelID,
+		SessionContext: shared.SessionContext{
+			SessionID: sessionID,
+			ChannelID: channelID,
+		},
 	}
 
-	assert.Equal(t, sessionID, config.SessionID)
-	assert.Equal(t, channelID, config.ChannelID)
+	assert.Equal(t, sessionID, config.SessionContext.SessionID)
+	assert.Equal(t, channelID, config.SessionContext.ChannelID)
 }
 
 func TestDefaultAgentFactory_CreateAgent_UsesDefaultStrategy(t *testing.T) {
@@ -404,4 +407,3 @@ func (m *mockStrategy) Handle(ctx context.Context, state *gollem.StrategyState) 
 func (m *mockStrategy) Tools(ctx context.Context) ([]gollem.Tool, error) {
 	return nil, nil
 }
-

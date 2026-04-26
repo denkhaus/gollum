@@ -14,7 +14,7 @@ type TestFieldDefinition struct {
 	defaultValue string
 }
 
-func (t TestFieldDefinition) GetName() string         { return t.name }
+func (t TestFieldDefinition) GetName() string          { return t.name }
 func (t TestFieldDefinition) GetType() flows.ValueType { return t.typ }
 func (t TestFieldDefinition) GetDefault() string       { return t.defaultValue }
 
@@ -79,7 +79,7 @@ func TestNewFieldValues(t *testing.T) {
 // TestFieldValuesSetString tests SetString and GetString methods
 func TestFieldValuesSetString(t *testing.T) {
 	defs := []TestFieldDefinition{
-			{name: "name", typ: flows.TypeString, defaultValue: ""},
+		{name: "name", typ: flows.TypeString, defaultValue: ""},
 	}
 	fv := NewFieldValues(defs)
 
@@ -235,7 +235,7 @@ func TestFieldValuesSetFloat(t *testing.T) {
 // TestFieldValuesSetFromString tests SetFromString method with type conversion
 func TestFieldValuesSetFromString(t *testing.T) {
 	defs := []TestFieldDefinition{
-			{name: "name", typ: flows.TypeString, defaultValue: ""},
+		{name: "name", typ: flows.TypeString, defaultValue: ""},
 		{name: "age", typ: flows.TypeInt, defaultValue: ""},
 		{name: "active", typ: flows.TypeBool, defaultValue: ""},
 		{name: "score", typ: flows.TypeFloat, defaultValue: ""},
@@ -310,7 +310,7 @@ func TestFieldValuesSetFromString(t *testing.T) {
 // TestFieldValuesGetRaw tests GetRaw method
 func TestFieldValuesGetRaw(t *testing.T) {
 	defs := []TestFieldDefinition{
-			{name: "name", typ: flows.TypeString, defaultValue: ""},
+		{name: "name", typ: flows.TypeString, defaultValue: ""},
 		{name: "age", typ: flows.TypeInt, defaultValue: ""},
 	}
 	fv := NewFieldValues(defs)

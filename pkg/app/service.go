@@ -136,21 +136,15 @@ func (p *applicationServiceImpl) Run(ctx context.Context) error {
 
 // runChannel creates and runs a channel by identifier.
 func (p *applicationServiceImpl) runChannel(ctx context.Context, identifier channel.ChannelIdentifier, opts ...channel.ChannelOption) error {
-	ch, err := p.channelFacade.CreateChannel(identifier, opts...)
+	ch, err := p.channelFacade.CreateAndRegister(identifier, opts...)
 	if err != nil {
-		return fmt.Errorf("failed to create channel %s: %w", identifier, err)
+		return fmt.Errorf("failed to create and register channel %s: %w", identifier, err)
 	}
 
-	// Ensure cleanup on failure
+	// Ensure cleanup on exit or error
 	defer func() {
-		if err != nil {
-			_ = p.channelFacade.UnregisterChannel(ch.ID())
-		}
+		_ = p.channelFacade.UnregisterChannel(ch.ID())
 	}()
-
-	if err = p.channelFacade.RegisterChannel(ch); err != nil {
-		return fmt.Errorf("failed to register channel %s: %w", identifier, err)
-	}
 
 	// Start channel lifecycle
 	return ch.Start(ctx)

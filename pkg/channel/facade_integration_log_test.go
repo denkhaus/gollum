@@ -71,7 +71,7 @@ func TestLogForwarding_Integration(t *testing.T) {
 
 	// Create test channel
 	testChannel := newMockChannel(uuid.New())
-	regErr := facade.RegisterChannel(testChannel)
+	regErr := facade.(*channelFacadeImpl).registerChannel(testChannel)
 	require.NoError(t, regErr)
 
 	// Cleanup: unregister channel to prevent resource leaks
@@ -80,8 +80,9 @@ func TestLogForwarding_Integration(t *testing.T) {
 	})
 
 	// Create logging context with valid routing information
-	ctx := shared.LoggingContext{
-		SessionID: "test-session-123",
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
+	ctx := shared.SessionContext{
+		SessionID: sessionID,
 		ChannelID: testChannel.ID(),
 		AgentID:   uuid.New(),
 	}
@@ -97,7 +98,7 @@ func TestLogForwarding_Integration(t *testing.T) {
 	receivedLog := testChannel.getLastLog()
 	assert.Equal(t, "info", receivedLog.Level, "Log level should be info")
 	assert.Equal(t, "Test message", receivedLog.Message, "Log message should match")
-	assert.Equal(t, "test-session-123", receivedLog.SessionID, "SessionID should match context")
+	assert.Equal(t, sessionID, receivedLog.SessionID, "SessionID should match context")
 	assert.Equal(t, testChannel.ID(), receivedLog.ChannelID, "ChannelID should match context")
 }
 
@@ -127,7 +128,7 @@ func TestLogForwarding_InvalidContext_DoesNotForward(t *testing.T) {
 
 	// Create test channel
 	testChannel := newMockChannel(uuid.New())
-	regErr := facade.RegisterChannel(testChannel)
+	regErr := facade.(*channelFacadeImpl).registerChannel(testChannel)
 	require.NoError(t, regErr)
 
 	// Cleanup: unregister channel to prevent resource leaks
@@ -135,25 +136,25 @@ func TestLogForwarding_InvalidContext_DoesNotForward(t *testing.T) {
 		_ = facade.UnregisterChannel(testChannel.ID())
 	})
 
-	// Test 1: Empty SessionID - should not forward
-	ctx1 := shared.LoggingContext{
-		SessionID: "", // Invalid
+	// Test 1: Nil SessionID - should not forward
+	ctx1 := shared.SessionContext{
+		SessionID: uuid.Nil, // Invalid
 		ChannelID: testChannel.ID(),
 		AgentID:   uuid.New(),
 	}
 	loggerSvc.InfoWithContext("Invalid - empty session", ctx1)
 
 	// Test 2: Nil ChannelID - should not forward
-	ctx2 := shared.LoggingContext{
-		SessionID: "test-session",
+	ctx2 := shared.SessionContext{
+		SessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440002"),
 		ChannelID: uuid.Nil, // Invalid
 		AgentID:   uuid.New(),
 	}
 	loggerSvc.InfoWithContext("Invalid - nil channel", ctx2)
 
 	// Test 3: Nil AgentID - should not forward
-	ctx3 := shared.LoggingContext{
-		SessionID: "test-session",
+	ctx3 := shared.SessionContext{
+		SessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440003"),
 		ChannelID: testChannel.ID(),
 		AgentID:   uuid.Nil, // Invalid
 	}
@@ -198,7 +199,7 @@ func TestLogForwarding_MultipleChannels_RoutesCorrectly(t *testing.T) {
 	}
 
 	for _, ch := range channels {
-		err := facade.RegisterChannel(ch)
+		err := facade.(*channelFacadeImpl).registerChannel(ch)
 		require.NoError(t, err)
 	}
 
@@ -210,8 +211,9 @@ func TestLogForwarding_MultipleChannels_RoutesCorrectly(t *testing.T) {
 	})
 
 	// Create logging context for the second channel
-	ctx := shared.LoggingContext{
-		SessionID: "test-session-multi",
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440004")
+	ctx := shared.SessionContext{
+		SessionID: sessionID,
 		ChannelID: channels[1].ID(), // Target the second channel
 		AgentID:   uuid.New(),
 	}
@@ -257,7 +259,7 @@ func TestLogForwarding_LogWithFields(t *testing.T) {
 
 	// Create test channel
 	testChannel := newMockChannel(uuid.New())
-	regErr := facade.RegisterChannel(testChannel)
+	regErr := facade.(*channelFacadeImpl).registerChannel(testChannel)
 	require.NoError(t, regErr)
 
 	// Cleanup: unregister channel to prevent resource leaks
@@ -266,8 +268,9 @@ func TestLogForwarding_LogWithFields(t *testing.T) {
 	})
 
 	// Create logging context
-	ctx := shared.LoggingContext{
-		SessionID: "test-session-fields",
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440005")
+	ctx := shared.SessionContext{
+		SessionID: sessionID,
 		ChannelID: testChannel.ID(),
 		AgentID:   uuid.New(),
 	}

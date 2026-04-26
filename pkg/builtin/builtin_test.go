@@ -89,8 +89,9 @@ func TestLoggingHook_typedHooks(t *testing.T) {
 		hook := &LoggingHook{log: mockLogger, config: cfg}
 
 		hookCtx := &hooks.TypedHookContext[hooks.ToolPayload]{
-			LoggingContext: shared.LoggingContext{
-				SessionID: uuid.New().String(),
+			SessionContext: shared.SessionContext{
+				SessionID: uuid.New(),
+				ChannelID: uuid.New(),
 				AgentID:   uuid.New(),
 			},
 			Payload: hooks.ToolPayload{
@@ -115,8 +116,9 @@ func TestLoggingHook_typedHooks(t *testing.T) {
 		hook := &LoggingHook{log: mockLogger, config: cfg}
 
 		hookCtx := &hooks.TypedHookContext[hooks.FilePayload]{
-			LoggingContext: shared.LoggingContext{
-				SessionID: uuid.New().String(),
+			SessionContext: shared.SessionContext{
+				SessionID: uuid.New(),
+				ChannelID: uuid.New(),
 				AgentID:   uuid.New(),
 			},
 			Payload: hooks.FilePayload{
@@ -140,8 +142,9 @@ func TestLoggingHook_typedHooks(t *testing.T) {
 		hook := &LoggingHook{log: mockLogger, config: cfg}
 
 		hookCtx := &hooks.TypedHookContext[hooks.LLMPayload]{
-			LoggingContext: shared.LoggingContext{
-				SessionID: uuid.New().String(),
+			SessionContext: shared.SessionContext{
+				SessionID: uuid.New(),
+				ChannelID: uuid.New(),
 				AgentID:   uuid.New(),
 			},
 			Payload: hooks.LLMPayload{
@@ -166,8 +169,9 @@ func TestLoggingHook_typedHooks(t *testing.T) {
 		hook := &LoggingHook{log: mockLogger, config: cfg}
 
 		hookCtx := &hooks.TypedHookContext[hooks.ToolPayload]{
-			LoggingContext: shared.LoggingContext{
-				SessionID: uuid.New().String(),
+			SessionContext: shared.SessionContext{
+				SessionID: uuid.New(),
+				ChannelID: uuid.New(),
 				AgentID:   uuid.New(),
 			},
 			Payload: hooks.ToolPayload{

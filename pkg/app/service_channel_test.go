@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/channel"
-	"github.com/denkhaus/gollum/pkg/logger"
 	flowregistry "github.com/denkhaus/gollum/pkg/flows/registry"
+	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/state"
 	"github.com/denkhaus/gollum/pkg/tui"
 	"github.com/google/uuid"
@@ -29,15 +29,15 @@ func TestRunChannel_Success(t *testing.T) {
 	mockCh := channel.NewMockChannel(ctrl)
 	mockChID := uuid.New()
 	mockCh.EXPECT().ID().Return(mockChID).AnyTimes()
-	mockFacade.EXPECT().CreateChannel(tui.Identifier, gomock.Any()).Return(mockCh, nil)
-	mockFacade.EXPECT().RegisterChannel(mockCh).Return(nil)
+	mockFacade.EXPECT().CreateAndRegister(tui.Identifier, gomock.Any()).Return(mockCh, nil)
 	mockCh.EXPECT().Start(ctx).Return(nil)
+	mockFacade.EXPECT().UnregisterChannel(mockChID).Return(nil)
 
 	svc := &applicationServiceImpl{
-		logService:       mockLogger,
-		channelFacade:    mockFacade,
-		flowRegistry:     mockFlowRegistry,
-		fsm:              mockFSM,
+		logService:    mockLogger,
+		channelFacade: mockFacade,
+		flowRegistry:  mockFlowRegistry,
+		fsm:           mockFSM,
 	}
 
 	err := svc.runChannel(ctx, tui.Identifier)
@@ -54,7 +54,7 @@ func TestRunChannel_CreateError(t *testing.T) {
 	mockFlowRegistry := flowregistry.NewMockFlowRegistry(ctrl)
 	mockFSM := state.NewMockFileStateManager(ctrl)
 
-	mockFacade.EXPECT().CreateChannel(tui.Identifier, gomock.Any()).
+	mockFacade.EXPECT().CreateAndRegister(tui.Identifier, gomock.Any()).
 		Return(nil, assert.AnError)
 
 	svc := &applicationServiceImpl{
@@ -66,10 +66,10 @@ func TestRunChannel_CreateError(t *testing.T) {
 
 	err := svc.runChannel(ctx, tui.Identifier)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to create channel")
+	assert.Contains(t, err.Error(), "failed to create and register channel")
 }
 
-func TestRunChannel_RegisterError_Cleanup(t *testing.T) {
+func TestRunChannel_CreateAndRegisterError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -79,12 +79,8 @@ func TestRunChannel_RegisterError_Cleanup(t *testing.T) {
 	mockFlowRegistry := flowregistry.NewMockFlowRegistry(ctrl)
 	mockFSM := state.NewMockFileStateManager(ctrl)
 
-	mockCh := channel.NewMockChannel(ctrl)
-	mockChID := uuid.New()
-	mockCh.EXPECT().ID().Return(mockChID).Times(1)
-	mockFacade.EXPECT().CreateChannel(tui.Identifier, gomock.Any()).Return(mockCh, nil)
-	mockFacade.EXPECT().RegisterChannel(mockCh).Return(assert.AnError)
-	mockFacade.EXPECT().UnregisterChannel(mockChID).Return(nil)
+	// CreateAndRegister fails - no channel created, no cleanup needed
+	mockFacade.EXPECT().CreateAndRegister(tui.Identifier, gomock.Any()).Return(nil, assert.AnError)
 
 	svc := &applicationServiceImpl{
 		logService:    mockLogger,
@@ -95,7 +91,7 @@ func TestRunChannel_RegisterError_Cleanup(t *testing.T) {
 
 	err := svc.runChannel(ctx, tui.Identifier)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to register channel")
+	assert.Contains(t, err.Error(), "failed to create and register channel")
 }
 
 func TestRunChannel_StartError(t *testing.T) {
@@ -111,9 +107,9 @@ func TestRunChannel_StartError(t *testing.T) {
 	mockCh := channel.NewMockChannel(ctrl)
 	mockChID := uuid.New()
 	mockCh.EXPECT().ID().Return(mockChID).AnyTimes()
-	mockFacade.EXPECT().CreateChannel(tui.Identifier, gomock.Any()).Return(mockCh, nil)
-	mockFacade.EXPECT().RegisterChannel(mockCh).Return(nil)
+	mockFacade.EXPECT().CreateAndRegister(tui.Identifier, gomock.Any()).Return(mockCh, nil)
 	mockCh.EXPECT().Start(ctx).Return(assert.AnError)
+	mockFacade.EXPECT().UnregisterChannel(mockChID).Return(nil)
 
 	svc := &applicationServiceImpl{
 		logService:    mockLogger,

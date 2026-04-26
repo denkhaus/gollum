@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"github.com/denkhaus/gollum/pkg/channel"
 	"time"
+
+	"github.com/denkhaus/gollum/pkg/shared"
 
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
@@ -21,9 +22,9 @@ func TestFormatCache(t *testing.T) {
 	m.width = 80
 
 	// Create a test message
-	msg := channel.Message{
+	msg := shared.Message{
 		ID:        uuid.New(),
-		Type:      channel.MessageTypeAgentChat,
+		Type:      shared.MessageTypeAgentChat,
 		Content:   "Test message with **markdown**",
 		Timestamp: time.Now(),
 	}
@@ -62,9 +63,9 @@ func TestFormatCacheInvalidationOnWidthChange(t *testing.T) {
 	m.width = 80
 
 	// Create and cache a message
-	msg := channel.Message{
+	msg := shared.Message{
 		ID:        uuid.New(),
-		Type:      channel.MessageTypeAgentChat,
+		Type:      shared.MessageTypeAgentChat,
 		Content:   "Test message",
 		Timestamp: time.Now(),
 	}
@@ -102,16 +103,16 @@ func TestFormatCacheInvalidationOnMessageUpdate(t *testing.T) {
 	m.width = 80
 
 	// Create two messages and cache them
-	msg1 := channel.Message{
+	msg1 := shared.Message{
 		ID:        uuid.New(),
-		Type:      channel.MessageTypeAgentChat,
-		Content:   "channel.Message 1",
+		Type:      shared.MessageTypeAgentChat,
+		Content:   "shared.Message 1",
 		Timestamp: time.Now(),
 	}
-	msg2 := channel.Message{
+	msg2 := shared.Message{
 		ID:        uuid.New(),
-		Type:      channel.MessageTypeAgentChat,
-		Content:   "channel.Message 2",
+		Type:      shared.MessageTypeAgentChat,
+		Content:   "shared.Message 2",
 		Timestamp: time.Now(),
 	}
 
@@ -155,10 +156,10 @@ func TestFormatCacheSizeLimit(t *testing.T) {
 
 	// Add messages up to the limit
 	for i := 0; i < 5; i++ {
-		msg := channel.Message{
+		msg := shared.Message{
 			ID:        uuid.New(),
-			Type:      channel.MessageTypeAgentChat,
-			Content:   fmt.Sprintf("channel.Message %d", i),
+			Type:      shared.MessageTypeAgentChat,
+			Content:   fmt.Sprintf("shared.Message %d", i),
 			Timestamp: time.Now(),
 		}
 		_ = m.formatMessage(i, msg)
@@ -170,10 +171,10 @@ func TestFormatCacheSizeLimit(t *testing.T) {
 	}
 
 	// Add one more message (should trigger cache clear)
-	msg := channel.Message{
+	msg := shared.Message{
 		ID:        uuid.New(),
-		Type:      channel.MessageTypeAgentChat,
-		Content:   "channel.Message 6",
+		Type:      shared.MessageTypeAgentChat,
+		Content:   "shared.Message 6",
 		Timestamp: time.Now(),
 	}
 	_ = m.formatMessage(0, msg)

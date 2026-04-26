@@ -12,21 +12,21 @@ type SupervisorAgentOption func(*AgentConfig)
 // WithAgentID sets a specific agent ID instead of generating a new one
 func WithAgentID(id uuid.UUID) SupervisorAgentOption {
 	return func(cfg *AgentConfig) {
-		cfg.ID = id
+		cfg.SessionContext.AgentID = id
 	}
 }
 
 // WithSessionID sets the session ID for the agent
-func WithSessionID(sessionID string) SupervisorAgentOption {
+func WithSessionID(sessionID uuid.UUID) SupervisorAgentOption {
 	return func(cfg *AgentConfig) {
-		cfg.SessionID = sessionID
+		cfg.SessionContext.SessionID = sessionID
 	}
 }
 
 // WithChannelID sets the channel ID for the agent
 func WithChannelID(channelID uuid.UUID) SupervisorAgentOption {
 	return func(cfg *AgentConfig) {
-		cfg.ChannelID = channelID
+		cfg.SessionContext.ChannelID = channelID
 	}
 }
 

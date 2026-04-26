@@ -24,7 +24,7 @@ import (
 //   - Or hooks can allow the error to propagate
 func (p *hookManagerImpl) WithToolHooks(
 	ctx context.Context,
-	loggingContext shared.LoggingContext,
+	loggingContext shared.SessionContext,
 	toolName shared.ToolName,
 	args map[string]any,
 	work func() (map[string]any, error),

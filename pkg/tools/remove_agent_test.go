@@ -1,7 +1,6 @@
 package tools
 
 import (
-
 	"context"
 	"errors"
 	"github.com/denkhaus/gollum/pkg/registry"
@@ -16,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-
 )
 
 // NewMockAgentConfig creates a test agent config
@@ -47,8 +45,8 @@ func TestRemoveAgentTool_Run_Success(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
- senderAgent := shared.NewMockAgent(ctrl)
- senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	senderAgent := shared.NewMockAgent(ctrl)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	targetID := uuid.New()
 	childID := uuid.New()
 
@@ -73,7 +71,7 @@ func TestRemoveAgentTool_Run_Success(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
-		agent:    senderAgent,	}
+		agent:       senderAgent}
 
 	args := map[string]any{
 		"agent_id": targetID.String(),
@@ -100,15 +98,15 @@ func TestRemoveAgentTool_Run_InvalidAgentID(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
- senderAgent := shared.NewMockAgent(ctrl)
- senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	senderAgent := shared.NewMockAgent(ctrl)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 
 	tool := &removeAgentToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
-		agent:    senderAgent,	}
+		agent:       senderAgent}
 
 	args := map[string]any{
 		"agent_id": "invalid-uuid",
@@ -132,8 +130,8 @@ func TestRemoveAgentTool_Run_AgentNotFound(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
- senderAgent := shared.NewMockAgent(ctrl)
- senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	senderAgent := shared.NewMockAgent(ctrl)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	targetID := uuid.New()
 
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
@@ -143,7 +141,7 @@ func TestRemoveAgentTool_Run_AgentNotFound(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
-		agent:    senderAgent,	}
+		agent:       senderAgent}
 
 	args := map[string]any{
 		"agent_id": targetID.String(),
@@ -167,15 +165,15 @@ func TestRemoveAgentTool_Run_SelfRemoval(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
- senderAgent := shared.NewMockAgent(ctrl)
- senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	senderAgent := shared.NewMockAgent(ctrl)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	mockRegistry := registry.NewMockAgentRegistry(ctrl)
 
 	tool := &removeAgentToolImpl{
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
-		agent:    senderAgent,	}
+		agent:       senderAgent}
 
 	args := map[string]any{
 		"agent_id": senderID.String(),
@@ -199,8 +197,8 @@ func TestRemoveAgentTool_Run_PermissionDenied(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
- senderAgent := shared.NewMockAgent(ctrl)
- senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	senderAgent := shared.NewMockAgent(ctrl)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	targetID := uuid.New()
 	thirdPartyID := uuid.New()
 
@@ -220,7 +218,7 @@ func TestRemoveAgentTool_Run_PermissionDenied(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
-		agent:    senderAgent,	}
+		agent:       senderAgent}
 
 	args := map[string]any{
 		"agent_id": targetID.String(),
@@ -244,8 +242,8 @@ func TestRemoveAgentTool_Run_HasChildrenNoForce(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
- senderAgent := shared.NewMockAgent(ctrl)
- senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	senderAgent := shared.NewMockAgent(ctrl)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	targetID := uuid.New()
 
 	// Setup mocks
@@ -267,7 +265,7 @@ func TestRemoveAgentTool_Run_HasChildrenNoForce(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
-		agent:    senderAgent,	}
+		agent:       senderAgent}
 
 	args := map[string]any{
 		"agent_id": targetID.String(),
@@ -294,8 +292,8 @@ func TestRemoveAgentTool_Run_CleanupError(t *testing.T) {
 	setupMockHookManagerPassThrough(mockHookManager)
 
 	senderID := uuid.New()
- senderAgent := shared.NewMockAgent(ctrl)
- senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+	senderAgent := shared.NewMockAgent(ctrl)
+	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
 	targetID := uuid.New()
 
 	// Setup mocks
@@ -317,7 +315,7 @@ func TestRemoveAgentTool_Run_CleanupError(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    mockRegistry,
-		agent:    senderAgent,	}
+		agent:       senderAgent}
 
 	args := map[string]any{
 		"agent_id": targetID.String(),
@@ -352,7 +350,7 @@ func TestRemoveAgentToolProvider(t *testing.T) {
 	senderID := uuid.New()
 	senderAgent := shared.NewMockAgent(ctrl)
 	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	senderAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+	senderAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), senderID, uuid.Nil, "")).AnyTimes()
 	tool := provider.CreateTool(senderAgent)
 	toolImpl := tool.(*removeAgentToolImpl)
 

@@ -8,8 +8,8 @@ import (
 
 // PositionTracker tracks line and column positions for XML elements
 type PositionTracker struct {
-	lines    []string
-	offsets  []int // byte offset of each line
+	lines   []string
+	offsets []int // byte offset of each line
 }
 
 // NewPositionTracker creates a new position tracker from raw XML content
@@ -58,8 +58,8 @@ func (p *PositionTracker) FindElementPosition(elementType, attrName, attrValue s
 		// Also check if the line contains the element type and attribute with our value
 		// This handles multi-line definitions and various spacing
 		if strings.Contains(lineContent, `<`+elementType) &&
-		   strings.Contains(lineContent, attrValue) &&
-		   (strings.Contains(lineContent, attrName+`=`) || strings.Contains(lineContent, attrName+` =`)) {
+			strings.Contains(lineContent, attrValue) &&
+			(strings.Contains(lineContent, attrName+`=`) || strings.Contains(lineContent, attrName+` =`)) {
 			// Try to find the column of the element start
 			elemStart := strings.Index(lineContent, `<`+elementType)
 			if elemStart != -1 {
@@ -178,7 +178,7 @@ func (p *PositionTracker) FindStepOutputPosition(stateName, stepName string) (li
 			for j := i; j < len(p.lines) && j < i+10; j++ {
 				searchLine := p.lines[j]
 				if strings.Contains(searchLine, `<output`) &&
-				   strings.Contains(searchLine, `assign=`) {
+					strings.Contains(searchLine, `assign=`) {
 					// Found the output element
 					idx := strings.Index(searchLine, `<output`)
 					return j + 1, idx + 1
@@ -192,8 +192,8 @@ func (p *PositionTracker) FindStepOutputPosition(stateName, stepName string) (li
 
 		// Also check if output appears in same line
 		if strings.Contains(lineContent, `<output`) &&
-		   strings.Contains(lineContent, `assign=`) &&
-		   strings.Contains(lineContent, stepName) {
+			strings.Contains(lineContent, `assign=`) &&
+			strings.Contains(lineContent, stepName) {
 			idx := strings.Index(lineContent, `<output`)
 			return i + 1, idx + 1
 		}

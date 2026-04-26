@@ -37,7 +37,7 @@ func (p *hookManagerImpl) WithFlowStepHooks(
 	}
 
 	beforeCtx := NewTypedHookContext(
-		shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.Nil, AgentID: uuid.Nil},
+		shared.SessionContext{SessionID: sessionID, ChannelID: uuid.Nil, AgentID: uuid.Nil},
 		beforePayload,
 	)
 
@@ -69,7 +69,7 @@ func (p *hookManagerImpl) WithFlowStepHooks(
 	}
 
 	afterCtx := NewTypedHookContext(
-		shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.Nil, AgentID: uuid.Nil},
+		shared.SessionContext{SessionID: sessionID, ChannelID: uuid.Nil, AgentID: uuid.Nil},
 		afterPayload,
 	)
 
@@ -78,7 +78,7 @@ func (p *hookManagerImpl) WithFlowStepHooks(
 	if afterResult.Error != nil {
 		// Log hook error but don't override the original work error
 		p.log.WarnWithContext("AfterFlowStep hook error",
-			shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.Nil, AgentID: uuid.Nil}, // No agentID in flow context
+			shared.SessionContext{SessionID: sessionID, ChannelID: uuid.Nil, AgentID: uuid.Nil}, // No agentID in flow context
 			zap.Error(afterResult.Error),
 			zap.String("flow_id", flowID.String()),
 			zap.String("flow_name", flowName),

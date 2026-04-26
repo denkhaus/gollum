@@ -97,7 +97,7 @@ func TestSpawnAgentToolValidation(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        mockAgent,
+		agent:           mockAgent,
 	}
 
 	ctx := context.Background()
@@ -189,7 +189,7 @@ func TestSpawnAgentToolSynchronousExecution(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        senderAgent,
+		agent:           senderAgent,
 	}
 
 	ctx := context.Background()
@@ -271,7 +271,7 @@ func TestSpawnAgentToolAsynchronousExecution(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        senderAgent,
+		agent:           senderAgent,
 	}
 
 	ctx := context.Background()
@@ -351,7 +351,7 @@ func TestSpawnAgentToolExecutionError(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        senderAgent,
+		agent:           senderAgent,
 	}
 
 	ctx := context.Background()
@@ -423,7 +423,7 @@ func TestSpawnAgentToolInheritsLLMProvider(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        senderAgent,
+		agent:           senderAgent,
 	}
 
 	ctx := context.Background()
@@ -529,7 +529,7 @@ func TestSpawnAgentTool_WithShareContext_NoParent(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        senderAgent,
+		agent:           senderAgent,
 	}
 
 	ctx := context.Background()
@@ -611,7 +611,7 @@ func TestSpawnAgentTool_AllowedTools_Builtin(t *testing.T) {
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
 		toolRegistry:    toolRegistry,
-		agent:        senderAgent,
+		agent:           senderAgent,
 	}
 
 	ctx := context.Background()
@@ -683,7 +683,7 @@ func TestSpawnAgentTool_AllowedTools_MCP(t *testing.T) {
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
 		toolRegistry:    toolRegistry,
-		agent:        senderAgent,
+		agent:           senderAgent,
 	}
 
 	ctx := context.Background()
@@ -755,7 +755,7 @@ func TestSpawnAgentTool_AllowedTools_Mixed(t *testing.T) {
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
 		toolRegistry:    toolRegistry,
-		agent:        senderAgent,
+		agent:           senderAgent,
 	}
 
 	ctx := context.Background()
@@ -827,7 +827,7 @@ func TestSpawnAgentTool_AllowedTools_Empty(t *testing.T) {
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
 		toolRegistry:    toolRegistry,
-		agent:        senderAgent,
+		agent:           senderAgent,
 	}
 
 	ctx := context.Background()
@@ -899,7 +899,7 @@ func TestSpawnAgentTool_AllowedTools_NonStringValue(t *testing.T) {
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
 		toolRegistry:    toolRegistry,
-		agent:        senderAgent,
+		agent:           senderAgent,
 	}
 
 	ctx := context.Background()

@@ -36,7 +36,7 @@ func TestLangfuseHook_TraceContextOperations(t *testing.T) {
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 
 	t.Run("getTraceContext returns nil when not found", func(t *testing.T) {
 		tc := hook.getTraceContext(sessionID)
@@ -72,9 +72,9 @@ func TestLangfuseHook_TraceContextOperations(t *testing.T) {
 
 	t.Run("concurrent access is thread-safe", func(t *testing.T) {
 		// Create multiple session IDs
-		session1 := uuid.New().String()
-		session2 := uuid.New().String()
-		session3 := uuid.New().String()
+		session1 := uuid.New()
+		session2 := uuid.New()
+		session3 := uuid.New()
 
 		// Run concurrent operations
 		done := make(chan bool)
@@ -201,7 +201,7 @@ func TestLangfuseHook_TracingPropagation(t *testing.T) {
 	cfg := &config.LangfuseConfig{
 		LangfuseEnabled: true,
 	}
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 
 	hook := &LangfuseHook{
 		log:         mockLog,
@@ -225,7 +225,7 @@ func TestLangfuseHook_TracingPropagation(t *testing.T) {
 		tc := requireTraceContext(t)
 		_ = tc // Use tc to avoid unused variable error
 		hookCtx := hooks.NewTypedHookContext(
-			shared.LoggingContext{SessionID: sessionID},
+			shared.SessionContext{SessionID: sessionID},
 			hooks.ToolPayload{Name: "test"},
 		)
 
@@ -237,11 +237,11 @@ func TestLangfuseHook_TracingPropagation(t *testing.T) {
 
 	t.Run("propagateTracingToContext does nothing when no session", func(t *testing.T) {
 		hookCtx := hooks.NewTypedHookContext(
-			shared.LoggingContext{SessionID: uuid.Nil.String()},
+			shared.SessionContext{SessionID: uuid.Nil},
 			hooks.ToolPayload{Name: "test"},
 		)
 
-		hook.propagateTracingToContext(uuid.Nil.String(), &hookCtx.Tracing)
+		hook.propagateTracingToContext(uuid.Nil, &hookCtx.Tracing)
 
 		assert.Empty(t, hookCtx.Tracing.TraceID, "TraceID should not be set for nil session")
 	})
@@ -249,11 +249,11 @@ func TestLangfuseHook_TracingPropagation(t *testing.T) {
 	t.Run("propagateTracingToContext does nothing when no trace context", func(t *testing.T) {
 		differentSession := uuid.New()
 		hookCtx := hooks.NewTypedHookContext(
-			shared.LoggingContext{SessionID: differentSession.String()},
+			shared.SessionContext{SessionID: differentSession},
 			hooks.ToolPayload{Name: "test"},
 		)
 
-		hook.propagateTracingToContext(differentSession.String(), &hookCtx.Tracing)
+		hook.propagateTracingToContext(differentSession, &hookCtx.Tracing)
 
 		assert.Empty(t, hookCtx.Tracing.TraceID, "TraceID should not be set for non-existent trace")
 	})

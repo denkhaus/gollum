@@ -53,3 +53,5 @@ package pkg
 //go:generate go run go.uber.org/mock/mockgen -source=extensions/yaegi_func_runner.go -destination=extensions/yaegi_func_runner_mock.go -package=extensions github.com/denkhaus/gollum/pkg/extensions YaegiFuncRunner
 
 //go:generate go run go.uber.org/mock/mockgen -source=session/manager.go -destination=session/manager_mock.go -package=session github.com/denkhaus/gollum/pkg/session SessionManager
+
+//go:generate go run go.uber.org/mock/mockgen -source=session/repository/repository.go -destination=session/repository/repository_mock.go -package=repository github.com/denkhaus/gollum/pkg/session/repository SessionRepository

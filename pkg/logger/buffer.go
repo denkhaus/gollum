@@ -5,29 +5,29 @@ import (
 	"sync"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 // LogEntry represents a single log entry in the session buffer.
 type LogEntry struct {
-	Timestamp time.Time              `json:"timestamp"`
-	Level     string                 `json:"level"`
-	Message   string                 `json:"message"`
-	Fields    map[string]interface{} `json:"fields,omitempty"`
-	AgentID   uuid.UUID              `json:"agent_id,omitempty"`
-	SessionID string                 `json:"session_id,omitempty"`
-	ChannelID uuid.UUID              `json:"channel_id,omitempty"`
-	Sequence  int64                  `json:"sequence"` // Monotonically increasing sequence number
+	Timestamp             time.Time              `json:"timestamp"`
+	Level                 string                 `json:"level"`
+	Message               string                 `json:"message"`
+	Fields                map[string]interface{} `json:"fields,omitempty"`
+	shared.SessionContext `json:"-"`             // Embedded session context (not marshaled)
+	Sequence              int64                  `json:"sequence"` // Monotonically increasing sequence number
 }
 
 // LogFilter defines filtering options for retrieving log entries.
 type LogFilter struct {
-	Level    string    // Filter by log level (debug, info, warn, error)
-	AgentID  uuid.UUID // Filter by specific agent ID
-	SinceSeq *int64    // Filter entries with sequence > this (exclusive), nil = no filter
-	Count    int       // Maximum number of entries to return (0 = all)
-	Reverse  bool      // If true, return entries in reverse chronological order
+	Level         string                 // Filter by log level (debug, info, warn, error)
+	AgentID       uuid.UUID              // Filter by specific agent ID (deprecated: use SessionContext)
+	SinceSeq      *int64                 // Filter entries with sequence > this (exclusive), nil = no filter
+	Count         int                    // Maximum number of entries to return (0 = all)
+	Reverse       bool                   // If true, return entries in reverse chronological order
+	SessionFilter *shared.SessionContext // Filter by session context (more flexible than AgentID alone)
 }
 
 // logBuffer implements a thread-safe circular buffer for log entries.
@@ -146,7 +146,21 @@ func (b *logBuffer) applyFilters(entries []LogEntry, filter LogFilter) []LogEntr
 	if filter.AgentID != uuid.Nil {
 		filtered := make([]LogEntry, 0)
 		for _, entry := range result {
-			if entry.AgentID == filter.AgentID {
+			if entry.SessionContext.AgentID == filter.AgentID {
+				filtered = append(filtered, entry)
+			}
+		}
+		result = filtered
+	}
+
+	// Filter by session context (more flexible than AgentID alone)
+	if filter.SessionFilter != nil && filter.SessionFilter.IsValid() {
+		filtered := make([]LogEntry, 0)
+		for _, entry := range result {
+			// Match all non-nil fields in SessionFilter
+			if (filter.SessionFilter.SessionID == uuid.Nil || entry.SessionContext.SessionID == filter.SessionFilter.SessionID) &&
+				(filter.SessionFilter.ChannelID == uuid.Nil || entry.SessionContext.ChannelID == filter.SessionFilter.ChannelID) &&
+				(filter.SessionFilter.AgentID == uuid.Nil || entry.SessionContext.AgentID == filter.SessionFilter.AgentID) {
 				filtered = append(filtered, entry)
 			}
 		}

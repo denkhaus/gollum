@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/google/uuid"
 )
 
 // CommandHandler is a function that executes a slash command in the context of a session
@@ -26,7 +27,7 @@ type Manager interface {
 	Unregister(name string) error
 
 	// Execute parses input and executes command if it starts with "/"
-	Execute(ctx context.Context, sessionID string, input string) (handled bool, response string, err error)
+	Execute(ctx context.Context, sessionID uuid.UUID, input string) (handled bool, response string, err error)
 
 	// List returns all available commands
 	List() []Command

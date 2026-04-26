@@ -31,8 +31,8 @@ type LangfuseHook struct {
 
 // isSessionIDEmpty returns true if the session ID is empty or represents a nil UUID.
 // This handles both empty strings and the string representation of uuid.Nil.
-func isSessionIDEmpty(sessionID string) bool {
-	return sessionID == "" || sessionID == uuid.Nil.String()
+func isSessionIDEmpty(sessionID uuid.UUID) bool {
+	return sessionID == uuid.Nil
 }
 
 // TraceContext holds Langfuse trace state for a single session.
@@ -131,17 +131,17 @@ func (h *LangfuseHook) getClient() (*langfuse.Langfuse, error) {
 // getTraceContext retrieves the TraceContext for a given session ID.
 // Returns nil if no trace context exists for this session.
 // Uses RLock to allow concurrent reads.
-func (h *LangfuseHook) getTraceContext(sessionID string) *TraceContext {
+func (h *LangfuseHook) getTraceContext(sessionID uuid.UUID) *TraceContext {
 	h.traceCtxsMu.RLock()
 	defer h.traceCtxsMu.RUnlock()
 
-	return h.traceCtxs[sessionID]
+	return h.traceCtxs[sessionID.String()]
 }
 
 // createTraceContext creates a new TraceContext for a given session ID.
 // Generates a unique TraceID and initializes all fields.
 // Uses Lock to prevent concurrent writes.
-func (h *LangfuseHook) createTraceContext(sessionID string) *TraceContext {
+func (h *LangfuseHook) createTraceContext(sessionID uuid.UUID) *TraceContext {
 	h.traceCtxsMu.Lock()
 	defer h.traceCtxsMu.Unlock()
 
@@ -149,21 +149,21 @@ func (h *LangfuseHook) createTraceContext(sessionID string) *TraceContext {
 		TraceID:   uuid.New().String(),          // Generate unique trace ID for Langfuse
 		RootSpan:  nil,                          // Will be set in Phase 10 when root span created
 		Spans:     make(map[string]interface{}), // Initialize empty spans map
-		SessionID: sessionID,
+		SessionID: sessionID.String(),
 		CreatedAt: time.Now(),
 	}
 
-	h.traceCtxs[sessionID] = tc
+	h.traceCtxs[sessionID.String()] = tc
 	return tc
 }
 
 // removeTraceContext deletes the TraceContext for a given session ID.
 // Uses Lock to prevent concurrent writes.
-func (h *LangfuseHook) removeTraceContext(sessionID string) {
+func (h *LangfuseHook) removeTraceContext(sessionID uuid.UUID) {
 	h.traceCtxsMu.Lock()
 	defer h.traceCtxsMu.Unlock()
 
-	delete(h.traceCtxs, sessionID)
+	delete(h.traceCtxs, sessionID.String())
 }
 
 // cleanupAllTraceContexts removes all trace contexts from memory.
@@ -333,7 +333,7 @@ func (h *LangfuseHook) beforeSessionStartHook(ctx context.Context, hookCtx *hook
 	}
 
 	// Create trace name from session ID
-	traceName := "session-" + hookCtx.SessionID
+	traceName := "session-" + hookCtx.SessionID.String()
 
 	// Create actual Langfuse trace using SDK
 	trace := client.StartTrace(ctx, traceName)
@@ -347,10 +347,10 @@ func (h *LangfuseHook) beforeSessionStartHook(ctx context.Context, hookCtx *hook
 		TraceID:   trace.ID, // Use actual trace ID from SDK
 		RootSpan:  rootSpan, // Store actual SDK span
 		Spans:     make(map[string]interface{}),
-		SessionID: hookCtx.SessionID,
+		SessionID: hookCtx.SessionID.String(),
 		CreatedAt: time.Now(),
 	}
-	h.traceCtxs[hookCtx.SessionID] = tc
+	h.traceCtxs[hookCtx.SessionID.String()] = tc
 	h.traceCtxsMu.Unlock()
 
 	// Propagate trace ID to TypedHookContext.Tracing for child spans
@@ -358,7 +358,7 @@ func (h *LangfuseHook) beforeSessionStartHook(ctx context.Context, hookCtx *hook
 
 	h.log.Info("Langfuse session trace created",
 		zap.String("trace_id", tc.TraceID),
-		zap.String("session_id", hookCtx.SessionID))
+		zap.String("session_id", hookCtx.SessionID.String()))
 
 	return next()
 }
@@ -388,7 +388,7 @@ func (h *LangfuseHook) afterSessionEndHook(_ context.Context, hookCtx *hooks.Typ
 			span.End()
 			h.log.Debug("Root span ended",
 				zap.String("trace_id", tc.TraceID),
-				zap.String("session_id", hookCtx.SessionID))
+				zap.String("session_id", hookCtx.SessionID.String()))
 		}
 	}
 
@@ -397,7 +397,7 @@ func (h *LangfuseHook) afterSessionEndHook(_ context.Context, hookCtx *hooks.Typ
 	if flushErr != nil {
 		// Log warning but don't fail - flush errors are non-fatal
 		h.log.Warn("Failed to flush Langfuse traces (non-fatal)",
-			zap.String("session_id", hookCtx.SessionID),
+			zap.String("session_id", hookCtx.SessionID.String()),
 			zap.Error(flushErr))
 	}
 
@@ -406,7 +406,7 @@ func (h *LangfuseHook) afterSessionEndHook(_ context.Context, hookCtx *hooks.Typ
 
 	h.log.Info("Langfuse session trace completed",
 		zap.String("trace_id", tc.TraceID),
-		zap.String("session_id", hookCtx.SessionID))
+		zap.String("session_id", hookCtx.SessionID.String()))
 
 	return nil
 }
@@ -427,8 +427,8 @@ func (h *LangfuseHook) flushTraces() error {
 }
 
 // propagateTracingToContext sets trace ID in TypedHookContext.Tracing for span correlation.
-func (h *LangfuseHook) propagateTracingToContext(sessionID string, tracing *hooks.TracingPayload) {
-	if sessionID != "" && tracing != nil {
+func (h *LangfuseHook) propagateTracingToContext(sessionID uuid.UUID, tracing *hooks.TracingPayload) {
+	if sessionID != uuid.Nil && tracing != nil {
 		tc := h.getTraceContext(sessionID)
 		if tc != nil {
 			tracing.TraceID = tc.TraceID

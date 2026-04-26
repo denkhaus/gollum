@@ -8,7 +8,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/denkhaus/gollum/pkg/channel"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 )
@@ -45,9 +45,9 @@ func (m Model) handleAgentError(err error) Model {
 	m.err = err
 
 	// Add error message to messages
-	errorMsg := channel.Message{
+	errorMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      channel.MessageTypeError,
+		Type:      shared.MessageTypeError,
 		Content:   err.Error(),
 		Timestamp: time.Now(),
 	}
@@ -68,13 +68,17 @@ func (m Model) handleAgentResponse(response *gollem.ExecuteResponse) Model {
 	if m.shouldAddResponseTexts() {
 		// Add response texts as individual messages (legacy mode)
 		for _, text := range response.Texts {
-			agentMsg := channel.Message{
+			agentMsg := shared.Message{
 				ID:        uuid.New(),
-				Type:      channel.MessageTypeAgentChat,
+				Type:      shared.MessageTypeAgentChat,
 				Content:   text,
 				Timestamp: time.Now(),
-				AgentID:   uuid.Nil, // Will be set by agent messenger
 				AgentRole: "",
+				SessionContext: shared.SessionContext{
+					SessionID: uuid.Nil, // TUI uses single-session mode
+					ChannelID: uuid.Nil, // Will be set by agent messenger
+					AgentID:   uuid.Nil, // Will be set by agent messenger
+				},
 			}
 			m.addMessage(agentMsg)
 		}

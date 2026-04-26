@@ -141,11 +141,11 @@ func (s *SyntaxChecker) checkTemplateForFieldRefsWithContext(template, context s
 	// This is a basic heuristic - we look for patterns like "input.value" but not "${input.value}"
 	if s.containsFieldRefWithoutBrackets(template, pattern) {
 		result.Warnings = append(result.Warnings, flows.LinterError{
-			Line:     line,
-			Column:   col,
-			Code:     flows.ErrMissingTemplateNotation,
-			Message:  "Template may contain field references without ${} syntax - use ${input.field}, ${context.field}, etc.",
-			Context:  template,
+			Line:    line,
+			Column:  col,
+			Code:    flows.ErrMissingTemplateNotation,
+			Message: "Template may contain field references without ${} syntax - use ${input.field}, ${context.field}, etc.",
+			Context: template,
 		})
 	}
 }
@@ -187,36 +187,3 @@ func (s *SyntaxChecker) containsFieldRefWithoutBrackets(template, pattern string
 	return false
 }
 
-// getCallFieldValue extracts the AssignFrom from a CallInputFieldRef (union type)
-func (s *SyntaxChecker) getCallFieldValue(field flows.CallInputFieldRef) string {
-	if field.String != nil {
-		return field.String.AssignFrom
-	}
-	if field.Int != nil {
-		return field.Int.AssignFrom
-	}
-	if field.Bool != nil {
-		return field.Bool.AssignFrom
-	}
-	if field.Float != nil {
-		return field.Float.AssignFrom
-	}
-	return ""
-}
-
-// getCallOutputFieldValue extracts the AssignTo from a CallOutputFieldRef (union type)
-func (s *SyntaxChecker) getCallOutputFieldValue(field flows.CallOutputFieldRef) string {
-	if field.String != nil {
-		return field.String.AssignTo
-	}
-	if field.Int != nil {
-		return field.Int.AssignTo
-	}
-	if field.Bool != nil {
-		return field.Bool.AssignTo
-	}
-	if field.Float != nil {
-		return field.Float.AssignTo
-	}
-	return ""
-}

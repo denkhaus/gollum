@@ -92,7 +92,7 @@ func (s *service) CloseFileLogging() error {
 		return nil
 	}
 
-		// Sync and close the file
+	// Sync and close the file
 	if err := s.logFile.Sync(); err != nil {
 		s.Warnf("failed to sync log file: %v", err)
 	}

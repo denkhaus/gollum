@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 )
@@ -36,10 +35,10 @@ type SessionRepository interface {
 	Archive(ctx context.Context, olderThan time.Duration) (int64, error)
 
 	// AddMessage adds a message to a session.
-	AddMessage(ctx context.Context, sessionID uuid.UUID, msg channel.Message) error
+	AddMessage(ctx context.Context, sessionID uuid.UUID, msg shared.Message) error
 
 	// GetMessages retrieves messages from a session.
-	GetMessages(ctx context.Context, sessionID uuid.UUID, limit, offset int) ([]channel.Message, error)
+	GetMessages(ctx context.Context, sessionID uuid.UUID, limit, offset int) ([]shared.Message, error)
 
 	// Exists checks if a session exists.
 	Exists(ctx context.Context, sessionID uuid.UUID) (bool, error)

@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/denkhaus/gollum/pkg/startup"
-	"github.com/stretchr/testify/assert"
 	do "github.com/samber/do/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStartupContext_FlowExecutionStoresContext(t *testing.T) {

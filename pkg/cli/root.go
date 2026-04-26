@@ -25,10 +25,9 @@ type rootHandler struct {
 }
 
 // registerChannels registers all available channels with the DI container.
-func registerChannels(injector do.Injector) error {
+func registerChannels(injector do.Injector) {
 	tui.RegisterChannels(injector)
 	acp.RegisterChannels(injector)
-	return nil
 }
 
 // RootCommand returns the root CLI command
@@ -64,10 +63,9 @@ func (p *rootHandler) before(ctx context.Context, cmd *cli.Command) (context.Con
 	injector := container.RegisterServices(shutdownCtx)
 
 	// Register all channels
-	if err := registerChannels(injector); err != nil {
-		cancel()
-		return nil, fmt.Errorf("failed to register channels: %w", err)
-	}
+		// Register all channels
+		registerChannels(injector)
+
 
 	// Discover channel providers (makes them available to ChannelFacade)
 	channelFacade := do.MustInvoke[channel.ChannelFacade](injector)

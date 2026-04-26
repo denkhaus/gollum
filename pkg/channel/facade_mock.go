@@ -82,7 +82,7 @@ func (mr *MockChannelMockRecorder) OnLog(entry any) *gomock.Call {
 }
 
 // OnMessage mocks base method.
-func (m *MockChannel) OnMessage(msg Message) {
+func (m *MockChannel) OnMessage(msg shared.Message) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "OnMessage", msg)
 }
@@ -132,7 +132,7 @@ func (m *MockChannelFacade) EXPECT() *MockChannelFacadeMockRecorder {
 }
 
 // CancelInput mocks base method.
-func (m *MockChannelFacade) CancelInput(sessionID string) error {
+func (m *MockChannelFacade) CancelInput(sessionID uuid.UUID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CancelInput", sessionID)
 	ret0, _ := ret[0].(error)
@@ -143,6 +143,26 @@ func (m *MockChannelFacade) CancelInput(sessionID string) error {
 func (mr *MockChannelFacadeMockRecorder) CancelInput(sessionID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelInput", reflect.TypeOf((*MockChannelFacade)(nil).CancelInput), sessionID)
+}
+
+// CreateAndRegister mocks base method.
+func (m *MockChannelFacade) CreateAndRegister(identifier ChannelIdentifier, opts ...ChannelOption) (Channel, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{identifier}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateAndRegister", varargs...)
+	ret0, _ := ret[0].(Channel)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateAndRegister indicates an expected call of CreateAndRegister.
+func (mr *MockChannelFacadeMockRecorder) CreateAndRegister(identifier any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{identifier}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAndRegister", reflect.TypeOf((*MockChannelFacade)(nil).CreateAndRegister), varargs...)
 }
 
 // CreateChannel mocks base method.
@@ -180,7 +200,7 @@ func (mr *MockChannelFacadeMockRecorder) DiscoverProviders(injector any) *gomock
 }
 
 // DisplayMessage mocks base method.
-func (m *MockChannelFacade) DisplayMessage(msg Message) {
+func (m *MockChannelFacade) DisplayMessage(msg shared.Message) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "DisplayMessage", msg)
 }
@@ -204,7 +224,7 @@ func (mr *MockChannelFacadeMockRecorder) ForwardLog(entry any) *gomock.Call {
 }
 
 // NotifyAgentLifecycle mocks base method.
-func (m *MockChannelFacade) NotifyAgentLifecycle(agentID, channelID uuid.UUID, sessionID, role string, added bool) {
+func (m *MockChannelFacade) NotifyAgentLifecycle(agentID, channelID, sessionID uuid.UUID, role string, added bool) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "NotifyAgentLifecycle", agentID, channelID, sessionID, role, added)
 }
@@ -215,33 +235,19 @@ func (mr *MockChannelFacadeMockRecorder) NotifyAgentLifecycle(agentID, channelID
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotifyAgentLifecycle", reflect.TypeOf((*MockChannelFacade)(nil).NotifyAgentLifecycle), agentID, channelID, sessionID, role, added)
 }
 
-// RegisterChannel mocks base method.
-func (m *MockChannelFacade) RegisterChannel(channel Channel) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterChannel", channel)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RegisterChannel indicates an expected call of RegisterChannel.
-func (mr *MockChannelFacadeMockRecorder) RegisterChannel(channel any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterChannel", reflect.TypeOf((*MockChannelFacade)(nil).RegisterChannel), channel)
-}
-
 // SubmitInput mocks base method.
-func (m *MockChannelFacade) SubmitInput(ctx context.Context, channelID uuid.UUID, sessionID, input string) (*InputResult, error) {
+func (m *MockChannelFacade) SubmitInput(ctx context.Context, sessionCtx *shared.SessionContext, input string) (*InputResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SubmitInput", ctx, channelID, sessionID, input)
+	ret := m.ctrl.Call(m, "SubmitInput", ctx, sessionCtx, input)
 	ret0, _ := ret[0].(*InputResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // SubmitInput indicates an expected call of SubmitInput.
-func (mr *MockChannelFacadeMockRecorder) SubmitInput(ctx, channelID, sessionID, input any) *gomock.Call {
+func (mr *MockChannelFacadeMockRecorder) SubmitInput(ctx, sessionCtx, input any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubmitInput", reflect.TypeOf((*MockChannelFacade)(nil).SubmitInput), ctx, channelID, sessionID, input)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubmitInput", reflect.TypeOf((*MockChannelFacade)(nil).SubmitInput), ctx, sessionCtx, input)
 }
 
 // UnregisterChannel mocks base method.

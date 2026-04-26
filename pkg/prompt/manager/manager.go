@@ -27,14 +27,14 @@ type PromptManager interface {
 }
 
 type promptManager struct {
-	store                  promptstore.PromptStore
+	store                 promptstore.PromptStore
 	startupContextService startup.StartupContextService
 }
 
 // NewPromptManager creates a new Manager instance with PromptStore and StartupContextService.
 func NewPromptManager(store promptstore.PromptStore, startupContextService startup.StartupContextService) PromptManager {
 	return &promptManager{
-		store:                  store,
+		store:                 store,
 		startupContextService: startupContextService,
 	}
 }

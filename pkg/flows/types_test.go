@@ -80,8 +80,8 @@ func TestFieldDef_AssignFromAttribute(t *testing.T) {
 func TestOutputBlock_GetDeclarative(t *testing.T) {
 	block := &OutputBlock{
 		Ints: []FieldDef{
-			{Name: "sum", AssignFrom: "computed.sum", Type: TypeInt},    // declarative
-			{Name: "count", Type: TypeInt},                        // imperative
+			{Name: "sum", AssignFrom: "computed.sum", Type: TypeInt}, // declarative
+			{Name: "count", Type: TypeInt},                           // imperative
 		},
 	}
 

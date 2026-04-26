@@ -33,7 +33,7 @@ func createBashToolForTesting(t *testing.T, ctrl *gomock.Controller) *bashToolIm
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	return &bashToolImpl{
 		logService:   logService,

@@ -11,9 +11,11 @@ package acp
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/google/uuid"
 	acppkg "github.com/ironpark/go-acp"
 )
 
@@ -41,7 +43,7 @@ func (s *acpServiceImpl) newConnection(handler http.Handler) (Connection, error)
 	// Detect HTTP mode by transport type
 	if s.transportType == TransportHTTP {
 		// HTTP mode: create HTTP connection
-		return s.newHTTPConnection(handler)
+		return s.newHTTPConnection()
 	}
 
 	// Stdio mode: stdin and stdout are required
@@ -68,7 +70,32 @@ func (s *acpServiceImpl) newStdioConnection() (Connection, error) {
 	conn := acppkg.NewAgentSideConnection(s, s.stdin, s.stdout,
 		acppkg.WithSessionStore(store, func(ctx context.Context, params *acppkg.NewSessionRequest) (acppkg.SessionID, *shared.ACPSession, error) {
 			ctx, cancel := context.WithCancel(ctx)
-			return acppkg.GenerateSessionID(), shared.NewAcpSession(ctx, cancel), nil
+			cwd := params.Cwd
+			if cwd == "" {
+				cwd = "."
+			}
+			// Generate session ID and parse it as UUID
+			acpSessionID := acppkg.GenerateSessionID()
+			sessionID, err := uuid.Parse(string(acpSessionID))
+			if err != nil {
+				return "", nil, fmt.Errorf("invalid session ID format: %w", err)
+			}
+			session := shared.NewAcpSession(ctx, cancel, cwd)
+			session.SessionID = sessionID
+
+			// Register session in Gollum's SessionManager for system integration
+			_, err = s.sessionManager.CreateSession(&shared.SessionContext{
+				SessionID: sessionID,
+				ChannelID: s.id,
+				AgentID:   uuid.Nil, // Will be set when supervisor is created
+				Cwd:       cwd,
+			})
+			if err != nil {
+				cancel()
+				return "", nil, fmt.Errorf("failed to register session in SessionManager: %w", err)
+			}
+
+			return acpSessionID, session, nil
 		}),
 		acppkg.WithMiddleware(acppkg.RecoveryMiddleware()),
 	)
@@ -84,7 +111,7 @@ func (s *acpServiceImpl) newStdioConnection() (Connection, error) {
 }
 
 // newHTTPConnection creates an HTTP-based ACP connection
-func (s *acpServiceImpl) newHTTPConnection(handler http.Handler) (Connection, error) {
+func (s *acpServiceImpl) newHTTPConnection() (Connection, error) {
 	// Create HTTP transport from handler
 	httpTransport := acppkg.NewHTTPServerTransport()
 	store := acppkg.NewMemoryStore[*shared.ACPSession]()
@@ -99,7 +126,32 @@ func (s *acpServiceImpl) newHTTPConnection(handler http.Handler) (Connection, er
 		acppkg.WithSessionStore(store, func(parentCtx context.Context, params *acppkg.NewSessionRequest) (acppkg.SessionID, *shared.ACPSession, error) {
 			// Use passed context as parent for cancellation propagation
 			ctx, cancel := context.WithCancel(parentCtx)
-			return acppkg.GenerateSessionID(), shared.NewAcpSession(ctx, cancel), nil
+			cwd := params.Cwd
+			if cwd == "" {
+				cwd = "."
+			}
+			// Generate session ID and parse it as UUID
+			acpSessionID := acppkg.GenerateSessionID()
+			sessionID, err := uuid.Parse(string(acpSessionID))
+			if err != nil {
+				return "", nil, fmt.Errorf("invalid session ID format: %w", err)
+			}
+			session := shared.NewAcpSession(ctx, cancel, cwd)
+			session.SessionID = sessionID
+
+			// Register session in Gollum's SessionManager for system integration
+			_, err = s.sessionManager.CreateSession(&shared.SessionContext{
+				SessionID: sessionID,
+				ChannelID: s.id,
+				AgentID:   uuid.Nil, // Will be set when supervisor is created
+				Cwd:       cwd,
+			})
+			if err != nil {
+				cancel()
+				return "", nil, fmt.Errorf("failed to register session in SessionManager: %w", err)
+			}
+
+			return acpSessionID, session, nil
 		}),
 		acppkg.WithMiddleware(acppkg.RecoveryMiddleware()),
 	)

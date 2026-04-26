@@ -153,8 +153,8 @@ func (h *LoggingHook) logToolEvent(hookCtx *hooks.TypedHookContext[hooks.ToolPay
 		zap.String("event", event),
 		zap.String("tool", hookCtx.Payload.Name.String()),
 	}
-	if hookCtx.SessionID != "" {
-		fields = append(fields, zap.String("session_id", hookCtx.SessionID))
+	if hookCtx.SessionID != uuid.Nil {
+		fields = append(fields, zap.String("session_id", hookCtx.SessionID.String()))
 	}
 	if hookCtx.AgentID != uuid.Nil {
 		fields = append(fields, zap.String("agent_id", hookCtx.AgentID.String()))
@@ -204,8 +204,8 @@ func (h *LoggingHook) logAgentEvent(hookCtx *hooks.TypedHookContext[hooks.AgentP
 		zap.String("event", event),
 		zap.String("agent_event", string(hookCtx.Payload.Event)),
 	}
-	if hookCtx.SessionID != "" {
-		fields = append(fields, zap.String("session_id", hookCtx.SessionID))
+	if hookCtx.SessionID != uuid.Nil {
+		fields = append(fields, zap.String("session_id", hookCtx.SessionID.String()))
 	}
 	if hookCtx.AgentID != uuid.Nil {
 		fields = append(fields, zap.String("agent_id", hookCtx.AgentID.String()))
@@ -277,8 +277,8 @@ func (h *LoggingHook) logFileEvent(hookCtx *hooks.TypedHookContext[hooks.FilePay
 		zap.String("file_path", hookCtx.Payload.Path),
 		zap.String("operation", string(hookCtx.Payload.Operation)),
 	}
-	if hookCtx.SessionID != "" {
-		fields = append(fields, zap.String("session_id", hookCtx.SessionID))
+	if hookCtx.SessionID != uuid.Nil {
+		fields = append(fields, zap.String("session_id", hookCtx.SessionID.String()))
 	}
 	if hookCtx.AgentID != uuid.Nil {
 		fields = append(fields, zap.String("agent_id", hookCtx.AgentID.String()))
@@ -328,8 +328,8 @@ func (h *LoggingHook) logLLMEvent(hookCtx *hooks.TypedHookContext[hooks.LLMPaylo
 		zap.String("event", event),
 		zap.String("model", hookCtx.Payload.Model),
 	}
-	if hookCtx.SessionID != "" {
-		fields = append(fields, zap.String("session_id", hookCtx.SessionID))
+	if hookCtx.SessionID != uuid.Nil {
+		fields = append(fields, zap.String("session_id", hookCtx.SessionID.String()))
 	}
 	if hookCtx.AgentID != uuid.Nil {
 		fields = append(fields, zap.String("agent_id", hookCtx.AgentID.String()))

@@ -27,7 +27,7 @@ func TestAgentOutputTool_Run_TimeoutClamping_Int(t *testing.T) {
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), senderID, uuid.Nil, "")).AnyTimes()
 
 	agentID := uuid.New()
 
@@ -36,12 +36,12 @@ func TestAgentOutputTool_Run_TimeoutClamping_Int(t *testing.T) {
 		inputTimeout    int
 		expectedTimeout time.Duration
 	}{
-		{"Too low", 0, 1 * time.Millisecond},       // Clamped to minimum
-		{"Negative", -100, 1 * time.Millisecond},   // Clamped to minimum
-		{"Too high", 700000, 600 * time.Second},    // Clamped to maximum (600000ms = 600s)
-		{"Valid", 30000, 30 * time.Second},         // Valid value
-		{"Min valid", 1, 1 * time.Millisecond},     // Minimum value
-		{"Max valid", 600000, 600 * time.Second},   // Maximum value (600000ms = 600s)
+		{"Too low", 0, 1 * time.Millisecond},     // Clamped to minimum
+		{"Negative", -100, 1 * time.Millisecond}, // Clamped to minimum
+		{"Too high", 700000, 600 * time.Second},  // Clamped to maximum (600000ms = 600s)
+		{"Valid", 30000, 30 * time.Second},       // Valid value
+		{"Min valid", 1, 1 * time.Millisecond},   // Minimum value
+		{"Max valid", 600000, 600 * time.Second}, // Maximum value (600000ms = 600s)
 	}
 
 	for _, tt := range tests {
@@ -95,7 +95,7 @@ func TestAgentOutputTool_Run_TimeoutClamping_Float(t *testing.T) {
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), senderID, uuid.Nil, "")).AnyTimes()
 
 	agentID := uuid.New()
 
@@ -161,7 +161,7 @@ func TestAgentOutputTool_Run_DefaultBlockValue(t *testing.T) {
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), senderID, uuid.Nil, "")).AnyTimes()
 
 	agentID := uuid.New()
 	startedAt := time.Now().Unix()
@@ -211,7 +211,7 @@ func TestAgentOutputToolProvider(t *testing.T) {
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), senderID, uuid.Nil, "")).AnyTimes()
 
 	provider := &agentOutputToolProvider{
 		hookManager: mockHookManager,
@@ -240,7 +240,7 @@ func TestAgentOutputTool_Run_PermissionDenied(t *testing.T) {
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), senderID, uuid.Nil, "")).AnyTimes()
 
 	agentID := uuid.New()
 

@@ -160,9 +160,9 @@ func TestArithmeticFunctions(t *testing.T) {
 func TestArithmeticWithComputedFields(t *testing.T) {
 	scope := map[string]any{
 		"input": map[string]any{
-			"base":     100,
-			"bonus":    20,
-			"penalty":  5,
+			"base":       100,
+			"bonus":      20,
+			"penalty":    5,
 			"multiplier": 2,
 		},
 	}

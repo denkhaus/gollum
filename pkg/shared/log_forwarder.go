@@ -3,8 +3,6 @@ package shared
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // LogEntry represents a log line for display polling
@@ -17,10 +15,8 @@ type LogEntry struct {
 	Timestamp time.Time
 	// Fields contains additional structured data for the log entry
 	Fields map[string]any
-	// SessionID is the session identifier for routing logs to specific sessions
-	SessionID string
-	// ChannelID is the channel identifier for routing logs to specific channels
-	ChannelID uuid.UUID
+	// SessionContext holds routing information (session, channel, agent)
+	SessionContext
 }
 
 // LogForwarder defines the interface for forwarding log entries to the channel system.

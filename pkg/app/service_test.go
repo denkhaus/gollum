@@ -3,7 +3,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -208,14 +207,14 @@ func TestRun_NoDefaultFlowRunsTUI(t *testing.T) {
 	tempDir := t.TempDir()
 
 	mockFlowRegistry := flowregistry.NewMockFlowRegistry(ctrl)
-	mockFlowRegistry.EXPECT().GetStartupFlow().Return(nil, fmt.Errorf("no startup flow found")).Times(1)
+	mockFlowRegistry.EXPECT().GetStartupFlow().Return(nil, nil).Times(1)
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockLogger.EXPECT().EnableFileLogging(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mockLogger.EXPECT().CloseFileLogging().Return(nil).Times(1)
 	mockLogger.EXPECT().Infof("Priming FileStateManager - scanning working directory...").Times(1)
 	mockLogger.EXPECT().Infof("FileStateManager primed successfully").Times(1)
-	mockLogger.EXPECT().Info("no startup flow found -> run tui").Times(1)
+	mockLogger.EXPECT().Info("No startup flow found -> run TUI").Times(1)
 
 	mockFSM := state.NewMockFileStateManager(ctrl)
 	mockFSM.EXPECT().Prime(ctx).Return(nil).Times(1)
@@ -230,8 +229,8 @@ func TestRun_NoDefaultFlowRunsTUI(t *testing.T) {
 	mockCh.EXPECT().Start(ctx).Return(nil).Times(1)
 
 	mockChannelFacade := channel.NewMockChannelFacade(ctrl)
-	mockChannelFacade.EXPECT().CreateChannel(gomock.Any(), gomock.Any()).Return(mockCh, nil).Times(1)
-	mockChannelFacade.EXPECT().RegisterChannel(mockCh).Return(nil).Times(1)
+	mockChannelFacade.EXPECT().CreateAndRegister(gomock.Any(), gomock.Any()).Return(mockCh, nil).Times(1)
+	mockChannelFacade.EXPECT().UnregisterChannel(mockChID).Return(nil).Times(1)
 
 	p := &applicationServiceImpl{
 		gollumDir:        filepath.Join(tempDir, gollumDirName),

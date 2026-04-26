@@ -1,7 +1,6 @@
 package builtin
 
 import (
-
 	"github.com/denkhaus/gollum/pkg/logger"
 	"sync"
 	"testing"
@@ -11,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-
 )
 
 func TestLangfuseHook_Shutdown_UnitTests(t *testing.T) {
@@ -65,7 +63,7 @@ func TestLangfuseHook_Shutdown_UnitTests(t *testing.T) {
 			// Add trace contexts if needed
 			if tt.hasTraces {
 				for i := 0; i < 2; i++ {
-					hook.createTraceContext(uuid.New().String())
+					hook.createTraceContext(uuid.New())
 				}
 			}
 
@@ -106,7 +104,7 @@ func TestLangfuseHook_CleanupAllTraceContexts(t *testing.T) {
 	// Create multiple trace contexts
 	sessionIDs := []uuid.UUID{uuid.New(), uuid.New(), uuid.New()}
 	for _, sid := range sessionIDs {
-		hook.createTraceContext(sid.String())
+		hook.createTraceContext(sid)
 	}
 
 	// Verify contexts exist
@@ -179,7 +177,7 @@ func TestLangfuseHook_ShutdownWithOrphanedTraces(t *testing.T) {
 	// Create some orphaned trace contexts (session started but not ended)
 	for i := 0; i < 3; i++ {
 		sessionID := uuid.New()
-		hook.createTraceContext(sessionID.String())
+		hook.createTraceContext(sessionID)
 	}
 
 	// Verify contexts exist

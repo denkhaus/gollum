@@ -19,6 +19,7 @@ import (
 
 func TestLangfuseHook_AgentSpawnSpanLifecycle(t *testing.T) {
 	sessionID := uuid.New()
+	channelID := uuid.New()
 	parentAgentID := uuid.New()
 
 	tests := []struct {
@@ -72,11 +73,11 @@ func TestLangfuseHook_AgentSpawnSpanLifecycle(t *testing.T) {
 			}
 
 			if tt.sessionID != uuid.Nil {
-				hook.createTraceContext(tt.sessionID.String())
+				hook.createTraceContext(tt.sessionID)
 			}
 
 			hookCtx := hooks.NewTypedHookContext(
-				shared.LoggingContext{SessionID: tt.sessionID.String(), AgentID: tt.parentAgentID},
+				shared.SessionContext{SessionID: tt.sessionID, ChannelID: channelID, AgentID: tt.parentAgentID},
 				hooks.AgentPayload{Event: hooks.AgentEventSpawn, NewAgentID: tt.newAgentID},
 			)
 
@@ -93,7 +94,7 @@ func TestLangfuseHook_AgentSpawnSpanLifecycle(t *testing.T) {
 				err = hook.afterAgentSpawnHook(context.Background(), hookCtx, func() error { return nil })
 				require.NoError(t, err)
 
-				tc := hook.getTraceContext(tt.sessionID.String())
+				tc := hook.getTraceContext(tt.sessionID)
 				spanCtx, ok := tc.Spans[spanID].(*AgentSpanContext)
 				require.True(t, ok, "Span should be AgentSpanContext type")
 				assert.Equal(t, "spawn", spanCtx.EventType)
@@ -109,6 +110,7 @@ func TestLangfuseHook_AgentSpawnSpanLifecycle(t *testing.T) {
 // TestLangfuseHook_AgentRemoveSpanLifecycle tests the agent removal span lifecycle
 func TestLangfuseHook_AgentRemoveSpanLifecycle(t *testing.T) {
 	sessionID := uuid.New()
+	channelID := uuid.New()
 	agentID := uuid.New()
 
 	ctrl := gomock.NewController(t)
@@ -135,10 +137,10 @@ func TestLangfuseHook_AgentRemoveSpanLifecycle(t *testing.T) {
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
-	hook.createTraceContext(sessionID.String())
+	hook.createTraceContext(sessionID)
 
 	hookCtx := hooks.NewTypedHookContext(
-		shared.LoggingContext{SessionID: sessionID.String(), AgentID: agentID},
+		shared.SessionContext{SessionID: sessionID, ChannelID: channelID, AgentID: agentID},
 		hooks.AgentPayload{Event: hooks.AgentEventRemove},
 	)
 
@@ -153,7 +155,7 @@ func TestLangfuseHook_AgentRemoveSpanLifecycle(t *testing.T) {
 	err = hook.afterAgentRemoveHook(context.Background(), hookCtx, func() error { return nil })
 	require.NoError(t, err)
 
-	tc := hook.getTraceContext(sessionID.String())
+	tc := hook.getTraceContext(sessionID)
 	spanCtx, ok := tc.Spans[spanID].(*AgentSpanContext)
 	require.True(t, ok, "Span should be AgentSpanContext type")
 	assert.Equal(t, "remove", spanCtx.EventType)
@@ -168,6 +170,7 @@ func TestLangfuseHook_SpanHierarchy_Integration(t *testing.T) {
 	defer ctrl.Finish()
 
 	sessionID := uuid.New()
+	channelID := uuid.New()
 	parentAgentID := uuid.New()
 	childAgentID := uuid.MustParse("00000000-0000-0000-0000-000000000123")
 
@@ -193,13 +196,13 @@ func TestLangfuseHook_SpanHierarchy_Integration(t *testing.T) {
 	}
 
 	// Simulate session start (creates trace context)
-	hook.createTraceContext(sessionID.String())
-	tc := hook.getTraceContext(sessionID.String())
+	hook.createTraceContext(sessionID)
+	tc := hook.getTraceContext(sessionID)
 	require.NotNil(t, tc, "TraceContext should exist after session start")
 
 	// Simulate agent spawn
 	agentSpawnCtx := hooks.NewTypedHookContext(
-		shared.LoggingContext{SessionID: sessionID.String(), AgentID: parentAgentID},
+		shared.SessionContext{SessionID: sessionID, ChannelID: channelID, AgentID: parentAgentID},
 		hooks.AgentPayload{Event: hooks.AgentEventSpawn, NewAgentID: childAgentID},
 	)
 
@@ -220,7 +223,7 @@ func TestLangfuseHook_SpanHierarchy_Integration(t *testing.T) {
 
 	// Simulate tool execution under this agent
 	toolCtx := hooks.NewTypedHookContext(
-		shared.LoggingContext{SessionID: sessionID.String()},
+		shared.SessionContext{SessionID: sessionID, ChannelID: channelID, AgentID: parentAgentID},
 		hooks.ToolPayload{Name: "read_file", Args: map[string]any{"path": "/test.txt"}},
 	)
 
@@ -242,7 +245,7 @@ func TestLangfuseHook_SpanHierarchy_Integration(t *testing.T) {
 
 	// Simulate LLM call under this agent
 	llmCtx := hooks.NewTypedHookContext(
-		shared.LoggingContext{SessionID: sessionID.String()},
+		shared.SessionContext{SessionID: sessionID, ChannelID: channelID, AgentID: parentAgentID},
 		hooks.LLMPayload{Model: "claude-3-5-sonnet", Input: "Hello, world!"},
 	)
 
@@ -270,7 +273,7 @@ func TestLangfuseHook_SpanHierarchy_Integration(t *testing.T) {
 
 	// Simulate agent removal
 	removeCtx := hooks.NewTypedHookContext(
-		shared.LoggingContext{SessionID: sessionID.String(), AgentID: parentAgentID},
+		shared.SessionContext{SessionID: sessionID, ChannelID: channelID, AgentID: parentAgentID},
 		hooks.AgentPayload{Event: hooks.AgentEventRemove},
 	)
 
@@ -291,7 +294,7 @@ func TestLangfuseHook_SpanHierarchy_Integration(t *testing.T) {
 	assert.Len(t, tc.Spans, 4, "Should have 4 spans after full lifecycle")
 
 	// Simulate session end (removes trace context)
-	hook.removeTraceContext(sessionID.String())
-	tc = hook.getTraceContext(sessionID.String())
+	hook.removeTraceContext(sessionID)
+	tc = hook.getTraceContext(sessionID)
 	assert.Nil(t, tc, "TraceContext should be removed after session end")
 }

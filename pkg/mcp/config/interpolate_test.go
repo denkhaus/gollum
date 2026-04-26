@@ -1,7 +1,6 @@
 package config
 
 import (
-
 	"github.com/denkhaus/gollum/pkg/logger"
 	"os"
 	"strings"
@@ -9,7 +8,6 @@ import (
 	"time"
 
 	"go.uber.org/mock/gomock"
-
 )
 
 func TestInterpolateValue_EnvVars(t *testing.T) {

@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/enttest"
 	"github.com/denkhaus/gollum/pkg/session/repository"
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -260,9 +259,9 @@ func TestEntRepository_AddMessage(t *testing.T) {
 	require.NoError(t, repo.Create(ctx, session))
 
 	// Add message
-	msg := channel.Message{
+	msg := shared.Message{
 		ID:        uuid.New(),
-		Type:      channel.MessageTypeUserChat,
+		Type:      shared.MessageTypeUserChat,
 		AgentRole: "user",
 		Content:   "Hello",
 		Timestamp: time.Now(),
@@ -295,9 +294,9 @@ func TestEntRepository_GetMessages(t *testing.T) {
 
 	// Add multiple messages
 	for i := 0; i < 5; i++ {
-		msg := channel.Message{
+		msg := shared.Message{
 			ID:        uuid.New(),
-			Type:      channel.MessageTypeUserChat,
+			Type:      shared.MessageTypeUserChat,
 			AgentRole: "user",
 			Content:   fmt.Sprintf("Message %d", i),
 			Timestamp: time.Now(),

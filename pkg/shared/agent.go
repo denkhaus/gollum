@@ -29,9 +29,9 @@ type Agent interface {
 	// Used by Observed Memory Pattern for compaction.
 	UpdateHistory(ctx context.Context, modifier func(*gollem.History) (*gollem.History, error)) error
 
-	// ToLoggingContext creates a LoggingContext from the agent's configuration.
+	// ToSessionContext creates a SessionContext from the agent's configuration.
 	// This provides session, channel, and agent context for unified logging.
-	ToLoggingContext() LoggingContext
+	ToSessionContext() SessionContext
 }
 
 // LLMClientConfig holds configuration for LLM client initialization

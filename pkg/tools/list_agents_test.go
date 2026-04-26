@@ -1,7 +1,6 @@
 package tools
 
 import (
-
 	"context"
 	"github.com/denkhaus/gollum/pkg/registry"
 	"testing"
@@ -14,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-
 )
 
 func TestListAgentsTool_Spec(t *testing.T) {
@@ -33,7 +31,7 @@ func TestListAgentsTool_Spec(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
-		agent:    senderAgent,
+		agent:       senderAgent,
 	}
 
 	spec := tool.Spec()
@@ -75,7 +73,7 @@ func TestListAgentsTool_Run_SuccessNoRelatedAgents(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
-		agent:    senderAgent,
+		agent:       senderAgent,
 	}
 
 	ctx := context.Background()
@@ -130,7 +128,7 @@ func TestListAgentsTool_Run_SuccessWithSubagentsOnly(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
-		agent:    senderAgent,
+		agent:       senderAgent,
 	}
 
 	ctx := context.Background()
@@ -188,7 +186,7 @@ func TestListAgentsTool_Run_SuccessWithParentOnly(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
-		agent:    senderAgent,
+		agent:       senderAgent,
 	}
 
 	ctx := context.Background()
@@ -257,7 +255,7 @@ func TestListAgentsTool_Run_SuccessWithParentAndSubagents(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
-		agent:    senderAgent,
+		agent:       senderAgent,
 	}
 
 	ctx := context.Background()
@@ -298,7 +296,7 @@ func TestListAgentsToolProvider(t *testing.T) {
 	// Create mock agent
 	senderAgent := shared.NewMockAgent(ctrl)
 	senderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	senderAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+	senderAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), senderID, uuid.Nil, "")).AnyTimes()
 
 	provider := &listAgentsToolProvider{
 		logService: logService,
@@ -384,7 +382,7 @@ func TestListAgentsTool_Run_RecursiveFlag(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
-		agent:    senderAgent,
+		agent:       senderAgent,
 	}
 
 	ctx := context.Background()
@@ -452,7 +450,7 @@ func TestListAgentsTool_Run_TreeFlag(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
-		agent:    senderAgent,
+		agent:       senderAgent,
 	}
 
 	ctx := context.Background()
@@ -516,7 +514,7 @@ func TestListAgentsTool_Run_TreeFlagWithRecursive(t *testing.T) {
 		logService:  logService,
 		hookManager: mockHookManager,
 		registry:    registry,
-		agent:    senderAgent,
+		agent:       senderAgent,
 	}
 
 	ctx := context.Background()

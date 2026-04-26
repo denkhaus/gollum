@@ -2,7 +2,6 @@
 package optimizer_test
 
 import (
-
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	"testing"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-
 )
 
 // TestNewOptimizer_ValidConfig tests creating optimizers with valid config.

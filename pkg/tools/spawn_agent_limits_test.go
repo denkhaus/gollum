@@ -56,7 +56,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_LimitExceeded(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        senderAgent,
+		agent:           senderAgent,
 	}
 
 	args := map[string]any{
@@ -111,7 +111,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_SubAgentLimitExceeded(t *testing.T
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        senderAgent,
+		agent:           senderAgent,
 	}
 
 	args := map[string]any{
@@ -166,7 +166,7 @@ func TestSpawnAgentTool_Run_AgentFactoryError_GenericError(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        senderAgent,
+		agent:           senderAgent,
 	}
 
 	args := map[string]any{

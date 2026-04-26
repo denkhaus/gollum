@@ -96,7 +96,7 @@ func (t *bashToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the Bash tool to run shell commands
 func (t *bashToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameBash, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameBash, args,
 		func() (map[string]any, error) {
 			return t.runBashCommand(ctx, args)
 		})
@@ -123,7 +123,7 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args ToolRequestParam
 	cmdCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	t.logService.InfoWithContext("Executing bash command", t.agent.ToLoggingContext(), zap.String("command", command))
+	t.logService.InfoWithContext("Executing bash command", t.agent.ToSessionContext(), zap.String("command", command))
 
 	cmd := exec.CommandContext(cmdCtx, "bash", "-c", command)
 
@@ -146,14 +146,14 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args ToolRequestParam
 
 	if err != nil {
 		if cmdCtx.Err() == context.DeadlineExceeded {
-			t.logService.WarnWithContext("Command timed out", t.agent.ToLoggingContext(),
+			t.logService.WarnWithContext("Command timed out", t.agent.ToSessionContext(),
 				zap.Float64("timeout_seconds", timeout.Seconds()),
 				zap.String("command", command))
 			result[string(shared.KeySuccess)] = false
 			result[string(shared.KeyError)] = fmt.Sprintf("command timed out after %.2fs", timeout.Seconds())
 			result[string(shared.KeyExitCode)] = -1
 		} else {
-			t.logService.ErrorWithContext("Command failed", t.agent.ToLoggingContext(),
+			t.logService.ErrorWithContext("Command failed", t.agent.ToSessionContext(),
 				zap.String("command", command),
 				zap.Error(err))
 			result[string(shared.KeySuccess)] = false
@@ -163,7 +163,7 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args ToolRequestParam
 		return result, nil
 	}
 
-	t.logService.InfoWithContext("Command succeeded", t.agent.ToLoggingContext(),
+	t.logService.InfoWithContext("Command succeeded", t.agent.ToSessionContext(),
 		zap.Float64("duration_seconds", duration.Seconds()),
 		zap.String("command", command),
 		zap.Int("exit_code", 0),
@@ -182,11 +182,11 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args ToolRequestParam
 		// Detect changes
 		changes, detectErr := t.fileState.DetectChanges(beforeStats)
 		if detectErr != nil {
-			t.logService.WarnWithContext("Failed to detect file changes", t.agent.ToLoggingContext(), zap.Error(detectErr))
+			t.logService.WarnWithContext("Failed to detect file changes", t.agent.ToSessionContext(), zap.Error(detectErr))
 			result[string(shared.KeyWarning)] = fmt.Sprintf("Failed to detect file changes: %v", detectErr)
 		} else if len(changes) > 0 {
 			// Log detected changes
-			t.logService.InfoWithContext("Bash command modified files", t.agent.ToLoggingContext(),
+			t.logService.InfoWithContext("Bash command modified files", t.agent.ToSessionContext(),
 				zap.Int("count", len(changes)),
 				zap.String("command", command))
 
@@ -197,7 +197,7 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args ToolRequestParam
 					// Get the current content of the file
 					currentContent, err := os.ReadFile(change.Path)
 					if err != nil {
-						t.logService.WarnWithContext("Failed to get current content for diff", t.agent.ToLoggingContext(),
+						t.logService.WarnWithContext("Failed to get current content for diff", t.agent.ToSessionContext(),
 							zap.String("path", change.Path),
 							zap.Error(err))
 						continue
@@ -216,7 +216,7 @@ func (t *bashToolImpl) runBashCommand(ctx context.Context, args ToolRequestParam
 					}
 
 					if err != nil {
-						t.logService.WarnWithContext("Failed to generate diff", t.agent.ToLoggingContext(),
+						t.logService.WarnWithContext("Failed to generate diff", t.agent.ToSessionContext(),
 							zap.String("path", change.Path),
 							zap.Error(err))
 						continue

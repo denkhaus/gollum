@@ -11,8 +11,9 @@ import (
 // TestLogEntryInitialization verifies that LogEntry can be properly initialized
 // with all routing fields.
 func TestLogEntryInitialization(t *testing.T) {
-	sessionID := "test-session-123"
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
 	channelID := uuid.New()
+	agentID := uuid.New()
 	timestamp := time.Now()
 	fields := map[string]any{
 		"user_id": "user-456",
@@ -24,8 +25,11 @@ func TestLogEntryInitialization(t *testing.T) {
 		Message:   "User logged in successfully",
 		Timestamp: timestamp,
 		Fields:    fields,
-		SessionID: sessionID,
-		ChannelID: channelID,
+		SessionContext: SessionContext{
+			SessionID: sessionID,
+			ChannelID: channelID,
+			AgentID:   agentID,
+		},
 	}
 
 	// Verify all fields are set correctly
@@ -56,18 +60,25 @@ func TestLogEntryInitialization(t *testing.T) {
 	if entry.ChannelID != channelID {
 		t.Errorf("expected ChannelID %v, got %v", channelID, entry.ChannelID)
 	}
+
+	if entry.AgentID != agentID {
+		t.Errorf("expected AgentID %v, got %v", agentID, entry.AgentID)
+	}
 }
 
 // TestLogEntryWithEmptyFields verifies that LogEntry can be created with
 // nil or empty Fields map.
 func TestLogEntryWithEmptyFields(t *testing.T) {
 	entry := LogEntry{
-		Level:     "debug",
-		Message:   "Debug message",
-		Timestamp: time.Now(),
-		Fields:    nil,
-		SessionID: "",
-		ChannelID: uuid.Nil,
+		Level:       "debug",
+		Message:     "Debug message",
+		Timestamp:   time.Now(),
+		Fields:      nil,
+		SessionContext: SessionContext{
+			SessionID: uuid.Nil,
+			ChannelID: uuid.Nil,
+			AgentID:   uuid.Nil,
+		},
 	}
 
 	// Verify entry is valid even with nil fields
@@ -83,12 +94,16 @@ func TestLogEntryWithEmptyFields(t *testing.T) {
 		t.Errorf("expected Fields to be nil, got %v", entry.Fields)
 	}
 
-	if entry.SessionID != "" {
-		t.Errorf("expected empty SessionID, got '%s'", entry.SessionID)
+	if entry.SessionID != uuid.Nil {
+		t.Errorf("expected nil SessionID, got '%s'", entry.SessionID)
 	}
 
 	if entry.ChannelID != uuid.Nil {
 		t.Errorf("expected nil ChannelID, got %v", entry.ChannelID)
+	}
+
+	if entry.AgentID != uuid.Nil {
+		t.Errorf("expected nil AgentID, got %v", entry.AgentID)
 	}
 }
 
@@ -114,8 +129,11 @@ func TestLogForwarderInterface(t *testing.T) {
 		Message:   "Test error",
 		Timestamp: time.Now(),
 		Fields:    map[string]any{"code": 500},
-		SessionID: "session-789",
-		ChannelID: uuid.New(),
+		SessionContext: SessionContext{
+			SessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440002"),
+			ChannelID: uuid.New(),
+			AgentID:   uuid.New(),
+		},
 	}
 
 	// This call should compile and execute without errors
@@ -141,28 +159,33 @@ func TestLogForwarderInterface(t *testing.T) {
 func TestLogEntryRoutingFields(t *testing.T) {
 	testCases := []struct {
 		name      string
-		sessionID string
+		sessionID uuid.UUID
 		channelID uuid.UUID
+		agentID   uuid.UUID
 	}{
 		{
 			name:      "With both routing fields",
-			sessionID: "session-abc",
+			sessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440003"),
 			channelID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+			agentID:   uuid.MustParse("550e8400-e29b-41d4-a716-446655440005"),
 		},
 		{
-			name:      "With empty SessionID",
-			sessionID: "",
+			name:      "With nil SessionID",
+			sessionID: uuid.Nil,
 			channelID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+			agentID:   uuid.Nil,
 		},
 		{
 			name:      "With nil ChannelID",
-			sessionID: "session-xyz",
+			sessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440004"),
 			channelID: uuid.Nil,
+			agentID:   uuid.Nil,
 		},
 		{
-			name:      "With both empty",
-			sessionID: "",
+			name:      "With both nil",
+			sessionID: uuid.Nil,
 			channelID: uuid.Nil,
+			agentID:   uuid.Nil,
 		},
 	}
 
@@ -173,8 +196,11 @@ func TestLogEntryRoutingFields(t *testing.T) {
 				Message:   "Routing test",
 				Timestamp: time.Now(),
 				Fields:    nil,
-				SessionID: tc.sessionID,
-				ChannelID: tc.channelID,
+				SessionContext: SessionContext{
+					SessionID: tc.sessionID,
+					ChannelID: tc.channelID,
+					AgentID:   tc.agentID,
+				},
 			}
 
 			if entry.SessionID != tc.sessionID {
@@ -183,6 +209,10 @@ func TestLogEntryRoutingFields(t *testing.T) {
 
 			if entry.ChannelID != tc.channelID {
 				t.Errorf("expected ChannelID %v, got %v", tc.channelID, entry.ChannelID)
+			}
+
+			if entry.AgentID != tc.agentID {
+				t.Errorf("expected AgentID %v, got %v", tc.agentID, entry.AgentID)
 			}
 		})
 	}

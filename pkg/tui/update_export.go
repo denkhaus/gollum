@@ -8,8 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/denkhaus/gollum/pkg/shared"
+
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/google/uuid"
 )
 
@@ -19,17 +20,17 @@ func (m Model) handleExport() (tea.Model, tea.Cmd) {
 	content := buildExportContent(m.messages)
 
 	if err := writeExportFile(filename, content); err != nil {
-		errorMsg := channel.Message{
+		errorMsg := shared.Message{
 			ID:        uuid.New(),
-			Type:      channel.MessageTypeError,
+			Type:      shared.MessageTypeError,
 			Content:   fmt.Sprintf("Failed to export conversation: %v", err),
 			Timestamp: time.Now(),
 		}
 		m.addMessage(errorMsg)
 	} else {
-		successMsg := channel.Message{
+		successMsg := shared.Message{
 			ID:        uuid.New(),
-			Type:      channel.MessageTypeSystemInfo,
+			Type:      shared.MessageTypeSystemInfo,
 			Content:   fmt.Sprintf("Conversation exported to: %s", filename),
 			Timestamp: time.Now(),
 		}
@@ -48,7 +49,7 @@ func generateExportFilename() string {
 }
 
 // buildExportContent formats messages for export.
-func buildExportContent(messages []channel.Message) string {
+func buildExportContent(messages []shared.Message) string {
 	var content strings.Builder
 	content.WriteString("# Gollum Conversation Export\n")
 	fmt.Fprintf(&content, "# Exported: %s\n", time.Now().Format(time.RFC3339))
@@ -60,15 +61,15 @@ func buildExportContent(messages []channel.Message) string {
 		var prefix string
 
 		switch msg.Type {
-		case channel.MessageTypeUserChat:
+		case shared.MessageTypeUserChat:
 			prefix = fmt.Sprintf("[%s] You:", timestamp)
-		case channel.MessageTypeAgentChat:
+		case shared.MessageTypeAgentChat:
 			prefix = fmt.Sprintf("[%s] Agent:", timestamp)
-		case channel.MessageTypeToolRequest, channel.MessageTypeToolResponse:
+		case shared.MessageTypeToolRequest, shared.MessageTypeToolResponse:
 			prefix = fmt.Sprintf("[%s] Tool:", timestamp)
-		case channel.MessageTypeSystemInfo:
+		case shared.MessageTypeSystemInfo:
 			prefix = fmt.Sprintf("[%s] System:", timestamp)
-		case channel.MessageTypeError:
+		case shared.MessageTypeError:
 			prefix = fmt.Sprintf("[%s] Error:", timestamp)
 		default:
 			prefix = fmt.Sprintf("[%s] Unknown:", timestamp)

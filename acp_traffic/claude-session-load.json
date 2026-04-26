@@ -1,0 +1,908 @@
+{
+  "exportedAt": "2026-04-26T10:07:18.402Z",
+  "totalEntries": 8,
+  "entries": [
+    {
+      "direction": "out",
+      "type": "request",
+      "method": "initialize",
+      "requestId": 0,
+      "payload": {
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "initialize",
+        "params": {
+          "protocolVersion": 1,
+          "clientCapabilities": {
+            "fs": {
+              "readTextFile": true,
+              "writeTextFile": true
+            }
+          },
+          "clientInfo": {
+            "name": "acp-ui",
+            "title": "ACP UI",
+            "version": "0.1.10"
+          }
+        }
+      },
+      "id": "b49be3c5-7430-4ece-98a2-f6d342d6e2ab",
+      "timestamp": 1777197998029
+    },
+    {
+      "direction": "in",
+      "type": "response",
+      "method": "initialize",
+      "requestId": 0,
+      "payload": {
+        "jsonrpc": "2.0",
+        "id": 0,
+        "result": {
+          "protocolVersion": 1,
+          "agentCapabilities": {
+            "_meta": {
+              "claudeCode": {
+                "promptQueueing": true
+              }
+            },
+            "promptCapabilities": {
+              "image": true,
+              "embeddedContext": true
+            },
+            "mcpCapabilities": {
+              "http": true,
+              "sse": true
+            },
+            "loadSession": true,
+            "sessionCapabilities": {
+              "fork": {},
+              "list": {},
+              "resume": {},
+              "close": {}
+            }
+          },
+          "agentInfo": {
+            "name": "@agentclientprotocol/claude-agent-acp",
+            "title": "Claude Agent",
+            "version": "0.31.0"
+          },
+          "authMethods": []
+        }
+      },
+      "error": false,
+      "id": "df9ab3b5-2e54-48f0-8fa8-63e4770b7ff1",
+      "timestamp": 1777198004095
+    },
+    {
+      "direction": "out",
+      "type": "request",
+      "method": "session/load",
+      "requestId": 1,
+      "payload": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "session/load",
+        "params": {
+          "sessionId": "64c1c394-c07a-4bb7-b259-dd4553b06870",
+          "cwd": "/home/denkhaus/dev/gomodules/gollum",
+          "mcpServers": []
+        }
+      },
+      "id": "8b8abaea-74dd-4512-8bde-ee8db84e34e4",
+      "timestamp": 1777198004095
+    },
+    {
+      "direction": "in",
+      "type": "notification",
+      "method": "session/update",
+      "payload": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "64c1c394-c07a-4bb7-b259-dd4553b06870",
+          "update": {
+            "sessionUpdate": "user_message_chunk",
+            "content": {
+              "type": "text",
+              "text": "hello"
+            }
+          }
+        }
+      },
+      "id": "62fea4e8-46df-4ca9-a57e-2fcc6a3c86c9",
+      "timestamp": 1777198009540
+    },
+    {
+      "direction": "in",
+      "type": "notification",
+      "method": "session/update",
+      "payload": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "64c1c394-c07a-4bb7-b259-dd4553b06870",
+          "update": {
+            "sessionUpdate": "agent_thought_chunk",
+            "content": {
+              "type": "text",
+              "text": "The user just said \"hello\" - a simple greeting. Looking at my instructions, I need to:\n\n1. First check if any skills apply - the system says I must check for skills even with 1% chance\n2. The user's message is just \"hello\" - this is a greeting, not a task\n\nLooking at the available skills, I see many but none specifically apply to a simple greeting. The \"using-superpowers\" skill says to check for skills before any response, but a greeting doesn't require any specific skill.\n\nHowever, I notice the user has project-specific instructions that mention:\n- Use the `karpathy-guidelines` skill \n- Use `forgejo-cli` skill for \"what's next\" tasks\n- Various Go programming guides\n\nBut this is just a greeting - the user is likely starting the conversation. I should respond briefly and helpfully.\n\nLet me keep this simple - just acknowledge the greeting and offer assistance."
+            }
+          }
+        }
+      },
+      "id": "90a32415-28a2-4cb8-abac-489263327ee9",
+      "timestamp": 1777198009541
+    },
+    {
+      "direction": "in",
+      "type": "notification",
+      "method": "session/update",
+      "payload": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "64c1c394-c07a-4bb7-b259-dd4553b06870",
+          "update": {
+            "sessionUpdate": "agent_message_chunk",
+            "content": {
+              "type": "text",
+              "text": "Hello! I'm ready to help you with the Gollum project. I have the context about the codebase, guidelines, and can assist with:\n\n- Development tasks following the Go programming guides\n- Checking Forgejo issues for \"what's next\"\n- Running tests with `just` or `just build`\n- Working with the codebase using the karpathy-guidelines principles\n\nWhat would you like to work on?"
+            }
+          }
+        }
+      },
+      "id": "b50f8ad0-2bad-4dc8-a76d-f22223f32527",
+      "timestamp": 1777198009541
+    },
+    {
+      "direction": "in",
+      "type": "response",
+      "method": "session/load",
+      "requestId": 1,
+      "payload": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "sessionId": "64c1c394-c07a-4bb7-b259-dd4553b06870",
+          "modes": {
+            "currentModeId": "default",
+            "availableModes": [
+              {
+                "id": "auto",
+                "name": "Auto",
+                "description": "Use a model classifier to approve/deny permission prompts"
+              },
+              {
+                "id": "default",
+                "name": "Default",
+                "description": "Standard behavior, prompts for dangerous operations"
+              },
+              {
+                "id": "acceptEdits",
+                "name": "Accept Edits",
+                "description": "Auto-accept file edit operations"
+              },
+              {
+                "id": "plan",
+                "name": "Plan Mode",
+                "description": "Planning mode, no actual tool execution"
+              },
+              {
+                "id": "dontAsk",
+                "name": "Don't Ask",
+                "description": "Don't prompt for permissions, deny if not pre-approved"
+              },
+              {
+                "id": "bypassPermissions",
+                "name": "Bypass Permissions",
+                "description": "Bypass all permission checks"
+              }
+            ]
+          },
+          "models": {
+            "availableModels": [
+              {
+                "modelId": "default",
+                "name": "Default (recommended)",
+                "description": "Use the default model (currently glm-4.7) · $3/$15 per Mtok"
+              },
+              {
+                "modelId": "sonnet",
+                "name": "glm-4.7",
+                "description": "Custom Sonnet model"
+              },
+              {
+                "modelId": "opus",
+                "name": "glm-5.1",
+                "description": "Custom Opus model"
+              },
+              {
+                "modelId": "haiku",
+                "name": "glm-4.6",
+                "description": "Custom Haiku model"
+              }
+            ],
+            "currentModelId": "default"
+          },
+          "configOptions": [
+            {
+              "id": "mode",
+              "name": "Mode",
+              "description": "Session permission mode",
+              "category": "mode",
+              "type": "select",
+              "currentValue": "default",
+              "options": [
+                {
+                  "value": "auto",
+                  "name": "Auto",
+                  "description": "Use a model classifier to approve/deny permission prompts"
+                },
+                {
+                  "value": "default",
+                  "name": "Default",
+                  "description": "Standard behavior, prompts for dangerous operations"
+                },
+                {
+                  "value": "acceptEdits",
+                  "name": "Accept Edits",
+                  "description": "Auto-accept file edit operations"
+                },
+                {
+                  "value": "plan",
+                  "name": "Plan Mode",
+                  "description": "Planning mode, no actual tool execution"
+                },
+                {
+                  "value": "dontAsk",
+                  "name": "Don't Ask",
+                  "description": "Don't prompt for permissions, deny if not pre-approved"
+                },
+                {
+                  "value": "bypassPermissions",
+                  "name": "Bypass Permissions",
+                  "description": "Bypass all permission checks"
+                }
+              ]
+            },
+            {
+              "id": "model",
+              "name": "Model",
+              "description": "AI model to use",
+              "category": "model",
+              "type": "select",
+              "currentValue": "default",
+              "options": [
+                {
+                  "value": "default",
+                  "name": "Default (recommended)",
+                  "description": "Use the default model (currently glm-4.7) · $3/$15 per Mtok"
+                },
+                {
+                  "value": "sonnet",
+                  "name": "glm-4.7",
+                  "description": "Custom Sonnet model"
+                },
+                {
+                  "value": "opus",
+                  "name": "glm-5.1",
+                  "description": "Custom Opus model"
+                },
+                {
+                  "value": "haiku",
+                  "name": "glm-4.6",
+                  "description": "Custom Haiku model"
+                }
+              ]
+            },
+            {
+              "id": "effort",
+              "name": "Effort",
+              "description": "Available effort levels for this model",
+              "category": "effort",
+              "type": "select",
+              "currentValue": "xhigh",
+              "options": [
+                {
+                  "value": "low",
+                  "name": "Low"
+                },
+                {
+                  "value": "medium",
+                  "name": "Medium"
+                },
+                {
+                  "value": "high",
+                  "name": "High"
+                },
+                {
+                  "value": "xhigh",
+                  "name": "Xhigh"
+                },
+                {
+                  "value": "max",
+                  "name": "Max"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "error": false,
+      "id": "a413e2c5-a5f2-4b97-b32e-0e46b3944934",
+      "timestamp": 1777198009542
+    },
+    {
+      "direction": "in",
+      "type": "notification",
+      "method": "session/update",
+      "payload": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "64c1c394-c07a-4bb7-b259-dd4553b06870",
+          "update": {
+            "sessionUpdate": "available_commands_update",
+            "availableCommands": [
+              {
+                "name": "update-config",
+                "description": "Use this skill to configure the Claude Code harness via settings.json. Automated behaviors (\"from now on when X\", \"each time X\", \"whenever X\", \"before/after X\") require hooks configured in settings.json - the harness executes these, not Claude, so memory/preferences cannot fulfill them. Also use for: permissions (\"allow X\", \"add permission\", \"move permission to\"), env vars (\"set X=Y\"), hook troubleshooting, or any changes to settings.json/settings.local.json files. Examples: \"allow npm commands\", \"add bq permission to global settings\", \"move permission to user settings\", \"set DEBUG=true\", \"when claude stops show X\". For simple settings like theme/model, suggest the /config command.",
+                "input": null
+              },
+              {
+                "name": "debug",
+                "description": "Enable debug logging for this session and help diagnose issues",
+                "input": {
+                  "hint": "[issue description]"
+                }
+              },
+              {
+                "name": "simplify",
+                "description": "Review changed code for reuse, quality, and efficiency, then fix any issues found.",
+                "input": null
+              },
+              {
+                "name": "batch",
+                "description": "Research and plan a large-scale change, then execute it in parallel across 5–30 isolated worktree agents that each open a PR.",
+                "input": {
+                  "hint": "<instruction>"
+                }
+              },
+              {
+                "name": "fewer-permission-prompts",
+                "description": "Scan your transcripts for common read-only Bash and MCP tool calls, then add a prioritized allowlist to project .claude/settings.json to reduce permission prompts.",
+                "input": null
+              },
+              {
+                "name": "loop",
+                "description": "Run a prompt or slash command on a recurring interval (e.g. /loop 5m /foo). Omit the interval to let the model self-pace.",
+                "input": {
+                  "hint": "[interval] <prompt>"
+                }
+              },
+              {
+                "name": "schedule",
+                "description": "Create, update, list, or run scheduled remote agents (routines) on a cron schedule or once at a specific time.",
+                "input": null
+              },
+              {
+                "name": "claude-api",
+                "description": "Build, debug, and optimize Claude API / Anthropic SDK apps. Apps built with this skill should include prompt caching. Also handles migrating existing Claude API code between Claude model versions (4.5 → 4.6, 4.6 → 4.7, retired-model replacements).\nTRIGGER when: code imports `anthropic`/`@anthropic-ai/sdk`; user asks for the Claude API, Anthropic SDK, or Managed Agents; user adds/modifies/tunes a Claude feature (caching, thinking, compaction, tool use, batch, files, citations, memory) or model (Opus/Sonnet/Haiku) in a file; questions about prompt caching / cache hit rate in an Anthropic SDK project.\nSKIP: file imports `openai`/other-provider SDK, filename like `*-openai.py`/`*-generic.py`, provider-neutral code, general programming/ML.",
+                "input": null
+              },
+              {
+                "name": "forgejo-cli",
+                "description": "Use when listing issues, viewing PRs, managing labels, filtering by author/search/state, checking dependencies, or any Forgejo repository operations via CLI. Provides token-efficient output through --output table/plain, --fields, --search, --author, --has-label, --all flags. (user)",
+                "input": null
+              },
+              {
+                "name": "guidance-improve",
+                "description": "Improves guidance documents based on session experiences and learnings. Use when a session concluded with meaningful experiences, you identified missing guidance, discovered ambiguous instructions, found new patterns worth documenting, or encountered common pitfalls. This skill continuously improves the guidance knowledge base by capturing universal learnings from actual work. (user)",
+                "input": null
+              },
+              {
+                "name": "agent-browser",
+                "description": "Browser automation CLI for AI agents. Use when the user needs to interact with websites, including navigating pages, filling forms, clicking buttons, taking screenshots, extracting data, testing web apps, or automating any browser task. Triggers include requests to \"open a website\", \"fill out a form\", \"click a button\", \"take a screenshot\", \"scrape data from a page\", \"test this web app\", \"login to a site\", \"automate browser actions\", or any task requiring programmatic web interaction. (user)",
+                "input": null
+              },
+              {
+                "name": "guidance-learn",
+                "description": "Files knowledge proposals, obstacles, and patterns to the knowledge_proposals_obstacles repository. Use when you discovered a universal pattern across projects, encountered a tool/infrastructure obstacle, have a workflow improvement idea, or solved a problem worth documenting. This is the agent's operational memory for universal learnings across all work contexts. (user)",
+                "input": null
+              },
+              {
+                "name": "jj-vcs",
+                "description": "Guides agents through using the Jujutsu (jj) version control system. Activate when the user mentions jj, jujutsu, or when working in a repository with a .jj directory. Teaches proper workflow for atomic commits and change management. (user)",
+                "input": null
+              },
+              {
+                "name": "forgejo-workflow",
+                "description": "Forgejo issue/PR workflow automation. Dispatches to agent files that contain complete step-by-step workflows. Use when working on Forgejo issues, PRs, or workflow stages (fix, implement, review, merge). (user)",
+                "input": null
+              },
+              {
+                "name": "tmux",
+                "description": "Remote-control tmux sessions for interactive CLIs by sending keystrokes and scraping pane output. (user)",
+                "input": null
+              },
+              {
+                "name": "worktrunk",
+                "description": "Guidance for Worktrunk, a CLI tool for managing git worktrees. Covers configuration (user config at ~/.config/worktrunk/config.toml and project hooks at .config/wt.toml), usage, and troubleshooting. Use for \"setting up commit message generation\", \"configuring hooks\", \"automating tasks\", or general worktrunk questions. (project)",
+                "input": null
+              },
+              {
+                "name": "karpathy-guidelines",
+                "description": "Behavioral guidelines to reduce common LLM coding mistakes. Use when writing, reviewing, or refactoring code to avoid overcomplication, make surgical changes, surface assumptions, and define verifiable success criteria. (project)",
+                "input": null
+              },
+              {
+                "name": "todos2beads",
+                "description": "TODO to Beads Transformation Guide v3 (user)",
+                "input": null
+              },
+              {
+                "name": "run-prompt",
+                "description": "Delegate one or more prompts to fresh sub-task contexts with parallel or sequential execution (user)",
+                "input": {
+                  "hint": "<prompt-number(s)-or-name> [--parallel|--sequential]"
+                }
+              },
+              {
+                "name": "save-conversation",
+                "description": "Analyze the current conversation and create a handoff document for continuing this work in a fresh context (user)",
+                "input": null
+              },
+              {
+                "name": "create-prompt",
+                "description": "Expert prompt engineer that creates optimized, XML-structured prompts with intelligent depth selection (user)",
+                "input": {
+                  "hint": "task description"
+                }
+              },
+              {
+                "name": "forgejo-file-issue",
+                "description": "Guideline about filing an issue on the forgejo issue tracker based on the current context (user)",
+                "input": {
+                  "hint": "repo in the form <user/repo>"
+                }
+              },
+              {
+                "name": "go-lint-only",
+                "description": "Expert linting engineer that processes linting issues with skilled code understanding and intelligent issue selection (user)",
+                "input": {
+                  "hint": "goconst | gocritic | ineffassign | prealloc | revive | staticcheck | unparam | unused"
+                }
+              },
+              {
+                "name": "improve-document",
+                "description": "Guidance for document improval without information loss (project)",
+                "input": {
+                  "hint": "path to a document to improve uppon"
+                }
+              },
+              {
+                "name": "taches-cc-resources:create-hook",
+                "description": "(taches-cc-resources) Invoke create-hooks skill for expert guidance on Claude Code hook development",
+                "input": null
+              },
+              {
+                "name": "taches-cc-resources:create-slash-command",
+                "description": "(taches-cc-resources) Create a new slash command following best practices and patterns",
+                "input": {
+                  "hint": "command description or requirements"
+                }
+              },
+              {
+                "name": "taches-cc-resources:create-plan",
+                "description": "(taches-cc-resources) Create hierarchical project plans for solo agentic development (briefs, roadmaps, phase plans)",
+                "input": {
+                  "hint": "what to plan"
+                }
+              },
+              {
+                "name": "taches-cc-resources:audit-slash-command",
+                "description": "(taches-cc-resources) Audit slash command file for YAML, arguments, dynamic context, tool restrictions, and content quality",
+                "input": {
+                  "hint": "<command-path>"
+                }
+              },
+              {
+                "name": "taches-cc-resources:create-agent-skill",
+                "description": "(taches-cc-resources) Create or edit Claude Code skills with expert guidance on structure and best practices",
+                "input": {
+                  "hint": "skill description or requirements"
+                }
+              },
+              {
+                "name": "taches-cc-resources:create-meta-prompt",
+                "description": "(taches-cc-resources) Create optimized prompts for Claude-to-Claude pipelines (research -> plan -> implement)",
+                "input": {
+                  "hint": "task description"
+                }
+              },
+              {
+                "name": "taches-cc-resources:check-todos",
+                "description": "(taches-cc-resources) List outstanding todos and select one to work on",
+                "input": null
+              },
+              {
+                "name": "taches-cc-resources:audit-skill",
+                "description": "(taches-cc-resources) Audit skill for YAML compliance, pure XML structure, progressive disclosure, and best practices",
+                "input": {
+                  "hint": "<skill-path>"
+                }
+              },
+              {
+                "name": "whats-next",
+                "description": "(taches-cc-resources) Analyze the current conversation and create a handoff document for continuing this work in a fresh context",
+                "input": null
+              },
+              {
+                "name": "run-prompt",
+                "description": "(taches-cc-resources) Delegate one or more prompts to fresh sub-task contexts with parallel or sequential execution",
+                "input": {
+                  "hint": "<prompt-number(s)-or-name> [--parallel|--sequential]"
+                }
+              },
+              {
+                "name": "taches-cc-resources:audit-subagent",
+                "description": "(taches-cc-resources) Audit subagent configuration for role definition, prompt quality, tool selection, XML structure compliance, and effectiveness",
+                "input": {
+                  "hint": "<subagent-path>"
+                }
+              },
+              {
+                "name": "taches-cc-resources:heal-skill",
+                "description": "(taches-cc-resources) Heal skill documentation by applying corrections discovered during execution with approval workflow",
+                "input": {
+                  "hint": "[object Object]"
+                }
+              },
+              {
+                "name": "taches-cc-resources:debug",
+                "description": "(taches-cc-resources) Apply expert debugging methodology to investigate a specific issue",
+                "input": {
+                  "hint": "issue description"
+                }
+              },
+              {
+                "name": "taches-cc-resources:add-to-todos",
+                "description": "(taches-cc-resources) Add todo item to TO-DOS.md with context from conversation",
+                "input": {
+                  "hint": "<todo-description> (optional - infers from conversation if omitted)"
+                }
+              },
+              {
+                "name": "taches-cc-resources:run-plan",
+                "description": "(taches-cc-resources) Execute a PLAN.md file directly without loading planning skill context",
+                "input": null
+              },
+              {
+                "name": "taches-cc-resources:create-prompt",
+                "description": "(taches-cc-resources) Create a new prompt that another Claude can execute",
+                "input": {
+                  "hint": "task description"
+                }
+              },
+              {
+                "name": "taches-cc-resources:create-subagent",
+                "description": "(taches-cc-resources) Create specialized Claude Code subagents with expert guidance",
+                "input": {
+                  "hint": "agent idea or description"
+                }
+              },
+              {
+                "name": "taches-cc-resources:consider:via-negativa",
+                "description": "(taches-cc-resources) Improve by removing rather than adding",
+                "input": {
+                  "hint": "situation or leave blank for current context"
+                }
+              },
+              {
+                "name": "taches-cc-resources:consider:pareto",
+                "description": "(taches-cc-resources) Apply Pareto's principle (80/20 rule) to analyze arguments or current discussion",
+                "input": {
+                  "hint": "topic or leave blank for current context"
+                }
+              },
+              {
+                "name": "taches-cc-resources:consider:opportunity-cost",
+                "description": "(taches-cc-resources) Analyze what you give up by choosing this option",
+                "input": {
+                  "hint": "choice or leave blank for current context"
+                }
+              },
+              {
+                "name": "taches-cc-resources:consider:eisenhower-matrix",
+                "description": "(taches-cc-resources) Apply Eisenhower matrix (urgent/important) to prioritize tasks or decisions",
+                "input": {
+                  "hint": "tasks or leave blank for current context"
+                }
+              },
+              {
+                "name": "taches-cc-resources:consider:swot",
+                "description": "(taches-cc-resources) Map strengths, weaknesses, opportunities, and threats",
+                "input": {
+                  "hint": "subject or leave blank for current context"
+                }
+              },
+              {
+                "name": "taches-cc-resources:consider:5-whys",
+                "description": "(taches-cc-resources) Drill to root cause by asking why repeatedly",
+                "input": {
+                  "hint": "problem or leave blank for current context"
+                }
+              },
+              {
+                "name": "taches-cc-resources:consider:second-order",
+                "description": "(taches-cc-resources) Think through consequences of consequences",
+                "input": {
+                  "hint": "action or leave blank for current context"
+                }
+              },
+              {
+                "name": "taches-cc-resources:consider:inversion",
+                "description": "(taches-cc-resources) Solve problems backwards - what would guarantee failure?",
+                "input": {
+                  "hint": "goal or leave blank for current context"
+                }
+              },
+              {
+                "name": "taches-cc-resources:consider:10-10-10",
+                "description": "(taches-cc-resources) Evaluate decisions across three time horizons",
+                "input": {
+                  "hint": "decision or leave blank for current context"
+                }
+              },
+              {
+                "name": "taches-cc-resources:consider:first-principles",
+                "description": "(taches-cc-resources) Break down to fundamentals and rebuild from base truths",
+                "input": {
+                  "hint": "problem or leave blank for current context"
+                }
+              },
+              {
+                "name": "taches-cc-resources:consider:one-thing",
+                "description": "(taches-cc-resources) Identify the single highest-leverage action",
+                "input": {
+                  "hint": "goal or leave blank for current context"
+                }
+              },
+              {
+                "name": "taches-cc-resources:consider:occams-razor",
+                "description": "(taches-cc-resources) Find simplest explanation that fits all the facts",
+                "input": {
+                  "hint": "situation or leave blank for current context"
+                }
+              },
+              {
+                "name": "superpowers:execute-plan",
+                "description": "(superpowers) Deprecated - use the superpowers:executing-plans skill instead",
+                "input": null
+              },
+              {
+                "name": "superpowers:brainstorm",
+                "description": "(superpowers) Deprecated - use the superpowers:brainstorming skill instead",
+                "input": null
+              },
+              {
+                "name": "superpowers:write-plan",
+                "description": "(superpowers) Deprecated - use the superpowers:writing-plans skill instead",
+                "input": null
+              },
+              {
+                "name": "obsidian-bases",
+                "description": "(obsidian) Create and edit Obsidian Bases (.base files) with views, filters, formulas, and summaries. Use when working with .base files, creating database-like views of notes, or when the user mentions Bases, table views, card views, filters, or formulas in Obsidian.",
+                "input": null
+              },
+              {
+                "name": "json-canvas",
+                "description": "(obsidian) Create and edit JSON Canvas files (.canvas) with nodes, edges, groups, and connections. Use when working with .canvas files, creating visual canvases, mind maps, flowcharts, or when the user mentions Canvas files in Obsidian.",
+                "input": null
+              },
+              {
+                "name": "obsidian-markdown",
+                "description": "(obsidian) Create and edit Obsidian Flavored Markdown with wikilinks, embeds, callouts, properties, and other Obsidian-specific syntax. Use when working with .md files in Obsidian, or when the user mentions wikilinks, callouts, frontmatter, tags, embeds, or Obsidian notes.",
+                "input": null
+              },
+              {
+                "name": "create-hooks",
+                "description": "(taches-cc-resources) Expert guidance for creating, configuring, and using Claude Code hooks. Use when working with hooks, setting up event listeners, validating commands, automating workflows, adding notifications, or understanding hook types (PreToolUse, PostToolUse, Stop, SessionStart, UserPromptSubmit, etc).",
+                "input": null
+              },
+              {
+                "name": "create-slash-commands",
+                "description": "(taches-cc-resources) Expert guidance for creating Claude Code slash commands. Use when working with slash commands, creating custom commands, understanding command structure, or learning YAML configuration.",
+                "input": null
+              },
+              {
+                "name": "create-plans",
+                "description": "(taches-cc-resources) Create hierarchical project plans optimized for solo agentic development. Use when planning projects, phases, or tasks that Claude will execute. Produces Claude-executable plans with verification criteria, not enterprise documentation. Handles briefs, roadmaps, phase plans, and context handoffs.",
+                "input": null
+              },
+              {
+                "name": "debug-like-expert",
+                "description": "(taches-cc-resources) Deep analysis debugging mode for complex issues. Activates methodical investigation protocol with evidence gathering, hypothesis testing, and rigorous verification. Use when standard troubleshooting fails or when issues require systematic root cause analysis.",
+                "input": null
+              },
+              {
+                "name": "create-agent-skills",
+                "description": "(taches-cc-resources) Expert guidance for creating, writing, building, and refining Claude Code Skills. Use when working with SKILL.md files, authoring new skills, improving existing skills, or understanding skill structure and best practices.",
+                "input": null
+              },
+              {
+                "name": "create-meta-prompts",
+                "description": "(taches-cc-resources) Create optimized prompts for Claude-to-Claude pipelines with research, planning, and execution stages. Use when building prompts that produce outputs for other prompts to consume, or when running multi-stage workflows (research -> plan -> implement).",
+                "input": null
+              },
+              {
+                "name": "create-subagents",
+                "description": "(taches-cc-resources) Expert guidance for creating, building, and using Claude Code subagents and the Task tool. Use when working with subagents, setting up agent configurations, understanding how agents work, or using the Task tool to launch specialized agents.",
+                "input": null
+              },
+              {
+                "name": "brainstorming",
+                "description": "(superpowers) You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation.",
+                "input": null
+              },
+              {
+                "name": "writing-skills",
+                "description": "(superpowers) Use when creating new skills, editing existing skills, or verifying skills work before deployment",
+                "input": null
+              },
+              {
+                "name": "dispatching-parallel-agents",
+                "description": "(superpowers) Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies",
+                "input": null
+              },
+              {
+                "name": "systematic-debugging",
+                "description": "(superpowers) Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes",
+                "input": null
+              },
+              {
+                "name": "using-superpowers",
+                "description": "(superpowers) Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions",
+                "input": null
+              },
+              {
+                "name": "verification-before-completion",
+                "description": "(superpowers) Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always",
+                "input": null
+              },
+              {
+                "name": "finishing-a-development-branch",
+                "description": "(superpowers) Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup",
+                "input": null
+              },
+              {
+                "name": "using-git-worktrees",
+                "description": "(superpowers) Use when starting feature work that needs isolation from current workspace or before executing implementation plans - creates isolated git worktrees with smart directory selection and safety verification",
+                "input": null
+              },
+              {
+                "name": "writing-plans",
+                "description": "(superpowers) Use when you have a spec or requirements for a multi-step task, before touching code",
+                "input": null
+              },
+              {
+                "name": "receiving-code-review",
+                "description": "(superpowers) Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation",
+                "input": null
+              },
+              {
+                "name": "executing-plans",
+                "description": "(superpowers) Use when you have a written implementation plan to execute in a separate session with review checkpoints",
+                "input": null
+              },
+              {
+                "name": "subagent-driven-development",
+                "description": "(superpowers) Use when executing implementation plans with independent tasks in the current session",
+                "input": null
+              },
+              {
+                "name": "requesting-code-review",
+                "description": "(superpowers) Use when completing tasks, implementing major features, or before merging to verify work meets requirements",
+                "input": null
+              },
+              {
+                "name": "test-driven-development",
+                "description": "(superpowers) Use when implementing any feature or bugfix, before writing implementation code",
+                "input": null
+              },
+              {
+                "name": "ctx-upgrade",
+                "description": "(context-mode) Update context-mode from GitHub and fix hooks/settings.\nPulls latest, builds, installs, updates npm global, configures hooks.\nTrigger: /context-mode:ctx-upgrade",
+                "input": null
+              },
+              {
+                "name": "ctx-stats",
+                "description": "(context-mode) Show how much context window context-mode saved this session.\nDisplays token consumption, context savings ratio, and per-tool breakdown.\nTrigger: /context-mode:ctx-stats",
+                "input": null
+              },
+              {
+                "name": "ctx-cloud-status",
+                "description": "(context-mode) Show current Context Mode Cloud sync status.\nDisplays connection health, sync config, and event statistics.\nTrigger: /context-mode:ctx-cloud-status",
+                "input": null
+              },
+              {
+                "name": "context-mode",
+                "description": "(context-mode) Use context-mode tools (ctx_execute, ctx_execute_file) instead of Bash/cat when processing\nlarge outputs. Triggers: \"analyze logs\", \"summarize output\", \"process data\",\n\"parse JSON\", \"filter results\", \"extract errors\", \"check build output\",\n\"analyze dependencies\", \"process API response\", \"large file analysis\",\n\"page snapshot\", \"browser snapshot\", \"DOM structure\", \"inspect page\",\n\"accessibility tree\", \"Playwright snapshot\",\n\"run tests\", \"test output\", \"coverage report\", \"git log\", \"recent commits\",\n\"diff between branches\", \"list containers\", \"pod status\", \"disk usage\",\n\"fetch docs\", \"API reference\", \"index documentation\",\n\"call API\", \"check response\", \"query results\",\n\"find TODOs\", \"count lines\", \"codebase statistics\", \"security audit\",\n\"outdated packages\", \"dependency tree\", \"cloud resources\", \"CI/CD output\".\nAlso triggers on ANY MCP tool output that may exceed 20 lines.\nSubagent routing is handled automatically via PreToolUse hook.",
+                "input": null
+              },
+              {
+                "name": "ctx-doctor",
+                "description": "(context-mode) Run context-mode diagnostics. Checks runtimes, hooks, FTS5,\nplugin registration, npm and marketplace versions.\nTrigger: /context-mode:ctx-doctor",
+                "input": null
+              },
+              {
+                "name": "ctx-cloud-setup",
+                "description": "(context-mode) Connect context-mode to Context Mode Cloud.\nGuides through API URL, token, and org ID configuration.\nSaves config to ~/.context-mode/sync.json and tests the connection.\nTrigger: /context-mode:ctx-cloud-setup",
+                "input": null
+              },
+              {
+                "name": "clear",
+                "description": "Start a new session with empty context; previous session stays on disk (resumable with /resume)",
+                "input": null
+              },
+              {
+                "name": "compact",
+                "description": "Free up context by summarizing the conversation so far",
+                "input": {
+                  "hint": "<optional custom summarization instructions>"
+                }
+              },
+              {
+                "name": "context",
+                "description": "Show current context usage",
+                "input": null
+              },
+              {
+                "name": "heapdump",
+                "description": "Dump the JS heap to ~/Desktop",
+                "input": null
+              },
+              {
+                "name": "init",
+                "description": "Initialize a new CLAUDE.md file with codebase documentation",
+                "input": null
+              },
+              {
+                "name": "review",
+                "description": "Review a pull request",
+                "input": null
+              },
+              {
+                "name": "security-review",
+                "description": "Complete a security review of the pending changes on the current branch",
+                "input": null
+              },
+              {
+                "name": "usage",
+                "description": "Show the total cost and duration of the current session",
+                "input": null
+              },
+              {
+                "name": "insights",
+                "description": "Generate a report analyzing your Claude Code sessions",
+                "input": null
+              },
+              {
+                "name": "team-onboarding",
+                "description": "Help teammates ramp on Claude Code with a guide from your usage",
+                "input": null
+              },
+              {
+                "name": "mcp:fetch:fetch",
+                "description": "Fetch a URL and extract its contents as markdown",
+                "input": null
+              }
+            ]
+          }
+        }
+      },
+      "id": "aef4f123-fef4-4aa2-90d3-76400b1a6523",
+      "timestamp": 1777198009564
+    }
+  ]
+}

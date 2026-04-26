@@ -7,9 +7,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/m-mizutani/gollem"
+	"github.com/denkhaus/gollum/pkg/shared"
 
-	"github.com/denkhaus/gollum/pkg/channel"
+	"github.com/m-mizutani/gollem"
 )
 
 // AgentExecutor defines the interface for executing agent commands.
@@ -48,7 +48,7 @@ type agentCompleteMsg struct {
 
 // newMessageMsg is sent when a new message should be added to the viewport.
 type newMessageMsg struct {
-	message channel.Message
+	message shared.Message
 }
 
 // exportMsg is sent when /export command is invoked.

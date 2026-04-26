@@ -35,7 +35,7 @@ func TestExecutor_Close_AfterRun(t *testing.T) {
 	flow := &flows.Flow{
 		Name:    "test",
 		Version: "1.0",
-		States:  []flows.State{
+		States: []flows.State{
 			{Name: "init", Initial: true, Transitions: []flows.Transition{{To: "done"}}},
 			{Name: "done"},
 		},
@@ -52,7 +52,6 @@ func TestExecutor_Close_AfterRun(t *testing.T) {
 	err = exec.Close()
 	require.NoError(t, err)
 }
-
 
 // TestExecutor_Close_WithContext tests cleanup with context
 func TestExecutor_Close_WithContext(t *testing.T) {
@@ -154,7 +153,7 @@ func TestExecutor_Close_ContextCancellation(t *testing.T) {
 		Name:    "test",
 		Version: "1.0",
 		Input:   &flows.InputBlock{Strings: []flows.FieldDef{{Name: "name"}}},
-		States:  []flows.State{
+		States: []flows.State{
 			{Name: "init", Initial: true, Transitions: []flows.Transition{{To: "done"}}},
 			{Name: "done"},
 		},

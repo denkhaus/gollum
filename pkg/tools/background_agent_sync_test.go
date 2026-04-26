@@ -55,14 +55,14 @@ func TestBackgroundAgent_SyncExecution(t *testing.T) {
 		SystemPrompt: "test",
 	}).AnyTimes()
 
-	mockAgent.EXPECT().ToLoggingContext().DoAndReturn(func() shared.LoggingContext {
-		return *shared.NewLoggingContext("test-session", spawnedAgentID, uuid.Nil)
+	mockAgent.EXPECT().ToSessionContext().DoAndReturn(func() shared.SessionContext {
+		return *shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), spawnedAgentID, uuid.Nil, "")
 	}).AnyTimes()
 	mockAgent.EXPECT().GetMessageHistory(gomock.Any()).Return(nil, nil).AnyTimes()
 	// Create mock sender agent
 	mockSenderAgent := shared.NewMockAgent(ctrl)
 	mockSenderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockSenderAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+	mockSenderAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), senderID, uuid.Nil, "")).AnyTimes()
 	mockSenderAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
@@ -171,15 +171,15 @@ func TestBackgroundAgent_SyncExecutionError(t *testing.T) {
 		Role:         "Failing Agent",
 		SystemPrompt: "test",
 	}).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().DoAndReturn(func() shared.LoggingContext {
-		return *shared.NewLoggingContext("test-session", spawnedAgentID, uuid.Nil)
+	mockAgent.EXPECT().ToSessionContext().DoAndReturn(func() shared.SessionContext {
+		return *shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), spawnedAgentID, uuid.Nil, "")
 	}).AnyTimes()
 	mockAgent.EXPECT().GetMessageHistory(gomock.Any()).Return(nil, nil).AnyTimes()
 
 	// Create mock sender agent
 	mockSenderAgent := shared.NewMockAgent(ctrl)
 	mockSenderAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockSenderAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+	mockSenderAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), senderID, uuid.Nil, "")).AnyTimes()
 	mockSenderAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",

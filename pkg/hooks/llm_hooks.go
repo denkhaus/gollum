@@ -25,7 +25,7 @@ import (
 //   - Or hooks can allow the error to propagate
 func (p *hookManagerImpl) WithLLMHooks(
 	ctx context.Context,
-	loggingContext shared.LoggingContext,
+	loggingContext shared.SessionContext,
 	prompt string,
 	model string,
 	work func(string) (string, error),

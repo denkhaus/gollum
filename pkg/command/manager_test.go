@@ -141,7 +141,8 @@ func TestManager_Execute_EmptyInput(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	handled, response, err := service.Execute(ctx, "test-session", "")
+	testSessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
+	handled, response, err := service.Execute(ctx, testSessionID, "")
 
 	assert.False(t, handled)
 	assert.Empty(t, response)
@@ -157,6 +158,7 @@ func TestManager_Execute_NonCommandInput(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
+	testSessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440002")
 
 	testCases := []struct {
 		name  string
@@ -169,7 +171,7 @@ func TestManager_Execute_NonCommandInput(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			handled, response, err := service.Execute(ctx, "test-session", tc.input)
+			handled, response, err := service.Execute(ctx, testSessionID, tc.input)
 
 			assert.False(t, handled)
 			assert.Empty(t, response)
@@ -187,7 +189,8 @@ func TestManager_Execute_UnknownCommand(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	handled, response, err := service.Execute(ctx, "test-session", "/unknown")
+	testSessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440003")
+	handled, response, err := service.Execute(ctx, testSessionID, "/unknown")
 
 	assert.False(t, handled)
 	assert.Empty(t, response)
@@ -203,12 +206,13 @@ func TestManager_Execute_ParseCommandNameAndArgs(t *testing.T) {
 	mockSM := session.NewMockSessionManager(ctrl)
 
 	// Set up mock expectations for GetSession
+	testSessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440004")
 	testSession := &shared.Session{
-		ID:        "test-session",
+		ID:        testSessionID,
 		ChannelID: uuid.New(),
 		Context:   context.Background(),
 	}
-	mockSM.EXPECT().GetSession("test-session").Return(testSession, true).AnyTimes()
+	mockSM.EXPECT().GetSession(testSessionID).Return(testSession, true).AnyTimes()
 
 	do.ProvideValue[session.SessionManager](injector, mockSM)
 	service, err := NewManager(injector)
@@ -244,7 +248,7 @@ func TestManager_Execute_ParseCommandNameAndArgs(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			capturedArgs = ""
-			handled, response, err := service.Execute(ctx, "test-session", tc.input)
+			handled, response, err := service.Execute(ctx, testSessionID, tc.input)
 
 			assert.True(t, handled)
 			assert.Equal(t, "response", response)
@@ -263,12 +267,13 @@ func TestManager_Execute_CallsHandler(t *testing.T) {
 	mockSM := session.NewMockSessionManager(ctrl)
 
 	// Set up mock expectations for GetSession
+	testSessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440005")
 	testSession := &shared.Session{
-		ID:        "test-session",
+		ID:        testSessionID,
 		ChannelID: uuid.New(),
 		Context:   context.Background(),
 	}
-	mockSM.EXPECT().GetSession("test-session").Return(testSession, true).AnyTimes()
+	mockSM.EXPECT().GetSession(testSessionID).Return(testSession, true).AnyTimes()
 
 	do.ProvideValue[session.SessionManager](injector, mockSM)
 	service, err := NewManager(injector)
@@ -323,7 +328,7 @@ func TestManager_Execute_CallsHandler(t *testing.T) {
 			err = service.Register(cmd)
 			require.NoError(t, err)
 
-			handled, response, err := service.Execute(ctx, "test-session", "/test args")
+			handled, response, err := service.Execute(ctx, testSessionID, "/test args")
 
 			assert.Equal(t, tc.expectedHandled, handled)
 			assert.Equal(t, tc.expectedResp, response)
@@ -460,12 +465,13 @@ func TestManager_Concurrency(t *testing.T) {
 	mockSM := session.NewMockSessionManager(ctrl)
 
 	// Set up mock expectations for GetSession
+	testSessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440006")
 	testSession := &shared.Session{
-		ID:        "test-session",
+		ID:        testSessionID,
 		ChannelID: uuid.New(),
 		Context:   context.Background(),
 	}
-	mockSM.EXPECT().GetSession("test-session").Return(testSession, true).AnyTimes()
+	mockSM.EXPECT().GetSession(testSessionID).Return(testSession, true).AnyTimes()
 
 	do.ProvideValue[session.SessionManager](injector, mockSM)
 	service, err := NewManager(injector)
@@ -491,7 +497,7 @@ func TestManager_Concurrency(t *testing.T) {
 	// Execute commands concurrently
 	for i := 0; i < 10; i++ {
 		go func() {
-			_, _, _ = service.Execute(ctx, "test-session", "/cmd0 test")
+			_, _, _ = service.Execute(ctx, testSessionID, "/cmd0 test")
 			_ = service.List()
 			_ = service.IsCommand("/cmd0")
 			done <- true

@@ -17,7 +17,7 @@ import (
 // TestTUIChannel_OnMessage tests that TUIChannel sends messages to the message channel.
 func TestTUIChannel_OnMessage(t *testing.T) {
 	// Create a message channel
-	msgChan := make(chan channel.Message, 10)
+	msgChan := make(chan shared.Message, 10)
 
 	// Create TUIChannel
 	ch := NewTUIChannel(WithChannelMessageChan(msgChan))
@@ -25,13 +25,13 @@ func TestTUIChannel_OnMessage(t *testing.T) {
 	assert.NotEqual(t, uuid.Nil, ch.ID())
 
 	// Create a test message
-	testMsg := channel.Message{
-		ID:        uuid.New(),
-		Type:      channel.MessageTypeAgentChat,
-		Content:   "Hello, world!",
-		Timestamp: time.Now(),
-		AgentID:   uuid.New(),
-		AgentRole: "assistant",
+	testMsg := shared.Message{
+		ID:             uuid.New(),
+		Type:           shared.MessageTypeAgentChat,
+		Content:        "Hello, world!",
+		Timestamp:      time.Now(),
+		SessionContext: shared.SessionContext{AgentID: uuid.New()},
+		AgentRole:      "assistant",
 	}
 
 	// Send message
@@ -50,25 +50,32 @@ func TestTUIChannel_OnMessage(t *testing.T) {
 
 // TestTUIChannel_OnMessage_ChannelFull tests that TUIChannel handles full channel gracefully.
 func TestTUIChannel_OnMessage_ChannelFull(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	// Create a very small message channel
-	msgChan := make(chan channel.Message, 1)
+	msgChan := make(chan shared.Message, 1)
+
+	// Create mock logger
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	// Create TUIChannel
-	ch := NewTUIChannel(WithChannelMessageChan(msgChan))
+	ch := NewTUIChannel(WithChannelMessageChan(msgChan), WithChannelLogger(mockLogger))
 
 	// Fill the channel
-	testMsg := channel.Message{
+	testMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      channel.MessageTypeAgentChat,
+		Type:      shared.MessageTypeAgentChat,
 		Content:   "First message",
 		Timestamp: time.Now(),
 	}
 	ch.OnMessage(testMsg)
 
 	// Try to send another message (should be dropped)
-	secondMsg := channel.Message{
+	secondMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      channel.MessageTypeAgentChat,
+		Type:      shared.MessageTypeAgentChat,
 		Content:   "Second message",
 		Timestamp: time.Now(),
 	}
@@ -93,14 +100,21 @@ func TestTUIChannel_OnMessage_ChannelFull(t *testing.T) {
 
 // TestTUIChannel_OnMessage_NoChannel tests that TUIChannel handles nil channel gracefully.
 func TestTUIChannel_OnMessage_NoChannel(t *testing.T) {
-	// Create TUIChannel with nil channel
-	ch := NewTUIChannel()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Create mock logger to avoid nil pointer
+	mockLogger := logger.NewMockLoggerService(ctrl)
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).AnyTimes()
+
+	// Create TUIChannel with nil channel but with logger
+	ch := NewTUIChannel(WithChannelLogger(mockLogger))
 	require.NotNil(t, ch)
 
 	// Send message (should not panic)
-	testMsg := channel.Message{
+	testMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      channel.MessageTypeAgentChat,
+		Type:      shared.MessageTypeAgentChat,
 		Content:   "Test message",
 		Timestamp: time.Now(),
 	}
@@ -110,7 +124,7 @@ func TestTUIChannel_OnMessage_NoChannel(t *testing.T) {
 // TestTUIChannel_OnLog tests that TUIChannel sends log entries as system messages.
 func TestTUIChannel_OnLog(t *testing.T) {
 	// Create a message channel
-	msgChan := make(chan channel.Message, 10)
+	msgChan := make(chan shared.Message, 10)
 
 	// Create TUIChannel
 	ch := NewTUIChannel(WithChannelMessageChan(msgChan))
@@ -131,7 +145,7 @@ func TestTUIChannel_OnLog(t *testing.T) {
 	// Verify system message was received
 	select {
 	case msg := <-msgChan:
-		assert.Equal(t, channel.MessageTypeSystemInfo, msg.Type)
+		assert.Equal(t, shared.MessageTypeSystemInfo, msg.Type)
 		assert.Contains(t, msg.Content, "[info]")
 		assert.Contains(t, msg.Content, "test-component")
 		assert.Contains(t, msg.Content, "Test log message")
@@ -143,7 +157,7 @@ func TestTUIChannel_OnLog(t *testing.T) {
 // TestTUIChannel_OnAgentLifecycle tests that TUIChannel sends lifecycle events as system messages.
 func TestTUIChannel_OnAgentLifecycle(t *testing.T) {
 	// Create a message channel
-	msgChan := make(chan channel.Message, 10)
+	msgChan := make(chan shared.Message, 10)
 
 	// Create TUIChannel
 	ch := NewTUIChannel(WithChannelMessageChan(msgChan))
@@ -162,7 +176,7 @@ func TestTUIChannel_OnAgentLifecycle(t *testing.T) {
 	// Verify system message was received
 	select {
 	case msg := <-msgChan:
-		assert.Equal(t, channel.MessageTypeSystemInfo, msg.Type)
+		assert.Equal(t, shared.MessageTypeSystemInfo, msg.Type)
 		assert.Contains(t, msg.Content, "Agent added")
 		assert.Contains(t, msg.Content, agentID.String())
 		assert.Contains(t, msg.Content, "assistant")
@@ -211,7 +225,7 @@ func TestNewTUIChannel_WithOptions(t *testing.T) {
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockRenderer := markdown.NewMockRenderer(ctrl)
-	msgChan := make(chan channel.Message, 10)
+	msgChan := make(chan shared.Message, 10)
 
 	ch := NewTUIChannel(
 		WithChannelMessageChan(msgChan),
@@ -223,7 +237,7 @@ func TestNewTUIChannel_WithOptions(t *testing.T) {
 	// Verify message channel is set
 	got := ch.GetMessageChan()
 	require.NotNil(t, got)
-	got <- channel.Message{}
+	got <- shared.Message{}
 	<-msgChan
 	// Verify logger and renderer
 	assert.Equal(t, mockLogger, ch.GetLogger())

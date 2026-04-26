@@ -65,7 +65,7 @@ func TestSpawnAgentTool_WithShareContext(t *testing.T) {
 		executionHelper: mockExecHelper,
 		configService:   mockConfigService,
 		hookManager:     mockHookManager,
-		agent:        senderAgent,
+		agent:           senderAgent,
 	}
 
 	ctx := context.Background()

@@ -127,7 +127,7 @@ func TestPhase2_BareVarRefInCallOutput(t *testing.T) {
 						Output: &flows.CallOutputBlock{
 							Strings: []flows.CallOutputParam{
 								{
-									Name:    "result",
+									Name:     "result",
 									AssignTo: "${score}",
 								},
 							}, // template notation - should error
@@ -307,7 +307,7 @@ func TestPhase2_ValidAbsoluteVarRefInCallOutput(t *testing.T) {
 						Output: &flows.CallOutputBlock{
 							Ints: []flows.CallOutputParam{
 								{
-									Name:    "result",
+									Name:     "result",
 									AssignTo: "context.score",
 								},
 							}, // valid bare notation

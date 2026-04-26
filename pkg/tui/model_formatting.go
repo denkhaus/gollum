@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/uuid"
+	"github.com/denkhaus/gollum/pkg/shared"
 
-	"github.com/denkhaus/gollum/pkg/channel"
+	"github.com/google/uuid"
 )
 
 // updateViewportContent updates the viewport with the current messages.
@@ -139,7 +139,7 @@ func (m *Model) toggleMessageCollapse(msgIdx int) bool {
 
 	msg := &m.messages[msgIdx]
 	// Only tool messages can be collapsed
-	isTool := msg.Type == channel.MessageTypeToolRequest || msg.Type == channel.MessageTypeToolResponse
+	isTool := msg.Type == shared.MessageTypeToolRequest || msg.Type == shared.MessageTypeToolResponse
 	if !isTool {
 		return false
 	}
@@ -214,7 +214,7 @@ func (m *Model) invalidateCacheFor(msgID uuid.UUID) {
 //	╰────────────────────────────────────────────────────────────╯
 //
 // When selected, the message uses double-line borders (╔═╗║╚╝) to indicate selection.
-func (m *Model) formatMessage(msgIdx int, msg channel.Message) string {
+func (m *Model) formatMessage(msgIdx int, msg shared.Message) string {
 	// Check cache first - return cached formatted message if available
 	// Cache key: message ID
 	// Cache invalidation: width change, message update, selection change
@@ -244,9 +244,9 @@ func (m *Model) formatMessage(msgIdx int, msg channel.Message) string {
 // formatMessageImpl implements the actual message formatting logic.
 // This is separated from formatMessage to enable caching.
 // The selected parameter determines whether to use bold/double-line borders.
-func (m *Model) formatMessageImpl(_ int, msg channel.Message, selected bool) string {
+func (m *Model) formatMessageImpl(_ int, msg shared.Message, selected bool) string {
 	// For collapsed tool messages, render a compact header with click indicator
-	isTool := msg.Type == channel.MessageTypeToolRequest || msg.Type == channel.MessageTypeToolResponse
+	isTool := msg.Type == shared.MessageTypeToolRequest || msg.Type == shared.MessageTypeToolResponse
 	collapsed := false
 	if msg.Metadata != nil {
 		if c, ok := msg.Metadata["collapsed"].(bool); ok {
@@ -266,14 +266,14 @@ func (m *Model) formatMessageImpl(_ int, msg channel.Message, selected bool) str
 	var col1, col2, col3 string
 
 	switch msg.Type {
-	case channel.MessageTypeUserChat:
+	case shared.MessageTypeUserChat:
 		col1 = "You"
 		col2 = "User"
 		col3 = timestamp
 
-	case channel.MessageTypeAgentChat, channel.MessageTypeToolRequest, channel.MessageTypeToolResponse:
+	case shared.MessageTypeAgentChat, shared.MessageTypeToolRequest, shared.MessageTypeToolResponse:
 		agentName := formatAgentName(msg.AgentID, msg.AgentRole)
-		if msg.Type == channel.MessageTypeToolRequest || msg.Type == channel.MessageTypeToolResponse {
+		if msg.Type == shared.MessageTypeToolRequest || msg.Type == shared.MessageTypeToolResponse {
 			col1 = fmt.Sprintf("Agent: %s", agentName)
 			col2 = "Tool"
 		} else {
@@ -282,12 +282,12 @@ func (m *Model) formatMessageImpl(_ int, msg channel.Message, selected bool) str
 		}
 		col3 = timestamp
 
-	case channel.MessageTypeSystemInfo:
+	case shared.MessageTypeSystemInfo:
 		col1 = "System"
 		col2 = "Info"
 		col3 = timestamp
 
-	case channel.MessageTypeError:
+	case shared.MessageTypeError:
 		col1 = "Error"
 		col2 = "Error"
 		col3 = timestamp
@@ -335,7 +335,7 @@ func (m *Model) formatMessageImpl(_ int, msg channel.Message, selected bool) str
 
 	// For agent messages, use markdown renderer if available
 	var contentLines []string
-	if msg.Type == channel.MessageTypeAgentChat && m.markdownRenderer != nil {
+	if msg.Type == shared.MessageTypeAgentChat && m.markdownRenderer != nil {
 		rendered, err := m.markdownRenderer.Render(context.Background(), msg.Content, contentWidth)
 		if err != nil {
 			contentLines = wrapText(msg.Content, contentWidth)
@@ -456,7 +456,7 @@ func (m *Model) formatMessageImpl(_ int, msg channel.Message, selected bool) str
 // formatCollapsedToolMessage renders a collapsed tool message with a click-to-expand indicator.
 // Shows a compact header: "⚡ Tool Output [Click to expand]" with agent name and timestamp.
 // When selected, uses double-line borders to indicate selection.
-func (m *Model) formatCollapsedToolMessage(msg channel.Message, selected bool) string {
+func (m *Model) formatCollapsedToolMessage(msg shared.Message, selected bool) string {
 	timestamp := msg.Timestamp.Format("15:04:05")
 	agentName := formatAgentName(msg.AgentID, msg.AgentRole)
 

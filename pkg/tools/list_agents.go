@@ -105,7 +105,7 @@ type descendantInfo struct {
 
 // Run executes the ListAgents tool to list all related agents
 func (t *listAgentsToolImpl) Run(ctx context.Context, params map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameListAgents, params,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameListAgents, params,
 		func() (map[string]any, error) {
 			return t.runListAgents(ctx, params)
 		})
@@ -117,7 +117,7 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 	recursive := params.GetBool(shared.ParamRecursive, false)
 	tree := params.GetBool(shared.ParamTree, false)
 
-	t.logService.InfoWithContext("Listing related agents", t.agent.ToLoggingContext(),
+	t.logService.InfoWithContext("Listing related agents", t.agent.ToSessionContext(),
 		zap.Bool("recursive", recursive),
 		zap.Bool("tree", tree))
 
@@ -151,7 +151,7 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 			"type":        "ParentAgent",
 		}
 		agentList = append(agentList, parentInfo)
-		t.logService.DebugWithContext("Found parent agent", t.agent.ToLoggingContext(),
+		t.logService.DebugWithContext("Found parent agent", t.agent.ToSessionContext(),
 			zap.String("parent_id", parentConfig.ID.String()),
 			zap.String("role", parentConfig.Role),
 			zap.String("description", parentConfig.Description))
@@ -173,7 +173,7 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 				"depth":       desc.depth,
 			}
 			agentList = append(agentList, agentInfo)
-			t.logService.DebugWithContext("Found descendant", t.agent.ToLoggingContext(),
+			t.logService.DebugWithContext("Found descendant", t.agent.ToSessionContext(),
 				zap.String("descendant_id", desc.config.ID.String()),
 				zap.Int("depth", desc.depth),
 				zap.String("role", desc.config.Role))
@@ -192,7 +192,7 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 				"type":        "SubAgent",
 			}
 			agentList = append(agentList, agentInfo)
-			t.logService.DebugWithContext("Found subagent", t.agent.ToLoggingContext(),
+			t.logService.DebugWithContext("Found subagent", t.agent.ToSessionContext(),
 				zap.String("subagent_id", config.ID.String()),
 				zap.String("role", config.Role),
 				zap.String("description", config.Description))
@@ -208,12 +208,12 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 		} else {
 			message = fmt.Sprintf("Found 1 parent agent and %d subagent(s)", descendantCount)
 		}
-		t.logService.InfoWithContext("Found parent and descendants", t.agent.ToLoggingContext(),
+		t.logService.InfoWithContext("Found parent and descendants", t.agent.ToSessionContext(),
 			zap.Int("parent_count", 1),
 			zap.Int("descendant_count", descendantCount))
 	} else if hasParent {
 		message = "Found 1 parent agent"
-		t.logService.InfoWithContext("Found parent only", t.agent.ToLoggingContext(),
+		t.logService.InfoWithContext("Found parent only", t.agent.ToSessionContext(),
 			zap.Int("descendant_count", 0))
 	} else if descendantCount > 0 {
 		if recursive {
@@ -221,11 +221,11 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 		} else {
 			message = fmt.Sprintf("Found %d subagent(s) (no parent agent)", descendantCount)
 		}
-		t.logService.InfoWithContext("Found descendants only", t.agent.ToLoggingContext(),
+		t.logService.InfoWithContext("Found descendants only", t.agent.ToSessionContext(),
 			zap.Int("descendant_count", descendantCount))
 	} else {
 		message = "No related agents found (no parent and no subagents)"
-		t.logService.InfoWithContext("No related agents found", t.agent.ToLoggingContext())
+		t.logService.InfoWithContext("No related agents found", t.agent.ToSessionContext())
 	}
 
 	return map[string]any{

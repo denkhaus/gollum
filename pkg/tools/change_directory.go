@@ -62,7 +62,7 @@ func (p *changeDirectoryToolProvider) CreateTool(agent shared.Agent) gollem.Tool
 
 // Run executes the ChangeDirectory tool
 func (t *changeDirectoryToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameChangeDirectory, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameChangeDirectory, args,
 		func() (map[string]any, error) {
 			return t.runChangeDirectory(ctx, args)
 		})
@@ -118,7 +118,7 @@ func (t *changeDirectoryToolImpl) runChangeDirectory(ctx context.Context, args T
 	}
 
 	t.logService.InfoWithContext("Changed directory",
-		t.agent.ToLoggingContext(),
+		t.agent.ToSessionContext(),
 		zap.String("previous_path", previousPath),
 		zap.String("new_path", absPath))
 

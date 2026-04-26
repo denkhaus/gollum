@@ -91,7 +91,7 @@ func (t *resumeAgentToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the ResumeAgent tool to resume and run existing agents
 func (t *resumeAgentToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameResumeAgent, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameResumeAgent, args,
 		func() (map[string]any, error) {
 			return t.runResumeAgent(ctx, args)
 		})
@@ -121,7 +121,7 @@ func (t *resumeAgentToolImpl) runResumeAgent(ctx context.Context, args ToolReque
 
 	// PERMISSION CHECK: Verify caller is DIRECT parent of target agent
 	if !t.registry.IsDirectParent(t.agent.GetID(), agentID) {
-		t.logService.WarnWithContext("Permission denied: not direct parent", t.agent.ToLoggingContext(),
+		t.logService.WarnWithContext("Permission denied: not direct parent", t.agent.ToSessionContext(),
 			zap.String("target_agent_id", agentID.String()))
 
 		return t.executionHelper.ErrorResponse(
@@ -129,7 +129,7 @@ func (t *resumeAgentToolImpl) runResumeAgent(ctx context.Context, args ToolReque
 		), nil
 	}
 
-	t.logService.InfoWithContext("Resuming agent", t.agent.ToLoggingContext(),
+	t.logService.InfoWithContext("Resuming agent", t.agent.ToSessionContext(),
 		zap.String("target_agent_id", agentID.String()),
 		zap.Bool("background", runInBackground))
 
@@ -144,13 +144,13 @@ func (t *resumeAgentToolImpl) runResumeAgent(ctx context.Context, args ToolReque
 	// Get agent config from the agent itself
 	agentConfig := agent.GetConfig()
 
-	t.logService.InfoWithContext("Found agent to resume", t.agent.ToLoggingContext(),
+	t.logService.InfoWithContext("Found agent to resume", t.agent.ToSessionContext(),
 		zap.String("target_agent_id", agentID.String()),
 		zap.String("role", agentConfig.Role))
 
 	// Delete any previous agent result to prevent returning stale results
 	if err := t.registry.DeleteAgentResult(agentID); err != nil {
-		t.logService.WarnWithContext("Failed to delete previous agent result", t.agent.ToLoggingContext(),
+		t.logService.WarnWithContext("Failed to delete previous agent result", t.agent.ToSessionContext(),
 			zap.String("target_agent_id", agentID.String()),
 			zap.Error(err))
 		// Continue anyway - this is not a critical error
@@ -164,30 +164,30 @@ func (t *resumeAgentToolImpl) runResumeAgent(ctx context.Context, args ToolReque
 
 		// Store cancel function in registry for this agent
 		if err := t.registry.SetCancelFunc(agentID, cancel); err != nil {
-			t.logService.WarnWithContext("Failed to store cancel function", t.agent.ToLoggingContext(),
+			t.logService.WarnWithContext("Failed to store cancel function", t.agent.ToSessionContext(),
 				zap.String("target_agent_id", agentID.String()),
 				zap.Error(err))
 			// Continue anyway - the agent will still run, just won't be cancellable
 		}
 
-		t.logService.InfoWithContext("Starting background execution for agent", t.agent.ToLoggingContext(),
+		t.logService.InfoWithContext("Starting background execution for agent", t.agent.ToSessionContext(),
 			zap.String("target_agent_id", agentID.String()))
 		go t.executionHelper.ExecuteInBackground(bgCtx, agent, prompt)
 		return t.executionHelper.SuccessResponseResumeAsync(agentID, agentConfig.Role, agentConfig.Description), nil
 	}
 
 	// Synchronous execution
-	t.logService.InfoWithContext("Executing agent synchronously", t.agent.ToLoggingContext(),
+	t.logService.InfoWithContext("Executing agent synchronously", t.agent.ToSessionContext(),
 		zap.String("target_agent_id", agentID.String()))
 	response, err := t.executionHelper.ExecuteSynchronously(ctx, agent, prompt)
 	if err != nil {
-		t.logService.ErrorWithContext("Agent execution failed", t.agent.ToLoggingContext(),
+		t.logService.ErrorWithContext("Agent execution failed", t.agent.ToSessionContext(),
 			zap.String("target_agent_id", agentID.String()),
 			zap.Error(err))
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("execution failed: %v", err)), nil
 	}
 
-	t.logService.InfoWithContext("Agent completed successfully", t.agent.ToLoggingContext(),
+	t.logService.InfoWithContext("Agent completed successfully", t.agent.ToSessionContext(),
 		zap.String("target_agent_id", agentID.String()))
 	return response, nil
 }

@@ -1,7 +1,6 @@
 package builtin
 
 import (
-
 	"context"
 	"fmt"
 	"github.com/denkhaus/gollum/pkg/logger"
@@ -17,7 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-
 )
 
 func TestLangfuseHook_ToolSpanCreation(t *testing.T) {
@@ -83,11 +81,11 @@ func TestLangfuseHook_ToolSpanCreation(t *testing.T) {
 			}
 
 			if tt.sessionID != uuid.Nil {
-				hook.createTraceContext(tt.sessionID.String())
+				hook.createTraceContext(tt.sessionID)
 			}
 
 			hookCtx := hooks.NewTypedHookContext(
-				shared.LoggingContext{SessionID: tt.sessionID.String()},
+				shared.SessionContext{SessionID: tt.sessionID},
 				hooks.ToolPayload{Name: shared.ToolName(tt.toolName), Args: tt.toolArgs},
 			)
 
@@ -99,7 +97,7 @@ func TestLangfuseHook_ToolSpanCreation(t *testing.T) {
 			if tt.wantSpanCreated {
 				assert.NotEmpty(t, spanID, "Span ID should not be empty")
 
-				tc := hook.getTraceContext(tt.sessionID.String())
+				tc := hook.getTraceContext(tt.sessionID)
 				require.NotNil(t, tc, "TraceContext should exist")
 				assert.Contains(t, tc.Spans, spanID, "Span should be in TraceContext.Spans")
 
@@ -140,27 +138,27 @@ func TestLangfuseHook_ToolSpanUpdate(t *testing.T) {
 		traceCtxsMu: &sync.RWMutex{},
 	}
 
-	hook.createTraceContext(sessionID.String())
-	tc := hook.getTraceContext(sessionID.String())
-	spanID := uuid.New().String()
+	hook.createTraceContext(sessionID)
+	tc := hook.getTraceContext(sessionID)
+	spanID := uuid.New()
 
 	startTime := time.Now().Add(-50 * time.Millisecond)
-	tc.Spans[spanID] = &ToolSpanContext{
+	tc.Spans[spanID.String()] = &ToolSpanContext{
 		StartTime: startTime,
 		ToolName:  "read_file",
 		Input:     map[string]any{"path": "/test.txt"},
 	}
 
 	hookCtx := hooks.NewTypedHookContextWithTracing(
-		shared.LoggingContext{SessionID: sessionID.String()},
+		shared.SessionContext{SessionID: sessionID},
 		hooks.ToolPayload{Result: map[string]any{"content": "hello world"}},
-		hooks.TracingPayload{SpanID: spanID},
+		hooks.TracingPayload{SpanID: spanID.String()},
 	)
 
 	err := hook.afterToolExecutionHook(context.Background(), hookCtx, func() error { return nil })
 	require.NoError(t, err)
 
-	spanCtx, ok := tc.Spans[spanID].(*ToolSpanContext)
+	spanCtx, ok := tc.Spans[spanID.String()].(*ToolSpanContext)
 	require.True(t, ok, "Span should still be ToolSpanContext type")
 	assert.Equal(t, map[string]any{"content": "hello world"}, spanCtx.Output, "Output should be updated")
 	assert.Equal(t, traces.ObservationLevelDefault, spanCtx.Level, "Level should be DEFAULT")
@@ -213,11 +211,11 @@ func TestLangfuseHook_OnToolError(t *testing.T) {
 				traceCtxsMu: &sync.RWMutex{},
 			}
 
-			hook.createTraceContext(sessionID.String())
-			tc := hook.getTraceContext(sessionID.String())
-			spanID := uuid.New().String()
+			hook.createTraceContext(sessionID)
+			tc := hook.getTraceContext(sessionID)
+			spanID := uuid.New()
 
-			tc.Spans[spanID] = &ToolSpanContext{
+			tc.Spans[spanID.String()] = &ToolSpanContext{
 				StartTime: time.Now().Add(-30 * time.Millisecond),
 				ToolName:  "read_file",
 				Input:     map[string]any{"path": "/test.txt"},
@@ -225,15 +223,15 @@ func TestLangfuseHook_OnToolError(t *testing.T) {
 			}
 
 			hookCtx := hooks.NewTypedHookContextWithTracing(
-				shared.LoggingContext{SessionID: sessionID.String()},
+				shared.SessionContext{SessionID: sessionID},
 				hooks.ToolPayload{Error: tt.toolError},
-				hooks.TracingPayload{SpanID: spanID},
+				hooks.TracingPayload{SpanID: spanID.String()},
 			)
 
 			err := hook.onToolErrorHook(context.Background(), hookCtx, func() error { return nil })
 			require.NoError(t, err)
 
-			spanCtx, ok := tc.Spans[spanID].(*ToolSpanContext)
+			spanCtx, ok := tc.Spans[spanID.String()].(*ToolSpanContext)
 			require.True(t, ok, "Span should still exist")
 			assert.Equal(t, traces.ObservationLevelError, spanCtx.Level, "Level should be ERROR")
 			assert.Equal(t, tt.wantStatusMsg, spanCtx.StatusMessage, "Status message should match")
@@ -303,12 +301,12 @@ func TestLangfuseHook_ToolSpanLifecycle_Integration(t *testing.T) {
 			}
 
 			// Create trace context
-			hook.createTraceContext(sessionID.String())
-			tc := hook.getTraceContext(sessionID.String())
+			hook.createTraceContext(sessionID)
+			tc := hook.getTraceContext(sessionID)
 
 			// Simulate tool flow: BeforeToolExecution -> Tool execution -> AfterToolExecution/OnToolError
 			hookCtx := hooks.NewTypedHookContext(
-				shared.LoggingContext{SessionID: sessionID.String()},
+				shared.SessionContext{SessionID: sessionID},
 				hooks.ToolPayload{
 					Name:   shared.ToolName(tt.toolName),
 					Args:   tt.toolArgs,

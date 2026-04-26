@@ -258,8 +258,8 @@ func TestNewService_PromptOptimizerConfigFromEnv(t *testing.T) {
 			minReflection:       "",
 			expectStrategy:      shared.StrategyPromptMemory,
 			expectModel:         "anthropic/opus-4.6", // default
-			expectMaxReflection: 5,                     // default
-			expectMinReflection: 2,                     // default
+			expectMaxReflection: 5,                    // default
+			expectMinReflection: 2,                    // default
 		},
 		{
 			name:                "Gemini provider with custom reflection",
@@ -512,47 +512,47 @@ func TestStrategyConfigDefaults(t *testing.T) {
 // TestStrategyConfigEnvVars tests that environment variables are parsed correctly
 func TestStrategyConfigEnvVars(t *testing.T) {
 	tests := []struct {
-		name                string
-		subMaxIter          string
-		subMaxRepeated      string
-		supMaxIter          string
-		supMaxRepeated      string
-		expectSubMaxIter    int
+		name                 string
+		subMaxIter           string
+		subMaxRepeated       string
+		supMaxIter           string
+		supMaxRepeated       string
+		expectSubMaxIter     int
 		expectSubMaxRepeated int
-		expectSupMaxIter    int
+		expectSupMaxIter     int
 		expectSupMaxRepeated int
 	}{
 		{
-			name:                "Custom values for both",
-			subMaxIter:          "30",
-			subMaxRepeated:      "5",
-			supMaxIter:          "40",
-			supMaxRepeated:      "6",
-			expectSubMaxIter:    30,
+			name:                 "Custom values for both",
+			subMaxIter:           "30",
+			subMaxRepeated:       "5",
+			supMaxIter:           "40",
+			supMaxRepeated:       "6",
+			expectSubMaxIter:     30,
 			expectSubMaxRepeated: 5,
-			expectSupMaxIter:    40,
+			expectSupMaxIter:     40,
 			expectSupMaxRepeated: 6,
 		},
 		{
-			name:                "Only subagent values set",
-			subMaxIter:          "25",
-			subMaxRepeated:      "4",
-			supMaxIter:          "",
-			supMaxRepeated:      "",
-			expectSubMaxIter:    25,
+			name:                 "Only subagent values set",
+			subMaxIter:           "25",
+			subMaxRepeated:       "4",
+			supMaxIter:           "",
+			supMaxRepeated:       "",
+			expectSubMaxIter:     25,
 			expectSubMaxRepeated: 4,
-			expectSupMaxIter:    20, // default
-			expectSupMaxRepeated: 3, // default
+			expectSupMaxIter:     20, // default
+			expectSupMaxRepeated: 3,  // default
 		},
 		{
-			name:                "Only supervisor values set",
-			subMaxIter:          "",
-			subMaxRepeated:      "",
-			supMaxIter:          "35",
-			supMaxRepeated:      "7",
-			expectSubMaxIter:    20, // default
-			expectSubMaxRepeated: 3, // default
-			expectSupMaxIter:    35,
+			name:                 "Only supervisor values set",
+			subMaxIter:           "",
+			subMaxRepeated:       "",
+			supMaxIter:           "35",
+			supMaxRepeated:       "7",
+			expectSubMaxIter:     20, // default
+			expectSubMaxRepeated: 3,  // default
+			expectSupMaxIter:     35,
 			expectSupMaxRepeated: 7,
 		},
 	}

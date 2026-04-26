@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/markdown"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
 )
@@ -28,13 +28,13 @@ func TestMarkdownRendering(t *testing.T) {
 	m.width = 80
 
 	// Test message with markdown content
-	agentMsg := channel.Message{
-		ID:        uuid.New(),
-		Type:      channel.MessageTypeAgentChat,
-		Content:   "# Test Heading\n\nThis is **bold** text.",
-		Timestamp: time.Now(),
-		AgentID:   uuid.New(),
-		AgentRole: "assistant",
+	agentMsg := shared.Message{
+		ID:             uuid.New(),
+		Type:           shared.MessageTypeAgentChat,
+		Content:        "# Test Heading\n\nThis is **bold** text.",
+		Timestamp:      time.Now(),
+		SessionContext: shared.SessionContext{AgentID: uuid.New()},
+		AgentRole:      "assistant",
 	}
 
 	// Expect the renderer to be called
@@ -77,13 +77,13 @@ func TestPlainTextFallback(t *testing.T) {
 	m.width = 80
 
 	// Test message with markdown content
-	agentMsg := channel.Message{
-		ID:        uuid.New(),
-		Type:      channel.MessageTypeAgentChat,
-		Content:   "# Test Heading\n\nThis is **bold** text.",
-		Timestamp: time.Now(),
-		AgentID:   uuid.New(),
-		AgentRole: "assistant",
+	agentMsg := shared.Message{
+		ID:             uuid.New(),
+		Type:           shared.MessageTypeAgentChat,
+		Content:        "# Test Heading\n\nThis is **bold** text.",
+		Timestamp:      time.Now(),
+		SessionContext: shared.SessionContext{AgentID: uuid.New()},
+		AgentRole:      "assistant",
 	}
 
 	// Format the message (index 0 = no selection)

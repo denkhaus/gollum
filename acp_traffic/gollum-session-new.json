@@ -1,0 +1,86 @@
+{
+  "exportedAt": "2026-04-26T10:09:51.882Z",
+  "totalEntries": 4,
+  "entries": [
+    {
+      "direction": "out",
+      "type": "request",
+      "method": "initialize",
+      "requestId": 0,
+      "payload": {
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "initialize",
+        "params": {
+          "protocolVersion": 1,
+          "clientCapabilities": {
+            "fs": {
+              "readTextFile": true,
+              "writeTextFile": true
+            }
+          },
+          "clientInfo": {
+            "name": "acp-ui",
+            "title": "ACP UI",
+            "version": "0.1.10"
+          }
+        }
+      },
+      "id": "5cc52100-0796-4df4-a634-5bf9ef87673d",
+      "timestamp": 1777198180909
+    },
+    {
+      "direction": "in",
+      "type": "response",
+      "method": "initialize",
+      "requestId": 0,
+      "payload": {
+        "jsonrpc": "2.0",
+        "id": 0,
+        "result": {
+          "agentCapabilities": {
+            "mcpCapabilities": {},
+            "promptCapabilities": {}
+          },
+          "protocolVersion": 1
+        }
+      },
+      "error": false,
+      "id": "432d68b4-63f8-40bf-88cc-6fb887fcf5ec",
+      "timestamp": 1777198180963
+    },
+    {
+      "direction": "out",
+      "type": "request",
+      "method": "session/new",
+      "requestId": 1,
+      "payload": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "session/new",
+        "params": {
+          "cwd": "/home/denkhaus/dev/gomodules/gollum",
+          "mcpServers": []
+        }
+      },
+      "id": "2ce42699-c6f2-4435-8d48-0a5e244f650a",
+      "timestamp": 1777198180966
+    },
+    {
+      "direction": "in",
+      "type": "response",
+      "method": "session/new",
+      "requestId": 1,
+      "payload": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "sessionId": "session_e94a871a0f477ab1790d210179caac70"
+        }
+      },
+      "error": false,
+      "id": "8bcd9cba-73fb-4ac9-95ba-8ab3bb4872a1",
+      "timestamp": 1777198180970
+    }
+  ]
+}

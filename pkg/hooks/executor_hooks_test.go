@@ -122,8 +122,8 @@ func TestHookManager_TriggerExecutorHooks_BeforeFlowStep(t *testing.T) {
 	}
 
 	hookCtx := &TypedHookContext[ExecutorPayload]{
-		LoggingContext: shared.LoggingContext{
-			SessionID: payload.SessionID.String(),
+		SessionContext: shared.SessionContext{
+			SessionID: payload.SessionID,
 		},
 		Payload: payload,
 	}

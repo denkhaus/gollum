@@ -108,7 +108,7 @@ func (p *mcpRegistryImpl) initializeClients(ctx context.Context) error {
 		go func(name string, cfg mcpconfig.MCPServerConfig) {
 			defer wg.Done()
 
-			p.sem <- struct{}{} // Acquire semaphore
+			p.sem <- struct{}{}        // Acquire semaphore
 			defer func() { <-p.sem }() // Release semaphore
 
 			p.logger.Debug("Attempting to create MCP client (parallel)",

@@ -26,7 +26,7 @@ func TestGlobTool_Run_SimplePattern(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &globToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
@@ -80,7 +80,7 @@ func TestGlobTool_Run_NoMatches(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &globToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
@@ -131,7 +131,7 @@ func TestGlobTool_Run_DefaultPath(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &globToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
@@ -186,7 +186,7 @@ func TestGlobTool_Run_NestedPath(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &globToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
@@ -234,7 +234,7 @@ func TestGlobTool_Run_SubdirectoryPattern(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &globToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
@@ -297,7 +297,7 @@ func TestGlobTool_Run_AllFilesPattern(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &globToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 

@@ -24,7 +24,7 @@ func TestInvokeSkillTool_Spec(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &invokeSkillToolImpl{
 		agent: mockAgent,
@@ -78,9 +78,9 @@ func TestInvokeSkillTool_MissingRequiredParameters(t *testing.T) {
 			defer ctrl.Finish()
 
 			senderID := uuid.New()
-	mockAgent := shared.NewMockAgent(ctrl)
-	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+			mockAgent := shared.NewMockAgent(ctrl)
+			mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
+			mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), senderID, uuid.Nil, "")).AnyTimes()
 			mockLogger := logger.NewMockLoggerService(ctrl)
 			mockHookManager := hooks.NewMockHookManager(ctrl)
 
@@ -114,7 +114,7 @@ func TestInvokeSkillTool_SkillNotFound(t *testing.T) {
 	senderID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), senderID, uuid.Nil, "")).AnyTimes()
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockSkillService := skills.NewMockSkillService(ctrl)
@@ -153,7 +153,7 @@ func TestInvokeSkillTool_InvalidContextMode(t *testing.T) {
 	senderID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), senderID, uuid.Nil, "")).AnyTimes()
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockSkillService := skills.NewMockSkillService(ctrl)
@@ -198,7 +198,7 @@ func TestInvokeSkillTool_InvalidModel(t *testing.T) {
 	senderID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), senderID, uuid.Nil, "")).AnyTimes()
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockSkillService := skills.NewMockSkillService(ctrl)
@@ -246,7 +246,7 @@ func TestInvokeSkillTool_SkillWithNoContent(t *testing.T) {
 	senderID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), senderID, uuid.Nil, "")).AnyTimes()
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockSkillService := skills.NewMockSkillService(ctrl)
@@ -356,7 +356,7 @@ func TestInvokeSkillTool_TriggersSkillHooks(t *testing.T) {
 	senderID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(senderID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", senderID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), senderID, uuid.Nil, "")).AnyTimes()
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	mockSkillService := skills.NewMockSkillService(ctrl)
@@ -379,7 +379,7 @@ func TestInvokeSkillTool_TriggersSkillHooks(t *testing.T) {
 
 	// Tool hooks pass through
 	mockHookManager.EXPECT().WithToolHooks(gomock.Any(), gomock.Any(), gomock.Any(), shared.ToolNameInvokeSkill, gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ shared.ToolName, lc shared.LoggingContext, _ shared.ToolName, work func() (map[string]any, error)) (map[string]any, error) {
+		DoAndReturn(func(_ context.Context, _ shared.ToolName, lc shared.SessionContext, _ shared.ToolName, work func() (map[string]any, error)) (map[string]any, error) {
 			return work()
 		})
 

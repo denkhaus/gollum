@@ -19,10 +19,10 @@ type InputHandler interface {
 	// HandleInput processes user input and returns the result.
 	// It first checks if the input is a slash command, and if so, executes it.
 	// Otherwise, it creates/gets a session and supervisor, then executes the input.
-	HandleInput(ctx context.Context, channelID uuid.UUID, sessionID string, input string) (*InputResult, error)
+	HandleInput(ctx context.Context, sessionCtx *shared.SessionContext, input string) (*InputResult, error)
 
 	// CancelInput cancels an in-flight input for the given session.
-	CancelInput(sessionID string) error
+	CancelInput(sessionID uuid.UUID) error
 }
 
 // inputHandlerImpl implements InputHandler interface.
@@ -44,9 +44,9 @@ func NewInputHandler(cm command.Manager, sm session.SessionManager, af shared.Ag
 }
 
 // HandleInput processes user input and returns the result.
-func (h *inputHandlerImpl) HandleInput(ctx context.Context, channelID uuid.UUID, sessionID string, input string) (*InputResult, error) {
+func (h *inputHandlerImpl) HandleInput(ctx context.Context, sessionCtx *shared.SessionContext, input string) (*InputResult, error) {
 	// First check if it's a slash command
-	handled, response, err := h.commandManager.Execute(ctx, sessionID, input)
+	handled, response, err := h.commandManager.Execute(ctx, sessionCtx.SessionID, input)
 	if handled {
 		return &InputResult{
 			Handled:   true,
@@ -57,7 +57,7 @@ func (h *inputHandlerImpl) HandleInput(ctx context.Context, channelID uuid.UUID,
 	}
 
 	// Get or create session for this interaction
-	sess, err := h.sessionManager.GetOrCreateSession(sessionID, channelID)
+	sess, err := h.sessionManager.GetOrCreateSession(sessionCtx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get/create session: %w", err)
 	}
@@ -90,10 +90,10 @@ func (h *inputHandlerImpl) HandleInput(ctx context.Context, channelID uuid.UUID,
 }
 
 // CancelInput cancels an in-flight input for the given session.
-func (h *inputHandlerImpl) CancelInput(sessionID string) error {
+func (h *inputHandlerImpl) CancelInput(sessionID uuid.UUID) error {
 	session, ok := h.sessionManager.GetSession(sessionID)
 	if !ok {
-		return fmt.Errorf("session %s not found", sessionID)
+		return fmt.Errorf("session %s not found", sessionID.String())
 	}
 	session.CancelFunc()
 	return nil

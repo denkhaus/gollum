@@ -8,6 +8,8 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/shared"
+	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"go.uber.org/mock/gomock"
 )
@@ -22,7 +24,13 @@ func TestGrepTool_Run_ContentMode_Simple(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.Nil, agentID, uuid.Nil, "")).AnyTimes()
+
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	tmpDir := t.TempDir()
 
@@ -67,7 +75,13 @@ func TestGrepTool_Run_ContentMode_NoMatches(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.Nil, agentID, uuid.Nil, "")).AnyTimes()
+
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	tmpDir := t.TempDir()
 
@@ -107,7 +121,13 @@ func TestGrepTool_Run_FilesWithMatches(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.Nil, agentID, uuid.Nil, "")).AnyTimes()
+
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	tmpDir := t.TempDir()
 
@@ -153,7 +173,14 @@ func TestGrepTool_Run_CountMode(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
+
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.Nil, agentID, uuid.Nil, "")).AnyTimes()
+
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	tmpDir := t.TempDir()
 
@@ -214,7 +241,14 @@ func TestGrepTool_Run_CaseInsensitive(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
+
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.Nil, agentID, uuid.Nil, "")).AnyTimes()
+
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	tmpDir := t.TempDir()
 
@@ -251,7 +285,14 @@ func TestGrepTool_Run_WithGlobPattern(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
+
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.Nil, agentID, uuid.Nil, "")).AnyTimes()
+
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	tmpDir := t.TempDir()
 
@@ -293,7 +334,14 @@ func TestGrepTool_Run_WithHeadLimit(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
+
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.Nil, agentID, uuid.Nil, "")).AnyTimes()
+
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	tmpDir := t.TempDir()
 
@@ -331,7 +379,14 @@ func TestGrepTool_Run_WithLineNumbers(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
+
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.Nil, agentID, uuid.Nil, "")).AnyTimes()
+
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	tmpDir := t.TempDir()
 
@@ -374,7 +429,14 @@ func TestGrepTool_Run_WithContext(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
+
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.Nil, agentID, uuid.Nil, "")).AnyTimes()
+
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	tmpDir := t.TempDir()
 

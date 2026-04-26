@@ -7,7 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/denkhaus/gollum/pkg/channel"
+	"github.com/denkhaus/gollum/pkg/shared"
+
 	"github.com/denkhaus/gollum/pkg/logger"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -25,9 +26,9 @@ func TestHandleNewMessageMsg(t *testing.T) {
 	m.width = 80
 	m.height = 20
 
-	newMsg := channel.Message{
+	newMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      channel.MessageTypeAgentChat,
+		Type:      shared.MessageTypeAgentChat,
 		Content:   "Test message",
 		Timestamp: time.Now(),
 	}
@@ -73,9 +74,9 @@ func TestHandleExport(t *testing.T) {
 	m.height = 20
 
 	// Add some messages
-	m.messages = []channel.Message{
-		{ID: uuid.New(), Type: channel.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: channel.MessageTypeAgentChat, Content: "Hi there!", Timestamp: time.Now()},
+	m.messages = []shared.Message{
+		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Type: shared.MessageTypeAgentChat, Content: "Hi there!", Timestamp: time.Now()},
 	}
 
 	// Test handleExport

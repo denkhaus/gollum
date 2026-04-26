@@ -2,11 +2,10 @@
 package acp
 
 import (
-	"os"
-	"github.com/google/uuid"
 	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -22,12 +21,10 @@ func RegisterChannels(injector do.Injector) {
 		if err != nil {
 			return nil, err
 		}
-		// Debug: write to file to verify factory was called
-		os.WriteFile("/tmp/acp_factory_debug", []byte("Factory called, ID: "+svc.ID().String()+"\n"), 0644)
+
 		return svc, nil
 	}))
 }
-
 
 // NewAcpServiceWithOptions creates a new ACP service with channel options.
 // This is used by the channel factory to apply options like stdin/stdout/transport.
@@ -55,9 +52,9 @@ func NewAcpServiceWithOptions(injector do.Injector, opts ...channel.ChannelOptio
 		}
 	}
 
-	logger.Debug("ACP service created with options", 
+	logger.Debug("ACP service created with options",
 		zap.String("channel_id", id.String()),
 		zap.Int("options_count", len(opts)))
 
-	return svc, nil  // Type assert to channel.Channel interface
+	return svc, nil // Type assert to channel.Channel interface
 }

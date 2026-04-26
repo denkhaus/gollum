@@ -54,8 +54,8 @@ func TestJSONLogFormat(t *testing.T) {
 	// Using InfoWithContext instead of InfoWithAgent to provide full context
 	agentID := uuid.New()
 	channelID := uuid.New()
-	testCtx := shared.LoggingContext{
-		SessionID: "test-session",
+	testCtx := shared.SessionContext{
+		SessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
 		ChannelID: channelID,
 		AgentID:   agentID,
 	}

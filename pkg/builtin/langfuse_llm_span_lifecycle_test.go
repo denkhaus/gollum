@@ -1,7 +1,6 @@
 package builtin
 
 import (
-
 	"context"
 	"fmt"
 	"github.com/denkhaus/gollum/pkg/logger"
@@ -17,7 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-
 )
 
 func TestLangfuseHook_OnLLMError(t *testing.T) {
@@ -88,8 +86,8 @@ func TestLangfuseHook_OnLLMError(t *testing.T) {
 			}
 
 			// Create trace context and span
-			hook.createTraceContext(sessionID.String())
-			tc := hook.getTraceContext(sessionID.String())
+			hook.createTraceContext(sessionID)
+			tc := hook.getTraceContext(sessionID)
 			spanID := uuid.New().String()
 
 			startTime := time.Now().Add(-50 * time.Millisecond)
@@ -102,7 +100,7 @@ func TestLangfuseHook_OnLLMError(t *testing.T) {
 
 			// Create TypedHookContext with LLMPayload
 			hookCtx := hooks.NewTypedHookContext(
-				shared.LoggingContext{SessionID: tt.sessionID.String()},
+				shared.SessionContext{SessionID: tt.sessionID},
 				hooks.LLMPayload{
 					Error:   tt.llmError,
 					Options: make(map[string]any),
@@ -207,12 +205,12 @@ func TestLangfuseHook_LLMSpanLifecycle_Integration(t *testing.T) {
 			}
 
 			// Create trace context
-			hook.createTraceContext(sessionID.String())
-			tc := hook.getTraceContext(sessionID.String())
+			hook.createTraceContext(sessionID)
+			tc := hook.getTraceContext(sessionID)
 
 			// Simulate LLM flow: BeforeLLMRequest -> LLM call -> AfterLLMResponse/OnLLMError
 			hookCtx := hooks.NewTypedHookContext(
-				shared.LoggingContext{SessionID: sessionID.String()},
+				shared.SessionContext{SessionID: sessionID},
 				hooks.LLMPayload{
 					Model:    tt.llmModel,
 					Input:    tt.llmInput,

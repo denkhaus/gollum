@@ -74,7 +74,7 @@ func (mr *MockLoggerServiceMockRecorder) Debug(msg any, fields ...any) *gomock.C
 }
 
 // DebugWithContext mocks base method.
-func (m *MockLoggerService) DebugWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {
+func (m *MockLoggerService) DebugWithContext(msg string, ctx shared.SessionContext, fields ...zap.Field) {
 	m.ctrl.T.Helper()
 	varargs := []any{msg, ctx}
 	for _, a := range fields {
@@ -156,7 +156,7 @@ func (mr *MockLoggerServiceMockRecorder) Error(msg any, fields ...any) *gomock.C
 }
 
 // ErrorWithContext mocks base method.
-func (m *MockLoggerService) ErrorWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {
+func (m *MockLoggerService) ErrorWithContext(msg string, ctx shared.SessionContext, fields ...zap.Field) {
 	m.ctrl.T.Helper()
 	varargs := []any{msg, ctx}
 	for _, a := range fields {
@@ -280,7 +280,7 @@ func (mr *MockLoggerServiceMockRecorder) Info(msg any, fields ...any) *gomock.Ca
 }
 
 // InfoWithContext mocks base method.
-func (m *MockLoggerService) InfoWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {
+func (m *MockLoggerService) InfoWithContext(msg string, ctx shared.SessionContext, fields ...zap.Field) {
 	m.ctrl.T.Helper()
 	varargs := []any{msg, ctx}
 	for _, a := range fields {
@@ -386,7 +386,7 @@ func (mr *MockLoggerServiceMockRecorder) Warn(msg any, fields ...any) *gomock.Ca
 }
 
 // WarnWithContext mocks base method.
-func (m *MockLoggerService) WarnWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {
+func (m *MockLoggerService) WarnWithContext(msg string, ctx shared.SessionContext, fields ...zap.Field) {
 	m.ctrl.T.Helper()
 	varargs := []any{msg, ctx}
 	for _, a := range fields {

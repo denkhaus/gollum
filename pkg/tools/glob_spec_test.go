@@ -178,7 +178,7 @@ func TestGlobToolProvider_CreateTool(t *testing.T) {
 	// Create mock agent
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(testUUID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", testUUID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), testUUID, uuid.Nil, "")).AnyTimes()
 
 	tool := provider.CreateTool(mockAgent)
 	toolImpl := tool.(*globToolImpl)
@@ -218,7 +218,7 @@ func TestNewGlobToolProvider(t *testing.T) {
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(testUUID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", testUUID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), testUUID, uuid.Nil, "")).AnyTimes()
 	tool := provider.CreateTool(mockAgent)
 
 	if tool == nil {

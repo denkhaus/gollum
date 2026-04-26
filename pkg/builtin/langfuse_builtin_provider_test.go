@@ -1,7 +1,6 @@
 package builtin
 
 import (
-
 	"github.com/denkhaus/gollum/pkg/logger"
 	"sync"
 	"testing"
@@ -10,7 +9,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-
 )
 
 func TestNewBuiltinHooksProvider_WithLangfuse(t *testing.T) {

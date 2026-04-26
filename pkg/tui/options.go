@@ -4,6 +4,8 @@ package tui
 import (
 	"fmt"
 
+	"github.com/denkhaus/gollum/pkg/shared"
+
 	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/markdown"
@@ -24,7 +26,7 @@ func (o TUIOption) Apply(ch channel.Channel) error {
 }
 
 // WithChannelMessageChan sets the message channel for TUI communication.
-func WithChannelMessageChan(ch chan<- channel.Message) TUIOption {
+func WithChannelMessageChan(ch chan<- shared.Message) TUIOption {
 	return TUIOption{applyFunc: func(c *TUIChannel) error {
 		c.messageChan = ch
 		return nil

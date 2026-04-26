@@ -118,7 +118,7 @@ func (m *mockChannel) getLastEvent() AgentLifecycleEvent {
 
 // mockCommandManager is a test double for CommandManager
 type mockCommandManager struct {
-	executeFunc func(ctx context.Context, sessionID string, input string) (handled bool, response string, err error)
+	executeFunc func(ctx context.Context, sessionID uuid.UUID, input string) (handled bool, response string, err error)
 }
 
 func (m *mockCommandManager) Register(cmd command.Command) error {
@@ -129,7 +129,7 @@ func (m *mockCommandManager) Unregister(name string) error {
 	return nil
 }
 
-func (m *mockCommandManager) Execute(ctx context.Context, sessionID string, input string) (bool, string, error) {
+func (m *mockCommandManager) Execute(ctx context.Context, sessionID uuid.UUID, input string) (bool, string, error) {
 	if m.executeFunc != nil {
 		return m.executeFunc(ctx, sessionID, input)
 	}
@@ -208,8 +208,8 @@ func (m *mockAgent) UpdateHistory(ctx context.Context, modifier func(*gollem.His
 	return nil
 }
 
-func (m *mockAgent) ToLoggingContext() shared.LoggingContext {
-	return shared.LoggingContext{
+func (m *mockAgent) ToSessionContext() shared.SessionContext {
+	return shared.SessionContext{
 		AgentID: m.id,
 	}
 }
@@ -254,31 +254,6 @@ func setupTestInjectorWithLogger(t testing.TB, logService logger.LoggerService) 
 
 	mockSM := session.NewMockSessionManager(ctrl)
 	do.ProvideValue[session.SessionManager](injector, mockSM)
-
-	return injector
-}
-
-// setupTestInjectorWithConfig creates an injector with a specific config
-// Note: This doesn't use testutil.NewTestInjector because it needs to override the config service
-func setupTestInjectorWithConfig(t testing.TB, cfg config.ConfigService) do.Injector {
-	ctrl := gomock.NewController(t)
-	injector := do.New()
-	do.ProvideValue[command.ManagerService](injector, &mockCommandManager{})
-
-	mockRegistry := registry.NewMockAgentRegistry(ctrl)
-	mockRegistry.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	mockRegistry.EXPECT().GetSupervisorAgent().Return(nil, fmt.Errorf("no supervisor agent registered")).AnyTimes()
-	do.ProvideValue[registry.AgentRegistry](injector, mockRegistry)
-
-	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
-	do.ProvideValue(injector, cfg)
-
-	mockSM := session.NewMockSessionManager(ctrl)
-	do.ProvideValue[session.SessionManager](injector, mockSM)
-
-	// Add a mock logger
-	mockLogger := logger.NewMockLoggerService(ctrl)
-	do.ProvideValue[logger.LoggerService](injector, mockLogger)
 
 	return injector
 }
@@ -384,7 +359,7 @@ func TestChannelFacade_RegisterChannel_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	channel := newMockChannel(uuid.New())
-	err = service.RegisterChannel(channel)
+	err = service.(*channelFacadeImpl).registerChannel(channel)
 
 	assert.NoError(t, err)
 }
@@ -399,11 +374,11 @@ func TestChannelFacade_RegisterChannel_Duplicate(t *testing.T) {
 	channel := newMockChannel(uuid.New())
 
 	// Register first time - should succeed
-	err = service.RegisterChannel(channel)
+	err = service.(*channelFacadeImpl).registerChannel(channel)
 	require.NoError(t, err)
 
 	// Register second time - should fail
-	err = service.RegisterChannel(channel)
+	err = service.(*channelFacadeImpl).registerChannel(channel)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "already registered")
 	assert.Contains(t, err.Error(), channel.ID().String())
@@ -416,12 +391,13 @@ func TestChannelFacade_UnregisterChannel_Success(t *testing.T) {
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
 
-	channel := newMockChannel(uuid.New())
-	err = service.RegisterChannel(channel)
+	// Register a mock channel
+	ch := newMockChannel(uuid.New())
+	err = service.(*channelFacadeImpl).registerChannel(ch)
 	require.NoError(t, err)
 
 	// Unregister channel
-	err = service.UnregisterChannel(channel.ID())
+	err = service.UnregisterChannel(ch.ID())
 	assert.NoError(t, err)
 }
 
@@ -448,7 +424,7 @@ func TestChannelFacade_DisplayMessage_RoutesToTargetChannel(t *testing.T) {
 	service, err := NewChannelFacade(injector)
 	require.NoError(t, err)
 
-	// Register multiple channels
+	// Register multiple mock channels using private registerChannel
 	channels := []*mockChannel{
 		newMockChannel(uuid.New()),
 		newMockChannel(uuid.New()),
@@ -456,16 +432,15 @@ func TestChannelFacade_DisplayMessage_RoutesToTargetChannel(t *testing.T) {
 	}
 
 	for _, ch := range channels {
-		err = service.RegisterChannel(ch)
+		err = service.(*channelFacadeImpl).registerChannel(ch)
 		require.NoError(t, err)
 	}
 
 	// Send a message to the second channel only
-	targetChannel := channels[1]
 	msg := Message{
 		ID:        uuid.New(),
 		Type:      MessageTypeAgentChat,
-		ChannelID: targetChannel.id,
+
 		Content:   "Test message",
 		Timestamp: time.Now(),
 	}
@@ -499,7 +474,7 @@ func TestChannelFacade_DisplayMessage_ChannelNotFound(t *testing.T) {
 
 	// Register one channel
 	channel := newMockChannel(uuid.New())
-	err = service.RegisterChannel(channel)
+	err = service.(*channelFacadeImpl).registerChannel(channel)
 	require.NoError(t, err)
 
 	// Send a message to a non-existent channel
@@ -507,7 +482,7 @@ func TestChannelFacade_DisplayMessage_ChannelNotFound(t *testing.T) {
 	msg := Message{
 		ID:        uuid.New(),
 		Type:      MessageTypeAgentChat,
-		ChannelID: nonExistentChannelID,
+
 		Content:   "Test message",
 		Timestamp: time.Now(),
 	}
@@ -550,7 +525,7 @@ func TestChannelFacade_DisplayMessage_NoBroadcast(t *testing.T) {
 	}
 
 	for _, ch := range channels {
-		err = service.RegisterChannel(ch)
+		err = service.(*channelFacadeImpl).registerChannel(ch)
 		require.NoError(t, err)
 	}
 
@@ -559,7 +534,9 @@ func TestChannelFacade_DisplayMessage_NoBroadcast(t *testing.T) {
 		msg := Message{
 			ID:        uuid.New(),
 			Type:      MessageTypeAgentChat,
-			ChannelID: ch.id,
+			SessionContext: shared.SessionContext{
+				ChannelID: ch.id,
+			},
 			Content:   fmt.Sprintf("Message %d", i),
 			Timestamp: time.Now(),
 		}
@@ -583,7 +560,7 @@ func TestChannelFacade_SubmitInput_SlashCommand(t *testing.T) {
 
 	// Mock command manager that handles the command
 	cmdMgr := &mockCommandManager{
-		executeFunc: func(ctx context.Context, sessionID string, input string) (bool, string, error) {
+		executeFunc: func(ctx context.Context, sessionID uuid.UUID, input string) (bool, string, error) {
 			if input == "/test args" {
 				return true, "command executed", nil
 			}
@@ -610,7 +587,12 @@ func TestChannelFacade_SubmitInput_SlashCommand(t *testing.T) {
 
 	ctx := context.Background()
 	channelID := uuid.New()
-	result, err := service.SubmitInput(ctx, channelID, "test-session", "/test args")
+	sessionCtx := &shared.SessionContext{
+		SessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	result, err := service.SubmitInput(ctx, sessionCtx, "/test args")
 
 	require.NoError(t, err)
 	assert.True(t, result.Handled, "Slash command should be handled")
@@ -628,7 +610,7 @@ func TestChannelFacade_SubmitInput_NonCommand_NoAgentRouting(t *testing.T) {
 
 	// Mock command manager that doesn't handle the input
 	cmdMgr := &mockCommandManager{
-		executeFunc: func(ctx context.Context, sessionID string, input string) (bool, string, error) {
+		executeFunc: func(ctx context.Context, sessionID uuid.UUID, input string) (bool, string, error) {
 			return false, "", nil
 		},
 	}
@@ -644,11 +626,10 @@ func TestChannelFacade_SubmitInput_NonCommand_NoAgentRouting(t *testing.T) {
 
 	mockSessionManager := session.NewMockSessionManager(ctrl)
 	testSession := &shared.Session{
-		ID:        "test-session",
-		ChannelID: uuid.New(),
+		ID:        uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
 		Context:   context.Background(),
 	}
-	mockSessionManager.EXPECT().GetOrCreateSession("test-session", gomock.Any()).Return(testSession, nil)
+	mockSessionManager.EXPECT().GetOrCreateSession(gomock.Any()).Return(testSession, nil)
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
@@ -660,7 +641,12 @@ func TestChannelFacade_SubmitInput_NonCommand_NoAgentRouting(t *testing.T) {
 
 	ctx := context.Background()
 	channelID := uuid.New()
-	result, err := service.SubmitInput(ctx, channelID, "test-session", "hello world")
+	sessionCtx := &shared.SessionContext{
+		SessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	result, err := service.SubmitInput(ctx, sessionCtx, "hello world")
 
 	// Since no supervisor agent is available, this should return an error
 	assert.Error(t, err)
@@ -677,7 +663,7 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 
 	// Mock command manager that returns an error
 	cmdMgr := &mockCommandManager{
-		executeFunc: func(ctx context.Context, sessionID string, input string) (bool, string, error) {
+		executeFunc: func(ctx context.Context, sessionID uuid.UUID, input string) (bool, string, error) {
 			return true, "", errors.New("command failed")
 		},
 	}
@@ -702,7 +688,12 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 
 	ctx := context.Background()
 	channelID := uuid.New()
-	result, err := service.SubmitInput(ctx, channelID, "test-session", "/test")
+	sessionCtx := &shared.SessionContext{
+		SessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	result, err := service.SubmitInput(ctx, sessionCtx, "/test args")
 
 	require.NoError(t, err)
 	assert.True(t, result.Handled)
@@ -710,8 +701,6 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 	assert.Error(t, result.Error)
 	assert.Contains(t, result.Error.Error(), "command failed")
 }
-
-// TestChannelFacade_NotifyAgentLifecycle_TargetsSpecificChannel tests that NotifyAgentLifecycle sends event only to the specified channel
 func TestChannelFacade_NotifyAgentLifecycle_TargetsSpecificChannel(t *testing.T) {
 	injector := setupTestInjector(t)
 
@@ -723,17 +712,17 @@ func TestChannelFacade_NotifyAgentLifecycle_TargetsSpecificChannel(t *testing.T)
 	channel2 := newMockChannel(uuid.New())
 	channel3 := newMockChannel(uuid.New())
 
-	err = service.RegisterChannel(channel1)
+	err = service.(*channelFacadeImpl).registerChannel(channel1)
 	require.NoError(t, err)
-	err = service.RegisterChannel(channel2)
+	err = service.(*channelFacadeImpl).registerChannel(channel2)
 	require.NoError(t, err)
-	err = service.RegisterChannel(channel3)
+	err = service.(*channelFacadeImpl).registerChannel(channel3)
 	require.NoError(t, err)
 
 	// Notify agent lifecycle event for channel2 only
 	agentID := uuid.New()
 	role := "tester"
-	sessionID := "test-session-123"
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440002")
 	service.NotifyAgentLifecycle(agentID, channel2.id, sessionID, role, true)
 
 	// Verify only channel2 received the event
@@ -765,7 +754,7 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 	channels := make([]*mockChannel, 5)
 	for i := range 5 {
 		channels[i] = newMockChannel(uuid.New())
-		_ = service.RegisterChannel(channels[i])
+		_ = service.(*channelFacadeImpl).registerChannel(channels[i])
 	}
 
 	wg := sync.WaitGroup{}
@@ -776,7 +765,7 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			ch := newMockChannel(uuid.New())
-			_ = service.RegisterChannel(ch)
+			_ = service.(*channelFacadeImpl).registerChannel(ch)
 		}(i)
 	}
 
@@ -786,10 +775,9 @@ func TestChannelFacade_Concurrency(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			// Send to one of the registered channels
-			targetChannel := channels[i%len(channels)]
 			msg := Message{
 				ID:        uuid.New(),
-				ChannelID: targetChannel.id,
+
 				Content:   fmt.Sprintf("message %d", i),
 				Timestamp: time.Now(),
 			}
@@ -828,7 +816,7 @@ func TestChannelFacade_SubmitInput_RoutesToSupervisorAgent(t *testing.T) {
 
 	// Mock command manager that doesn't handle the input
 	cmdMgr := &mockCommandManager{
-		executeFunc: func(ctx context.Context, sessionID string, input string) (bool, string, error) {
+		executeFunc: func(ctx context.Context, sessionID uuid.UUID, input string) (bool, string, error) {
 			return false, "", nil
 		},
 	}
@@ -856,11 +844,11 @@ func TestChannelFacade_SubmitInput_RoutesToSupervisorAgent(t *testing.T) {
 	mockSessionManager := session.NewMockSessionManager(ctrl)
 	testChannelID := uuid.New()
 	testSession := &shared.Session{
-		ID:        "test-session",
+		ID:        uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
 		ChannelID: testChannelID,
 		Context:   context.Background(),
 	}
-	mockSessionManager.EXPECT().GetOrCreateSession("test-session", testChannelID).Return(testSession, nil)
+		mockSessionManager.EXPECT().GetOrCreateSession(gomock.Any()).Return(testSession, nil)
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
@@ -872,7 +860,7 @@ func TestChannelFacade_SubmitInput_RoutesToSupervisorAgent(t *testing.T) {
 
 	// Submit input
 	ctx := context.Background()
-	result, err := service.SubmitInput(ctx, testChannelID, "test-session", "test input")
+	result, err := service.SubmitInput(ctx, &shared.SessionContext{SessionID: testSession.ID, ChannelID: testChannelID}, "test input")
 
 	require.NoError(t, err)
 	assert.True(t, result.Handled)
@@ -889,7 +877,7 @@ func TestChannelFacade_SubmitInput_NoSupervisorError(t *testing.T) {
 
 	// Mock command manager that doesn't handle the input
 	cmdMgr := &mockCommandManager{
-		executeFunc: func(ctx context.Context, sessionID string, input string) (bool, string, error) {
+		executeFunc: func(ctx context.Context, sessionID uuid.UUID, input string) (bool, string, error) {
 			return false, "", nil
 		},
 	}
@@ -905,11 +893,10 @@ func TestChannelFacade_SubmitInput_NoSupervisorError(t *testing.T) {
 
 	mockSessionManager := session.NewMockSessionManager(ctrl)
 	testSession := &shared.Session{
-		ID:        "test-session",
-		ChannelID: uuid.New(),
+		ID:        uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
 		Context:   context.Background(),
 	}
-	mockSessionManager.EXPECT().GetOrCreateSession("test-session", gomock.Any()).Return(testSession, nil)
+	mockSessionManager.EXPECT().GetOrCreateSession(gomock.Any()).Return(testSession, nil).Return(testSession, nil)
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
@@ -922,7 +909,12 @@ func TestChannelFacade_SubmitInput_NoSupervisorError(t *testing.T) {
 	// Submit input should return error
 	ctx := context.Background()
 	channelID := uuid.New()
-	result, err := service.SubmitInput(ctx, channelID, "test-session", "test input")
+	sessionCtx := &shared.SessionContext{
+		SessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	result, err := service.SubmitInput(ctx, sessionCtx, "/test args")
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get/create supervisor")
@@ -957,7 +949,7 @@ func TestChannelFacade_CancelInput_SessionNotFound(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try to cancel a non-existent session
-	err = service.CancelInput("non-existent-session")
+	err = service.CancelInput(uuid.Nil)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "session non-existent-session not found")
@@ -972,7 +964,7 @@ func TestChannelFacade_SubmitInput_ExecuteError(t *testing.T) {
 
 	// Mock command manager that doesn't handle the input
 	cmdMgr := &mockCommandManager{
-		executeFunc: func(ctx context.Context, sessionID string, input string) (bool, string, error) {
+		executeFunc: func(ctx context.Context, sessionID uuid.UUID, input string) (bool, string, error) {
 			return false, "", nil
 		},
 	}
@@ -1004,11 +996,10 @@ func TestChannelFacade_SubmitInput_ExecuteError(t *testing.T) {
 
 	mockSessionManager := session.NewMockSessionManager(ctrl)
 	testSession := &shared.Session{
-		ID:        "test-session",
-		ChannelID: uuid.New(),
+		ID:        uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
 		Context:   context.Background(),
 	}
-	mockSessionManager.EXPECT().GetOrCreateSession("test-session", gomock.Any()).Return(testSession, nil)
+	mockSessionManager.EXPECT().GetOrCreateSession(gomock.Any()).Return(testSession, nil).Return(testSession, nil)
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
@@ -1021,7 +1012,12 @@ func TestChannelFacade_SubmitInput_ExecuteError(t *testing.T) {
 	// Submit input should handle the error gracefully
 	ctx := context.Background()
 	channelID := uuid.New()
-	result, err := service.SubmitInput(ctx, channelID, "test-session", "test input")
+	sessionCtx := &shared.SessionContext{
+		SessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	result, err := service.SubmitInput(ctx, sessionCtx, "/test args")
 
 	require.NoError(t, err) // No error returned, error is in result
 	assert.True(t, result.Handled)
@@ -1038,7 +1034,7 @@ func TestChannelFacade_SubmitInput_ExecuteEmptyResponse(t *testing.T) {
 
 	// Mock command manager that doesn't handle the input
 	cmdMgr := &mockCommandManager{
-		executeFunc: func(ctx context.Context, sessionID string, input string) (bool, string, error) {
+		executeFunc: func(ctx context.Context, sessionID uuid.UUID, input string) (bool, string, error) {
 			return false, "", nil
 		},
 	}
@@ -1071,11 +1067,10 @@ func TestChannelFacade_SubmitInput_ExecuteEmptyResponse(t *testing.T) {
 
 	mockSessionManager := session.NewMockSessionManager(ctrl)
 	testSession := &shared.Session{
-		ID:        "test-session",
-		ChannelID: uuid.New(),
+		ID:        uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
 		Context:   context.Background(),
 	}
-	mockSessionManager.EXPECT().GetOrCreateSession("test-session", gomock.Any()).Return(testSession, nil)
+	mockSessionManager.EXPECT().GetOrCreateSession(gomock.Any()).Return(testSession, nil).Return(testSession, nil)
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
@@ -1088,7 +1083,12 @@ func TestChannelFacade_SubmitInput_ExecuteEmptyResponse(t *testing.T) {
 	// Submit input should handle empty response
 	ctx := context.Background()
 	channelID := uuid.New()
-	result, err := service.SubmitInput(ctx, channelID, "test-session", "test input")
+	sessionCtx := &shared.SessionContext{
+		SessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	result, err := service.SubmitInput(ctx, sessionCtx, "/test args")
 
 	require.NoError(t, err)
 	assert.True(t, result.Handled)
@@ -1105,7 +1105,7 @@ func TestChannelFacade_SubmitInput_ExecuteNilResponse(t *testing.T) {
 
 	// Mock command manager that doesn't handle the input
 	cmdMgr := &mockCommandManager{
-		executeFunc: func(ctx context.Context, sessionID string, input string) (bool, string, error) {
+		executeFunc: func(ctx context.Context, sessionID uuid.UUID, input string) (bool, string, error) {
 			return false, "", nil
 		},
 	}
@@ -1136,11 +1136,10 @@ func TestChannelFacade_SubmitInput_ExecuteNilResponse(t *testing.T) {
 
 	mockSessionManager := session.NewMockSessionManager(ctrl)
 	testSession := &shared.Session{
-		ID:        "test-session",
-		ChannelID: uuid.New(),
+		ID:        uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
 		Context:   context.Background(),
 	}
-	mockSessionManager.EXPECT().GetOrCreateSession("test-session", gomock.Any()).Return(testSession, nil)
+	mockSessionManager.EXPECT().GetOrCreateSession(gomock.Any()).Return(testSession, nil).Return(testSession, nil)
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
@@ -1153,7 +1152,12 @@ func TestChannelFacade_SubmitInput_ExecuteNilResponse(t *testing.T) {
 	// Submit input should handle nil response
 	ctx := context.Background()
 	channelID := uuid.New()
-	result, err := service.SubmitInput(ctx, channelID, "test-session", "test input")
+	sessionCtx := &shared.SessionContext{
+		SessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	result, err := service.SubmitInput(ctx, sessionCtx, "/test args")
 
 	require.NoError(t, err)
 	assert.True(t, result.Handled)
@@ -1170,7 +1174,7 @@ func TestChannelFacade_SubmitInput_MultipleTextsInResponse(t *testing.T) {
 
 	// Mock command manager that doesn't handle the input
 	cmdMgr := &mockCommandManager{
-		executeFunc: func(ctx context.Context, sessionID string, input string) (bool, string, error) {
+		executeFunc: func(ctx context.Context, sessionID uuid.UUID, input string) (bool, string, error) {
 			return false, "", nil
 		},
 	}
@@ -1203,11 +1207,10 @@ func TestChannelFacade_SubmitInput_MultipleTextsInResponse(t *testing.T) {
 
 	mockSessionManager := session.NewMockSessionManager(ctrl)
 	testSession := &shared.Session{
-		ID:        "test-session",
-		ChannelID: uuid.New(),
+		ID:        uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
 		Context:   context.Background(),
 	}
-	mockSessionManager.EXPECT().GetOrCreateSession("test-session", gomock.Any()).Return(testSession, nil)
+	mockSessionManager.EXPECT().GetOrCreateSession(gomock.Any()).Return(testSession, nil).Return(testSession, nil)
 
 	mockLogger := logger.NewMockLoggerService(ctrl)
 	do.ProvideValue[logger.LoggerService](injector, mockLogger)
@@ -1220,7 +1223,12 @@ func TestChannelFacade_SubmitInput_MultipleTextsInResponse(t *testing.T) {
 	// Submit input should join multiple texts
 	ctx := context.Background()
 	channelID := uuid.New()
-	result, err := service.SubmitInput(ctx, channelID, "test-session", "test input")
+	sessionCtx := &shared.SessionContext{
+		SessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+		ChannelID: channelID,
+		AgentID:   uuid.New(),
+	}
+	result, err := service.SubmitInput(ctx, sessionCtx, "/test args")
 
 	require.NoError(t, err)
 	assert.True(t, result.Handled)
@@ -1246,10 +1254,9 @@ func setupTestInjectorWithSessionManager(t testing.TB, ctrl *gomock.Controller) 
 	mockSM := session.NewMockSessionManager(ctrl)
 	// Setup default expectations for session creation/retrieval
 	testSession := &shared.Session{
-		ID:        "test-session",
-		ChannelID: uuid.New(),
+		ID:        uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
 	}
-	mockSM.EXPECT().GetOrCreateSession(gomock.Any(), gomock.Any()).Return(testSession, nil).AnyTimes()
+	mockSM.EXPECT().GetOrCreateSession(gomock.Any()).Return(testSession, nil).AnyTimes()
 	do.ProvideValue[session.SessionManager](injector, mockSM)
 
 	return injector
@@ -1271,14 +1278,13 @@ func TestChannelFacade_SubmitInput_DelegatesToHandler(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	channelID := uuid.New()
-	sessionID := "test"
+	sessionCtx := shared.NewSessionContext(uuid.Nil, uuid.Nil, uuid.Nil, "")
 	input := "hello"
 
 	expectedResult := &InputResult{Handled: true, Response: "Hi there"}
-	mockHandler.EXPECT().HandleInput(ctx, channelID, sessionID, input).Return(expectedResult, nil)
+	mockHandler.EXPECT().HandleInput(ctx, sessionCtx, input).Return(expectedResult, nil)
 
-	result, err := mockFacade.SubmitInput(ctx, channelID, sessionID, input)
+	result, err := mockFacade.SubmitInput(ctx, sessionCtx, input)
 
 	require.NoError(t, err)
 	assert.Equal(t, expectedResult, result)
@@ -1299,7 +1305,7 @@ func TestChannelFacade_CancelInput_DelegatesToHandler(t *testing.T) {
 		logger:       mockLogger,
 	}
 
-	sessionID := "test-session"
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
 	mockHandler.EXPECT().CancelInput(sessionID).Return(nil)
 
 	err := mockFacade.CancelInput(sessionID)

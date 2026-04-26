@@ -66,7 +66,7 @@ func TestExecuteCall_SimpleFlowCall(t *testing.T) {
 						Output: &flows.CallOutputBlock{
 							Strings: []flows.CallOutputParam{
 								{
-									Name:    "result",
+									Name:     "result",
 									AssignTo: "output.output",
 								},
 							},
@@ -168,7 +168,7 @@ func TestExecuteCall_MultipleInputFields(t *testing.T) {
 						Output: &flows.CallOutputBlock{
 							Strings: []flows.CallOutputParam{
 								{
-									Name:    "result",
+									Name:     "result",
 									AssignTo: "output.message",
 								},
 							},

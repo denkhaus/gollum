@@ -2,7 +2,6 @@
 package agents
 
 import (
-
 	"context"
 	"errors"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
@@ -16,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-
 )
 
 func TestDefaultAgent_GetMessageHistory(t *testing.T) {

@@ -57,7 +57,7 @@ func (p *flowExecutorImpl) executeMCPStep(_ context.Context, step *flows.Step, s
 				// Unwrap MCP result format if needed
 				// MCP tools return: {"content": [{"type": "text", "text": "{"key": ...}"}]}
 				// We need to extract the actual data from content[0].text and parse it as JSON
-				result, err = p.unwrapMCPResult(result)
+				result = p.unwrapMCPResult(result)
 				if err != nil {
 					return &MCPError{
 						Server: toolName,
@@ -151,11 +151,11 @@ func (p *flowExecutorImpl) executeMCPStep(_ context.Context, step *flows.Step, s
 // 1. {"Result": {...}} - Direct result map
 // 2. {"content": [{"type": "text", "text": "{\"key\": ...}"}]} - Standard MCP format
 // This function extracts the actual data from whichever format is present
-func (p *flowExecutorImpl) unwrapMCPResult(result map[string]any) (map[string]any, error) {
+func (p *flowExecutorImpl) unwrapMCPResult(result map[string]any) (map[string]any) {
 	// First, check for "Result" key (some MCP servers return data directly under "Result")
 	if resultMap, hasResult := result["Result"]; hasResult {
 		if resultMapMap, ok := resultMap.(map[string]any); ok {
-			return resultMapMap, nil
+			return resultMapMap
 		}
 	}
 
@@ -163,14 +163,14 @@ func (p *flowExecutorImpl) unwrapMCPResult(result map[string]any) (map[string]an
 	contentField, hasContent := result["content"]
 	if !hasContent {
 		// No content field, return result as-is
-		return result, nil
+		return result
 	}
 
 	// content should be an array
 	contentArray, ok := contentField.([]any)
 	if !ok || len(contentArray) == 0 {
 		// Invalid content format, return result as-is
-		return result, nil
+		return result
 	}
 
 	// Get first content item
@@ -178,31 +178,31 @@ func (p *flowExecutorImpl) unwrapMCPResult(result map[string]any) (map[string]an
 	contentMap, ok := firstContent.(map[string]any)
 	if !ok {
 		// Not a map, return result as-is
-		return result, nil
+		return result
 	}
 
 	// Check for "text" field
 	textField, hasText := contentMap["text"]
 	if !hasText {
 		// No text field, return result as-is
-		return result, nil
+		return result
 	}
 
 	// Text should be a JSON string
 	textStr, ok := textField.(string)
 	if !ok {
 		// Not a string, return result as-is
-		return result, nil
+		return result
 	}
 
 	// Parse the JSON string
 	var parsedResult map[string]any
 	if err := json.Unmarshal([]byte(textStr), &parsedResult); err != nil {
 		// Failed to parse, return original result
-		return result, nil
+		return result
 	}
 
-	return parsedResult, nil
+	return parsedResult
 }
 
 // extractJSONPath extracts a value from data using JSONPath-like syntax.

@@ -33,8 +33,7 @@ func TestChangeDirectoryTool_Run_ValidDirectory(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
-
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	// Save original directory and restore after test
 	originalDir, err := os.Getwd()
@@ -96,7 +95,7 @@ func TestChangeDirectoryTool_Run_MissingPath(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &changeDirectoryToolImpl{
 		logService:  logService,
@@ -125,7 +124,7 @@ func TestChangeDirectoryTool_Run_EmptyPath(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &changeDirectoryToolImpl{
 		logService:  logService,
@@ -156,7 +155,7 @@ func TestChangeDirectoryTool_Run_NonexistentDirectory(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &changeDirectoryToolImpl{
 		logService:  logService,
@@ -187,7 +186,7 @@ func TestChangeDirectoryTool_Run_FileNotDirectory(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	tool := &changeDirectoryToolImpl{
 		logService:  logService,
@@ -227,8 +226,7 @@ func TestChangeDirectoryTool_Run_RelativePath(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
-
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	// Save original directory and restore after test
 	originalDir, err := os.Getwd()
@@ -324,7 +322,7 @@ func TestChangeDirectoryToolProvider_CreateTool(t *testing.T) {
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(testUUID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", testUUID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), testUUID, uuid.Nil, "")).AnyTimes()
 
 	tool := provider.CreateTool(mockAgent)
 
@@ -368,7 +366,7 @@ func TestNewChangeDirectoryToolProvider(t *testing.T) {
 	agentID := uuid.New()
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", agentID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 
 	do.ProvideValue[events.Bus](injector, mockEventBus)
 

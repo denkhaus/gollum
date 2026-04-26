@@ -27,8 +27,8 @@ import (
 //	    return next()
 //	}
 type TypedHookContext[T any] struct {
-	// LoggingContext provides common session and agent identification.
-	shared.LoggingContext
+	// SessionContext provides common session and agent identification.
+	shared.SessionContext
 
 	// Payload contains the typed data specific to this hook category.
 	Payload T
@@ -104,9 +104,9 @@ type TypedHookMetadata struct {
 //	    hooks.BaseContext{SessionID: sessionID, AgentID: agentID},
 //	    hooks.ToolPayload{Name: "myTool", Args: args},
 //	)
-func NewTypedHookContext[T any](loggingContext shared.LoggingContext, payload T) *TypedHookContext[T] {
+func NewTypedHookContext[T any](loggingContext shared.SessionContext, payload T) *TypedHookContext[T] {
 	return &TypedHookContext[T]{
-		LoggingContext: loggingContext,
+		SessionContext: loggingContext,
 		Payload:        payload,
 		Tracing:        TracingPayload{},
 	}
@@ -114,9 +114,9 @@ func NewTypedHookContext[T any](loggingContext shared.LoggingContext, payload T)
 
 // NewTypedHookContextWithTracing creates a new TypedHookContext with tracing data.
 // Use this when you need to provide tracing information from the start.
-func NewTypedHookContextWithTracing[T any](loggingContext shared.LoggingContext, payload T, tracing TracingPayload) *TypedHookContext[T] {
+func NewTypedHookContextWithTracing[T any](loggingContext shared.SessionContext, payload T, tracing TracingPayload) *TypedHookContext[T] {
 	return &TypedHookContext[T]{
-		LoggingContext: loggingContext,
+		SessionContext: loggingContext,
 		Payload:        payload,
 		Tracing:        tracing,
 	}
@@ -132,7 +132,7 @@ func (hc *TypedHookContext[T]) Clone() *TypedHookContext[T] {
 		return &TypedHookContext[T]{Payload: zero}
 	}
 	return &TypedHookContext[T]{
-		LoggingContext: hc.LoggingContext,
+		SessionContext: hc.SessionContext,
 		Payload:        hc.Payload,
 		Tracing:        hc.Tracing,
 	}
@@ -140,7 +140,7 @@ func (hc *TypedHookContext[T]) Clone() *TypedHookContext[T] {
 
 // WithSessionID returns a copy of the context with the session ID set.
 // Useful for builder-style context construction.
-func (hc *TypedHookContext[T]) WithSessionID(sessionID string) *TypedHookContext[T] {
+func (hc *TypedHookContext[T]) WithSessionID(sessionID uuid.UUID) *TypedHookContext[T] {
 	cpy := hc.Clone()
 	cpy.SessionID = sessionID
 	return cpy

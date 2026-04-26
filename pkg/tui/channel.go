@@ -3,7 +3,6 @@ package tui
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/channel"
@@ -22,7 +21,7 @@ const Identifier = channel.ChannelIdentifier("tui")
 // It forwards messages to the TUI model via the message channel for display.
 type TUIChannel struct {
 	id          uuid.UUID
-	messageChan chan<- channel.Message
+	messageChan chan<- shared.Message
 	agentID     uuid.UUID
 	agentRole   string
 	logger      logger.LoggerService
@@ -83,9 +82,9 @@ func (c *TUIChannel) ID() uuid.UUID {
 
 // OnMessage handles incoming messages from the channel.
 // Messages are sent to the TUI model's message channel for display.
-func (c *TUIChannel) OnMessage(msg channel.Message) {
+func (c *TUIChannel) OnMessage(msg shared.Message) {
 	if c.messageChan == nil {
-		log.Printf("[TUIChannel] No message channel configured, message not displayed: %+v", msg)
+		c.logger.Debugf("[TUIChannel] No message channel configured, message not displayed: %+v", msg)
 		return
 	}
 
@@ -95,7 +94,7 @@ func (c *TUIChannel) OnMessage(msg channel.Message) {
 	case c.messageChan <- msg:
 		// Message sent successfully
 	default:
-		log.Printf("[TUIChannel] Message channel full, message dropped: %+v", msg)
+		c.logger.Debugf("[TUIChannel] Message channel full, message dropped: %+v", msg)
 	}
 }
 
@@ -108,24 +107,28 @@ func (c *TUIChannel) OnMessage(msg channel.Message) {
 // See pkg/channel package documentation for general log routing patterns.
 func (c *TUIChannel) OnLog(entry shared.LogEntry) {
 	if c.messageChan == nil {
-		log.Printf("[TUIChannel] No message channel configured, log entry not displayed: %+v", entry)
+		c.logger.Debugf("[TUIChannel] No message channel configured, log entry not displayed: %+v", entry)
 		return
 	}
 
 	// Convert log entry to a system message
-	msg := channel.Message{
-		Type:      channel.MessageTypeSystemInfo,
+	msg := shared.Message{
+		Type:      shared.MessageTypeSystemInfo,
 		Content:   formatLogEntry(entry),
 		Timestamp: entry.Timestamp,
-		AgentID:   c.agentID,
 		AgentRole: c.agentRole,
+		SessionContext: shared.SessionContext{
+			SessionID: uuid.Nil, // TUI uses single-session mode
+			ChannelID: c.id,
+			AgentID:   c.agentID,
+		},
 	}
 
 	// Send to TUI model
 	select {
 	case c.messageChan <- msg:
 	default:
-		log.Printf("[TUIChannel] Message channel full, log entry dropped: %+v", entry)
+		c.logger.Debugf("[TUIChannel] Message channel full, log entry dropped: %+v", entry)
 	}
 }
 
@@ -133,24 +136,28 @@ func (c *TUIChannel) OnLog(entry shared.LogEntry) {
 // Lifecycle events are converted to system messages and sent to the TUI.
 func (c *TUIChannel) OnAgentLifecycle(event channel.AgentLifecycleEvent) {
 	if c.messageChan == nil {
-		log.Printf("[TUIChannel] No message channel configured, lifecycle event not displayed: %+v", event)
+		c.logger.Debugf("[TUIChannel] No message channel configured, lifecycle event not displayed: %+v", event)
 		return
 	}
 
 	// Convert lifecycle event to a system message
-	msg := channel.Message{
-		Type:      channel.MessageTypeSystemInfo,
+	msg := shared.Message{
+		Type:      shared.MessageTypeSystemInfo,
 		Content:   formatLifecycleEvent(event),
 		Timestamp: time.Now(),
-		AgentID:   event.AgentID,
 		AgentRole: event.Role,
+		SessionContext: shared.SessionContext{
+			SessionID: uuid.Nil, // TUI uses single-session mode
+			ChannelID: c.id,
+			AgentID:   event.AgentID,
+		},
 	}
 
 	// Send to TUI model
 	select {
 	case c.messageChan <- msg:
 	default:
-		log.Printf("[TUIChannel] Message channel full, lifecycle event dropped: %+v", event)
+		c.logger.Debugf("[TUIChannel] Message channel full, lifecycle event dropped: %+v", event)
 	}
 }
 
@@ -180,7 +187,7 @@ func formatLifecycleEvent(event channel.AgentLifecycleEvent) string {
 }
 
 // GetMessageChan returns the message channel (for testing).
-func (c *TUIChannel) GetMessageChan() chan<- channel.Message {
+func (c *TUIChannel) GetMessageChan() chan<- shared.Message {
 	return c.messageChan
 }
 
@@ -197,7 +204,7 @@ func (c *TUIChannel) GetRenderer() markdown.Renderer {
 // Start begins the TUI channel's lifecycle by creating and running the Bubbletea program.
 func (c *TUIChannel) Start(ctx context.Context) error {
 	if c.facade == nil {
-		log.Print("TUIChannel: no facade configured, cannot start TUI")
+		c.logger.Error("TUIChannel: no facade configured, cannot start TUI")
 		return errors.New("TUIChannel: no facade configured")
 	}
 
@@ -207,9 +214,16 @@ func (c *TUIChannel) Start(ctx context.Context) error {
 		channelID: c.id,
 	}
 
-	// Create options for the TUI program
+	// Create a shared message channel that both the TUIChannel and TUI Model will use
+	// This ensures messages sent via OnMessage() are received by the TUI
+	sharedMsgChan := make(chan shared.Message, 100)
+	c.messageChan = sharedMsgChan
+
+	// Create options for the TUI program with the SHARED message channel
 	opts := []func(*Model){
-		WithMessageChannel(),
+		func(m *Model) {
+			m.SetMessageChannel(sharedMsgChan)
+		},
 	}
 
 	// Add logger and renderer if configured
@@ -236,8 +250,13 @@ type agentExecutorAdapter struct {
 
 // Execute implements tui.AgentExecutor by delegating to the channel facade
 func (a *agentExecutorAdapter) Execute(ctx context.Context, input string) (*gollem.ExecuteResponse, error) {
-	// Use empty session ID for TUI (single session)
-	result, err := a.facade.SubmitInput(ctx, a.channelID, "", input)
+	// Use Nil UUID for session ID for TUI (single session mode)
+	result, err := a.facade.SubmitInput(ctx, &shared.SessionContext{
+		SessionID: uuid.Nil,
+		ChannelID: a.channelID,
+		AgentID:   uuid.Nil,
+		Cwd:       "",
+	}, input)
 	if err != nil {
 		return nil, err
 	}

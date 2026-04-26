@@ -1,7 +1,6 @@
 package builtin
 
 import (
-
 	"context"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"sync"
@@ -12,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-
 )
 
 func TestNewLangfuseHook(t *testing.T) {

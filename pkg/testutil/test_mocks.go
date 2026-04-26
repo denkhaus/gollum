@@ -5,8 +5,8 @@ import (
 
 	"github.com/denkhaus/gollum/pkg/hooks"
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/session"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
 )
@@ -49,19 +49,19 @@ func (m *MocksWithController) setupHookManagerPassThrough() {
 
 func (m *MocksWithController) setupSessionManagerPassThrough() {
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
-	m.SessionMgr.EXPECT().CreateSession(gomock.Any(), gomock.Any()).
+	m.SessionMgr.EXPECT().CreateSession(gomock.Any()).
 		Return(&shared.Session{
-			ID:        "test-session",
+			ID:        testUUID,
 			ChannelID: testUUID,
 		}, nil).AnyTimes()
 	m.SessionMgr.EXPECT().GetSession(gomock.Any()).
 		Return(&shared.Session{
-			ID:        "test-session",
+			ID:        testUUID,
 			ChannelID: testUUID,
 		}, true).AnyTimes()
-	m.SessionMgr.EXPECT().GetOrCreateSession(gomock.Any(), gomock.Any()).
+	m.SessionMgr.EXPECT().GetOrCreateSession(gomock.Any()).
 		Return(&shared.Session{
-			ID:        "test-session",
+			ID:        testUUID,
 			ChannelID: testUUID,
 		}, nil).AnyTimes()
 	m.SessionMgr.EXPECT().GetSessionsByChannel(gomock.Any()).

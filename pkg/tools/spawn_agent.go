@@ -147,7 +147,7 @@ func (t *spawnAgentToolImpl) Spec() gollem.ToolSpec {
 
 // Run executes the SpawnAgent tool to create and run subagents
 func (t *spawnAgentToolImpl) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameSpawnAgent, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameSpawnAgent, args,
 		func() (map[string]any, error) {
 			return t.runSpawnAgent(ctx, args)
 		})
@@ -186,7 +186,7 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 			// Check against tool registry (spawn_agent is allowed when explicitly specified)
 			if !t.toolRegistry.IsValidTool(shared.ToolName(toolName)) {
 				t.logService.WarnWithContext("Invalid built-in tool name in allowed_tools",
-					t.agent.ToLoggingContext(),
+					t.agent.ToSessionContext(),
 					zap.String("tool_name", toolName))
 				return t.executionHelper.ErrorResponse(fmt.Sprintf("invalid built-in tool name: %s", toolName)), nil
 			}
@@ -194,7 +194,7 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 	}
 
 	t.logService.InfoWithContext("Spawning subagent",
-		t.agent.ToLoggingContext(),
+		t.agent.ToSessionContext(),
 		zap.String("role", role),
 		zap.String("description", description),
 		zap.Bool("background", runInBackground),
@@ -204,13 +204,13 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 	systemPrompt, err := t.promptManager.GetSubagentTaskPrompt(role, description)
 	if err != nil {
 		t.logService.ErrorWithContext("Failed to get subagent prompt",
-			t.agent.ToLoggingContext(), zap.Error(err))
+			t.agent.ToSessionContext(), zap.Error(err))
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to get subagent prompt: %v", err)), nil
 	}
 
 	// Get LLM client config from parent agent
 	llmClientConfig := t.agent.GetConfig().LLMClientConfig
-	t.logService.DebugWithContext("Inheriting LLM config from parent", t.agent.ToLoggingContext(),
+	t.logService.DebugWithContext("Inheriting LLM config from parent", t.agent.ToSessionContext(),
 		zap.String("parent_agent_id", t.agent.GetID().String()))
 
 	// Get message history if share_context is enabled
@@ -218,7 +218,7 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 	if shareContext {
 		history, err = t.agent.GetMessageHistory(ctx)
 		if err != nil {
-			t.logService.WarnWithContext("Failed to get message history from parent", t.agent.ToLoggingContext(), zap.Error(err))
+			t.logService.WarnWithContext("Failed to get message history from parent", t.agent.ToSessionContext(), zap.Error(err))
 			// Continue without history - non-fatal error
 		}
 	}
@@ -231,8 +231,11 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 		AllowCompaction: false, // Don't allow compaction in Sub-agents
 		ID:              taskID,
 		ParentID:        &parentID,
-		SessionID:       parentConfig.SessionID,
-		ChannelID:       parentConfig.ChannelID,
+		SessionContext: shared.SessionContext{
+			SessionID: parentConfig.SessionContext.SessionID,
+			ChannelID: parentConfig.SessionContext.ChannelID,
+			AgentID:   taskID,
+		},
 		SystemPrompt:    systemPrompt,
 		Role:            role,
 		Description:     description,
@@ -246,12 +249,12 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 	subagent, err := t.agentFactory.CreateAgent(ctx, subagentConfig)
 	if err != nil {
 		t.logService.ErrorWithContext("Failed to create subagent",
-			t.agent.ToLoggingContext(), zap.Error(err))
+			t.agent.ToSessionContext(), zap.Error(err))
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to create subagent: %v", err)), nil
 	}
 
 	t.logService.InfoWithContext("Created subagent",
-		t.agent.ToLoggingContext(),
+		t.agent.ToSessionContext(),
 		zap.String("subagent_id", subagent.GetID().String()),
 		zap.String("role", role))
 
@@ -264,7 +267,7 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 	}
 	if err := t.registry.StoreAgentResult(agentResult); err != nil {
 		t.logService.ErrorWithContext("Failed to store agent result",
-			t.agent.ToLoggingContext(), zap.Error(err))
+			t.agent.ToSessionContext(), zap.Error(err))
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to store agent result: %v", err)), nil
 	}
 

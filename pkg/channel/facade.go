@@ -134,15 +134,29 @@ func (f *channelFacadeImpl) CreateChannel(identifier ChannelIdentifier, opts ...
 	return ch, nil
 }
 
-// RegisterChannel adds a channel to receive events
-func (p *channelFacadeImpl) RegisterChannel(channel Channel) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
+// CreateAndRegister creates and registers a channel in one step.
+func (f *channelFacadeImpl) CreateAndRegister(identifier ChannelIdentifier, opts ...ChannelOption) (Channel, error) {
+	ch, err := f.CreateChannel(identifier, opts...)
+	if err != nil {
+		return nil, err
+	}
 
-	if _, exists := p.channels[channel.ID()]; exists {
+	if err := f.registerChannel(ch); err != nil {
+		return nil, fmt.Errorf("failed to register channel %s: %w", identifier, err)
+	}
+
+	return ch, nil
+}
+
+// registerChannel adds a channel to receive events (internal, for testing)
+func (f *channelFacadeImpl) registerChannel(channel Channel) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	if _, exists := f.channels[channel.ID()]; exists {
 		return fmt.Errorf("channel %s already registered", channel.ID())
 	}
-	p.channels[channel.ID()] = channel
+	f.channels[channel.ID()] = channel
 	return nil
 }
 
@@ -156,7 +170,7 @@ func (p *channelFacadeImpl) UnregisterChannel(channelID uuid.UUID) error {
 }
 
 // DisplayMessage sends a message to the specific channel by ID
-func (p *channelFacadeImpl) DisplayMessage(msg Message) {
+func (p *channelFacadeImpl) DisplayMessage(msg shared.Message) {
 	p.mu.RLock()
 	channel, exists := p.channels[msg.ChannelID]
 	p.mu.RUnlock()
@@ -170,26 +184,25 @@ func (p *channelFacadeImpl) DisplayMessage(msg Message) {
 }
 
 // SubmitInput handles user input from any channel
-// channelID is used to assign each agent message to a channel
-// sessionID is used to get or create a session for this interaction
+// sessionCtx contains routing information (SessionID, ChannelID, Cwd) for this interaction
 // Delegates to InputHandler for business logic (command execution, session/supervisor management)
-func (p *channelFacadeImpl) SubmitInput(ctx context.Context, channelID uuid.UUID, sessionID string, input string) (*InputResult, error) {
-	return p.inputHandler.HandleInput(ctx, channelID, sessionID, input)
+func (p *channelFacadeImpl) SubmitInput(ctx context.Context, sessionCtx *shared.SessionContext, input string) (*InputResult, error) {
+	return p.inputHandler.HandleInput(ctx, sessionCtx, input)
 }
 
 // CancelInput cancels an in-flight input for the given session
 // Delegates to InputHandler for session cancellation logic
-func (p *channelFacadeImpl) CancelInput(sessionID string) error {
+func (p *channelFacadeImpl) CancelInput(sessionID uuid.UUID) error {
 	return p.inputHandler.CancelInput(sessionID)
 }
 
 // NotifyAgentLifecycle sends agent lifecycle event to specific channel
-func (p *channelFacadeImpl) NotifyAgentLifecycle(agentID uuid.UUID, channelID uuid.UUID, sessionID string, role string, added bool) {
+func (p *channelFacadeImpl) NotifyAgentLifecycle(agentID uuid.UUID, channelID uuid.UUID, sessionID uuid.UUID, role string, added bool) {
 	event := AgentLifecycleEvent{
 		AgentID:   agentID,
 		Role:      role,
 		Added:     added,
-		SessionID: sessionID,
+		SessionID: sessionID.String(),
 		ChannelID: channelID,
 	}
 
@@ -200,7 +213,7 @@ func (p *channelFacadeImpl) NotifyAgentLifecycle(agentID uuid.UUID, channelID uu
 	if !exists {
 		p.logger.Warn("channel not found for agent lifecycle event",
 			zap.String("channel_id", channelID.String()),
-			zap.String("session_id", sessionID),
+			zap.String("session_id", sessionID.String()),
 			zap.String("agent_id", agentID.String()),
 		)
 		return
@@ -218,7 +231,7 @@ func (p *channelFacadeImpl) ForwardLog(entry shared.LogEntry) {
 	if !exists {
 		p.logger.Warn("channel not found for log entry",
 			zap.String("channel_id", entry.ChannelID.String()),
-			zap.String("session_id", entry.SessionID),
+			zap.String("context", entry.String()),
 		)
 		return
 	}

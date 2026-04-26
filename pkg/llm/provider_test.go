@@ -91,14 +91,22 @@ func (m *mockLoggerService) InfoWithAgent(msg string, agentID uuid.UUID, fields 
 func (m *mockLoggerService) ErrorWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {}
 func (m *mockLoggerService) DebugWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field) {}
 func (m *mockLoggerService) WarnWithAgent(msg string, agentID uuid.UUID, fields ...zap.Field)  {}
-func (m *mockLoggerService) InfoWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {}
-func (m *mockLoggerService) DebugWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {}
-func (m *mockLoggerService) ErrorWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {}
-func (m *mockLoggerService) WarnWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {}
-func (m *mockLoggerService) InfoWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {}
-func (m *mockLoggerService) ErrorWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {}
-func (m *mockLoggerService) DebugWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {}
-func (m *mockLoggerService) WarnWithContext(msg string, ctx shared.LoggingContext, fields ...zap.Field) {}
+func (m *mockLoggerService) InfoWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {
+}
+func (m *mockLoggerService) DebugWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {
+}
+func (m *mockLoggerService) ErrorWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {
+}
+func (m *mockLoggerService) WarnWithFlowStep(msg string, flowName, stateName, stepType string, fields ...zap.Field) {
+}
+func (m *mockLoggerService) InfoWithContext(msg string, ctx shared.SessionContext, fields ...zap.Field) {
+}
+func (m *mockLoggerService) ErrorWithContext(msg string, ctx shared.SessionContext, fields ...zap.Field) {
+}
+func (m *mockLoggerService) DebugWithContext(msg string, ctx shared.SessionContext, fields ...zap.Field) {
+}
+func (m *mockLoggerService) WarnWithContext(msg string, ctx shared.SessionContext, fields ...zap.Field) {
+}
 func (m *mockLoggerService) SetLogForwarder(forwarder shared.LogForwarder) {}
 
 // TestGetClient_AnthropicWithConfig tests GetClient with Anthropic provider and full config

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/denkhaus/gollum/pkg/session"
+	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 )
 
@@ -58,7 +59,7 @@ func (p *managerImpl) Unregister(name string) error {
 }
 
 // Execute parses input and executes command if it begins with "/"
-func (p *managerImpl) Execute(ctx context.Context, sessionID string, input string) (bool, string, error) {
+func (p *managerImpl) Execute(ctx context.Context, sessionID uuid.UUID, input string) (bool, string, error) {
 	if input == "" {
 		return false, "", nil
 	}
@@ -86,7 +87,7 @@ func (p *managerImpl) Execute(ctx context.Context, sessionID string, input strin
 	// Get session
 	session, ok := p.sessionManager.GetSession(sessionID)
 	if !ok {
-		return false, "", fmt.Errorf("session not found: %s", sessionID)
+		return false, "", fmt.Errorf("session not found: %s", sessionID.String())
 	}
 
 	// Get args if present

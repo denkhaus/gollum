@@ -23,7 +23,13 @@ func TestGrepTool_Run_MissingPattern(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.Nil, agentID, uuid.Nil, "")).AnyTimes()
+
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	args := map[string]any{
 		"path": "/some/path",
@@ -53,7 +59,13 @@ func TestGrepTool_Run_EmptyPattern(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.Nil, agentID, uuid.Nil, "")).AnyTimes()
+
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	args := map[string]any{
 		"pattern": "",
@@ -79,7 +91,14 @@ func TestGrepTool_Run_InvalidOutputMode(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
+
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.Nil, agentID, uuid.Nil, "")).AnyTimes()
+
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	args := map[string]any{
 		"pattern":     "test",
@@ -110,7 +129,14 @@ func TestGrepTool_Run_InvalidRegex(t *testing.T) {
 
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
-	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager}
+
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.Nil, agentID, uuid.Nil, "")).AnyTimes()
+
+	tool := &grepToolImpl{logService: logService, hookManager: mockHookManager, agent: mockAgent}
 
 	args := map[string]any{
 		"pattern": "[invalid",
@@ -138,7 +164,12 @@ func TestGrepTool_Spec(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
-	tool := &grepToolImpl{hookManager: mockHookManager}
+	// Create mock agent
+	agentID := uuid.New()
+	mockAgent := shared.NewMockAgent(ctrl)
+	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+
+	tool := &grepToolImpl{hookManager: mockHookManager, agent: mockAgent}
 
 	spec := tool.Spec()
 
@@ -200,7 +231,7 @@ func TestGrepToolProvider_CreateTool(t *testing.T) {
 
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(testUUID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", testUUID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), testUUID, uuid.Nil, "")).AnyTimes()
 	tool := provider.CreateTool(mockAgent)
 	toolImpl := tool.(*grepToolImpl)
 
@@ -236,7 +267,7 @@ func TestNewGrepToolProvider(t *testing.T) {
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(testUUID).AnyTimes()
-	mockAgent.EXPECT().ToLoggingContext().Return(*shared.NewLoggingContext("test-session", testUUID, uuid.Nil)).AnyTimes()
+	mockAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), testUUID, uuid.Nil, "")).AnyTimes()
 	tool := provider.CreateTool(mockAgent)
 
 	if tool == nil {

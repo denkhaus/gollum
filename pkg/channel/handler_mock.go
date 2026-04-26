@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	shared "github.com/denkhaus/gollum/pkg/shared"
 	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -42,7 +43,7 @@ func (m *MockInputHandler) EXPECT() *MockInputHandlerMockRecorder {
 }
 
 // CancelInput mocks base method.
-func (m *MockInputHandler) CancelInput(sessionID string) error {
+func (m *MockInputHandler) CancelInput(sessionID uuid.UUID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CancelInput", sessionID)
 	ret0, _ := ret[0].(error)
@@ -56,16 +57,16 @@ func (mr *MockInputHandlerMockRecorder) CancelInput(sessionID any) *gomock.Call 
 }
 
 // HandleInput mocks base method.
-func (m *MockInputHandler) HandleInput(ctx context.Context, channelID uuid.UUID, sessionID, input string) (*InputResult, error) {
+func (m *MockInputHandler) HandleInput(ctx context.Context, sessionCtx *shared.SessionContext, input string) (*InputResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleInput", ctx, channelID, sessionID, input)
+	ret := m.ctrl.Call(m, "HandleInput", ctx, sessionCtx, input)
 	ret0, _ := ret[0].(*InputResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // HandleInput indicates an expected call of HandleInput.
-func (mr *MockInputHandlerMockRecorder) HandleInput(ctx, channelID, sessionID, input any) *gomock.Call {
+func (mr *MockInputHandlerMockRecorder) HandleInput(ctx, sessionCtx, input any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleInput", reflect.TypeOf((*MockInputHandler)(nil).HandleInput), ctx, channelID, sessionID, input)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleInput", reflect.TypeOf((*MockInputHandler)(nil).HandleInput), ctx, sessionCtx, input)
 }

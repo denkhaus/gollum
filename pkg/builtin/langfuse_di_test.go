@@ -1,7 +1,6 @@
 package builtin
 
 import (
-
 	"context"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"sync"
@@ -13,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-
 )
 
 func TestNewLangfuseHook_DI(t *testing.T) {
@@ -94,8 +92,8 @@ func TestNewLangfuseHookProvider_ReturnsHookFunc(t *testing.T) {
 		// Test calling the TypedHookFunc
 		ctx := context.Background()
 		hookCtx := &hooks.TypedHookContext[hooks.SessionPayload]{
-			LoggingContext: shared.LoggingContext{
-				SessionID: uuid.New().String(),
+			SessionContext: shared.SessionContext{
+				SessionID: uuid.New(),
 			},
 			Payload: hooks.SessionPayload{},
 		}
@@ -118,8 +116,8 @@ func TestNewLangfuseHookProvider_ReturnsHookFunc(t *testing.T) {
 
 		ctx := context.Background()
 		hookCtx := &hooks.TypedHookContext[hooks.SessionPayload]{
-			LoggingContext: shared.LoggingContext{
-				SessionID: uuid.New().String(),
+			SessionContext: shared.SessionContext{
+				SessionID: uuid.New(),
 			},
 			Payload: hooks.SessionPayload{},
 		}

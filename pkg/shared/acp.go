@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"github.com/ironpark/go-acp"
 )
 
@@ -31,14 +33,17 @@ type ACPSession struct {
 	Context context.Context
 	// CancelFunc cancels the current turn
 	CancelFunc context.CancelFunc
-	// SessionID from ACP protocol
-	SessionID acp.SessionID
+	// SessionID from ACP protocol (UUID)
+	SessionID uuid.UUID
+	// Cwd is the current working directory for this session
+	Cwd string
 }
 
-// NewAcpSession creates a new session with cancellable context
-func NewAcpSession(ctx context.Context, cancel context.CancelFunc) *ACPSession {
+// NewAcpSession creates a new session with cancellable context and working directory
+func NewAcpSession(ctx context.Context, cancel context.CancelFunc, cwd string) *ACPSession {
 	return &ACPSession{
 		Context:    ctx,
 		CancelFunc: cancel,
+		Cwd:        cwd,
 	}
 }

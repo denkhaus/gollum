@@ -46,9 +46,11 @@ func (d *dummyShellAgent) UpdateSystemPrompt(ctx context.Context, newPrompt stri
 	return nil
 }
 
-func (d *dummyShellAgent) ToLoggingContext() shared.LoggingContext {
-	return shared.LoggingContext{
-		AgentID: d.id,
+func (d *dummyShellAgent) ToSessionContext() shared.SessionContext {
+	return shared.SessionContext{
+		AgentID:   d.id,
+		SessionID: uuid.Nil,
+		ChannelID: uuid.Nil,
 	}
 }
 

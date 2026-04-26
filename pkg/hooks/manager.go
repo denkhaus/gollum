@@ -85,14 +85,14 @@ type HookManager interface {
 	// WithSessionHooks wraps a function with session lifecycle hooks.
 	WithSessionHooks(
 		ctx context.Context,
-		loggingContext shared.LoggingContext,
+		loggingContext shared.SessionContext,
 		work func() error,
 	) error
 
 	// WithAgentHooks wraps a function with agent lifecycle hooks.
 	WithAgentHooks(
 		ctx context.Context,
-		loggingContext shared.LoggingContext,
+		loggingContext shared.SessionContext,
 		point HookPoint,
 		work func() error,
 	) error
@@ -103,7 +103,7 @@ type HookManager interface {
 	// OnToolError hooks can handle errors or return fallback responses.
 	WithToolHooks(
 		ctx context.Context,
-		loggingContext shared.LoggingContext,
+		loggingContext shared.SessionContext,
 		toolName shared.ToolName,
 		args map[string]any,
 		work func() (map[string]any, error),
@@ -120,7 +120,7 @@ type HookManager interface {
 	// The returned content is the final content after any modifications by AfterFileRead hooks.
 	WithFileReadHooks(
 		ctx context.Context,
-		loggingContext shared.LoggingContext,
+		loggingContext shared.SessionContext,
 		filePath string,
 		work func() (string, error),
 	) (string, error)
@@ -135,7 +135,7 @@ type HookManager interface {
 	// 3. AfterFileWrite hooks run - can log/audit
 	WithFileWriteHooks(
 		ctx context.Context,
-		loggingContext shared.LoggingContext,
+		loggingContext shared.SessionContext,
 		filePath string,
 		content string,
 		work func(string) error,
@@ -155,7 +155,7 @@ type HookManager interface {
 	// result in both BeforeFileRead and AfterFileRead hooks being executed in sequence.
 	WithFileHooks(
 		ctx context.Context,
-		loggingContext shared.LoggingContext,
+		loggingContext shared.SessionContext,
 		point HookPoint,
 		filePath string,
 		work func() error,
@@ -175,7 +175,7 @@ type HookManager interface {
 	// Returns the LLM response text, potentially modified by hooks.
 	WithLLMHooks(
 		ctx context.Context,
-		loggingContext shared.LoggingContext,
+		loggingContext shared.SessionContext,
 		prompt string,
 		model string,
 		work func(string) (string, error),

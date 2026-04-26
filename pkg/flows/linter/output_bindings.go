@@ -50,10 +50,10 @@ func (c *OutputBindingsChecker) checkBinding(flow *flows.Flow, field *flows.Fiel
 	// Check for ${} syntax - should NOT be used in assignFrom attribute
 	if len(field.AssignFrom) > 2 && field.AssignFrom[0] == '$' && field.AssignFrom[1] == '{' && field.AssignFrom[len(field.AssignFrom)-1] == '}' {
 		result.Errors = append(result.Errors, flows.LinterError{
-			Code:     flows.ErrTemplateNotation,
-			Message:  fmt.Sprintf("invalid assignFrom syntax '%s' - use 'scope.field' without ${} (e.g., 'input.value' not '${input.value}')", field.AssignFrom),
-			Line:     line,
-			Column:   col,
+			Code:    flows.ErrTemplateNotation,
+			Message: fmt.Sprintf("invalid assignFrom syntax '%s' - use 'scope.field' without ${} (e.g., 'input.value' not '${input.value}')", field.AssignFrom),
+			Line:    line,
+			Column:  col,
 		})
 		return
 	}
@@ -64,17 +64,17 @@ func (c *OutputBindingsChecker) checkBinding(flow *flows.Flow, field *flows.Fiel
 		// Check if it's a missing scope prefix error (no dot separator)
 		if !strings.Contains(field.AssignFrom, ".") {
 			result.Errors = append(result.Errors, flows.LinterError{
-				Code:     flows.ErrMissingScope,
-				Message:  fmt.Sprintf("invalid assignFrom reference '%s' - must use scope.field notation (e.g., 'output.result' not 'result')", field.AssignFrom),
-				Line:     line,
-				Column:   col,
+				Code:    flows.ErrMissingScope,
+				Message: fmt.Sprintf("invalid assignFrom reference '%s' - must use scope.field notation (e.g., 'output.result' not 'result')", field.AssignFrom),
+				Line:    line,
+				Column:  col,
 			})
 		} else {
 			result.Errors = append(result.Errors, flows.LinterError{
-				Code:     flows.ErrInvalidRef,
-				Message:  fmt.Sprintf("invalid 'assignFrom' reference: %s", field.AssignFrom),
-				Line:     line,
-				Column:   col,
+				Code:    flows.ErrInvalidRef,
+				Message: fmt.Sprintf("invalid 'assignFrom' reference: %s", field.AssignFrom),
+				Line:    line,
+				Column:  col,
 			})
 		}
 		return
@@ -83,10 +83,10 @@ func (c *OutputBindingsChecker) checkBinding(flow *flows.Flow, field *flows.Fiel
 	// Validate scope
 	if err := sourceScope.Validate(); err != nil {
 		result.Errors = append(result.Errors, flows.LinterError{
-			Code:     flows.ErrInvalidScope,
-			Message:  fmt.Sprintf("invalid scope '%s' in 'assignFrom' attribute (allowed: input, context, computed, output)", sourceScope),
-			Line:     line,
-			Column:   col,
+			Code:    flows.ErrInvalidScope,
+			Message: fmt.Sprintf("invalid scope '%s' in 'assignFrom' attribute (allowed: input, context, computed, output)", sourceScope),
+			Line:    line,
+			Column:  col,
 		})
 		return
 	}
@@ -95,10 +95,10 @@ func (c *OutputBindingsChecker) checkBinding(flow *flows.Flow, field *flows.Fiel
 	if sourceScope == flows.FlowVariableScopeOutput {
 		if c.hasCycle(flow, field.Name, sourceName, make(map[string]bool)) {
 			result.Errors = append(result.Errors, flows.LinterError{
-				Code:     flows.ErrCircularDep,
-				Message:  fmt.Sprintf("circular dependency: output.%s -> output.%s", field.Name, sourceName),
-				Line:     line,
-				Column:   col,
+				Code:    flows.ErrCircularDep,
+				Message: fmt.Sprintf("circular dependency: output.%s -> output.%s", field.Name, sourceName),
+				Line:    line,
+				Column:  col,
 			})
 			return
 		}
@@ -107,10 +107,10 @@ func (c *OutputBindingsChecker) checkBinding(flow *flows.Flow, field *flows.Fiel
 	// Check referenced field exists
 	if !c.fieldExists(flow, sourceScope, sourceName) {
 		result.Errors = append(result.Errors, flows.LinterError{
-			Code:     flows.ErrFieldNotFound,
-			Message:  fmt.Sprintf("field '%s.%s' does not exist", sourceScope, sourceName),
-			Line:     line,
-			Column:   col,
+			Code:    flows.ErrFieldNotFound,
+			Message: fmt.Sprintf("field '%s.%s' does not exist", sourceScope, sourceName),
+			Line:    line,
+			Column:  col,
 		})
 		return
 	}
@@ -118,10 +118,10 @@ func (c *OutputBindingsChecker) checkBinding(flow *flows.Flow, field *flows.Fiel
 	// Check for duplicate sources (warning)
 	if c.hasDuplicateSource(flow.Output, field.AssignFrom, field.Name) {
 		result.Warnings = append(result.Warnings, flows.LinterError{
-			Code:     "W003",
-			Message:  fmt.Sprintf("multiple output fields map from '%s'", field.AssignFrom),
-			Line:     line,
-			Column:   col,
+			Code:    "W003",
+			Message: fmt.Sprintf("multiple output fields map from '%s'", field.AssignFrom),
+			Line:    line,
+			Column:  col,
 		})
 	}
 }
@@ -210,10 +210,10 @@ func (c *OutputBindingsChecker) checkStepOutputAssign(flow *flows.Flow, step *fl
 		}
 
 		result.Errors = append(result.Errors, flows.LinterError{
-			Code:     flows.ErrTemplateNotation,
-			Message:  fmt.Sprintf("invalid assign syntax '%s' - use 'scope.field' without ${} (e.g., 'output.result' not '${output.result}')", assignValue),
-			Line:     line,
-			Column:   col,
+			Code:    flows.ErrTemplateNotation,
+			Message: fmt.Sprintf("invalid assign syntax '%s' - use 'scope.field' without ${} (e.g., 'output.result' not '${output.result}')", assignValue),
+			Line:    line,
+			Column:  col,
 		})
 		return
 	}
@@ -229,17 +229,17 @@ func (c *OutputBindingsChecker) checkStepOutputAssign(flow *flows.Flow, step *fl
 		// Check if it's a missing scope prefix error (no dot separator)
 		if !strings.Contains(assignValue, ".") {
 			result.Errors = append(result.Errors, flows.LinterError{
-				Code:     flows.ErrMissingScope,
-				Message:  fmt.Sprintf("invalid assign reference '%s' - must use scope.field notation (e.g., 'output.result' not 'result')", assignValue),
-				Line:     line,
-				Column:   col,
+				Code:    flows.ErrMissingScope,
+				Message: fmt.Sprintf("invalid assign reference '%s' - must use scope.field notation (e.g., 'output.result' not 'result')", assignValue),
+				Line:    line,
+				Column:  col,
 			})
 		} else {
 			result.Errors = append(result.Errors, flows.LinterError{
-				Code:     flows.ErrInvalidRef,
-				Message:  fmt.Sprintf("invalid assign reference: %s", assignValue),
-				Line:     line,
-				Column:   col,
+				Code:    flows.ErrInvalidRef,
+				Message: fmt.Sprintf("invalid assign reference: %s", assignValue),
+				Line:    line,
+				Column:  col,
 			})
 		}
 		return
@@ -253,10 +253,10 @@ func (c *OutputBindingsChecker) checkStepOutputAssign(flow *flows.Flow, step *fl
 		}
 
 		result.Errors = append(result.Errors, flows.LinterError{
-			Code:     flows.ErrMissingScope,
-			Message:  fmt.Sprintf("invalid scope '%s' in step output assign - must be 'output.field' or 'context.field' (e.g., 'output.result' or 'context.temp')", sourceScope),
-			Line:     line,
-			Column:   col,
+			Code:    flows.ErrMissingScope,
+			Message: fmt.Sprintf("invalid scope '%s' in step output assign - must be 'output.field' or 'context.field' (e.g., 'output.result' or 'context.temp')", sourceScope),
+			Line:    line,
+			Column:  col,
 		})
 		return
 	}
@@ -270,10 +270,10 @@ func (c *OutputBindingsChecker) checkStepOutputAssign(flow *flows.Flow, step *fl
 			}
 
 			result.Errors = append(result.Errors, flows.LinterError{
-				Code:     flows.ErrFieldNotFound,
-				Message:  fmt.Sprintf("output field '%s' does not exist", sourceName),
-				Line:     line,
-				Column:   col,
+				Code:    flows.ErrFieldNotFound,
+				Message: fmt.Sprintf("output field '%s' does not exist", sourceName),
+				Line:    line,
+				Column:  col,
 			})
 		}
 	} else if sourceScope == flows.FlowVariableScopeContext {
@@ -284,10 +284,10 @@ func (c *OutputBindingsChecker) checkStepOutputAssign(flow *flows.Flow, step *fl
 			}
 
 			result.Errors = append(result.Errors, flows.LinterError{
-				Code:     flows.ErrFieldNotFound,
-				Message:  fmt.Sprintf("context field '%s' does not exist", sourceName),
-				Line:     line,
-				Column:   col,
+				Code:    flows.ErrFieldNotFound,
+				Message: fmt.Sprintf("context field '%s' does not exist", sourceName),
+				Line:    line,
+				Column:  col,
 			})
 		}
 	}

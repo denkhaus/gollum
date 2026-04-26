@@ -31,37 +31,37 @@ const (
 // pkg/hooks → pkg/mocks → pkg/hooks (from mock_hook_manager.go)
 type mockLogger struct{}
 
-func (m *mockLogger) Debug(_ string, _ ...zap.Field)                       {}
-func (m *mockLogger) Debugf(_ string, _ ...any)                            {}
-func (m *mockLogger) Info(_ string, _ ...zap.Field)                        {}
-func (m *mockLogger) Infof(_ string, _ ...any)                             {}
-func (m *mockLogger) Warn(_ string, _ ...zap.Field)                        {}
-func (m *mockLogger) Warnf(_ string, _ ...any)                             {}
-func (m *mockLogger) Error(_ string, _ ...zap.Field)                       {}
-func (m *mockLogger) Errorf(_ string, _ ...any)                            {}
-func (m *mockLogger) InfoWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)          {}
-func (m *mockLogger) ErrorWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)         {}
-func (m *mockLogger) DebugWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)         {}
-func (m *mockLogger) WarnWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)          {}
-func (m *mockLogger) InfoWithFlowStep(_ string, _, _, _ string, _ ...zap.Field)    {}
-func (m *mockLogger) ErrorWithFlowStep(_ string, _, _, _ string, _ ...zap.Field)   {}
-func (m *mockLogger) DebugWithFlowStep(_ string, _, _, _ string, _ ...zap.Field)   {}
-func (m *mockLogger) WarnWithFlowStep(_ string, _, _, _ string, _ ...zap.Field)    {}
-func (m *mockLogger) InfoWithContext(_ string, _ shared.LoggingContext, _ ...zap.Field) {}
-func (m *mockLogger) ErrorWithContext(_ string, _ shared.LoggingContext, _ ...zap.Field) {}
-func (m *mockLogger) DebugWithContext(_ string, _ shared.LoggingContext, _ ...zap.Field) {}
-func (m *mockLogger) WarnWithContext(_ string, _ shared.LoggingContext, _ ...zap.Field) {}
-func (m *mockLogger) SetLogForwarder(_ shared.LogForwarder)                        {}
-func (m *mockLogger) GetLogger() *zap.Logger                                        { return nil }
-func (m *mockLogger) SetTUIWriter(_ io.Writer)                             {}
-func (m *mockLogger) ResetToStdout()                                       {}
-func (m *mockLogger) GetLogs(_ logger.LogFilter) []logger.LogEntry         { return nil }
-func (m *mockLogger) GetLogStats() map[string]interface{}                  { return nil }
-func (m *mockLogger) IsTUIMode() bool                                      { return false }
-func (m *mockLogger) SetTUIMode(_ bool)                                    {}
-func (m *mockLogger) EnableFileLogging(_ string, _ uuid.UUID) error        { return nil }
-func (m *mockLogger) CloseFileLogging() error                              { return nil }
-func (m *mockLogger) Flush() error                                         { return nil }
+func (m *mockLogger) Debug(_ string, _ ...zap.Field)                                     {}
+func (m *mockLogger) Debugf(_ string, _ ...any)                                          {}
+func (m *mockLogger) Info(_ string, _ ...zap.Field)                                      {}
+func (m *mockLogger) Infof(_ string, _ ...any)                                           {}
+func (m *mockLogger) Warn(_ string, _ ...zap.Field)                                      {}
+func (m *mockLogger) Warnf(_ string, _ ...any)                                           {}
+func (m *mockLogger) Error(_ string, _ ...zap.Field)                                     {}
+func (m *mockLogger) Errorf(_ string, _ ...any)                                          {}
+func (m *mockLogger) InfoWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)                {}
+func (m *mockLogger) ErrorWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)               {}
+func (m *mockLogger) DebugWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)               {}
+func (m *mockLogger) WarnWithAgent(_ string, _ uuid.UUID, _ ...zap.Field)                {}
+func (m *mockLogger) InfoWithFlowStep(_ string, _, _, _ string, _ ...zap.Field)          {}
+func (m *mockLogger) ErrorWithFlowStep(_ string, _, _, _ string, _ ...zap.Field)         {}
+func (m *mockLogger) DebugWithFlowStep(_ string, _, _, _ string, _ ...zap.Field)         {}
+func (m *mockLogger) WarnWithFlowStep(_ string, _, _, _ string, _ ...zap.Field)          {}
+func (m *mockLogger) InfoWithContext(_ string, _ shared.SessionContext, _ ...zap.Field)  {}
+func (m *mockLogger) ErrorWithContext(_ string, _ shared.SessionContext, _ ...zap.Field) {}
+func (m *mockLogger) DebugWithContext(_ string, _ shared.SessionContext, _ ...zap.Field) {}
+func (m *mockLogger) WarnWithContext(_ string, _ shared.SessionContext, _ ...zap.Field)  {}
+func (m *mockLogger) SetLogForwarder(_ shared.LogForwarder)                              {}
+func (m *mockLogger) GetLogger() *zap.Logger                                             { return nil }
+func (m *mockLogger) SetTUIWriter(_ io.Writer)                                           {}
+func (m *mockLogger) ResetToStdout()                                                     {}
+func (m *mockLogger) GetLogs(_ logger.LogFilter) []logger.LogEntry                       { return nil }
+func (m *mockLogger) GetLogStats() map[string]interface{}                                { return nil }
+func (m *mockLogger) IsTUIMode() bool                                                    { return false }
+func (m *mockLogger) SetTUIMode(_ bool)                                                  {}
+func (m *mockLogger) EnableFileLogging(_ string, _ uuid.UUID) error                      { return nil }
+func (m *mockLogger) CloseFileLogging() error                                            { return nil }
+func (m *mockLogger) Flush() error                                                       { return nil }
 
 var _ logger.LoggerService = (*mockLogger)(nil)
 
@@ -355,7 +355,7 @@ func TestHookManager_WithSessionHooks(t *testing.T) {
 
 		sessionID := uuid.New()
 		workExecuted := false
-		err := hm.WithSessionHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: uuid.New()}, func() error {
+		err := hm.WithSessionHooks(context.Background(), shared.SessionContext{SessionID: sessionID, ChannelID: uuid.New(), AgentID: uuid.New()}, func() error {
 			executed = append(executed, "work")
 			workExecuted = true
 			return nil
@@ -384,7 +384,7 @@ func TestHookManager_WithSessionHooks(t *testing.T) {
 
 		sessionID := uuid.New()
 		workErr := errors.New("work failed")
-		err := hm.WithSessionHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: uuid.New()}, func() error {
+		err := hm.WithSessionHooks(context.Background(), shared.SessionContext{SessionID: sessionID, ChannelID: uuid.New(), AgentID: uuid.New()}, func() error {
 			executed = append(executed, "work")
 			return workErr
 		})
@@ -397,7 +397,7 @@ func TestHookManager_WithSessionHooks(t *testing.T) {
 	t.Run("rejects nil session ID", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		err := hm.WithSessionHooks(context.Background(), shared.LoggingContext{SessionID: "", ChannelID: uuid.New(), AgentID: uuid.New()}, func() error {
+		err := hm.WithSessionHooks(context.Background(), shared.SessionContext{SessionID: uuid.Nil, ChannelID: uuid.New(), AgentID: uuid.New()}, func() error {
 			return nil
 		})
 
@@ -421,7 +421,7 @@ func TestHookManager_WithAgentHooks(t *testing.T) {
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
-		err := hm.WithAgentHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, BeforeAgentSpawn, func() error {
+		err := hm.WithAgentHooks(context.Background(), shared.SessionContext{SessionID: sessionID, ChannelID: uuid.New(), AgentID: agentID}, BeforeAgentSpawn, func() error {
 			return nil
 		})
 
@@ -432,7 +432,7 @@ func TestHookManager_WithAgentHooks(t *testing.T) {
 	t.Run("rejects nil agent ID", func(t *testing.T) {
 		hm := newTestHookManager()
 
-		err := hm.WithAgentHooks(context.Background(), shared.LoggingContext{SessionID: uuid.New().String(), ChannelID: uuid.New(), AgentID: uuid.Nil}, BeforeAgentSpawn, nil)
+		err := hm.WithAgentHooks(context.Background(), shared.SessionContext{SessionID: uuid.New(), ChannelID: uuid.New(), AgentID: uuid.Nil}, BeforeAgentSpawn, nil)
 
 		require.Error(t, err)
 		assert.True(t, errs.IsType(err, errs.TypeValidation))
@@ -443,7 +443,7 @@ func TestHookManager_WithAgentHooks(t *testing.T) {
 
 		sessionID := uuid.New()
 		agentID := uuid.New()
-		err := hm.WithAgentHooks(context.Background(), shared.LoggingContext{SessionID: sessionID.String(), ChannelID: uuid.New(), AgentID: agentID}, BeforeSessionStart, nil)
+		err := hm.WithAgentHooks(context.Background(), shared.SessionContext{SessionID: sessionID, ChannelID: uuid.New(), AgentID: agentID}, BeforeSessionStart, nil)
 
 		require.Error(t, err)
 		assert.True(t, errs.IsType(err, errs.TypeValidation))

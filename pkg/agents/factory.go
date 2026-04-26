@@ -199,7 +199,10 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 
 	// Add channel middleware (always - routes all agent output to channel system)
 	// The channel SDK handles all messaging, replacing the old DisplayMiddleware and SummaryMiddleware
-	channelMiddleware := f.channelProvider.CreateChannelMiddleware(config.ID, config.Role, config.SessionID, config.ChannelID)
+	channelMiddleware := f.channelProvider.CreateChannelMiddleware(
+		config.SessionContext,
+		config.Role,
+	)
 	baseOptions = append(baseOptions,
 		gollem.WithContentBlockMiddleware(channelMiddleware.ContentBlockMiddleware),
 		gollem.WithToolMiddleware(channelMiddleware.ToolMiddleware),
@@ -296,7 +299,7 @@ func (p *defaultAgentFactory) CreateSupervisorAgent(ctx context.Context, opts ..
 	// Create agent
 	agent, err := p.CreateAgent(ctx, agentConfig)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create supervisor agent: %v", err)
+		return nil, nil, fmt.Errorf("failed to create supervisor agent: %w", err)
 	}
 
 	// Register in registry

@@ -39,7 +39,11 @@ func TestHTTPTransportCreation(t *testing.T) {
 		acppkg.WithTransport(httpTransport),
 		acppkg.WithSessionStore(store, func(ctx context.Context, params *acppkg.NewSessionRequest) (acppkg.SessionID, *shared.ACPSession, error) {
 			ctx, cancel := context.WithCancel(context.Background())
-			return acppkg.GenerateSessionID(), shared.NewAcpSession(ctx, cancel), nil
+			cwd := params.Cwd
+			if cwd == "" {
+				cwd = "."
+			}
+			return acppkg.GenerateSessionID(), shared.NewAcpSession(ctx, cancel, cwd), nil
 		}),
 		acppkg.WithMiddleware(acppkg.RecoveryMiddleware()),
 	)
@@ -101,7 +105,11 @@ func TestHTTPMultiClientSupport(t *testing.T) {
 		acppkg.WithTransport(httpTransport),
 		acppkg.WithSessionStore(store, func(ctx context.Context, params *acppkg.NewSessionRequest) (acppkg.SessionID, *shared.ACPSession, error) {
 			ctx, cancel := context.WithCancel(context.Background())
-			return acppkg.GenerateSessionID(), shared.NewAcpSession(ctx, cancel), nil
+			cwd := params.Cwd
+			if cwd == "" {
+				cwd = "."
+			}
+			return acppkg.GenerateSessionID(), shared.NewAcpSession(ctx, cancel, cwd), nil
 		}),
 		acppkg.WithMiddleware(acppkg.RecoveryMiddleware()),
 	)
@@ -180,7 +188,11 @@ func TestHTTPHandlerInterface(t *testing.T) {
 		acppkg.WithTransport(httpTransport),
 		acppkg.WithSessionStore(store, func(ctx context.Context, params *acppkg.NewSessionRequest) (acppkg.SessionID, *shared.ACPSession, error) {
 			ctx, cancel := context.WithCancel(context.Background())
-			return acppkg.GenerateSessionID(), shared.NewAcpSession(ctx, cancel), nil
+			cwd := params.Cwd
+			if cwd == "" {
+				cwd = "."
+			}
+			return acppkg.GenerateSessionID(), shared.NewAcpSession(ctx, cancel, cwd), nil
 		}),
 		acppkg.WithMiddleware(acppkg.RecoveryMiddleware()),
 	)

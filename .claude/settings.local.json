@@ -71,7 +71,9 @@
       "Bash(./gollum flow *)",
       "mcp__claude-context__get_indexing_status",
       "mcp__claude-context__index_codebase",
-      "mcp__claude-context__search_code"
+      "mcp__claude-context__search_code",
+      "Bash(/usr/bin/tmux new-session *)",
+      "Bash(timeout 15 ./gollum)"
     ],
     "deny": [],
     "ask": []

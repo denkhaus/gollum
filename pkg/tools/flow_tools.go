@@ -147,7 +147,7 @@ func (t *setOutputFieldTool) Spec() gollem.ToolSpec {
 
 // Run executes the SetOutputField tool
 func (t *setOutputFieldTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameSetOutputField, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameSetOutputField, args,
 		func() (map[string]any, error) {
 			return t.runSetOutputField(ctx, args)
 		})
@@ -199,7 +199,7 @@ func (t *setContextFieldTool) Spec() gollem.ToolSpec {
 
 // Run executes the SetContextField tool
 func (t *setContextFieldTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameSetContextField, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameSetContextField, args,
 		func() (map[string]any, error) {
 			return t.runSetContextField(ctx, args)
 		})
@@ -247,7 +247,7 @@ func (t *getContextTool) Spec() gollem.ToolSpec {
 
 // Run executes the GetContext tool
 func (t *getContextTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameGetContext, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameGetContext, args,
 		func() (map[string]any, error) {
 			return t.runGetContext(ctx, args)
 		})
@@ -298,7 +298,7 @@ func (t *emitLogTool) Spec() gollem.ToolSpec {
 
 // Run executes the EmitLog tool
 func (t *emitLogTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameEmitLog, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameEmitLog, args,
 		func() (map[string]any, error) {
 			return t.runEmitLog(ctx, args)
 		})
@@ -363,7 +363,7 @@ func (t *transitionToTool) Spec() gollem.ToolSpec {
 
 // Run executes the TransitionTo tool
 func (t *transitionToTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
-	return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameTransitionTo, args,
+	return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameTransitionTo, args,
 		func() (map[string]any, error) {
 			return t.runTransitionTo(ctx, args)
 		})
@@ -481,7 +481,7 @@ func (t *executeFlowTool) Spec() gollem.ToolSpec {
 // Run executes the ExecuteFlow tool
 func (t *executeFlowTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	if t.hookManager != nil {
-		return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameExecuteFlow, args,
+		return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameExecuteFlow, args,
 			func() (map[string]any, error) {
 				return t.runExecuteFlow(ctx, args)
 			})
@@ -499,9 +499,9 @@ func (t *executeFlowTool) runExecuteFlow(ctx context.Context, args ToolRequestPa
 	}
 
 	// Log operation start
-	logCtx := shared.LoggingContext{}
+	logCtx := shared.SessionContext{}
 	if t.agent != nil {
-		logCtx = t.agent.ToLoggingContext()
+		logCtx = t.agent.ToSessionContext()
 	}
 	t.logService.InfoWithContext("ExecuteFlow operation started",
 		logCtx,
@@ -614,7 +614,7 @@ func (t *listFlowsTool) Spec() gollem.ToolSpec {
 // Run executes the ListFlows tool
 func (t *listFlowsTool) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	if t.hookManager != nil {
-		return t.hookManager.WithToolHooks(ctx, t.agent.ToLoggingContext(), shared.ToolNameListFlows, args,
+		return t.hookManager.WithToolHooks(ctx, t.agent.ToSessionContext(), shared.ToolNameListFlows, args,
 			func() (map[string]any, error) {
 				return t.runListFlows(ctx, args)
 			})
@@ -626,9 +626,9 @@ func (t *listFlowsTool) Run(ctx context.Context, args map[string]any) (map[strin
 // runListFlows implements the core list flows logic
 func (t *listFlowsTool) runListFlows(ctx context.Context, args ToolRequestParams) (map[string]any, error) {
 	// Setup logging context (may be empty for tests)
-	logCtx := shared.LoggingContext{}
+	logCtx := shared.SessionContext{}
 	if t.agent != nil {
-		logCtx = t.agent.ToLoggingContext()
+		logCtx = t.agent.ToSessionContext()
 	}
 
 	// Log operation start
