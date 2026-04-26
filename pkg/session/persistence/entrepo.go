@@ -12,6 +12,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/message"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/session"
+	"github.com/denkhaus/gollum/pkg/session/persistence/ent/supervisorconfig"
 	"github.com/google/uuid"
 )
 
@@ -58,7 +59,7 @@ func (r *EntRepository) Create(ctx context.Context, session *shared.Session) err
 	defer tx.Rollback()
 
 	// Create session
-	_, err = tx.Session.
+	sessionEnt, err := tx.Session.
 		Create().
 		SetSessionID(session.ID).
 		SetChannelID(session.ChannelID).
@@ -78,7 +79,7 @@ func (r *EntRepository) Create(ctx context.Context, session *shared.Session) err
 		}
 		_, err = tx.SupervisorConfig.
 			Create().
-			SetSessionID(session.ID). // Set FK field directly
+			SetSession(sessionEnt). // Use session entity for FK relationship
 			SetModel(session.SupervisorID.String()).
 			SetConfigJSON(configJSON).
 			Save(ctx)
@@ -222,8 +223,60 @@ func (r *EntRepository) Exists(ctx context.Context, sessionID uuid.UUID) (bool, 
 }
 
 // Update updates an existing session.
+// When SupervisorID changes, it atomically deletes the old SupervisorConfig
+// and creates a new one to maintain foreign key integrity.
 func (r *EntRepository) Update(ctx context.Context, sess *shared.Session) error {
-	_, err := r.client.Session.
+	// Get current session to check if SupervisorID is changing
+	current, err := r.client.Session.
+		Query().
+		Where(session.SessionID(sess.ID)).
+		Only(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get current session: %w", err)
+	}
+
+	supervisorChanged := current.AgentID != sess.SupervisorID
+
+	// If SupervisorID is not changing, simple update is sufficient
+	if !supervisorChanged {
+		_, err = r.client.Session.
+			Update().
+			Where(session.SessionID(sess.ID)).
+			SetAgentID(sess.SupervisorID).
+			SetCwd(sess.Cwd).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to update session: %w", err)
+		}
+		return nil
+	}
+
+	// SupervisorID is changing - use transaction to handle SupervisorConfig
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Get session entity for edge operations
+	sessionEnt, err := tx.Session.
+		Query().
+		Where(session.SessionID(sess.ID)).
+		Only(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get session: %w", err)
+	}
+
+	// Delete existing SupervisorConfig for this session using edge
+	_, err = tx.SupervisorConfig.
+		Delete().
+		Where(supervisorconfig.HasSessionWith(session.ID(sessionEnt.ID))).
+		Exec(ctx)
+	// Ignore error if config doesn't exist
+	_ = err
+
+	// Update session fields
+	_, err = tx.Session.
 		Update().
 		Where(session.SessionID(sess.ID)).
 		SetAgentID(sess.SupervisorID).
@@ -232,8 +285,27 @@ func (r *EntRepository) Update(ctx context.Context, sess *shared.Session) error 
 	if err != nil {
 		return fmt.Errorf("failed to update session: %w", err)
 	}
-	return nil
+
+	// Create new SupervisorConfig if new SupervisorID is set
+	if sess.SupervisorID != uuid.Nil {
+		configJSON := map[string]interface{}{
+			"model": sess.SupervisorID.String(),
+		}
+		_, err = tx.SupervisorConfig.
+			Create().
+			SetSession(sessionEnt). // Use session entity for FK relationship
+			SetModel(sess.SupervisorID.String()).
+			SetConfigJSON(configJSON).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create new supervisor config: %w", err)
+		}
+	}
+
+	return tx.Commit()
 }
+
+// Delete removes a session.
 
 // Delete removes a session.
 func (r *EntRepository) Delete(ctx context.Context, sessionID uuid.UUID) error {
