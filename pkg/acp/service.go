@@ -53,9 +53,11 @@ package acp
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	acppkg "github.com/ironpark/go-acp"
@@ -89,18 +91,29 @@ type acpServiceImpl struct {
 	port          int           // Port number for HTTP transport
 }
 
-// Ensure acpServiceImpl implements Service and channel.Channel at compile time
+// Ensure acpServiceImpl implements required interfaces at compile time
 var _ shared.ACPService = (*acpServiceImpl)(nil)
 var _ channel.Channel = (*acpServiceImpl)(nil)
+var _ acppkg.ExtMethodHandler = (*acpServiceImpl)(nil)
 
-// NewAcpService creates a new ACP service with DI
-func NewAcpService(injector do.Injector) (shared.ACPService, error) {
+// NewACPService creates a new ACP service with DI
+func NewACPService(injector do.Injector) (shared.ACPService, error) {
 	logger := do.MustInvoke[logger.LoggerService](injector)
 	facade := do.MustInvoke[channel.ChannelFacade](injector)
 	cfg := do.MustInvoke[config.ConfigService](injector)
-	sessionMgr := do.MustInvoke[session.SessionManager](injector)
 
-	logger.Debug("startup ACP service")
+	// Use Invoke instead of MustInvoke to get error details
+	sessionMgr, err := do.Invoke[session.SessionManager](injector)
+	if err != nil {
+		return nil, fmt.Errorf("failed to invoke SessionManager: %w", err)
+	}
+	if sessionMgr == nil {
+		return nil, fmt.Errorf("SessionManager is nil after DI invocation (provider bug?)")
+	}
+
+	logger.Debug("ACP service initialized",
+		zap.Bool("sessionManager_set", sessionMgr != nil),
+	)
 
 	// Generate unique channel ID for this ACP service instance
 	id := uuid.New()
@@ -137,7 +150,11 @@ func NewAcpService(injector do.Injector) (shared.ACPService, error) {
 		port:           port,
 	}
 
-	logger.Debug("ACP service created", zap.String("channel_id", id.String()))
+	logger.Debug("ACP service created",
+		zap.String("channel_id", svc.id.String()),
+		zap.Bool("sessionManager_set", svc.sessionManager != nil),
+		zap.Bool("sessionMgr_equals_nil", sessionMgr == nil),
+	)
 
 	return svc, nil
 }
@@ -230,6 +247,14 @@ func (s *acpServiceImpl) GetHandler() http.Handler {
 
 // OnMessage receives messages from the agent system and streams them to the ACP client
 func (s *acpServiceImpl) OnMessage(msg shared.Message) {
+	if s.store == nil {
+		s.logger.Warn("store not initialized in OnMessage",
+			zap.String("channel_id", s.id.String()),
+			zap.String("session_id", msg.SessionID.String()),
+		)
+		return
+	}
+
 	// Convert uuid.UUID SessionID to acppkg.SessionID (string)
 	sessionID := acppkg.SessionID(msg.SessionID.String())
 
@@ -295,6 +320,11 @@ func (s *acpServiceImpl) OnLog(entry shared.LogEntry) {
 	}
 
 	// If no session specified, broadcast to all active sessions
+	if s.store == nil {
+		s.logger.Warn("store not initialized in OnLog")
+		return
+	}
+
 	sessionIDs := s.store.List()
 	for _, sessionID := range sessionIDs {
 		session, ok := s.store.Get(sessionID)
@@ -378,15 +408,26 @@ func (s *acpServiceImpl) Initialize(ctx context.Context, params *acppkg.Initiali
 	return &acppkg.InitializeResponse{
 		ProtocolVersion: acppkg.ProtocolVersion(acppkg.CurrentProtocolVersion),
 		AgentCapabilities: &acppkg.AgentCapabilities{
-			LoadSession: false,
-			MCPCapabilities: &acppkg.MCPCapabilities{
-				HTTP: false,
-				SSE:  false,
+			// Session management capabilities
+			SessionCapabilities: &acppkg.SessionCapabilities{
+				List: &acppkg.SessionListCapabilities{}, // We support listing sessions
+				// TODO: Add Close, Fork, Resume when they move to stable schema
+				// Currently implemented but not advertised:
+				// - LoadSession: true (database-backed sessions)
+				// - CloseSession, ResumeSession, ForkSession (via SessionManager)
 			},
+			// Session loading is fully implemented with database persistence
+			LoadSession: true,
+			// MCP support (Model Context Protocol - for external tools)
+			MCPCapabilities: &acppkg.MCPCapabilities{
+				HTTP: false, // Not yet implemented
+				SSE:  false, // Not yet implemented
+			},
+			// Prompt capabilities
 			PromptCapabilities: &acppkg.PromptCapabilities{
-				Audio:           false,
-				EmbeddedContext: false,
-				Image:           false,
+				Audio:           false, // Not yet implemented
+				EmbeddedContext: false, // Not yet implemented
+				Image:           false, // Not yet implemented
 			},
 		},
 		AuthMethods: authMethods,
@@ -445,14 +486,52 @@ func (s *acpServiceImpl) SetSessionConfigOption(ctx context.Context, params *acp
 }
 
 // Prompt implements acp.Agent.Prompt - core agent execution loop
-func (s *acpServiceImpl) Prompt(ctx context.Context, params *acppkg.PromptRequest) (*acppkg.PromptResponse, error) {
+func (s *acpServiceImpl) Prompt(ctx context.Context, params *acppkg.PromptRequest) (resp *acppkg.PromptResponse, err error) {
+	// Declare session variable here so defer block can access it for nil checking
+	var session *shared.ACPSession
+
+	// Add recover to catch panics and provide better error messages
+	defer func() {
+		if r := recover(); r != nil {
+			if s.logger != nil {
+				s.logger.Error("ACP Prompt panic recovered",
+					zap.Any("panic", r),
+					zap.String("session_id", string(params.SessionID)),
+				)
+			}
+
+			err = fmt.Errorf("panic in Prompt: %v", r)
+			resp = &acppkg.PromptResponse{
+				StopReason: acppkg.StopReasonEndTurn,
+			}
+		}
+	}()
+
+	if s.store == nil {
+		return nil, fmt.Errorf("store not initialized")
+	}
+
+	if s.facade == nil {
+		return nil, fmt.Errorf("facade not initialized")
+	}
+
+	if s.client == nil {
+		return nil, fmt.Errorf("client not initialized (connection not established)")
+	}
+
 	session, ok := s.store.Get(params.SessionID)
 	if !ok {
 		return nil, fmt.Errorf("session %s not found", params.SessionID)
 	}
 
+	if session == nil {
+		return nil, fmt.Errorf("session is nil for sessionID %s", params.SessionID)
+	}
+
 	// Cancel previous turn and create new context
-	session.CancelFunc()
+	if session.CancelFunc != nil {
+		session.CancelFunc()
+	}
 	sessionCtx, cancelFunc := context.WithCancel(context.Background())
 	session.Context = sessionCtx
 	session.CancelFunc = cancelFunc
@@ -469,6 +548,36 @@ func (s *acpServiceImpl) Prompt(ctx context.Context, params *acppkg.PromptReques
 	promptContent := textContent.Text
 
 	// Submit to agent via channel facade using SessionContext
+	if session.SessionID == uuid.Nil {
+		return nil, fmt.Errorf("session.SessionID is nil/empty")
+	}
+	if s.id == uuid.Nil {
+		return nil, fmt.Errorf("service id (channelID) is nil/empty")
+	}
+
+	// Check if Cwd is empty
+	if session.Cwd == "" {
+		return nil, fmt.Errorf("session.Cwd is empty")
+	}
+
+	s.logger.Info("ACP Prompt submitting to facade",
+		zap.String("session_id", string(params.SessionID)),
+		zap.String("channel_id", s.id.String()),
+		zap.String("prompt_preview", promptContent[:min(100, len(promptContent))]+"..."),
+	)
+
+	// Additional nil checks before calling SubmitInput
+	if s.facade == nil {
+		s.logger.Error("facade is nil when trying to submit input")
+		return nil, fmt.Errorf("facade is nil")
+	}
+
+	s.logger.Debug("ACP Prompt calling facade.SubmitInput",
+		zap.String("session_id", session.SessionID.String()),
+		zap.String("channel_id", s.id.String()),
+		zap.String("cwd", session.Cwd),
+	)
+
 	result, err := s.facade.SubmitInput(sessionCtx, &shared.SessionContext{
 		SessionID: session.SessionID,
 		ChannelID: s.id,
@@ -484,8 +593,18 @@ func (s *acpServiceImpl) Prompt(ctx context.Context, params *acppkg.PromptReques
 		return nil, err
 	}
 
+	// Check result before accessing
+	if result == nil {
+		return &acppkg.PromptResponse{
+			StopReason: acppkg.StopReasonEndTurn,
+		}, nil
+	}
+
 	// Send final result back to client via stream
 	stream := acppkg.NewSessionStream(s.client, params.SessionID)
+	if stream == nil {
+		return nil, fmt.Errorf("failed to create session stream")
+	}
 	if result.Response != "" {
 		if err := stream.SendText(sessionCtx, result.Response); err != nil {
 			return nil, fmt.Errorf("failed to send response: %w", err)
@@ -584,4 +703,321 @@ func (s *acpServiceImpl) ForkSession(ctx context.Context, sessionID acppkg.Sessi
 	}
 
 	return acppkg.SessionID(newSession.ID.String()), nil
+}
+
+// =============================================================================
+// ACP Extension Method Handler
+// =============================================================================
+
+// ExtMethod implements acp.ExtMethodHandler to expose custom JSON-RPC methods
+// for session lifecycle management.
+//
+// Extension methods are prefixed with underscore as per ACP convention.
+//
+// Supported methods:
+//   - "_session/list"   - List all sessions
+//   - "_session/load"   - Load a session by ID
+//   - "_session/resume" - Resume a closed session
+//   - "_session/close"  - Close a session
+//   - "_session/fork"   - Fork a session
+func (s *acpServiceImpl) ExtMethod(ctx context.Context, method string, params json.RawMessage) (any, error) {
+	switch method {
+	case "_session/list":
+		return s.handleListSessions(ctx, params)
+
+	case "_session/load":
+		return s.handleLoadSession(ctx, params)
+
+	case "_session/resume":
+		return s.handleResumeSession(ctx, params)
+
+	case "_session/close":
+		return s.handleCloseSession(ctx, params)
+
+	case "_session/fork":
+		return s.handleForkSession(ctx, params)
+
+	default:
+		return nil, fmt.Errorf("method not found: %s", method)
+	}
+}
+
+// handleListSessions handles the _session/list extension method.
+func (s *acpServiceImpl) handleListSessions(ctx context.Context, params json.RawMessage) (any, error) {
+	// Parse parameters (empty for list)
+	var p struct{}
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid parameters: %w", err)
+	}
+
+	if s.sessionManager == nil {
+		return nil, fmt.Errorf("sessionManager not initialized")
+	}
+
+	sessions, err := s.sessionManager.ListSessions(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list sessions: %w", err)
+	}
+
+	// Convert to response format
+	type sessionInfo struct {
+		ID        string `json:"id"`
+		ChannelID string `json:"channel_id"`
+		CreatedAt string `json:"created_at"`
+		Cwd       string `json:"cwd"`
+	}
+
+	result := make([]any, len(sessions))
+	for i, sess := range sessions {
+		result[i] = sessionInfo{
+			ID:        sess.ID.String(),
+			ChannelID: sess.ChannelID.String(),
+			CreatedAt: sess.CreatedAt.Format(time.RFC3339),
+			Cwd:       sess.Cwd,
+		}
+	}
+
+	return map[string]any{"sessions": result}, nil
+}
+
+// handleLoadSession handles the _session/load extension method.
+func (s *acpServiceImpl) handleLoadSession(ctx context.Context, params json.RawMessage) (any, error) {
+	var p struct {
+		SessionID string `json:"session_id"`
+	}
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid parameters: %w", err)
+	}
+
+	if p.SessionID == "" {
+		return nil, fmt.Errorf("session_id is required")
+	}
+
+	acpSession, err := s.LoadSession(ctx, acppkg.SessionID(p.SessionID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load session: %w", err)
+	}
+
+	return map[string]any{
+		"session": map[string]any{
+			"id":     acpSession.SessionID.String(),
+			"cwd":    acpSession.Cwd,
+			"loaded": true,
+		},
+	}, nil
+}
+
+// handleResumeSession handles the _session/resume extension method.
+func (s *acpServiceImpl) handleResumeSession(ctx context.Context, params json.RawMessage) (any, error) {
+	var p struct {
+		SessionID string `json:"session_id"`
+	}
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid parameters: %w", err)
+	}
+
+	if p.SessionID == "" {
+		return nil, fmt.Errorf("session_id is required")
+	}
+
+	if err := s.ResumeSession(ctx, acppkg.SessionID(p.SessionID)); err != nil {
+		return nil, fmt.Errorf("failed to resume session: %w", err)
+	}
+
+	return map[string]any{
+		"session_id": p.SessionID,
+		"resumed":    true,
+	}, nil
+}
+
+// handleCloseSession handles the _session/close extension method.
+func (s *acpServiceImpl) handleCloseSession(ctx context.Context, params json.RawMessage) (any, error) {
+	var p struct {
+		SessionID string `json:"session_id"`
+	}
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid parameters: %w", err)
+	}
+
+	if p.SessionID == "" {
+		return nil, fmt.Errorf("session_id is required")
+	}
+
+	if err := s.CloseSession(ctx, acppkg.SessionID(p.SessionID)); err != nil {
+		return nil, fmt.Errorf("failed to close session: %w", err)
+	}
+
+	return map[string]any{
+		"session_id": p.SessionID,
+		"closed":     true,
+	}, nil
+}
+
+// handleForkSession handles the _session/fork extension method.
+func (s *acpServiceImpl) handleForkSession(ctx context.Context, params json.RawMessage) (any, error) {
+	var p struct {
+		SessionID string `json:"session_id"`
+	}
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid parameters: %w", err)
+	}
+
+	if p.SessionID == "" {
+		return nil, fmt.Errorf("session_id is required")
+	}
+
+	newSessionID, err := s.ForkSession(ctx, acppkg.SessionID(p.SessionID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to fork session: %w", err)
+	}
+
+	return map[string]any{
+		"original_session_id": p.SessionID,
+		"new_session_id":      string(newSessionID),
+		"forked":              true,
+	}, nil
+}
+
+// =============================================================================
+// ACP Response Builders - Helper functions for all possible callbacks
+// =============================================================================
+
+// buildNewSessionResponse creates a complete NewSessionResponse with all metadata.
+// This prepares all possible session information even if not yet fully implemented.
+func (s *acpServiceImpl) buildNewSessionResponse(sessionID acppkg.SessionID, cwd string) *acppkg.NewSessionResponse {
+	return &acppkg.NewSessionResponse{
+		SessionID: sessionID,
+		// TODO: Implement models configuration (UNSTABLE in go-acp)
+		// Models: s.buildSessionModels(),
+		// TODO: Implement modes configuration
+		Modes: s.buildSessionModes(),
+		// TODO: Implement config options from Gollum configuration
+		ConfigOptions: s.buildConfigOptions(),
+	}
+}
+
+// buildSessionModes creates the session mode state with available permission modes.
+// These map to Gollum's permission/execution modes.
+func (s *acpServiceImpl) buildSessionModes() *acppkg.SessionModeState {
+	modes := []acppkg.SessionMode{
+		{
+			ID:          acppkg.SessionModeID("default"),
+			Name:        "Default",
+			Description: "Standard behavior, prompts for dangerous operations",
+		},
+		{
+			ID:          acppkg.SessionModeID("auto"),
+			Name:        "Auto",
+			Description: "Automatically approve safe operations",
+		},
+	}
+
+	return &acppkg.SessionModeState{
+		CurrentModeID:  acppkg.SessionModeID("default"),
+		AvailableModes: modes,
+	}
+}
+
+// buildConfigOptions creates configuration options that the client can modify.
+// These map to Gollum's configuration system.
+func (s *acpServiceImpl) buildConfigOptions() []acppkg.SessionConfigOption {
+	options := []acppkg.SessionConfigOption{
+		{
+			ID:          acppkg.SessionConfigID("model"),
+			Name:        "Model",
+			Description: "AI model to use for responses",
+			Category: func() *acppkg.SessionConfigOptionCategory {
+				c := acppkg.SessionConfigOptionCategoryModel
+				return &c
+			}(),
+			// TODO: Add select options with available models
+		},
+		{
+			ID:          acppkg.SessionConfigID("timeout"),
+			Name:        "Timeout",
+			Description: "Request timeout in seconds",
+			Category: func() *acppkg.SessionConfigOptionCategory {
+				c := acppkg.SessionConfigOptionCategory("general")
+				return &c
+			}(),
+		},
+	}
+
+	// TODO: Add debug mode option when configuration supports it
+	// cfg := s.config.GetACPConfig()
+	// if cfg.DebugLogging {
+	//     options = append(options, acppkg.SessionConfigOption{
+	//         ID:          acppkg.SessionConfigID("debug"),
+	//         Name:        "Debug Mode",
+	//         Description: "Enable verbose logging for this session",
+	//         Category: func() *acppkg.SessionConfigOptionCategory {
+	//             c := acppkg.SessionConfigOptionCategory("debug")
+	//             return &c
+	//         }(),
+	//     })
+	// }
+
+	return options
+}
+
+// sendAvailableCommands sends available commands/skills to the client.
+// This is called after session/new to inform the client about available slash commands.
+func (s *acpServiceImpl) sendAvailableCommands(ctx context.Context, sessionID acppkg.SessionID) error {
+	if s.client == nil {
+		return fmt.Errorf("client not initialized")
+	}
+
+	stream := acppkg.NewSessionStream(s.client, sessionID)
+
+	// TODO: Load available commands from Gollum's command/skill system
+	// For now, sending a minimal set to demonstrate the capability
+	commands := []acppkg.AvailableCommand{
+		{
+			Name:        "debug",
+			Description: "Enable debug logging for this session",
+		},
+		{
+			Name:        "compact",
+			Description: "Free up context by summarizing the conversation",
+		},
+		{
+			Name:        "clear",
+			Description: "Start a new session with empty context",
+		},
+	}
+
+	return stream.SendCommands(ctx, commands)
+}
+
+// sendModeUpdate sends a mode change notification to the client.
+// Use this when the session mode has changed.
+func (s *acpServiceImpl) sendModeUpdate(ctx context.Context, sessionID acppkg.SessionID, modeID acppkg.SessionModeID) error {
+	if s.client == nil {
+		return fmt.Errorf("client not initialized")
+	}
+
+	stream := acppkg.NewSessionStream(s.client, sessionID)
+	return stream.SendModeUpdate(ctx, modeID)
+}
+
+// sendConfigUpdate sends a configuration update notification to the client.
+// Use this when configuration options have changed.
+func (s *acpServiceImpl) sendConfigUpdate(ctx context.Context, sessionID acppkg.SessionID, options []acppkg.SessionConfigOption) error {
+	if s.client == nil {
+		return fmt.Errorf("client not initialized")
+	}
+
+	stream := acppkg.NewSessionStream(s.client, sessionID)
+	return stream.SendConfigUpdate(ctx, options)
+}
+
+// sendSessionInfo sends session metadata update to the client.
+// Use this when session title or other metadata has changed.
+func (s *acpServiceImpl) sendSessionInfo(ctx context.Context, sessionID acppkg.SessionID, title, updatedAt string) error {
+	if s.client == nil {
+		return fmt.Errorf("client not initialized")
+	}
+
+	stream := acppkg.NewSessionStream(s.client, sessionID)
+	return stream.SendSessionInfo(ctx, title, updatedAt)
 }

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"context"
 	"testing"
 	"time"
@@ -54,7 +55,7 @@ func TestE2EMarkdownRendererSetup(t *testing.T) {
 	// Step 6: Create a real agent message
 	agentMsg := shared.Message{
 		ID:             uuid.New(),
-		Type:           shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:        "# Test\n\nThis is **bold** text.",
 		Timestamp:      time.Now(),
 		SessionContext: shared.SessionContext{AgentID: uuid.New()},

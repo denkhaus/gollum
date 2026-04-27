@@ -38,7 +38,7 @@ type MessageMutation struct {
 	op             Op
 	typ            string
 	id             *uuid.UUID
-	_type          *message.Type
+	role           *message.Role
 	content        *string
 	timestamp      *time.Time
 	metadata       *map[string]interface{}
@@ -190,40 +190,40 @@ func (m *MessageMutation) ResetSessionID() {
 	m.session = nil
 }
 
-// SetType sets the "type" field.
-func (m *MessageMutation) SetType(value message.Type) {
-	m._type = &value
+// SetRole sets the "role" field.
+func (m *MessageMutation) SetRole(value message.Role) {
+	m.role = &value
 }
 
-// GetType returns the value of the "type" field in the mutation.
-func (m *MessageMutation) GetType() (r message.Type, exists bool) {
-	v := m._type
+// Role returns the value of the "role" field in the mutation.
+func (m *MessageMutation) Role() (r message.Role, exists bool) {
+	v := m.role
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldType returns the old "type" field's value of the Message entity.
+// OldRole returns the old "role" field's value of the Message entity.
 // If the Message object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *MessageMutation) OldType(ctx context.Context) (v message.Type, err error) {
+func (m *MessageMutation) OldRole(ctx context.Context) (v message.Role, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldType is only allowed on UpdateOne operations")
+		return v, errors.New("OldRole is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldType requires an ID field in the mutation")
+		return v, errors.New("OldRole requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldType: %w", err)
+		return v, fmt.Errorf("querying old value for OldRole: %w", err)
 	}
-	return oldValue.Type, nil
+	return oldValue.Role, nil
 }
 
-// ResetType resets all changes to the "type" field.
-func (m *MessageMutation) ResetType() {
-	m._type = nil
+// ResetRole resets all changes to the "role" field.
+func (m *MessageMutation) ResetRole() {
+	m.role = nil
 }
 
 // SetContent sets the "content" field.
@@ -412,8 +412,8 @@ func (m *MessageMutation) Fields() []string {
 	if m.session != nil {
 		fields = append(fields, message.FieldSessionID)
 	}
-	if m._type != nil {
-		fields = append(fields, message.FieldType)
+	if m.role != nil {
+		fields = append(fields, message.FieldRole)
 	}
 	if m.content != nil {
 		fields = append(fields, message.FieldContent)
@@ -434,8 +434,8 @@ func (m *MessageMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case message.FieldSessionID:
 		return m.SessionID()
-	case message.FieldType:
-		return m.GetType()
+	case message.FieldRole:
+		return m.Role()
 	case message.FieldContent:
 		return m.Content()
 	case message.FieldTimestamp:
@@ -453,8 +453,8 @@ func (m *MessageMutation) OldField(ctx context.Context, name string) (ent.Value,
 	switch name {
 	case message.FieldSessionID:
 		return m.OldSessionID(ctx)
-	case message.FieldType:
-		return m.OldType(ctx)
+	case message.FieldRole:
+		return m.OldRole(ctx)
 	case message.FieldContent:
 		return m.OldContent(ctx)
 	case message.FieldTimestamp:
@@ -477,12 +477,12 @@ func (m *MessageMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetSessionID(v)
 		return nil
-	case message.FieldType:
-		v, ok := value.(message.Type)
+	case message.FieldRole:
+		v, ok := value.(message.Role)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetType(v)
+		m.SetRole(v)
 		return nil
 	case message.FieldContent:
 		v, ok := value.(string)
@@ -566,8 +566,8 @@ func (m *MessageMutation) ResetField(name string) error {
 	case message.FieldSessionID:
 		m.ResetSessionID()
 		return nil
-	case message.FieldType:
-		m.ResetType()
+	case message.FieldRole:
+		m.ResetRole()
 		return nil
 	case message.FieldContent:
 		m.ResetContent()

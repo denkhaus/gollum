@@ -1,11 +1,11 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"context"
 	"strings"
 	"testing"
 
-	"github.com/denkhaus/gollum/pkg/shared"
 
 	"go.uber.org/mock/gomock"
 )
@@ -125,7 +125,7 @@ func TestExecuteCommand_Unknown(t *testing.T) {
 		t.Errorf("Unknown command should add error message, got %d messages", len(newM.messages))
 	}
 
-	if len(newM.messages) > 0 && newM.messages[0].Type != shared.MessageTypeError {
+	if len(newM.messages) > 0 && newM.messages[0].Role != gollem.RoleSystem {
 		t.Error("Unknown command should add error message type")
 	}
 }

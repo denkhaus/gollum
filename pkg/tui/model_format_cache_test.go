@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"context"
 	"fmt"
 	"testing"
@@ -24,7 +25,7 @@ func TestFormatCache(t *testing.T) {
 	// Create a test message
 	msg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:   "Test message with **markdown**",
 		Timestamp: time.Now(),
 	}
@@ -65,7 +66,7 @@ func TestFormatCacheInvalidationOnWidthChange(t *testing.T) {
 	// Create and cache a message
 	msg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:   "Test message",
 		Timestamp: time.Now(),
 	}
@@ -105,13 +106,13 @@ func TestFormatCacheInvalidationOnMessageUpdate(t *testing.T) {
 	// Create two messages and cache them
 	msg1 := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:   "shared.Message 1",
 		Timestamp: time.Now(),
 	}
 	msg2 := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:   "shared.Message 2",
 		Timestamp: time.Now(),
 	}
@@ -158,7 +159,7 @@ func TestFormatCacheSizeLimit(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		msg := shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeAgentChat,
+			Role: gollem.RoleAssistant,
 			Content:   fmt.Sprintf("shared.Message %d", i),
 			Timestamp: time.Now(),
 		}
@@ -173,7 +174,7 @@ func TestFormatCacheSizeLimit(t *testing.T) {
 	// Add one more message (should trigger cache clear)
 	msg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:   "shared.Message 6",
 		Timestamp: time.Now(),
 	}

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/denkhaus/gollum/pkg/shared"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/m-mizutani/gollem"
 )
 
 // Debug log file for click detection debugging
@@ -86,14 +86,14 @@ func (m Model) handleClickOnToolMessage(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	debugLog("clickY=%d, yOffset=%d, viewportHeight=%d", clickY, yOffset, viewportHeight)
 	debugLog("messages count: %d", len(m.messages))
 	for i, msg := range m.messages {
-		isTool := msg.Type == shared.MessageTypeToolRequest || msg.Type == shared.MessageTypeToolResponse
+		isTool := msg.Role == gollem.RoleTool
 		collapsed := false
 		if msg.Metadata != nil {
 			if c, ok := msg.Metadata["collapsed"].(bool); ok {
 				collapsed = c
 			}
 		}
-		debugLog("  msg[%d]: type=%s, isTool=%v, collapsed=%v", i, msg.Type.String(), isTool, collapsed)
+		debugLog("  msg[%d]: type=%s, isTool=%v, collapsed=%v", i, string(msg.Role), isTool, collapsed)
 	}
 
 	// Only process clicks within the viewport bounds
@@ -171,13 +171,13 @@ func (m Model) handleClickOnToolMessage(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 
 	// Select the message (always)
 	m.selectMessage(msgIdx)
-	isTool := m.messages[msgIdx].Type == shared.MessageTypeToolRequest || m.messages[msgIdx].Type == shared.MessageTypeToolResponse
-	debugLog("SELECTED message %d (type=%s, isTool=%v)", msgIdx, m.messages[msgIdx].Type.String(), isTool)
+	isTool := m.messages[msgIdx].Role == gollem.RoleTool
+	debugLog("SELECTED message %d (type=%s, isTool=%v)", msgIdx, string(m.messages[msgIdx].Role), isTool)
 
 	// On double-click, also toggle collapse state if it's a tool message
 	if isDoubleClick {
 		debugLog("DOUBLE-CLICK: Attempting toggle on message %d", msgIdx)
-		debugLog("  message type=%s, isTool=%v", m.messages[msgIdx].Type.String(), isTool)
+		debugLog("  message type=%s, isTool=%v", string(m.messages[msgIdx].Role), isTool)
 
 		if isTool {
 			oldCollapsed := false

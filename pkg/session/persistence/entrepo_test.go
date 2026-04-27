@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/m-mizutani/gollem"
 )
 
 func TestEntRepository_Create(t *testing.T) {
@@ -261,7 +262,7 @@ func TestEntRepository_AddMessage(t *testing.T) {
 	// Add message
 	msg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeUserChat,
+		Role: gollem.RoleUser,
 		AgentRole: "user",
 		Content:   "Hello",
 		Timestamp: time.Now(),
@@ -296,7 +297,7 @@ func TestEntRepository_GetMessages(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		msg := shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeUserChat,
+			Role: gollem.RoleUser,
 			AgentRole: "user",
 			Content:   fmt.Sprintf("Message %d", i),
 			Timestamp: time.Now(),

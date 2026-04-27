@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"context"
 	"fmt"
 	"testing"
@@ -28,7 +29,7 @@ func TestAddMessageRingBuffer(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		msg := shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeAgentChat,
+			Role: gollem.RoleAssistant,
 			Content:   fmt.Sprintf("shared.Message %d", i),
 			Timestamp: time.Now(),
 		}
@@ -58,7 +59,7 @@ func TestAddMessageRingBuffer(t *testing.T) {
 	// Add 6th message (exceeds limit by 1)
 	newMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:   "shared.Message 5",
 		Timestamp: time.Now(),
 	}
@@ -106,7 +107,7 @@ func TestAddMessageWithZeroLimit(t *testing.T) {
 	for i := 0; i < 501; i++ {
 		msg := shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeAgentChat,
+			Role: gollem.RoleAssistant,
 			Content:   fmt.Sprintf("shared.Message %d", i),
 			Timestamp: time.Now(),
 		}

@@ -30,7 +30,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/registry"
 	"github.com/denkhaus/gollum/pkg/session"
 	"github.com/denkhaus/gollum/pkg/session/persistence"
-	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/skills"
 	"github.com/denkhaus/gollum/pkg/startup"
 	"github.com/denkhaus/gollum/pkg/state"
@@ -126,10 +125,11 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	// Startup context service
 	do.Provide(p.injector, startup.NewStartupContextService)
 	// ACP (Agent Client Protocol) services
-	do.Provide(p.injector, acp.NewAcpService)
+	do.Provide(p.injector, acp.NewACPService)
 
 	// Session management
 	do.Provide(p.injector, persistence.NewSessionRepository)
+	do.Provide(p.injector, persistence.NewGollumHistoryAdapter)
 	do.Provide(p.injector, session.NewSessionManager)
 
 	// Extensions
@@ -160,16 +160,6 @@ func (p *containerImpl) RegisterServices(_ context.Context) do.Injector {
 	do.Provide(p.injector, store.NewPromptStore)
 	do.Provide(p.injector, manager.NewPromptManagerProvider)
 	do.Provide(p.injector, optimizer.NewOptimizerProvider)
-
-	// Wire logger forwarder to channel facade for session/channel-aware log routing
-	do.Provide(p.injector, func(injector do.Injector) (struct{}, error) {
-		facade := do.MustInvoke[channel.ChannelFacade](injector)
-		loggerSvc := do.MustInvoke[logger.LoggerService](injector)
-		if forwarder, ok := facade.(shared.LogForwarder); ok {
-			loggerSvc.SetLogForwarder(forwarder)
-		}
-		return struct{}{}, nil
-	})
 
 	// Application
 	do.Provide(p.injector, app.NewService)

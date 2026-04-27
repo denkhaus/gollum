@@ -69,6 +69,7 @@ func setupMockConfigService(injector do.Injector, ctrl *gomock.Controller, limit
 		RetryDelayMs: 100,
 		RetryBackoff: 2,
 	}).AnyTimes()
+	mockConfigService.EXPECT().GetDatabaseConfig().Return(config.DatabaseConfig{}).AnyTimes()
 	do.ProvideValue[config.ConfigService](injector, mockConfigService)
 }
 

@@ -18,8 +18,8 @@ const (
 	FieldID = "id"
 	// FieldSessionID holds the string denoting the session_id field in the database.
 	FieldSessionID = "session_id"
-	// FieldType holds the string denoting the type field in the database.
-	FieldType = "type"
+	// FieldRole holds the string denoting the role field in the database.
+	FieldRole = "role"
 	// FieldContent holds the string denoting the content field in the database.
 	FieldContent = "content"
 	// FieldTimestamp holds the string denoting the timestamp field in the database.
@@ -43,7 +43,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldSessionID,
-	FieldType,
+	FieldRole,
 	FieldContent,
 	FieldTimestamp,
 	FieldMetadata,
@@ -66,31 +66,28 @@ var (
 	DefaultID func() uuid.UUID
 )
 
-// Type defines the type for the "type" enum field.
-type Type string
+// Role defines the type for the "role" enum field.
+type Role string
 
-// Type values.
+// Role values.
 const (
-	TypeUserChat     Type = "user_chat"
-	TypeAgentChat    Type = "agent_chat"
-	TypeToolRequest  Type = "tool_request"
-	TypeToolResponse Type = "tool_response"
-	TypeThinking     Type = "thinking"
-	TypeSystemInfo   Type = "system_info"
-	TypeError        Type = "error"
+	RoleSystem    Role = "system"
+	RoleUser      Role = "user"
+	RoleAssistant Role = "assistant"
+	RoleTool      Role = "tool"
 )
 
-func (_type Type) String() string {
-	return string(_type)
+func (r Role) String() string {
+	return string(r)
 }
 
-// TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
-func TypeValidator(_type Type) error {
-	switch _type {
-	case TypeUserChat, TypeAgentChat, TypeToolRequest, TypeToolResponse, TypeThinking, TypeSystemInfo, TypeError:
+// RoleValidator is a validator for the "role" field enum values. It is called by the builders before save.
+func RoleValidator(r Role) error {
+	switch r {
+	case RoleSystem, RoleUser, RoleAssistant, RoleTool:
 		return nil
 	default:
-		return fmt.Errorf("message: invalid enum value for type field: %q", _type)
+		return fmt.Errorf("message: invalid enum value for role field: %q", r)
 	}
 }
 
@@ -107,9 +104,9 @@ func BySessionID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSessionID, opts...).ToFunc()
 }
 
-// ByType orders the results by the type field.
-func ByType(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldType, opts...).ToFunc()
+// ByRole orders the results by the role field.
+func ByRole(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRole, opts...).ToFunc()
 }
 
 // ByContent orders the results by the content field.

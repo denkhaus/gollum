@@ -10,6 +10,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/google/uuid"
+	"github.com/m-mizutani/gollem"
 )
 
 // Viewport represents the active viewport in the TUI.
@@ -70,7 +71,7 @@ func (m Model) handleCtrlC() (tea.Model, tea.Cmd) {
 	m.quit = true
 	cancelMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeSystemInfo,
+		Role: gollem.RoleSystem,
 		Content:   "^C",
 		Timestamp: time.Now(),
 	}
@@ -154,7 +155,7 @@ func (m Model) handleSubmitInput() (tea.Model, tea.Cmd) {
 	// Add user message to messages
 	userMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeUserChat,
+		Role: gollem.RoleUser,
 		Content:   input,
 		Timestamp: time.Now(),
 	}
@@ -180,7 +181,7 @@ func (m Model) handleQuitCommand() (tea.Model, tea.Cmd) {
 	m.quit = true
 	goodbyeMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeSystemInfo,
+		Role: gollem.RoleSystem,
 		Content:   "👋 Goodbye!",
 		Timestamp: time.Now(),
 	}

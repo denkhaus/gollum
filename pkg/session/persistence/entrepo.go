@@ -13,6 +13,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/session"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/supervisorconfig"
 	"github.com/google/uuid"
+	"github.com/m-mizutani/gollem"
 )
 
 // EntRepository implements SessionRepository using Ent ORM.
@@ -22,10 +23,16 @@ type EntRepository struct {
 }
 
 // NewEntRepository creates a new EntRepository with the specified driver and DSN.
+// Also runs automatic schema migration for new databases.
 func NewEntRepository(driver string, dsn string, log logger.LoggerService) (*EntRepository, error) {
 	client, err := ent.Open(driver, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", repository.ErrDatabaseConnection, err)
+	}
+
+	// Run automatic schema migration
+	if err := client.Schema.Create(context.Background()); err != nil {
+		return nil, fmt.Errorf("failed to create schema: %w", err)
 	}
 
 	return &EntRepository{
@@ -355,14 +362,24 @@ func (r *EntRepository) AddMessage(ctx context.Context, sessionID uuid.UUID, msg
 	metadata["agent_role"] = msg.AgentRole
 	metadata["message_id"] = msg.ID
 
-	// Convert shared.MessageType to message.Type
-	msgType := message.Type(msg.Type.String())
+	// Convert shared.Message.Role (gollem.MessageRole) to message.Role
+	var msgRole message.Role
+	switch msg.Role {
+	case gollem.RoleSystem:
+		msgRole = message.RoleSystem
+	case gollem.RoleUser:
+		msgRole = message.RoleUser
+	case gollem.RoleAssistant:
+		msgRole = message.RoleAssistant
+	case gollem.RoleTool:
+		msgRole = message.RoleTool
+	}
 
 	// Create message
 	_, err = r.client.Message.
 		Create().
 		SetSession(sessionEnt).
-		SetType(msgType).
+		SetRole(msgRole).
 		SetContent(msg.Content).
 		SetTimestamp(msg.Timestamp).
 		SetMetadata(metadata).
@@ -436,28 +453,22 @@ func (r *EntRepository) entityToMessage(msgEnt *ent.Message) shared.Message {
 		msgID, _ = uuid.Parse(idStr)
 	}
 
-	// Convert message.Type string to shared.MessageType
-	msgType := shared.MessageTypeUserChat // default
-	switch string(msgEnt.Type) {
-	case "user_chat":
-		msgType = shared.MessageTypeUserChat
-	case "agent_chat":
-		msgType = shared.MessageTypeAgentChat
-	case "tool_request":
-		msgType = shared.MessageTypeToolRequest
-	case "tool_response":
-		msgType = shared.MessageTypeToolResponse
-	case "thinking":
-		msgType = shared.MessageTypeThinking
-	case "system_info":
-		msgType = shared.MessageTypeSystemInfo
-	case "error":
-		msgType = shared.MessageTypeError
+	// Convert message.Role to gollem.MessageRole
+	msgRole := gollem.RoleUser // default
+	switch msgEnt.Role {
+	case message.RoleSystem:
+		msgRole = gollem.RoleSystem
+	case message.RoleUser:
+		msgRole = gollem.RoleUser
+	case message.RoleAssistant:
+		msgRole = gollem.RoleAssistant
+	case message.RoleTool:
+		msgRole = gollem.RoleTool
 	}
 
 	return shared.Message{
 		ID:        msgID,
-		Type:      msgType,
+		Role:      msgRole,
 		AgentRole: agentRole,
 		Content:   msgEnt.Content,
 		Timestamp: msgEnt.Timestamp,

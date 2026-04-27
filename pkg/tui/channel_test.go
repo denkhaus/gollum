@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"testing"
 	"time"
 
@@ -27,7 +28,7 @@ func TestTUIChannel_OnMessage(t *testing.T) {
 	// Create a test message
 	testMsg := shared.Message{
 		ID:             uuid.New(),
-		Type:           shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:        "Hello, world!",
 		Timestamp:      time.Now(),
 		SessionContext: shared.SessionContext{AgentID: uuid.New()},
@@ -42,7 +43,7 @@ func TestTUIChannel_OnMessage(t *testing.T) {
 	case msg := <-msgChan:
 		assert.Equal(t, testMsg.ID, msg.ID)
 		assert.Equal(t, testMsg.Content, msg.Content)
-		assert.Equal(t, testMsg.Type, msg.Type)
+		assert.Equal(t, testMsg.Role, msg.Role)
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("Message not received within timeout")
 	}
@@ -66,7 +67,7 @@ func TestTUIChannel_OnMessage_ChannelFull(t *testing.T) {
 	// Fill the channel
 	testMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:   "First message",
 		Timestamp: time.Now(),
 	}
@@ -75,7 +76,7 @@ func TestTUIChannel_OnMessage_ChannelFull(t *testing.T) {
 	// Try to send another message (should be dropped)
 	secondMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:   "Second message",
 		Timestamp: time.Now(),
 	}
@@ -114,7 +115,7 @@ func TestTUIChannel_OnMessage_NoChannel(t *testing.T) {
 	// Send message (should not panic)
 	testMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:   "Test message",
 		Timestamp: time.Now(),
 	}
@@ -145,7 +146,7 @@ func TestTUIChannel_OnLog(t *testing.T) {
 	// Verify system message was received
 	select {
 	case msg := <-msgChan:
-		assert.Equal(t, shared.MessageTypeSystemInfo, msg.Type)
+		assert.Equal(t, gollem.RoleSystem, msg.Role)
 		assert.Contains(t, msg.Content, "[info]")
 		assert.Contains(t, msg.Content, "test-component")
 		assert.Contains(t, msg.Content, "Test log message")
@@ -176,7 +177,7 @@ func TestTUIChannel_OnAgentLifecycle(t *testing.T) {
 	// Verify system message was received
 	select {
 	case msg := <-msgChan:
-		assert.Equal(t, shared.MessageTypeSystemInfo, msg.Type)
+		assert.Equal(t, gollem.RoleSystem, msg.Role)
 		assert.Contains(t, msg.Content, "Agent added")
 		assert.Contains(t, msg.Content, agentID.String())
 		assert.Contains(t, msg.Content, "assistant")

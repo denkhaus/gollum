@@ -46,7 +46,7 @@ func TestFixFirstUserMessageHasTopBorder(t *testing.T) {
 	// Simulate user typing "hi" and submitting (like in the bug report)
 	userMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeUserChat,
+		Role: gollem.RoleUser,
 		Content:   "hi",
 		Timestamp: time.Now(),
 	}
@@ -57,7 +57,7 @@ func TestFixFirstUserMessageHasTopBorder(t *testing.T) {
 	// Simulate agent responding
 	agentMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:   "Hello! How can I help you today? I'm here to assist with a variety of tasks including: Searching and storing information in my knowledge base, Researching topics on the web, Managing files and code, Running commands and processes, Working with agents for specialized tasks. What would you like help with?",
 		Timestamp: time.Now(),
 	}
@@ -122,7 +122,7 @@ func TestFixPreservesScrolling(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		userMsg := shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeUserChat,
+			Role: gollem.RoleUser,
 			Content:   "Test message",
 			Timestamp: time.Now(),
 		}
@@ -130,7 +130,7 @@ func TestFixPreservesScrolling(t *testing.T) {
 
 		agentMsg := shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeAgentChat,
+			Role: gollem.RoleAssistant,
 			Content:   strings.Repeat("This is a long response. ", 10),
 			Timestamp: time.Now(),
 		}

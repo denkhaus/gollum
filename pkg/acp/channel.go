@@ -2,9 +2,12 @@
 package acp
 
 import (
+	"fmt"
+
 	"github.com/denkhaus/gollum/pkg/channel"
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/logger"
+	"github.com/denkhaus/gollum/pkg/session"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -17,32 +20,43 @@ const Identifier = channel.ChannelIdentifier("acp")
 // This allows the ACP channel to be created via the channel facade.
 func RegisterChannels(injector do.Injector) {
 	do.ProvideNamedValue(injector, channel.ProviderPrefix+"acp", channel.ChannelFactory(func(opts ...channel.ChannelOption) (channel.Channel, error) {
-		svc, err := NewAcpServiceWithOptions(injector, opts...)
+		ch, err := newACPChannel(injector, opts...)
 		if err != nil {
 			return nil, err
 		}
 
-		return svc, nil
+		return ch, nil
 	}))
 }
 
-// NewAcpServiceWithOptions creates a new ACP service with channel options.
+// newACPChannel creates a new ACP channel with the given options (private).
 // This is used by the channel factory to apply options like stdin/stdout/transport.
-func NewAcpServiceWithOptions(injector do.Injector, opts ...channel.ChannelOption) (channel.Channel, error) {
+// Returns channel.Channel interface for registration with the channel facade.
+func newACPChannel(injector do.Injector, opts ...channel.ChannelOption) (channel.Channel, error) {
 	logger := do.MustInvoke[logger.LoggerService](injector)
 	facade := do.MustInvoke[channel.ChannelFacade](injector)
 	cfg := do.MustInvoke[config.ConfigService](injector)
+
+	// Get SessionManager from DI
+	sessionMgr, err := do.Invoke[session.SessionManager](injector)
+	if err != nil {
+		return nil, err
+	}
+	if sessionMgr == nil {
+		return nil, fmt.Errorf("SessionManager is nil from DI")
+	}
 
 	// Generate unique channel ID for this ACP service instance
 	id := uuid.New()
 
 	// Create service with generated ID
 	svc := &acpServiceImpl{
-		logger:   logger,
-		facade:   facade,
-		config:   cfg,
-		id:       id,
-		injector: injector,
+		logger:         logger,
+		facade:         facade,
+		config:         cfg,
+		sessionManager: sessionMgr,
+		id:             id,
+		injector:       injector,
 	}
 
 	// Apply any channel options (stdin/stdout/transport for ACP connection)

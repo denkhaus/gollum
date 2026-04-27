@@ -118,7 +118,7 @@ type InputBlock struct {
 
 // GetAllFields returns all input fields as a slice
 func (i *InputBlock) GetAllFields() []FieldDef {
-	var fields []FieldDef
+	fields := make([]FieldDef, 0, len(i.Strings)+len(i.Ints)+len(i.Bools)+len(i.Floats)+len(i.Arrays)+len(i.Maps)+len(i.Objects))
 	for _, f := range i.Strings {
 		fields = append(fields, FieldDef{
 			XMLName:  f.XMLName,
@@ -196,7 +196,7 @@ type OutputBlock struct {
 
 // GetAllFields returns all output fields as a slice
 func (o *OutputBlock) GetAllFields() []FieldDef {
-	var fields []FieldDef
+	fields := make([]FieldDef, 0, len(o.Strings)+len(o.Ints)+len(o.Bools)+len(o.Floats)+len(o.Objects))
 	for _, f := range o.Strings {
 		f.Type = TypeString
 		fields = append(fields, f)
@@ -307,7 +307,7 @@ type ContextBlock struct {
 
 // GetAllFields returns all context fields as a slice
 func (c *ContextBlock) GetAllFields() []ContextField {
-	fields := make([]ContextField, 0)
+	fields := make([]ContextField, 0, len(c.Strings)+len(c.Ints)+len(c.Bools)+len(c.Floats))
 	for _, f := range c.Strings {
 		f.Type = TypeString
 		fields = append(fields, f)
@@ -397,7 +397,7 @@ type ComputedBlock struct {
 
 // GetAllFields returns all computed field definitions as a slice
 func (c *ComputedBlock) GetAllFields() []ComputedFieldDef {
-	var fields []ComputedFieldDef
+	fields := make([]ComputedFieldDef, 0, len(c.Strings)+len(c.Ints)+len(c.Bools)+len(c.Floats))
 	for _, f := range c.Strings {
 		field := f
 		if field.Type.IsEmpty() {
@@ -556,7 +556,7 @@ type CallInputBlock struct {
 
 // GetFields returns all input fields as a slice of CallInputFieldRef
 func (c *CallInputBlock) GetFields() []CallInputFieldRef {
-	var fields []CallInputFieldRef
+	fields := make([]CallInputFieldRef, 0, len(c.Strings)+len(c.Ints)+len(c.Bools)+len(c.Floats))
 	for _, f := range c.Strings {
 		fields = append(fields, CallInputFieldRef{String: &f})
 	}
@@ -582,7 +582,7 @@ type CallOutputBlock struct {
 
 // GetFields returns all output fields as a slice of CallOutputFieldRef
 func (c *CallOutputBlock) GetFields() []CallOutputFieldRef {
-	var fields []CallOutputFieldRef
+	fields := make([]CallOutputFieldRef, 0, len(c.Strings)+len(c.Ints)+len(c.Bools)+len(c.Floats))
 	for _, f := range c.Strings {
 		fields = append(fields, CallOutputFieldRef{String: &f})
 	}

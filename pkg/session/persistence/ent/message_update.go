@@ -43,16 +43,16 @@ func (_u *MessageUpdate) SetNillableSessionID(v *uuid.UUID) *MessageUpdate {
 	return _u
 }
 
-// SetType sets the "type" field.
-func (_u *MessageUpdate) SetType(v message.Type) *MessageUpdate {
-	_u.mutation.SetType(v)
+// SetRole sets the "role" field.
+func (_u *MessageUpdate) SetRole(v message.Role) *MessageUpdate {
+	_u.mutation.SetRole(v)
 	return _u
 }
 
-// SetNillableType sets the "type" field if the given value is not nil.
-func (_u *MessageUpdate) SetNillableType(v *message.Type) *MessageUpdate {
+// SetNillableRole sets the "role" field if the given value is not nil.
+func (_u *MessageUpdate) SetNillableRole(v *message.Role) *MessageUpdate {
 	if v != nil {
-		_u.SetType(*v)
+		_u.SetRole(*v)
 	}
 	return _u
 }
@@ -128,9 +128,9 @@ func (_u *MessageUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *MessageUpdate) check() error {
-	if v, ok := _u.mutation.GetType(); ok {
-		if err := message.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "Message.type": %w`, err)}
+	if v, ok := _u.mutation.Role(); ok {
+		if err := message.RoleValidator(v); err != nil {
+			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "Message.role": %w`, err)}
 		}
 	}
 	if _u.mutation.SessionCleared() && len(_u.mutation.SessionIDs()) > 0 {
@@ -151,8 +151,8 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
-	if value, ok := _u.mutation.GetType(); ok {
-		_spec.SetField(message.FieldType, field.TypeEnum, value)
+	if value, ok := _u.mutation.Role(); ok {
+		_spec.SetField(message.FieldRole, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.Content(); ok {
 		_spec.SetField(message.FieldContent, field.TypeString, value)
@@ -226,16 +226,16 @@ func (_u *MessageUpdateOne) SetNillableSessionID(v *uuid.UUID) *MessageUpdateOne
 	return _u
 }
 
-// SetType sets the "type" field.
-func (_u *MessageUpdateOne) SetType(v message.Type) *MessageUpdateOne {
-	_u.mutation.SetType(v)
+// SetRole sets the "role" field.
+func (_u *MessageUpdateOne) SetRole(v message.Role) *MessageUpdateOne {
+	_u.mutation.SetRole(v)
 	return _u
 }
 
-// SetNillableType sets the "type" field if the given value is not nil.
-func (_u *MessageUpdateOne) SetNillableType(v *message.Type) *MessageUpdateOne {
+// SetNillableRole sets the "role" field if the given value is not nil.
+func (_u *MessageUpdateOne) SetNillableRole(v *message.Role) *MessageUpdateOne {
 	if v != nil {
-		_u.SetType(*v)
+		_u.SetRole(*v)
 	}
 	return _u
 }
@@ -324,9 +324,9 @@ func (_u *MessageUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *MessageUpdateOne) check() error {
-	if v, ok := _u.mutation.GetType(); ok {
-		if err := message.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "Message.type": %w`, err)}
+	if v, ok := _u.mutation.Role(); ok {
+		if err := message.RoleValidator(v); err != nil {
+			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "Message.role": %w`, err)}
 		}
 	}
 	if _u.mutation.SessionCleared() && len(_u.mutation.SessionIDs()) > 0 {
@@ -364,8 +364,8 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			}
 		}
 	}
-	if value, ok := _u.mutation.GetType(); ok {
-		_spec.SetField(message.FieldType, field.TypeEnum, value)
+	if value, ok := _u.mutation.Role(); ok {
+		_spec.SetField(message.FieldRole, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.Content(); ok {
 		_spec.SetField(message.FieldContent, field.TypeString, value)

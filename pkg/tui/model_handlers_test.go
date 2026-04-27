@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"context"
 	"os"
 	"path/filepath"
@@ -28,7 +29,7 @@ func TestHandleNewMessageMsg(t *testing.T) {
 
 	newMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:   "Test message",
 		Timestamp: time.Now(),
 	}
@@ -75,8 +76,8 @@ func TestHandleExport(t *testing.T) {
 
 	// Add some messages
 	m.messages = []shared.Message{
-		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeAgentChat, Content: "Hi there!", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleAssistant, Content: "Hi there!", Timestamp: time.Now()},
 	}
 
 	// Test handleExport

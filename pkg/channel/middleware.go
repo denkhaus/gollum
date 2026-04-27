@@ -84,7 +84,7 @@ func (p *ChannelMiddleware) ContentBlockMiddleware(next gollem.ContentBlockHandl
 				combinedText := strings.Join(nonEmptyTexts, "")
 				p.facade.DisplayMessage(shared.Message{
 					ID:        uuid.New(),
-					Type:      shared.MessageTypeAgentChat,
+					Role:      gollem.RoleAssistant,
 					AgentRole: p.agentRole,
 					SessionContext: shared.SessionContext{
 						AgentID:   p.AgentID,
@@ -107,7 +107,7 @@ func (p *ChannelMiddleware) ToolMiddleware(next gollem.ToolHandler) gollem.ToolH
 		// Send tool request to channel
 		p.facade.DisplayMessage(shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeToolRequest,
+			Role:      gollem.RoleTool,
 			AgentRole: p.agentRole,
 			SessionContext: shared.SessionContext{
 				AgentID:   p.AgentID,
@@ -129,7 +129,7 @@ func (p *ChannelMiddleware) ToolMiddleware(next gollem.ToolHandler) gollem.ToolH
 		if err == nil && resp != nil && resp.Result != nil {
 			p.facade.DisplayMessage(shared.Message{
 				ID:        uuid.New(),
-				Type:      shared.MessageTypeToolResponse,
+				Role:      gollem.RoleTool,
 				AgentRole: p.agentRole,
 				SessionContext: shared.SessionContext{
 					AgentID:   p.AgentID,

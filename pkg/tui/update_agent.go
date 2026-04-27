@@ -47,7 +47,7 @@ func (m Model) handleAgentError(err error) Model {
 	// Add error message to messages
 	errorMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeError,
+		Role: gollem.RoleSystem,
 		Content:   err.Error(),
 		Timestamp: time.Now(),
 	}
@@ -70,7 +70,7 @@ func (m Model) handleAgentResponse(response *gollem.ExecuteResponse) Model {
 		for _, text := range response.Texts {
 			agentMsg := shared.Message{
 				ID:        uuid.New(),
-				Type:      shared.MessageTypeAgentChat,
+				Role: gollem.RoleAssistant,
 				Content:   text,
 				Timestamp: time.Now(),
 				AgentRole: "",

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"context"
 	"testing"
 	"time"
@@ -103,8 +104,8 @@ func TestGetMessageCount(t *testing.T) {
 	}
 
 	m.messages = []shared.Message{
-		{ID: uuid.New(), Type: shared.MessageTypeSystemInfo, Content: "msg1", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "msg2", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleSystem, Content: "msg1", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleUser, Content: "msg2", Timestamp: time.Now()},
 	}
 
 	if m.getMessageCount() != 2 {

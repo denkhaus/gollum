@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"context"
 	"fmt"
 	"testing"
@@ -26,20 +27,20 @@ func TestClickOnCollapsedToolMessage(t *testing.T) {
 	// Create messages where a collapsed tool message is in the middle
 	userMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeUserChat,
+		Role: gollem.RoleUser,
 		Content:   "Hello, this is a user message",
 		Timestamp: time.Now(),
 	}
 	toolMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeToolResponse,
+		Role: gollem.RoleTool,
 		Content:   "This is a long tool output that should be collapsed",
 		Timestamp: time.Now(),
 		Metadata:  map[string]any{"is_tool": true, "collapsed": true},
 	}
 	agentMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:   "Agent response here",
 		Timestamp: time.Now(),
 	}
@@ -92,13 +93,13 @@ func TestClickOnExpandedToolMessage(t *testing.T) {
 	// Create messages with an EXPANDED tool message
 	userMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeUserChat,
+		Role: gollem.RoleUser,
 		Content:   "Hello",
 		Timestamp: time.Now(),
 	}
 	toolMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeToolResponse,
+		Role: gollem.RoleTool,
 		Content:   "This is tool output that should be visible",
 		Timestamp: time.Now(),
 		Metadata:  map[string]any{"is_tool": true, "collapsed": true},
@@ -106,7 +107,7 @@ func TestClickOnExpandedToolMessage(t *testing.T) {
 	}
 	agentMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:   "Response",
 		Timestamp: time.Now(),
 	}
@@ -141,7 +142,7 @@ func TestClickOnToolMessageWithDifferentialUpdate(t *testing.T) {
 
 	// Start with one message
 	m.messages = []shared.Message{
-		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "First message", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleUser, Content: "First message", Timestamp: time.Now()},
 	}
 	m.updateViewportContent()
 	m.viewport.SetContent(m.cachedContent)
@@ -151,7 +152,7 @@ func TestClickOnToolMessageWithDifferentialUpdate(t *testing.T) {
 	// Add more messages via differential update
 	m.messages = append(m.messages, shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeToolResponse,
+		Role: gollem.RoleTool,
 		Content:   "Tool output",
 		Timestamp: time.Now(),
 		Metadata:  map[string]any{"is_tool": true, "collapsed": true},
@@ -164,7 +165,7 @@ func TestClickOnToolMessageWithDifferentialUpdate(t *testing.T) {
 	// Add one more
 	m.messages = append(m.messages, shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:   "Agent response",
 		Timestamp: time.Now(),
 	})
@@ -211,20 +212,20 @@ func TestClickOnToolMessageWithScrolling(t *testing.T) {
 
 	// Create many messages so content overflows viewport
 	for i := 0; i < 10; i++ {
-		msgType := shared.MessageTypeAgentChat
+		msgType := gollem.RoleAssistant
 		content := fmt.Sprintf("shared.Message %d with some content to make it longer", i)
 		isTool := false
 
 		// Every third message is a tool message
 		if i%3 == 2 {
-			msgType = shared.MessageTypeToolResponse
+			msgType = gollem.RoleTool
 			content = fmt.Sprintf("Tool output %d", i)
 			isTool = true
 		}
 
 		msg := shared.Message{
 			ID:        uuid.New(),
-			Type:      msgType,
+			Role: msgType,
 			Content:   content,
 			Timestamp: time.Now(),
 			Metadata:  make(map[string]any),
@@ -292,7 +293,7 @@ func TestClickOnFirstToolMessage(t *testing.T) {
 	// Add a user message
 	userMsg := shared.Message{
 		ID:        uuid.New(),
-		Type:      shared.MessageTypeUserChat,
+		Role: gollem.RoleUser,
 		Content:   "Hello, please help me",
 		Timestamp: time.Now(),
 	}
@@ -305,7 +306,7 @@ func TestClickOnFirstToolMessage(t *testing.T) {
 	// Now add a tool message (collapsed)
 	toolMsg := shared.Message{
 		ID:             uuid.New(),
-		Type:           shared.MessageTypeToolResponse,
+		Role: gollem.RoleTool,
 		Content:        "Tool output here",
 		Timestamp:      time.Now(),
 		SessionContext: shared.SessionContext{AgentID: uuid.New()},

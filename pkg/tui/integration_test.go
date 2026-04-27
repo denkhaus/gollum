@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"context"
 	"testing"
 	"time"
@@ -38,7 +39,7 @@ func TestIntegrationMarkdownRendering(t *testing.T) {
 	// Step 5: Create agent message with markdown
 	agentMsg := shared.Message{
 		ID:             uuid.New(),
-		Type:           shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:        "# Heading\n\nThis is **bold** and *italic*.",
 		Timestamp:      time.Now(),
 		SessionContext: shared.SessionContext{AgentID: uuid.New()},

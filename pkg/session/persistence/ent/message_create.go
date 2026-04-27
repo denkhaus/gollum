@@ -28,9 +28,9 @@ func (_c *MessageCreate) SetSessionID(v uuid.UUID) *MessageCreate {
 	return _c
 }
 
-// SetType sets the "type" field.
-func (_c *MessageCreate) SetType(v message.Type) *MessageCreate {
-	_c.mutation.SetType(v)
+// SetRole sets the "role" field.
+func (_c *MessageCreate) SetRole(v message.Role) *MessageCreate {
+	_c.mutation.SetRole(v)
 	return _c
 }
 
@@ -129,12 +129,12 @@ func (_c *MessageCreate) check() error {
 	if _, ok := _c.mutation.SessionID(); !ok {
 		return &ValidationError{Name: "session_id", err: errors.New(`ent: missing required field "Message.session_id"`)}
 	}
-	if _, ok := _c.mutation.GetType(); !ok {
-		return &ValidationError{Name: "type", err: errors.New(`ent: missing required field "Message.type"`)}
+	if _, ok := _c.mutation.Role(); !ok {
+		return &ValidationError{Name: "role", err: errors.New(`ent: missing required field "Message.role"`)}
 	}
-	if v, ok := _c.mutation.GetType(); ok {
-		if err := message.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "Message.type": %w`, err)}
+	if v, ok := _c.mutation.Role(); ok {
+		if err := message.RoleValidator(v); err != nil {
+			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "Message.role": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Content(); !ok {
@@ -181,9 +181,9 @@ func (_c *MessageCreate) createSpec() (*Message, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = &id
 	}
-	if value, ok := _c.mutation.GetType(); ok {
-		_spec.SetField(message.FieldType, field.TypeEnum, value)
-		_node.Type = value
+	if value, ok := _c.mutation.Role(); ok {
+		_spec.SetField(message.FieldRole, field.TypeEnum, value)
+		_node.Role = value
 	}
 	if value, ok := _c.mutation.Content(); ok {
 		_spec.SetField(message.FieldContent, field.TypeString, value)

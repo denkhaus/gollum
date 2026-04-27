@@ -1,10 +1,10 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"context"
 	"testing"
 
-	"github.com/denkhaus/gollum/pkg/shared"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"go.uber.org/mock/gomock"
@@ -30,28 +30,28 @@ func TestUpdate_SlashCommands(t *testing.T) {
 		name         string
 		command      string
 		wantQuit     bool
-		wantMsgType  shared.MessageType
+		wantRole gollem.MessageRole
 		wantMsgCount int
 	}{
 		{
 			name:         "/clear command",
 			command:      "/clear",
 			wantQuit:     false,
-			wantMsgType:  shared.MessageTypeSystemInfo,
+			wantRole: gollem.RoleSystem,
 			wantMsgCount: 1, // Messages cleared system message
 		},
 		{
 			name:         "/help command",
 			command:      "/help",
 			wantQuit:     false,
-			wantMsgType:  shared.MessageTypeSystemInfo,
+			wantRole: gollem.RoleSystem,
 			wantMsgCount: 1, // Help system message
 		},
 		{
 			name:         "/quit command",
 			command:      "/quit",
 			wantQuit:     true,
-			wantMsgType:  shared.MessageTypeSystemInfo,
+			wantRole: gollem.RoleSystem,
 			wantMsgCount: 1, // Goodbye message
 		},
 	}
@@ -92,8 +92,8 @@ func TestUpdate_SlashCommands(t *testing.T) {
 				t.Errorf("Command should add %d message(s), got %d", tt.wantMsgCount, len(newM.messages))
 			}
 
-			if !tt.wantQuit && len(newM.messages) > 0 && newM.messages[0].Type != tt.wantMsgType {
-				t.Errorf("Command should add %s message, got %s", tt.wantMsgType, newM.messages[0].Type)
+			if !tt.wantQuit && len(newM.messages) > 0 && newM.messages[0].Role != tt.wantRole {
+				t.Errorf("Command should add %s message, got %s", tt.wantRole, newM.messages[0].Role)
 			}
 		})
 	}

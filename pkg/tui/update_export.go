@@ -12,6 +12,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/google/uuid"
+	"github.com/m-mizutani/gollem"
 )
 
 // handleExport handles conversation export to a file.
@@ -22,7 +23,7 @@ func (m Model) handleExport() (tea.Model, tea.Cmd) {
 	if err := writeExportFile(filename, content); err != nil {
 		errorMsg := shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeError,
+			Role: gollem.RoleSystem,
 			Content:   fmt.Sprintf("Failed to export conversation: %v", err),
 			Timestamp: time.Now(),
 		}
@@ -30,7 +31,7 @@ func (m Model) handleExport() (tea.Model, tea.Cmd) {
 	} else {
 		successMsg := shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeSystemInfo,
+			Role: gollem.RoleSystem,
 			Content:   fmt.Sprintf("Conversation exported to: %s", filename),
 			Timestamp: time.Now(),
 		}
@@ -60,17 +61,15 @@ func buildExportContent(messages []shared.Message) string {
 		timestamp := msg.Timestamp.Format("2006-01-02 15:04:05")
 		var prefix string
 
-		switch msg.Type {
-		case shared.MessageTypeUserChat:
+		switch msg.Role {
+		case gollem.RoleUser:
 			prefix = fmt.Sprintf("[%s] You:", timestamp)
-		case shared.MessageTypeAgentChat:
+		case gollem.RoleAssistant:
 			prefix = fmt.Sprintf("[%s] Agent:", timestamp)
-		case shared.MessageTypeToolRequest, shared.MessageTypeToolResponse:
+		case gollem.RoleTool:
 			prefix = fmt.Sprintf("[%s] Tool:", timestamp)
-		case shared.MessageTypeSystemInfo:
+		case gollem.RoleSystem:
 			prefix = fmt.Sprintf("[%s] System:", timestamp)
-		case shared.MessageTypeError:
-			prefix = fmt.Sprintf("[%s] Error:", timestamp)
 		default:
 			prefix = fmt.Sprintf("[%s] Unknown:", timestamp)
 		}

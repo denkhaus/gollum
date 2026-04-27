@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"context"
 	"testing"
 	"time"
@@ -36,9 +37,9 @@ func TestMultipleDoubleClicks(t *testing.T) {
 
 	// Create messages with collapsed tool messages
 	m.messages = []shared.Message{
-		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeToolResponse, Content: "Tool 1", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
-		{ID: uuid.New(), Type: shared.MessageTypeToolResponse, Content: "Tool 2", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
+		{ID: uuid.New(), Role: gollem.RoleUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleTool, Content: "Tool 1", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
+		{ID: uuid.New(), Role: gollem.RoleTool, Content: "Tool 2", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
 	}
 	m.updateViewportContent()
 	m.viewport.SetContent(m.cachedContent)
@@ -116,9 +117,9 @@ func TestDoubleClickLinePositionChange(t *testing.T) {
 
 	// Create messages with collapsed tool messages
 	m.messages = []shared.Message{
-		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeToolResponse, Content: "Tool 1", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
-		{ID: uuid.New(), Type: shared.MessageTypeAgentChat, Content: "Agent response", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleTool, Content: "Tool 1", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
+		{ID: uuid.New(), Role: gollem.RoleAssistant, Content: "Agent response", Timestamp: time.Now()},
 	}
 	m.updateViewportContent()
 	m.viewport.SetContent(m.cachedContent)
@@ -169,9 +170,9 @@ func TestHandleClickOnToolMessage(t *testing.T) {
 
 	// Add messages with known positions
 	m.messages = []shared.Message{
-		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeToolResponse, Content: "Tool output", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
-		{ID: uuid.New(), Type: shared.MessageTypeAgentChat, Content: "Response", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleTool, Content: "Tool output", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
+		{ID: uuid.New(), Role: gollem.RoleAssistant, Content: "Response", Timestamp: time.Now()},
 	}
 
 	// Set up the viewport content
@@ -233,8 +234,8 @@ func TestHandleClickOnNonToolMessage(t *testing.T) {
 
 	// Add messages
 	m.messages = []shared.Message{
-		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeAgentChat, Content: "Response", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleAssistant, Content: "Response", Timestamp: time.Now()},
 	}
 
 	content := m.updateViewportContent()
@@ -274,7 +275,7 @@ func TestHandleClickOutsideViewport(t *testing.T) {
 	m.viewport.Height = 10
 
 	m.messages = []shared.Message{
-		{ID: uuid.New(), Type: shared.MessageTypeToolResponse, Content: "Tool", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
+		{ID: uuid.New(), Role: gollem.RoleTool, Content: "Tool", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
 	}
 
 	content := m.updateViewportContent()

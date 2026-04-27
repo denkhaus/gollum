@@ -5,6 +5,12 @@ import (
 	"path/filepath"
 )
 
+// PrepareWorkspace creates the .gollum directory and performs basic workspace setup.
+// Should be called before any services that need the workspace directory.
+func (p *applicationServiceImpl) PrepareWorkspace() error {
+	return p.ensureGollumDirectory()
+}
+
 // ensureGollumDirectory creates .gollum directory if it doesn't exist
 func (p *applicationServiceImpl) ensureGollumDirectory() error {
 	gollumDir := filepath.Join(p.workspaceService.GetCurrentWorkspace(), gollumDirName)

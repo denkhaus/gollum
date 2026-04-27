@@ -22,8 +22,8 @@ type Message struct {
 	ID uuid.UUID `json:"id,omitempty"`
 	// SessionID holds the value of the "session_id" field.
 	SessionID uuid.UUID `json:"session_id,omitempty"`
-	// Type holds the value of the "type" field.
-	Type message.Type `json:"type,omitempty"`
+	// Role holds the value of the "role" field.
+	Role message.Role `json:"role,omitempty"`
 	// Content holds the value of the "content" field.
 	Content string `json:"content,omitempty"`
 	// Timestamp holds the value of the "timestamp" field.
@@ -63,7 +63,7 @@ func (*Message) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case message.FieldMetadata:
 			values[i] = new([]byte)
-		case message.FieldType, message.FieldContent:
+		case message.FieldRole, message.FieldContent:
 			values[i] = new(sql.NullString)
 		case message.FieldTimestamp:
 			values[i] = new(sql.NullTime)
@@ -96,11 +96,11 @@ func (_m *Message) assignValues(columns []string, values []any) error {
 			} else if value != nil {
 				_m.SessionID = *value
 			}
-		case message.FieldType:
+		case message.FieldRole:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field type", values[i])
+				return fmt.Errorf("unexpected type %T for field role", values[i])
 			} else if value.Valid {
-				_m.Type = message.Type(value.String)
+				_m.Role = message.Role(value.String)
 			}
 		case message.FieldContent:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -166,8 +166,8 @@ func (_m *Message) String() string {
 	builder.WriteString("session_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SessionID))
 	builder.WriteString(", ")
-	builder.WriteString("type=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Type))
+	builder.WriteString("role=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Role))
 	builder.WriteString(", ")
 	builder.WriteString("content=")
 	builder.WriteString(_m.Content)

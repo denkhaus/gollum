@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"context"
 	"fmt"
 	"testing"
@@ -25,7 +26,7 @@ func BenchmarkUpdateViewportContentDifferential(b *testing.B) {
 	for i := 0; i < 100; i++ {
 		m.messages = append(m.messages, shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeAgentChat,
+			Role: gollem.RoleAssistant,
 			Content:   fmt.Sprintf("Existing message %d with some content to format", i),
 			Timestamp: time.Now(),
 		})
@@ -43,7 +44,7 @@ func BenchmarkUpdateViewportContentDifferential(b *testing.B) {
 		// Add new message
 		m.messages = append(m.messages, shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeAgentChat,
+			Role: gollem.RoleAssistant,
 			Content:   fmt.Sprintf("New message %d", i),
 			Timestamp: time.Now(),
 		})
@@ -72,7 +73,7 @@ func BenchmarkUpdateViewportContentFullRebuild(b *testing.B) {
 	for i := 0; i < 100; i++ {
 		m.messages = append(m.messages, shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeAgentChat,
+			Role: gollem.RoleAssistant,
 			Content:   fmt.Sprintf("shared.Message %d with some content to format", i),
 			Timestamp: time.Now(),
 		})
@@ -109,7 +110,7 @@ func TestDifferentialRenderingCorrectness(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		m.messages = append(m.messages, shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeAgentChat,
+			Role: gollem.RoleAssistant,
 			Content:   fmt.Sprintf("shared.Message %d", i),
 			Timestamp: time.Now(),
 		})
@@ -147,7 +148,7 @@ func TestDifferentialRenderingCacheInvalidation(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		m.messages = append(m.messages, shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeAgentChat,
+			Role: gollem.RoleAssistant,
 			Content:   fmt.Sprintf("shared.Message %d", i),
 			Timestamp: time.Now(),
 		})

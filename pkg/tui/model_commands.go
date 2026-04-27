@@ -12,6 +12,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/google/uuid"
+	"github.com/m-mizutani/gollem"
 )
 
 // addToHistory adds input to history with size limit enforcement.
@@ -55,7 +56,7 @@ func (m *Model) executeCommand(cmd string) (tea.Model, tea.Cmd) {
 		m.viewport.SetContent("")
 		systemMsg := shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeSystemInfo,
+			Role: gollem.RoleSystem,
 			Content:   "Messages cleared",
 			Timestamp: time.Now(),
 		}
@@ -69,7 +70,7 @@ func (m *Model) executeCommand(cmd string) (tea.Model, tea.Cmd) {
 		m.quit = true
 		goodbyeMsg := shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeSystemInfo,
+			Role: gollem.RoleSystem,
 			Content:   "👋 Goodbye!",
 			Timestamp: time.Now(),
 		}
@@ -94,7 +95,7 @@ Alt+Enter - New line (multi-line input)
 Ctrl+R    - Search history (type query, use C-s/C-r to navigate)`
 		helpMsg := shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeSystemInfo,
+			Role: gollem.RoleSystem,
 			Content:   helpText,
 			Timestamp: time.Now(),
 		}
@@ -113,7 +114,7 @@ Ctrl+R    - Search history (type query, use C-s/C-r to navigate)`
 		// Unknown command
 		errorMsg := shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeError,
+			Role: gollem.RoleSystem,
 			Content:   fmt.Sprintf("Unknown command: %s. Type /help for available commands.", command),
 			Timestamp: time.Now(),
 		}

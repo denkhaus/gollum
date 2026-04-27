@@ -80,8 +80,8 @@ func TestUpdate_AgentCompleteMsgWithError(t *testing.T) {
 		t.Error("agentCompleteMsg with error should add error message")
 	}
 
-	if newM.messages[0].Type != shared.MessageTypeError {
-		t.Error("Error message should have shared.MessageTypeError")
+	if newM.messages[0].Role != gollem.RoleSystem {
+		t.Error("Error message should have gollem.RoleSystem")
 	}
 
 	if !strings.Contains(newM.messages[0].Content, "test error") {
@@ -101,7 +101,7 @@ func TestUpdate_HistoryNavigation(t *testing.T) {
 	m.width = 80
 	m.height = 20
 	m.messages = []shared.Message{
-		{ID: uuid.New(), Type: shared.MessageTypeSystemInfo, Content: "test", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleSystem, Content: "test", Timestamp: time.Now()},
 	}
 	m.viewport.SetContent(m.updateViewportContent())
 

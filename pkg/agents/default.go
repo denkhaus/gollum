@@ -170,6 +170,7 @@ func (p *DefaultAgent) buildOptionsWithHistory(history *gollem.History) []gollem
 
 // AddTools adds additional tools to the agent's tool set.
 // This is useful for adding flow-specific tools after agent creation.
+// TODO: The function should check if a specific tool is already in the current agent and only add tools if not.
 func (p *DefaultAgent) AddTools(additionalTools []gollem.Tool) {
 	p.tools = append(p.tools, additionalTools...)
 

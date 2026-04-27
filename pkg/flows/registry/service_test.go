@@ -78,6 +78,10 @@ func (m *testConfigService) GetACPConfig() *config.ACPConfig {
 	return &config.ACPConfig{}
 }
 
+func (m *testConfigService) GetDatabaseConfig() config.DatabaseConfig {
+	return config.DatabaseConfig{}
+}
+
 func (m *testConfigService) GetSubAgentConfig() *config.SubAgentConfig {
 	return &config.SubAgentConfig{}
 }

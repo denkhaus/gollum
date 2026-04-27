@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"context"
 	"fmt"
 	"strings"
@@ -28,7 +29,7 @@ func TestArrowKeyScrolling(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		m.messages = append(m.messages, shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeAgentChat,
+			Role: gollem.RoleAssistant,
 			Content:   fmt.Sprintf("shared.Message %d", i),
 			Timestamp: time.Now(),
 		})

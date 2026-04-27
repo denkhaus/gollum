@@ -57,6 +57,62 @@ func (s *acpServiceImpl) newConnection(handler http.Handler) (Connection, error)
 	return s.newStdioConnection()
 }
 
+func (s *acpServiceImpl) newSessionFactory(
+	parentCtx context.Context,
+	params *acppkg.NewSessionRequest,
+) (acppkg.SessionID, *shared.ACPSession, error) {
+
+	// Use passed context as parent for cancellation propagation
+	ctx, cancel := context.WithCancel(parentCtx)
+
+	// s.sessionManager is initialized in constructor
+	if s.sessionManager == nil {
+		cancel()
+		return "", nil, fmt.Errorf("sessionManager not initialized in newSessionFactory")
+	}
+
+	cwd := params.Cwd
+	if cwd == "" {
+		cwd = "."
+	}
+	// Generate session ID and parse it as UUID
+	sessionID := uuid.New()
+	acpSessionID := acppkg.SessionID(sessionID.String())
+
+	session := shared.NewAcpSession(ctx, cancel, cwd)
+	session.SessionID = sessionID
+
+	// Register session in Gollum's SessionManager for system integration
+	_, err := s.sessionManager.CreateSession(&shared.SessionContext{
+		SessionID: sessionID,
+		ChannelID: s.id,
+		AgentID:   uuid.Nil, // Will be set when supervisor is created
+		Cwd:       cwd,
+	})
+	if err != nil {
+		cancel()
+		return "", nil, fmt.Errorf("failed to register session in SessionManager: %w", err)
+	}
+
+	// TODO: Send session metadata to client after session creation
+	// This should be done asynchronously to not block the session/new response
+	//
+	// Example implementation:
+	// go func() {
+	//     // Send available commands/skills to the client
+	//     if err := s.sendAvailableCommands(ctx, acpSessionID); err != nil {
+	//         s.logger.Warn("failed to send available commands", zap.Error(err))
+	//     }
+	//
+	//     // Optionally send model info and config options
+	//     if err := s.sendModelInfoUpdate(ctx, acpSessionID); err != nil {
+	//         s.logger.Warn("failed to send model info", zap.Error(err))
+	//     }
+	// }()
+
+	return acpSessionID, session, nil
+}
+
 // newStdioConnection creates a stdio-based ACP connection
 func (s *acpServiceImpl) newStdioConnection() (Connection, error) {
 	// Create session store
@@ -67,37 +123,13 @@ func (s *acpServiceImpl) newStdioConnection() (Connection, error) {
 	s.SetSessionStore(store)
 
 	// Create connection with session store and middleware
+	// LoggingMiddleware logs all ACP method calls for debugging
 	conn := acppkg.NewAgentSideConnection(s, s.stdin, s.stdout,
-		acppkg.WithSessionStore(store, func(ctx context.Context, params *acppkg.NewSessionRequest) (acppkg.SessionID, *shared.ACPSession, error) {
-			ctx, cancel := context.WithCancel(ctx)
-			cwd := params.Cwd
-			if cwd == "" {
-				cwd = "."
-			}
-			// Generate session ID and parse it as UUID
-			acpSessionID := acppkg.GenerateSessionID()
-			sessionID, err := uuid.Parse(string(acpSessionID))
-			if err != nil {
-				return "", nil, fmt.Errorf("invalid session ID format: %w", err)
-			}
-			session := shared.NewAcpSession(ctx, cancel, cwd)
-			session.SessionID = sessionID
-
-			// Register session in Gollum's SessionManager for system integration
-			_, err = s.sessionManager.CreateSession(&shared.SessionContext{
-				SessionID: sessionID,
-				ChannelID: s.id,
-				AgentID:   uuid.Nil, // Will be set when supervisor is created
-				Cwd:       cwd,
-			})
-			if err != nil {
-				cancel()
-				return "", nil, fmt.Errorf("failed to register session in SessionManager: %w", err)
-			}
-
-			return acpSessionID, session, nil
-		}),
-		acppkg.WithMiddleware(acppkg.RecoveryMiddleware()),
+		acppkg.WithSessionStore(store, s.newSessionFactory),
+		acppkg.WithMiddleware(
+			acppkg.RecoveryMiddleware(),
+			acppkg.LoggingMiddleware(nil), // Use default logger (log.Printf)
+		),
 	)
 
 	// Set client on service
@@ -120,40 +152,15 @@ func (s *acpServiceImpl) newHTTPConnection() (Connection, error) {
 	s.SetClient(nil)
 	s.SetSessionStore(store)
 
-	// Create connection with HTTP transport
+	// Create connection with HTTP transport and middleware
+	// LoggingMiddleware logs all ACP method calls for debugging
 	conn := acppkg.NewAgentSideConnection(s, nil, nil,
 		acppkg.WithTransport(httpTransport),
-		acppkg.WithSessionStore(store, func(parentCtx context.Context, params *acppkg.NewSessionRequest) (acppkg.SessionID, *shared.ACPSession, error) {
-			// Use passed context as parent for cancellation propagation
-			ctx, cancel := context.WithCancel(parentCtx)
-			cwd := params.Cwd
-			if cwd == "" {
-				cwd = "."
-			}
-			// Generate session ID and parse it as UUID
-			acpSessionID := acppkg.GenerateSessionID()
-			sessionID, err := uuid.Parse(string(acpSessionID))
-			if err != nil {
-				return "", nil, fmt.Errorf("invalid session ID format: %w", err)
-			}
-			session := shared.NewAcpSession(ctx, cancel, cwd)
-			session.SessionID = sessionID
-
-			// Register session in Gollum's SessionManager for system integration
-			_, err = s.sessionManager.CreateSession(&shared.SessionContext{
-				SessionID: sessionID,
-				ChannelID: s.id,
-				AgentID:   uuid.Nil, // Will be set when supervisor is created
-				Cwd:       cwd,
-			})
-			if err != nil {
-				cancel()
-				return "", nil, fmt.Errorf("failed to register session in SessionManager: %w", err)
-			}
-
-			return acpSessionID, session, nil
-		}),
-		acppkg.WithMiddleware(acppkg.RecoveryMiddleware()),
+		acppkg.WithSessionStore(store, s.newSessionFactory),
+		acppkg.WithMiddleware(
+			acppkg.RecoveryMiddleware(),
+			acppkg.LoggingMiddleware(nil), // Use default logger (log.Printf)
+		),
 	)
 
 	// Set client on service

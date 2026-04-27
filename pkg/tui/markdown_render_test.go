@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"context"
 	"testing"
 	"time"
@@ -30,7 +31,7 @@ func TestMarkdownRendering(t *testing.T) {
 	// Test message with markdown content
 	agentMsg := shared.Message{
 		ID:             uuid.New(),
-		Type:           shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:        "# Test Heading\n\nThis is **bold** text.",
 		Timestamp:      time.Now(),
 		SessionContext: shared.SessionContext{AgentID: uuid.New()},
@@ -79,7 +80,7 @@ func TestPlainTextFallback(t *testing.T) {
 	// Test message with markdown content
 	agentMsg := shared.Message{
 		ID:             uuid.New(),
-		Type:           shared.MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		Content:        "# Test Heading\n\nThis is **bold** text.",
 		Timestamp:      time.Now(),
 		SessionContext: shared.SessionContext{AgentID: uuid.New()},

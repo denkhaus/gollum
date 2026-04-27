@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"context"
 	"strings"
 	"testing"
@@ -65,13 +66,13 @@ func TestViewWithMessages(t *testing.T) {
 	m.messages = []shared.Message{
 		{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeSystemInfo,
+			Role: gollem.RoleSystem,
 			Content:   "message 1",
 			Timestamp: time.Now(),
 		},
 		{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeSystemInfo,
+			Role: gollem.RoleSystem,
 			Content:   "message 2",
 			Timestamp: time.Now(),
 		},

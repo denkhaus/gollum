@@ -22,8 +22,8 @@ func (Message) Fields() []ent.Field {
 			Default(uuid.New).
 			Unique(),
 		field.UUID("session_id", uuid.New()),
-		field.Enum("type").
-			Values("user_chat", "agent_chat", "tool_request", "tool_response", "thinking", "system_info", "error"),
+		field.Enum("role").
+			Values("system", "user", "assistant", "tool"),
 		field.Text("content"),
 		field.Time("timestamp").
 			Default(time.Now).

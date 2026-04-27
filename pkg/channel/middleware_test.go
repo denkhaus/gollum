@@ -1,6 +1,7 @@
 package channel
 
 import (
+	"github.com/m-mizutani/gollem"
 	"testing"
 	"time"
 
@@ -58,9 +59,9 @@ func TestChannelMiddlewareProvider_CreateChannelMiddleware(t *testing.T) {
 
 func TestMessage_Structure_HasSessionAndChannelIDs(t *testing.T) {
 	sessionID := uuid.MustParse("00000000-0000-0000-0000-000000000003")
-	msg := Message{
+	msg := shared.Message{
 		ID:        uuid.New(),
-		Type:      MessageTypeAgentChat,
+		Role: gollem.RoleAssistant,
 		SessionContext: shared.SessionContext{
 			SessionID: sessionID,
 			ChannelID: uuid.New(),
@@ -73,7 +74,7 @@ func TestMessage_Structure_HasSessionAndChannelIDs(t *testing.T) {
 	}
 
 	assert.NotEqual(t, uuid.Nil, msg.ID)
-	assert.Equal(t, MessageTypeAgentChat, msg.Type)
+	assert.Equal(t, gollem.RoleAssistant, msg.Role)
 	assert.NotEqual(t, uuid.Nil, msg.AgentID)
 	assert.Equal(t, "assistant", msg.AgentRole)
 	assert.Equal(t, sessionID, msg.SessionID)

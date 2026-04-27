@@ -11,7 +11,7 @@ var (
 	// MessagesColumns holds the columns for the "messages" table.
 	MessagesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"user_chat", "agent_chat", "tool_request", "tool_response", "thinking", "system_info", "error"}},
+		{Name: "role", Type: field.TypeEnum, Enums: []string{"system", "user", "assistant", "tool"}},
 		{Name: "content", Type: field.TypeString, Size: 2147483647},
 		{Name: "timestamp", Type: field.TypeTime},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true},

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"context"
 	"fmt"
 	"strings"
@@ -78,12 +79,12 @@ func BenchmarkUpdateViewportContent(b *testing.B) {
 
 	// Add realistic messages to simulate typical TUI workload
 	m.messages = []shared.Message{
-		{ID: uuid.New(), Type: shared.MessageTypeSystemInfo, Content: "System initialization message", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeAgentChat, Content: "Agent response 1", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeAgentChat, Content: "Agent response 2 with some text that needs markdown rendering", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeToolResponse, Content: "Tool execution result", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "User input message", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "Another user message for realistic workload", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleSystem, Content: "System initialization message", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleAssistant, Content: "Agent response 1", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleAssistant, Content: "Agent response 2 with some text that needs markdown rendering", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleTool, Content: "Tool execution result", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleUser, Content: "User input message", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleUser, Content: "Another user message for realistic workload", Timestamp: time.Now()},
 	}
 
 	b.ResetTimer()
@@ -111,11 +112,11 @@ func BenchmarkFormatMessage(b *testing.B) {
 
 	// Test with different message types to cover all code paths
 	testMessages := []shared.Message{
-		{ID: uuid.New(), Type: shared.MessageTypeAgentChat, Content: "Simple agent response", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeAgentChat, Content: "Response with markdown formatting: **bold** text and `code`", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeToolResponse, Content: "Tool execution output", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "User message with emoji 🎉", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeSystemInfo, Content: "System notification", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleAssistant, Content: "Simple agent response", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleAssistant, Content: "Response with markdown formatting: **bold** text and `code`", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleTool, Content: "Tool execution output", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleUser, Content: "User message with emoji 🎉", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleSystem, Content: "System notification", Timestamp: time.Now()},
 	}
 
 	b.ResetTimer()
@@ -150,7 +151,7 @@ func BenchmarkModelUpdate(b *testing.B) {
 	for i := 0; i < baseMessageCount; i++ {
 		msg := shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeAgentChat,
+			Role: gollem.RoleAssistant,
 			Content:   fmt.Sprintf("Agent response message %d", i),
 			Timestamp: time.Now(),
 		}
@@ -207,7 +208,7 @@ func BenchmarkUpdateViewportContentWithScrolling(b *testing.B) {
 	for i := range m.messages {
 		m.messages[i] = shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeAgentChat,
+			Role: gollem.RoleAssistant,
 			Content:   fmt.Sprintf("Agent response message %d", i),
 			Timestamp: time.Now(),
 		}
@@ -247,7 +248,7 @@ func BenchmarkFormatMessageWithCache(b *testing.B) {
 	for i := range testMessages {
 		testMessages[i] = shared.Message{
 			ID:        uuid.New(),
-			Type:      shared.MessageTypeAgentChat,
+			Role: gollem.RoleAssistant,
 			Content:   fmt.Sprintf("Agent response message %d with some markdown formatting **bold** and `code`", i),
 			Timestamp: time.Now(),
 		}
@@ -293,7 +294,7 @@ func BenchmarkFormatMessageNoCache(b *testing.B) {
 		for j := range testMessages {
 			testMessages[j] = shared.Message{
 				ID:        uuid.New(),
-				Type:      shared.MessageTypeAgentChat,
+				Role: gollem.RoleAssistant,
 				Content:   fmt.Sprintf("Agent response message %d with some markdown formatting **bold** and `code`", j),
 				Timestamp: time.Now(),
 			}

@@ -39,6 +39,7 @@ type defaultAgentFactory struct {
 	channelProvider  channel.ChannelMiddlewareProvider
 	skillsService    skills.SkillService
 	strategyBuilder  strategy.Builder
+	historyAdapter   gollem.HistoryRepository
 	// Tool providers for adding default tools to all agents
 	spawnAgentToolProv      tools.SpawnAgentToolProvider
 	agentOutputToolProv     tools.AgentOutputToolProvider
@@ -71,6 +72,7 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 	mcpToolProvider := do.MustInvoke[mcp.MCPToolProvider](injector)
 	skillsService := do.MustInvoke[skills.SkillService](injector)
 	strategyBuilder := do.MustInvoke[strategy.Builder](injector)
+	historyAdapter := do.MustInvoke[gollem.HistoryRepository](injector)
 
 	// Get tool providers
 	spawnAgentToolProv := do.MustInvoke[tools.SpawnAgentToolProvider](injector)
@@ -100,6 +102,7 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 		promptManager:           promptManager,
 		channelProvider:         channelProvider,
 		strategyBuilder:         strategyBuilder,
+		historyAdapter:          historyAdapter,
 		spawnAgentToolProv:      spawnAgentToolProv,
 		agentOutputToolProv:     agentOutputToolProv,
 		removeAgentToolProv:     removeAgentToolProv,
@@ -121,6 +124,14 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 
 // CreateAgent creates a new agent with the given configuration
 func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.AgentConfig) (shared.Agent, error) {
+	// Validate session context (required for history persistence)
+	if !config.SessionContext.IsValid() {
+		return nil, errs.Wrap(nil, errs.TypeValidation, "invalid session context").
+			WithContext("session_id", config.SessionContext.SessionID).
+			WithContext("channel_id", config.SessionContext.ChannelID).
+			WithContext("agent_id", config.SessionContext.AgentID)
+	}
+
 	// Ensure the config has an ID, generate one if not set
 	if config.ID == uuid.Nil {
 		config.ID = uuid.New()
@@ -173,6 +184,13 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 		gollem.WithTools(tools...), // Use resolved tools
 		gollem.WithSystemPrompt(config.SystemPrompt),
 	}
+
+	// Add history repository for session-scoped agents
+	// The adapter routes Load/Save calls to the correct session based on sessionID
+	baseOptions = append(baseOptions, gollem.WithHistoryRepository(
+		f.historyAdapter,
+		config.SessionContext.SessionID.String(),
+	))
 
 	if config.History != nil {
 		baseOptions = append(baseOptions,

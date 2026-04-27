@@ -12,9 +12,14 @@ deps:
         exit 1
     fi
 
-generate:
+generate_ent:
+    @echo "generate ent boilerplate ..."
+    @go generate ./pkg/session/persistence/ent
+
+generate: generate_ent
     @echo "generate mocks ..."
     @go generate ./...
+
 
 # Build and install gollum to GOBIN
 build: deps

@@ -48,7 +48,7 @@ func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 	// Create InputHandler for session/supervisor business logic
 	inputHandler := NewInputHandler(cm, sm, af, log)
 
-	return &channelFacadeImpl{
+	facade := &channelFacadeImpl{
 		commandManager: cm,
 		registry:       reg,
 		agentFactory:   af,
@@ -56,7 +56,12 @@ func NewChannelFacade(injector do.Injector) (ChannelFacade, error) {
 		channels:       make(map[uuid.UUID]Channel),
 		logger:         log,
 		inputHandler:   inputHandler,
-	}, nil
+	}
+
+	// Register facade as log forwarder with logger service
+	log.SetLogForwarder(facade)
+
+	return facade, nil
 }
 
 // DiscoverProviders scans the DI container for channel providers.

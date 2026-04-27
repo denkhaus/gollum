@@ -38,8 +38,8 @@ func setupIntegrationTest(t *testing.T) (do.Injector, *gomock.Controller) {
 
 	do.ProvideValue[shared.AgentFactory](injector, &mockAgentFactory{})
 	do.ProvideValue[session.SessionManager](injector, session.NewMockSessionManager(ctrl))
-	cfg := &mockConfigService{logBufferSize: 100}
-	do.ProvideValue[config.ConfigService](injector, cfg)
+	mockCfg := setupMockConfigService(ctrl, 100)
+	do.ProvideValue[config.ConfigService](injector, mockCfg)
 
 	return injector, ctrl
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/shared"
 
 	"github.com/google/uuid"
+	"github.com/m-mizutani/gollem"
 )
 
 // updateViewportContent updates the viewport with the current messages.
@@ -139,7 +140,7 @@ func (m *Model) toggleMessageCollapse(msgIdx int) bool {
 
 	msg := &m.messages[msgIdx]
 	// Only tool messages can be collapsed
-	isTool := msg.Type == shared.MessageTypeToolRequest || msg.Type == shared.MessageTypeToolResponse
+	isTool := msg.Role == gollem.RoleTool
 	if !isTool {
 		return false
 	}
@@ -246,7 +247,7 @@ func (m *Model) formatMessage(msgIdx int, msg shared.Message) string {
 // The selected parameter determines whether to use bold/double-line borders.
 func (m *Model) formatMessageImpl(_ int, msg shared.Message, selected bool) string {
 	// For collapsed tool messages, render a compact header with click indicator
-	isTool := msg.Type == shared.MessageTypeToolRequest || msg.Type == shared.MessageTypeToolResponse
+	isTool := msg.Role == gollem.RoleTool
 	collapsed := false
 	if msg.Metadata != nil {
 		if c, ok := msg.Metadata["collapsed"].(bool); ok {
@@ -265,15 +266,15 @@ func (m *Model) formatMessageImpl(_ int, msg shared.Message, selected bool) stri
 	// Column 3: Timestamp (left-aligned as per plan)
 	var col1, col2, col3 string
 
-	switch msg.Type {
-	case shared.MessageTypeUserChat:
+	switch msg.Role {
+	case gollem.RoleUser:
 		col1 = "You"
 		col2 = "User"
 		col3 = timestamp
 
-	case shared.MessageTypeAgentChat, shared.MessageTypeToolRequest, shared.MessageTypeToolResponse:
+	case gollem.RoleAssistant, gollem.RoleTool:
 		agentName := formatAgentName(msg.AgentID, msg.AgentRole)
-		if msg.Type == shared.MessageTypeToolRequest || msg.Type == shared.MessageTypeToolResponse {
+		if msg.Role == gollem.RoleTool {
 			col1 = fmt.Sprintf("Agent: %s", agentName)
 			col2 = "Tool"
 		} else {
@@ -282,15 +283,11 @@ func (m *Model) formatMessageImpl(_ int, msg shared.Message, selected bool) stri
 		}
 		col3 = timestamp
 
-	case shared.MessageTypeSystemInfo:
+	case gollem.RoleSystem:
 		col1 = "System"
 		col2 = "Info"
 		col3 = timestamp
 
-	case shared.MessageTypeError:
-		col1 = "Error"
-		col2 = "Error"
-		col3 = timestamp
 
 	default:
 		col1 = "Unknown"
@@ -335,7 +332,7 @@ func (m *Model) formatMessageImpl(_ int, msg shared.Message, selected bool) stri
 
 	// For agent messages, use markdown renderer if available
 	var contentLines []string
-	if msg.Type == shared.MessageTypeAgentChat && m.markdownRenderer != nil {
+	if msg.Role == gollem.RoleAssistant && m.markdownRenderer != nil {
 		rendered, err := m.markdownRenderer.Render(context.Background(), msg.Content, contentWidth)
 		if err != nil {
 			contentLines = wrapText(msg.Content, contentWidth)

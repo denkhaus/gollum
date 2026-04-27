@@ -113,7 +113,7 @@ func (c *TUIChannel) OnLog(entry shared.LogEntry) {
 
 	// Convert log entry to a system message
 	msg := shared.Message{
-		Type:      shared.MessageTypeSystemInfo,
+		Role: gollem.RoleSystem,
 		Content:   formatLogEntry(entry),
 		Timestamp: entry.Timestamp,
 		AgentRole: c.agentRole,
@@ -142,7 +142,7 @@ func (c *TUIChannel) OnAgentLifecycle(event channel.AgentLifecycleEvent) {
 
 	// Convert lifecycle event to a system message
 	msg := shared.Message{
-		Type:      shared.MessageTypeSystemInfo,
+		Role: gollem.RoleSystem,
 		Content:   formatLifecycleEvent(event),
 		Timestamp: time.Now(),
 		AgentRole: event.Role,

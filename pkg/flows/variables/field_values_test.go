@@ -345,7 +345,7 @@ func TestFieldValuesGetRaw(t *testing.T) {
 	}
 
 	// Test GetRaw on unknown field
-	value, ok = fv.GetRaw("unknown")
+	_, ok = fv.GetRaw("unknown")
 	if ok {
 		t.Error("Expected ok=false for unknown field")
 	}

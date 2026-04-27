@@ -63,9 +63,7 @@ func (p *rootHandler) before(ctx context.Context, cmd *cli.Command) (context.Con
 	injector := container.RegisterServices(shutdownCtx)
 
 	// Register all channels
-		// Register all channels
-		registerChannels(injector)
-
+	registerChannels(injector)
 
 	// Discover channel providers (makes them available to ChannelFacade)
 	channelFacade := do.MustInvoke[channel.ChannelFacade](injector)

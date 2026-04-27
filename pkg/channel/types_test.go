@@ -46,7 +46,7 @@ type mockChannelForTypes struct {
 }
 
 func (m *mockChannelForTypes) ID() uuid.UUID                              { return m.id }
-func (m *mockChannelForTypes) OnMessage(msg Message)                      {}
+func (m *mockChannelForTypes) OnMessage(msg shared.Message)               {}
 func (m *mockChannelForTypes) OnLog(entry shared.LogEntry)                {}
 func (m *mockChannelForTypes) OnAgentLifecycle(event AgentLifecycleEvent) {}
 func (m *mockChannelForTypes) Start(ctx context.Context) error            { return nil }
@@ -66,7 +66,7 @@ type mockStarterChannel struct {
 }
 
 func (m *mockStarterChannel) ID() uuid.UUID                              { return m.id }
-func (m *mockStarterChannel) OnMessage(msg Message)                      {}
+func (m *mockStarterChannel) OnMessage(msg shared.Message)               {}
 func (m *mockStarterChannel) OnLog(entry shared.LogEntry)                {}
 func (m *mockStarterChannel) OnAgentLifecycle(event AgentLifecycleEvent) {}
 func (m *mockStarterChannel) Start(ctx context.Context) error            { return nil }

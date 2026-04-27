@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/m-mizutani/gollem"
 	"context"
 	"testing"
 	"time"
@@ -23,9 +24,9 @@ func TestUpdateViewportContentTracksMessagePositions(t *testing.T) {
 
 	// Add messages
 	m.messages = []shared.Message{
-		{ID: uuid.New(), Type: shared.MessageTypeUserChat, Content: "Hello", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeAgentChat, Content: "Hi there", Timestamp: time.Now()},
-		{ID: uuid.New(), Type: shared.MessageTypeToolResponse, Content: "Tool output", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
+		{ID: uuid.New(), Role: gollem.RoleUser, Content: "Hello", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleAssistant, Content: "Hi there", Timestamp: time.Now()},
+		{ID: uuid.New(), Role: gollem.RoleTool, Content: "Tool output", Timestamp: time.Now(), Metadata: map[string]any{"is_tool": true, "collapsed": true}},
 	}
 
 	// Update viewport content

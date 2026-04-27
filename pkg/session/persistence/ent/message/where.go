@@ -91,24 +91,24 @@ func SessionIDNotIn(vs ...uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldNotIn(FieldSessionID, vs...))
 }
 
-// TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v Type) predicate.Message {
-	return predicate.Message(sql.FieldEQ(FieldType, v))
+// RoleEQ applies the EQ predicate on the "role" field.
+func RoleEQ(v Role) predicate.Message {
+	return predicate.Message(sql.FieldEQ(FieldRole, v))
 }
 
-// TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v Type) predicate.Message {
-	return predicate.Message(sql.FieldNEQ(FieldType, v))
+// RoleNEQ applies the NEQ predicate on the "role" field.
+func RoleNEQ(v Role) predicate.Message {
+	return predicate.Message(sql.FieldNEQ(FieldRole, v))
 }
 
-// TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...Type) predicate.Message {
-	return predicate.Message(sql.FieldIn(FieldType, vs...))
+// RoleIn applies the In predicate on the "role" field.
+func RoleIn(vs ...Role) predicate.Message {
+	return predicate.Message(sql.FieldIn(FieldRole, vs...))
 }
 
-// TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...Type) predicate.Message {
-	return predicate.Message(sql.FieldNotIn(FieldType, vs...))
+// RoleNotIn applies the NotIn predicate on the "role" field.
+func RoleNotIn(vs ...Role) predicate.Message {
+	return predicate.Message(sql.FieldNotIn(FieldRole, vs...))
 }
 
 // ContentEQ applies the EQ predicate on the "content" field.

@@ -51,6 +51,7 @@ func (m *mockConfigService) GetLangfuseConfig() *config.LangfuseConfig {
 func (m *mockConfigService) GetEventsConfig() *config.EventsConfig { return &config.EventsConfig{} }
 func (m *mockConfigService) GetMCPConfig() *config.MCPConfig       { return &config.MCPConfig{} }
 func (m *mockConfigService) GetACPConfig() *config.ACPConfig       { return &config.ACPConfig{} }
+func (m *mockConfigService) GetDatabaseConfig() config.DatabaseConfig { return config.DatabaseConfig{} }
 func (m *mockConfigService) GetSubAgentConfig() *config.SubAgentConfig {
 	return &config.SubAgentConfig{}
 }
