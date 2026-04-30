@@ -49,20 +49,21 @@ func (m *MocksWithController) setupHookManagerPassThrough() {
 
 func (m *MocksWithController) setupSessionManagerPassThrough() {
 	testUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
-	m.SessionMgr.EXPECT().CreateSession(gomock.Any()).
+	sctx := &shared.SessionContext{
+		SessionID: testUUID,
+		ChannelID: testUUID,
+	}
+	m.SessionMgr.EXPECT().CreateSession(gomock.Any(), gomock.Any()).
 		Return(&shared.Session{
-			ID:        testUUID,
-			ChannelID: testUUID,
+			SessionContext: *sctx,
 		}, nil).AnyTimes()
 	m.SessionMgr.EXPECT().GetSession(gomock.Any()).
 		Return(&shared.Session{
-			ID:        testUUID,
-			ChannelID: testUUID,
+			SessionContext: *sctx,
 		}, true).AnyTimes()
-	m.SessionMgr.EXPECT().GetOrCreateSession(gomock.Any()).
+	m.SessionMgr.EXPECT().GetOrCreateSession(gomock.Any(), gomock.Any()).
 		Return(&shared.Session{
-			ID:        testUUID,
-			ChannelID: testUUID,
+			SessionContext: *sctx,
 		}, nil).AnyTimes()
 	m.SessionMgr.EXPECT().GetSessionsByChannel(gomock.Any()).
 		Return([]*shared.Session{}).AnyTimes()

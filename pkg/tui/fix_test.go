@@ -78,6 +78,8 @@ func TestFixFirstUserMessageHasTopBorder(t *testing.T) {
 
 	if !contains(view, "Agent:") {
 		t.Error("FAILED: Agent message is NOT visible")
+		t.Logf("Viewport view:\n%s", view)
+		t.Logf("Viewport height: %d, width: %d", m.viewport.Height, m.viewport.Width)
 	} else {
 		t.Log("SUCCESS: Agent message IS visible")
 	}

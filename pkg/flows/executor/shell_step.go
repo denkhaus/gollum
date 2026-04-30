@@ -23,7 +23,13 @@ func (d *dummyShellAgent) GetID() uuid.UUID {
 }
 
 func (d *dummyShellAgent) GetConfig() *shared.AgentConfig {
-	return &shared.AgentConfig{ID: d.id, Role: "shell-step", Description: "Shell step execution"}
+	return &shared.AgentConfig{
+		SessionContext: shared.SessionContext{
+			AgentID: d.id,
+		},
+		Role:        "shell-step",
+		Description: "Shell step execution",
+	}
 }
 
 func (d *dummyShellAgent) Session() gollem.Session {

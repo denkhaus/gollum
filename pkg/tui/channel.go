@@ -251,12 +251,16 @@ type agentExecutorAdapter struct {
 // Execute implements tui.AgentExecutor by delegating to the channel facade
 func (a *agentExecutorAdapter) Execute(ctx context.Context, input string) (*gollem.ExecuteResponse, error) {
 	// Use Nil UUID for session ID for TUI (single session mode)
-	result, err := a.facade.SubmitInput(ctx, &shared.SessionContext{
-		SessionID: uuid.Nil,
-		ChannelID: a.channelID,
-		AgentID:   uuid.Nil,
-		Cwd:       "",
-	}, input)
+	session := &shared.Session{
+		SessionContext: shared.SessionContext{
+			SessionID: uuid.Nil,
+			ChannelID: a.channelID,
+			AgentID:   uuid.Nil,
+			Cwd:       "",
+		},
+		CreatedAt:  time.Now(),
+	}
+	result, err := a.facade.SubmitInput(session, input)
 	if err != nil {
 		return nil, err
 	}

@@ -67,7 +67,10 @@ func (p *flowExecutorImpl) executeLLMStep(ctx context.Context, step *flows.Step,
 
 	// Map flow Agent to shared.AgentConfig
 	config := &shared.AgentConfig{
-		ID:              uuid.New(),
+		SessionContext: shared.SessionContext{
+			AgentID: uuid.New(),
+		},
+
 		SystemPrompt:    agentConfig.Prompt,
 		Role:            "flow-llm-step",
 		Description:     fmt.Sprintf("LLM agent for flow %s, step %s", p.flow.Name, step.Name),
