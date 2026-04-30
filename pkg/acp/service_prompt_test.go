@@ -16,7 +16,7 @@ import (
 // "use of package session not in selector"
 func TestPrompt_VariableDeclaration(t *testing.T) {
 	// The session variable must be declared before the defer block
-	var session *shared.ACPSession
+	var session *shared.Session
 
 	// This defer block should be able to access the session variable
 	defer func() {
@@ -35,11 +35,13 @@ func TestPrompt_VariableDeclaration(t *testing.T) {
 
 	// Assign a value to session
 	ctx := context.Background()
-	session = &shared.ACPSession{
+	session = &shared.Session{
+		SessionContext: shared.SessionContext{
+			SessionID: uuid.Nil,
+			Cwd:       "/tmp",
+		},
 		Context:    ctx,
 		CancelFunc: func() {},
-		SessionID:  uuid.Nil,
-		Cwd:        "/tmp",
 	}
 
 	t.Log("Variable declaration test passed")
@@ -65,7 +67,7 @@ func TestPrompt_NilInputsReturnErrors(t *testing.T) {
 		{
 			name: "nil_facade",
 			setup: func(s *acpServiceImpl) {
-				s.store = acppkg.NewMemoryStore[*shared.ACPSession]()
+				s.store = acppkg.NewMemoryStore[*shared.Session]()
 				s.facade = nil
 			},
 			wantErr: "facade not initialized",
@@ -73,7 +75,7 @@ func TestPrompt_NilInputsReturnErrors(t *testing.T) {
 		{
 			name: "nil_client",
 			setup: func(s *acpServiceImpl) {
-				s.store = acppkg.NewMemoryStore[*shared.ACPSession]()
+				s.store = acppkg.NewMemoryStore[*shared.Session]()
 				s.facade = nil // Facade check happens before client check
 				s.client = nil
 			},

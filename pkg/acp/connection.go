@@ -60,7 +60,7 @@ func (s *acpServiceImpl) newConnection(handler http.Handler) (Connection, error)
 func (s *acpServiceImpl) newSessionFactory(
 	parentCtx context.Context,
 	params *acppkg.NewSessionRequest,
-) (acppkg.SessionID, *shared.ACPSession, error) {
+) (acppkg.SessionID, *shared.Session, error) {
 
 	// Use passed context as parent for cancellation propagation
 	ctx, cancel := context.WithCancel(parentCtx)
@@ -79,11 +79,11 @@ func (s *acpServiceImpl) newSessionFactory(
 	sessionID := uuid.New()
 	acpSessionID := acppkg.SessionID(sessionID.String())
 
-	session := shared.NewAcpSession(ctx, cancel, cwd)
-	session.SessionID = sessionID
+	// session := shared.NewAcpSession(ctx, cancel, cwd)
+	// session.SessionID = sessionID
 
 	// Register session in Gollum's SessionManager for system integration
-	_, err := s.sessionManager.CreateSession(&shared.SessionContext{
+	session, err := s.sessionManager.CreateSession(ctx, &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: s.id,
 		AgentID:   uuid.Nil, // Will be set when supervisor is created
@@ -116,7 +116,7 @@ func (s *acpServiceImpl) newSessionFactory(
 // newStdioConnection creates a stdio-based ACP connection
 func (s *acpServiceImpl) newStdioConnection() (Connection, error) {
 	// Create session store
-	store := acppkg.NewMemoryStore[*shared.ACPSession]()
+	store := acppkg.NewMemoryStore[*shared.Session]()
 
 	// Set ACP-specific fields
 	s.SetClient(nil) // Will be set after connection creation
@@ -146,7 +146,7 @@ func (s *acpServiceImpl) newStdioConnection() (Connection, error) {
 func (s *acpServiceImpl) newHTTPConnection() (Connection, error) {
 	// Create HTTP transport from handler
 	httpTransport := acppkg.NewHTTPServerTransport()
-	store := acppkg.NewMemoryStore[*shared.ACPSession]()
+	store := acppkg.NewMemoryStore[*shared.Session]()
 
 	// Set ACP-specific fields
 	s.SetClient(nil)

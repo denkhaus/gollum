@@ -159,7 +159,7 @@ func (mr *MockACPServiceMockRecorder) SetSessionMode(ctx, params any) *gomock.Ca
 }
 
 // SetSessionStore mocks base method.
-func (m *MockACPService) SetSessionStore(store acp.SessionStore[*shared.ACPSession]) {
+func (m *MockACPService) SetSessionStore(store acp.SessionStore[*shared.Session]) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetSessionStore", store)
 }
