@@ -50,7 +50,7 @@ func TestDefaultAgent_GetMessageHistory(t *testing.T) {
 // TestDefaultAgent_GetConfig tests GetConfig method
 func TestDefaultAgent_GetConfig(t *testing.T) {
 	config := &shared.AgentConfig{
-		ID:           uuid.New(),
+		SessionContext: shared.SessionContext{AgentID: uuid.New()},
 		SystemPrompt: "test prompt",
 		Role:         "test role",
 	}

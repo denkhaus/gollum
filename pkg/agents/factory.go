@@ -124,17 +124,17 @@ func NewAgentFactory(injector do.Injector) (shared.AgentFactory, error) {
 
 // CreateAgent creates a new agent with the given configuration
 func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.AgentConfig) (shared.Agent, error) {
+	// Ensure the agent has an ID, generate one if not set
+	if config.SessionContext.AgentID == uuid.Nil {
+		config.SessionContext.AgentID = uuid.New()
+	}
+
 	// Validate session context (required for history persistence)
 	if !config.SessionContext.IsValid() {
-		return nil, errs.Wrap(nil, errs.TypeValidation, "invalid session context").
+		return nil, errs.New(errs.TypeValidation, "invalid session context").
 			WithContext("session_id", config.SessionContext.SessionID).
 			WithContext("channel_id", config.SessionContext.ChannelID).
 			WithContext("agent_id", config.SessionContext.AgentID)
-	}
-
-	// Ensure the config has an ID, generate one if not set
-	if config.ID == uuid.Nil {
-		config.ID = uuid.New()
 	}
 
 	// Create the base agent first (without tools)
@@ -143,7 +143,7 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 		configService:  f.configService,
 		logService:     f.logService,
 		registry:       f.registry,
-		id:             config.ID,
+		id:             config.SessionContext.AgentID,
 		config:         config,
 		promptManager:  f.promptManager,
 	}
@@ -152,7 +152,7 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 	tools, err := f.resolveTools(ctx, defAgent, config.AllowedTools)
 	if err != nil {
 		return nil, errs.Wrap(err, errs.TypeInternal, "failed to resolve tools").
-			WithContext("agent_id", config.ID)
+			WithContext("agent_id", config.SessionContext.AgentID)
 	}
 
 	// Store resolved tools on the agent
@@ -162,7 +162,7 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 	client, err := f.clientProvider.GetClient(ctx, config.LLMClientConfig)
 	if err != nil {
 		return nil, errs.Wrap(err, errs.TypeInternal, "failed to create llm client").
-			WithContext("agent_id", config.ID)
+			WithContext("agent_id", config.SessionContext.AgentID)
 	}
 
 	// Set the LLM client for session recreation
@@ -203,7 +203,7 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 		compacterPrompt, err := f.promptManager.GetPromptByID(ctx, prompt.PromptIDCompacter)
 		if err != nil {
 			return nil, errs.Wrap(err, errs.TypeInternal, "failed to get compacter prompt").
-				WithContext("agent_id", config.ID)
+				WithContext("agent_id", config.SessionContext.AgentID)
 		}
 
 		contextCompacter := compacter.NewContentBlockMiddleware(client,
@@ -269,7 +269,10 @@ func (f *defaultAgentFactory) resolveTools(ctx context.Context, agent *DefaultAg
 	return tools, nil
 }
 
-func (p *defaultAgentFactory) CreateSupervisorAgent(ctx context.Context, opts ...shared.SupervisorAgentOption) (shared.Agent, *shared.AgentConfig, error) {
+func (p *defaultAgentFactory) CreateSupervisorAgent(
+	ctx context.Context,
+	opts ...shared.SupervisorAgentOption,
+) (shared.Agent, *shared.AgentConfig, error) {
 
 	// Get supervisor prompt from PromptManager
 	systemPrompt, err := p.promptManager.GetPromptWithContext(ctx,
