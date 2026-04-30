@@ -54,16 +54,15 @@ func TestCreateSession(t *testing.T) {
 	sessionID := uuid.New()
 	channelID := uuid.New()
 
-	ctx := &shared.SessionContext{
+	sessionCtx := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
 	}
-	session, err := manager.CreateSession(ctx)
+	session, err := manager.CreateSession(context.Background(), sessionCtx)
 
 	require.NoError(t, err)
-	assert.Equal(t, sessionID, session.ID)
-	assert.Equal(t, channelID, session.ChannelID)
+	assert.Equal(t, sessionID, session.SessionContext.SessionID)
+	assert.Equal(t, channelID, session.SessionContext.ChannelID)
 	assert.NotNil(t, session.Context)
 	assert.NotNil(t, session.CancelFunc)
 	assert.WithinDuration(t, time.Now(), session.CreatedAt, time.Second)
@@ -71,8 +70,8 @@ func TestCreateSession(t *testing.T) {
 	// Verify session can be retrieved
 	retrieved, exists := manager.GetSession(sessionID)
 	assert.True(t, exists)
-	assert.Equal(t, sessionID, retrieved.ID)
-	assert.Equal(t, channelID, retrieved.ChannelID)
+	assert.Equal(t, sessionID, retrieved.SessionContext.SessionID)
+	assert.Equal(t, channelID, retrieved.SessionContext.ChannelID)
 }
 
 func TestCreateSession_WithExternalSessionID(t *testing.T) {
@@ -88,18 +87,17 @@ func TestCreateSession_WithExternalSessionID(t *testing.T) {
 	ctx := &shared.SessionContext{
 		SessionID: externalSessionID,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
-	}
-	session, err := manager.CreateSession(ctx)
+		}
+	session, err := manager.CreateSession(context.Background(), ctx)
 
 	require.NoError(t, err)
-	assert.Equal(t, externalSessionID, session.ID)
-	assert.Equal(t, channelID, session.ChannelID)
+	assert.Equal(t, externalSessionID, session.SessionContext.SessionID)
+	assert.Equal(t, channelID, session.SessionContext.ChannelID)
 
 	// Verify session can be retrieved with the external ID
 	retrieved, exists := manager.GetSession(externalSessionID)
 	assert.True(t, exists)
-	assert.Equal(t, externalSessionID, retrieved.ID)
+	assert.Equal(t, externalSessionID, retrieved.SessionContext.SessionID)
 }
 
 func TestCreateSession_MultipleSessions(t *testing.T) {
@@ -115,9 +113,8 @@ func TestCreateSession_MultipleSessions(t *testing.T) {
 	ctx1 := &shared.SessionContext{
 		SessionID: sessionID1,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
-	}
-	_, err := manager.CreateSession(ctx1)
+		}
+	_, err := manager.CreateSession(context.Background(), ctx1)
 	require.NoError(t, err)
 
 	ctx2 := &shared.SessionContext{
@@ -125,7 +122,7 @@ func TestCreateSession_MultipleSessions(t *testing.T) {
 		ChannelID: channelID,
 		AgentID:   uuid.New(),
 	}
-	_, err = manager.CreateSession(ctx2)
+	_, err = manager.CreateSession(context.Background(), ctx2)
 	require.NoError(t, err)
 
 	// Sessions should have unique IDs
@@ -165,9 +162,8 @@ func TestCloseSession(t *testing.T) {
 	ctx := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
-	}
-	session, err := manager.CreateSession(ctx)
+		}
+	session, err := manager.CreateSession(context.Background(), ctx)
 	require.NoError(t, err)
 
 	// Verify session exists before closing
@@ -175,8 +171,8 @@ func TestCloseSession(t *testing.T) {
 	require.True(t, exists, "session should exist before closing")
 
 	// Verify the session ID matches
-	assert.Equal(t, sessionID, session.ID, "session ID should match")
-	assert.Equal(t, sessionID, retrieved.ID, "retrieved session ID should match")
+	assert.Equal(t, sessionID, session.SessionContext.SessionID, "session ID should match")
+	assert.Equal(t, sessionID, retrieved.SessionContext.SessionID, "retrieved session ID should match")
 
 	// Close the session
 	err = manager.CloseSession(sessionID)
@@ -204,9 +200,8 @@ func TestCloseSession_CancelsContext(t *testing.T) {
 	ctx := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
-	}
-	sess, err := manager.CreateSession(ctx)
+		}
+	sess, err := manager.CreateSession(context.Background(), ctx)
 	require.NoError(t, err)
 
 	// Verify context is not cancelled initially
@@ -245,26 +240,23 @@ func TestGetSessionsByChannel(t *testing.T) {
 	ctx1 := &shared.SessionContext{
 		SessionID: sessionID1,
 		ChannelID: channelID1,
-		AgentID:   uuid.New(),
-	}
-	session1, err := manager.CreateSession(ctx1)
+		}
+	session1, err := manager.CreateSession(context.Background(), ctx1)
 	require.NoError(t, err)
 
 	ctx2 := &shared.SessionContext{
 		SessionID: sessionID2,
 		ChannelID: channelID1,
-		AgentID:   uuid.New(),
-	}
-	session2, err := manager.CreateSession(ctx2)
+		}
+	session2, err := manager.CreateSession(context.Background(), ctx2)
 	require.NoError(t, err)
 
 	// Create session for channel2
 	ctx3 := &shared.SessionContext{
 		SessionID: sessionID3,
 		ChannelID: channelID2,
-		AgentID:   uuid.New(),
-	}
-	session3, err := manager.CreateSession(ctx3)
+		}
+	session3, err := manager.CreateSession(context.Background(), ctx3)
 	require.NoError(t, err)
 
 	// Get sessions for channel1
@@ -273,16 +265,16 @@ func TestGetSessionsByChannel(t *testing.T) {
 
 	sessionIDs := make(map[uuid.UUID]bool)
 	for _, s := range sessions {
-		sessionIDs[s.ID] = true
+		sessionIDs[s.SessionContext.SessionID] = true
 	}
-	assert.True(t, sessionIDs[session1.ID])
-	assert.True(t, sessionIDs[session2.ID])
-	assert.False(t, sessionIDs[session3.ID])
+	assert.True(t, sessionIDs[session1.SessionContext.SessionID])
+	assert.True(t, sessionIDs[session2.SessionContext.SessionID])
+	assert.False(t, sessionIDs[session3.SessionContext.SessionID])
 
 	// Get sessions for channel2
 	sessions = manager.GetSessionsByChannel(channelID2)
 	assert.Len(t, sessions, 1)
-	assert.Equal(t, session3.ID, sessions[0].ID)
+	assert.Equal(t, session3.SessionContext.SessionID, sessions[0].SessionContext.SessionID)
 }
 
 func TestGetSessionsByChannel_NoSessions(t *testing.T) {
@@ -313,7 +305,7 @@ func TestGetSessionsByChannel_AfterClose(t *testing.T) {
 		ChannelID: channelID,
 		AgentID:   uuid.New(),
 	}
-	_, err := manager.CreateSession(ctx1)
+	_, err := manager.CreateSession(context.Background(), ctx1)
 	require.NoError(t, err)
 
 	ctx2 := &shared.SessionContext{
@@ -321,7 +313,7 @@ func TestGetSessionsByChannel_AfterClose(t *testing.T) {
 		ChannelID: channelID,
 		AgentID:   uuid.New(),
 	}
-	sess2, err := manager.CreateSession(ctx2)
+	sess2, err := manager.CreateSession(context.Background(), ctx2)
 	require.NoError(t, err)
 
 	// Close one session
@@ -331,7 +323,7 @@ func TestGetSessionsByChannel_AfterClose(t *testing.T) {
 	// Should only return the remaining session
 	sessions := manager.GetSessionsByChannel(channelID)
 	assert.Len(t, sessions, 1)
-	assert.Equal(t, sess2.ID, sessions[0].ID)
+	assert.Equal(t, sess2.SessionContext.SessionID, sessions[0].SessionContext.SessionID)
 }
 
 func TestGetSessionsByChannel_AfterCloseAll(t *testing.T) {
@@ -347,9 +339,8 @@ func TestGetSessionsByChannel_AfterCloseAll(t *testing.T) {
 	ctx := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
-	}
-	_, err := manager.CreateSession(ctx)
+		}
+	_, err := manager.CreateSession(context.Background(), ctx)
 	require.NoError(t, err)
 
 	err = manager.CloseSession(sessionID)
@@ -368,23 +359,19 @@ func TestSetSupervisorID(t *testing.T) {
 	manager, _ := NewSessionManager(injector)
 	sessionID := uuid.New()
 	channelID := uuid.New()
-	supervisorID := uuid.New()
 
 	ctx := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
 	}
-	session, err := manager.CreateSession(ctx)
+	_, err := manager.CreateSession(context.Background(), ctx)
 	require.NoError(t, err)
 
-	// Set supervisor ID (this would typically be done by the caller)
-	session.SupervisorID = supervisorID
-
-	// Verify it's set
-	retrieved, exists := manager.GetSession(sessionID)
+	// Verify session can be retrieved
+	sess, exists := manager.GetSession(sessionID)
 	require.True(t, exists)
-	assert.Equal(t, supervisorID, retrieved.SupervisorID)
+	assert.Equal(t, sessionID, sess.SessionContext.SessionID)
+	assert.Equal(t, channelID, sess.SessionContext.ChannelID)
 }
 
 func TestConcurrentAccess(t *testing.T) {
@@ -403,9 +390,8 @@ func TestConcurrentAccess(t *testing.T) {
 			ctx := &shared.SessionContext{
 				SessionID: sessionID,
 				ChannelID: channelID,
-				AgentID:   uuid.New(),
 			}
-			session, err := manager.CreateSession(ctx)
+			session, err := manager.CreateSession(context.Background(), ctx)
 			assert.NoError(t, err)
 			assert.NotNil(t, session)
 			done <- true
@@ -430,9 +416,8 @@ func TestCreateSession_ContextCancellation(t *testing.T) {
 	ctx := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
-	}
-	session, err := manager.CreateSession(ctx)
+		}
+	session, err := manager.CreateSession(context.Background(), ctx)
 	require.NoError(t, err)
 
 	// Verify context is cancellable
@@ -468,9 +453,8 @@ func TestGetSessionsByChannel_MultipleChannels(t *testing.T) {
 			ctx := &shared.SessionContext{
 				SessionID: sessionID,
 				ChannelID: channels[c],
-				AgentID:   uuid.New(),
-			}
-			_, err := manager.CreateSession(ctx)
+				}
+			_, err := manager.CreateSession(context.Background(), ctx)
 			require.NoError(t, err)
 		}
 	}
@@ -482,7 +466,7 @@ func TestGetSessionsByChannel_MultipleChannels(t *testing.T) {
 
 		// Verify all sessions belong to the correct channel
 		for _, sess := range sessions {
-			assert.Equal(t, channelID, sess.ChannelID)
+			assert.Equal(t, channelID, sess.SessionContext.ChannelID)
 		}
 	}
 }
@@ -515,26 +499,24 @@ func TestCreateSession_WithSameID(t *testing.T) {
 	ctx1 := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID1,
-		AgentID:   uuid.New(),
-	}
-	session1, err := manager.CreateSession(ctx1)
+		}
+	session1, err := manager.CreateSession(context.Background(), ctx1)
 	require.NoError(t, err)
-	assert.Equal(t, sessionID, session1.ID)
+	assert.Equal(t, sessionID, session1.SessionContext.SessionID)
 
 	// Create second session with same ID (should overwrite)
 	ctx2 := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID2,
-		AgentID:   uuid.New(),
-	}
-	session2, err := manager.CreateSession(ctx2)
+		}
+	session2, err := manager.CreateSession(context.Background(), ctx2)
 	require.NoError(t, err)
-	assert.Equal(t, sessionID, session2.ID)
+	assert.Equal(t, sessionID, session2.SessionContext.SessionID)
 
 	// Verify we can retrieve the session and it has the new channel ID
 	retrieved, exists := manager.GetSession(sessionID)
 	assert.True(t, exists)
-	assert.Equal(t, channelID2, retrieved.ChannelID)
+	assert.Equal(t, channelID2, retrieved.SessionContext.ChannelID)
 }
 
 func TestCloseSession_ThenGet(t *testing.T) {
@@ -550,9 +532,8 @@ func TestCloseSession_ThenGet(t *testing.T) {
 	ctx := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
-	}
-	_, err := manager.CreateSession(ctx)
+		}
+	_, err := manager.CreateSession(context.Background(), ctx)
 	require.NoError(t, err)
 
 	_, exists := manager.GetSession(sessionID)
@@ -580,9 +561,8 @@ func TestSession_TimeFields(t *testing.T) {
 	ctx := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
-	}
-	session, err := manager.CreateSession(ctx)
+		}
+	session, err := manager.CreateSession(context.Background(), ctx)
 	require.NoError(t, err)
 	afterCreation := time.Now()
 
@@ -605,9 +585,8 @@ func TestGetSessionsByChannel_EmptyResult(t *testing.T) {
 	ctx := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
-	}
-	_, err := manager.CreateSession(ctx)
+		}
+	_, err := manager.CreateSession(context.Background(), ctx)
 	require.NoError(t, err)
 
 	// Query a different channel that has no sessions
@@ -630,9 +609,8 @@ func TestConcurrentCloseAndGet(t *testing.T) {
 	ctx := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
-	}
-	_, err := manager.CreateSession(ctx)
+		}
+	_, err := manager.CreateSession(context.Background(), ctx)
 	require.NoError(t, err)
 
 	// Perform concurrent operations
@@ -666,19 +644,18 @@ func TestGetOrCreateSession_ExistingSession(t *testing.T) {
 	ctx := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
-	}
+		}
 	// Create initial session
-	originalSession, err := manager.CreateSession(ctx)
+	originalSession, err := manager.CreateSession(context.Background(), ctx)
 	require.NoError(t, err)
 
 	// GetOrCreate should return the existing session
-	retrievedSession, err := manager.GetOrCreateSession(ctx)
+	retrievedSession, err := manager.GetOrCreateSession(context.Background(), ctx)
 	require.NoError(t, err)
 
 	// Should be the same session
-	assert.Equal(t, originalSession.ID, retrievedSession.ID)
-	assert.Equal(t, originalSession.ChannelID, retrievedSession.ChannelID)
+	assert.Equal(t, originalSession.SessionContext.SessionID, retrievedSession.SessionContext.SessionID)
+	assert.Equal(t, originalSession.SessionContext.ChannelID, retrievedSession.SessionContext.ChannelID)
 	assert.Same(t, originalSession.Context, retrievedSession.Context)
 }
 
@@ -694,21 +671,20 @@ func TestGetOrCreateSession_NewSession(t *testing.T) {
 	ctx := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
-	}
+		}
 	// GetOrCreate should create a new session
-	session, err := manager.GetOrCreateSession(ctx)
+	session, err := manager.GetOrCreateSession(context.Background(), ctx)
 	require.NoError(t, err)
 
-	assert.Equal(t, sessionID, session.ID)
-	assert.Equal(t, channelID, session.ChannelID)
+	assert.Equal(t, sessionID, session.SessionContext.SessionID)
+	assert.Equal(t, channelID, session.SessionContext.ChannelID)
 	assert.NotNil(t, session.Context)
 	assert.NotNil(t, session.CancelFunc)
 
 	// Verify session can be retrieved
 	retrieved, exists := manager.GetSession(sessionID)
 	assert.True(t, exists)
-	assert.Equal(t, sessionID, retrieved.ID)
+	assert.Equal(t, sessionID, retrieved.SessionContext.SessionID)
 }
 
 func TestGetOrCreateSession_Concurrent(t *testing.T) {
@@ -723,15 +699,14 @@ func TestGetOrCreateSession_Concurrent(t *testing.T) {
 	ctx := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
-	}
+		}
 	// Call GetOrCreateSession concurrently
 	done := make(chan bool)
 	sessions := make([]*shared.Session, 0, 10)
 
 	for i := 0; i < 10; i++ {
 		go func() {
-			session, err := manager.GetOrCreateSession(ctx)
+			session, err := manager.GetOrCreateSession(context.Background(), ctx)
 			assert.NoError(t, err)
 			sessions = append(sessions, session)
 			done <- true
@@ -745,8 +720,8 @@ func TestGetOrCreateSession_Concurrent(t *testing.T) {
 
 	// All sessions should have the same ID
 	for _, sess := range sessions {
-		assert.Equal(t, sessionID, sess.ID)
-		assert.Equal(t, channelID, sess.ChannelID)
+		assert.Equal(t, sessionID, sess.SessionContext.SessionID)
+		assert.Equal(t, channelID, sess.SessionContext.ChannelID)
 	}
 }
 
@@ -762,9 +737,8 @@ func TestCloseSession_CleansUpSupervisor(t *testing.T) {
 	ctx := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
-	}
-	session, err := manager.CreateSession(ctx)
+		}
+	session, err := manager.CreateSession(context.Background(), ctx)
 	require.NoError(t, err)
 
 	// Verify session exists before closing
@@ -800,9 +774,13 @@ func TestLoadSession_Success(t *testing.T) {
 	sessionID := uuid.New()
 	channelID := uuid.New()
 	expectedSession := &shared.Session{
-		ID:        sessionID,
-		ChannelID: channelID,
-		CreatedAt: time.Now(),
+		SessionContext: shared.SessionContext{
+			SessionID: sessionID,
+			ChannelID: channelID,
+		},
+		Context:    context.Background(),
+		CancelFunc: func() {},
+		CreatedAt:  time.Now(),
 	}
 
 	// Expect Get to be called
@@ -817,13 +795,13 @@ func TestLoadSession_Success(t *testing.T) {
 	session, err := manager.LoadSession(ctx, sessionID)
 
 	require.NoError(t, err)
-	assert.Equal(t, sessionID, session.ID)
-	assert.Equal(t, channelID, session.ChannelID)
+	assert.Equal(t, sessionID, session.SessionContext.SessionID)
+	assert.Equal(t, channelID, session.SessionContext.ChannelID)
 
 	// Verify session is cached
 	retrieved, exists := manager.GetSession(sessionID)
 	assert.True(t, exists)
-	assert.Equal(t, sessionID, retrieved.ID)
+	assert.Equal(t, sessionID, retrieved.SessionContext.SessionID)
 }
 
 func TestLoadSession_FromCache(t *testing.T) {
@@ -843,9 +821,8 @@ func TestLoadSession_FromCache(t *testing.T) {
 	ctx := &shared.SessionContext{
 		SessionID: sessionID,
 		ChannelID: channelID,
-		AgentID:   uuid.New(),
-	}
-	_, err := manager.CreateSession(ctx)
+		}
+	_, err := manager.CreateSession(context.Background(), ctx)
 	require.NoError(t, err)
 
 	// LoadSession should return from cache without calling repo
@@ -854,7 +831,7 @@ func TestLoadSession_FromCache(t *testing.T) {
 	session, err := manager.LoadSession(context.Background(), sessionID)
 
 	require.NoError(t, err)
-	assert.Equal(t, sessionID, session.ID)
+	assert.Equal(t, sessionID, session.SessionContext.SessionID)
 }
 
 func TestLoadSession_NotFound(t *testing.T) {
@@ -888,8 +865,18 @@ func TestListSessions(t *testing.T) {
 	sessionID2 := uuid.New()
 
 	expectedSessions := []*shared.Session{
-		{ID: sessionID1, ChannelID: uuid.New(), CreatedAt: time.Now()},
-		{ID: sessionID2, ChannelID: uuid.New(), CreatedAt: time.Now()},
+		{
+			SessionContext: shared.SessionContext{SessionID: sessionID1, ChannelID: uuid.New()},
+			Context:        context.Background(),
+			CancelFunc:     func() {},
+			CreatedAt:      time.Now(),
+		},
+		{
+			SessionContext: shared.SessionContext{SessionID: sessionID2, ChannelID: uuid.New()},
+			Context:        context.Background(),
+			CancelFunc:     func() {},
+			CreatedAt:      time.Now(),
+		},
 	}
 
 	// Expect List to be called
@@ -905,8 +892,8 @@ func TestListSessions(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Len(t, sessions, 2)
-	assert.Equal(t, sessionID1, sessions[0].ID)
-	assert.Equal(t, sessionID2, sessions[1].ID)
+	assert.Equal(t, sessionID1, sessions[0].SessionContext.SessionID)
+	assert.Equal(t, sessionID2, sessions[1].SessionContext.SessionID)
 }
 
 func TestResumeSession(t *testing.T) {
@@ -918,9 +905,13 @@ func TestResumeSession(t *testing.T) {
 	channelID := uuid.New()
 
 	existingSession := &shared.Session{
-		ID:        sessionID,
-		ChannelID: channelID,
-		CreatedAt: time.Now(),
+		SessionContext: shared.SessionContext{
+			SessionID: sessionID,
+			ChannelID: channelID,
+		},
+		Context:    context.Background(),
+		CancelFunc: func() {},
+		CreatedAt:  time.Now(),
 	}
 
 	// LoadSession will call Get
@@ -976,9 +967,13 @@ func TestForkSession(t *testing.T) {
 	newSessionID := uuid.New()
 
 	forkedSession := &shared.Session{
-		ID:        newSessionID,
-		ChannelID: channelID,
-		CreatedAt: time.Now(),
+		SessionContext: shared.SessionContext{
+			SessionID: newSessionID,
+			ChannelID: channelID,
+		},
+		Context:    context.Background(),
+		CancelFunc: func() {},
+		CreatedAt:  time.Now(),
 	}
 
 	// Expect Fork to be called
@@ -993,13 +988,13 @@ func TestForkSession(t *testing.T) {
 	session, err := manager.ForkSession(ctx, sessionID)
 
 	require.NoError(t, err)
-	assert.Equal(t, newSessionID, session.ID)
-	assert.Equal(t, channelID, session.ChannelID)
+	assert.Equal(t, newSessionID, session.SessionContext.SessionID)
+	assert.Equal(t, channelID, session.SessionContext.ChannelID)
 
 	// Verify session is cached
 	retrieved, exists := manager.GetSession(newSessionID)
 	assert.True(t, exists)
-	assert.Equal(t, newSessionID, retrieved.ID)
+	assert.Equal(t, newSessionID, retrieved.SessionContext.SessionID)
 }
 
 func TestForkSession_NotFound(t *testing.T) {
