@@ -23,8 +23,8 @@ func TestGetPromptIDForAgent(t *testing.T) {
 	t.Run("supervisor agent returns supervisor prompt ID", func(t *testing.T) {
 		handle := &agentHandle{
 			config: &shared.AgentConfig{
-				ID:       uuid.New(),
-				ParentID: nil, // No parent = supervisor
+				SessionContext: shared.SessionContext{AgentID: uuid.New()},
+				ParentID:       nil, // No parent = supervisor
 			},
 		}
 
@@ -36,8 +36,8 @@ func TestGetPromptIDForAgent(t *testing.T) {
 		parentID := uuid.New()
 		handle := &agentHandle{
 			config: &shared.AgentConfig{
-				ID:       uuid.New(),
-				ParentID: &parentID, // Has parent = subagent
+				SessionContext: shared.SessionContext{AgentID: uuid.New()},
+				ParentID:       &parentID, // Has parent = subagent
 			},
 		}
 
@@ -59,7 +59,7 @@ func TestIsAgentIdle(t *testing.T) {
 
 	t.Run("agent with no cancel and no result is idle", func(t *testing.T) {
 		handle := &agentHandle{
-			config: &shared.AgentConfig{ID: agentID},
+			config: &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: agentID}},
 			cancel: nil,
 		}
 
@@ -68,7 +68,7 @@ func TestIsAgentIdle(t *testing.T) {
 
 	t.Run("agent with no cancel and running result is not idle", func(t *testing.T) {
 		handle := &agentHandle{
-			config: &shared.AgentConfig{ID: agentID},
+			config: &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: agentID}},
 			cancel: nil,
 		}
 		registry.agentResults[agentID] = &shared.AgentResult{
@@ -81,7 +81,7 @@ func TestIsAgentIdle(t *testing.T) {
 
 	t.Run("agent with no cancel and completed result is idle", func(t *testing.T) {
 		handle := &agentHandle{
-			config: &shared.AgentConfig{ID: agentID},
+			config: &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: agentID}},
 			cancel: nil,
 		}
 		registry.agentResults[agentID] = &shared.AgentResult{
@@ -94,7 +94,7 @@ func TestIsAgentIdle(t *testing.T) {
 
 	t.Run("agent with no cancel and failed result is idle", func(t *testing.T) {
 		handle := &agentHandle{
-			config: &shared.AgentConfig{ID: agentID},
+			config: &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: agentID}},
 			cancel: nil,
 		}
 		registry.agentResults[agentID] = &shared.AgentResult{
@@ -107,7 +107,7 @@ func TestIsAgentIdle(t *testing.T) {
 
 	t.Run("agent with cancel and running result is not idle", func(t *testing.T) {
 		handle := &agentHandle{
-			config: &shared.AgentConfig{ID: agentID},
+			config: &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: agentID}},
 			cancel: func() {}, // Has cancel function
 		}
 		registry.agentResults[agentID] = &shared.AgentResult{
@@ -120,7 +120,7 @@ func TestIsAgentIdle(t *testing.T) {
 
 	t.Run("agent with cancel but completed result is idle", func(t *testing.T) {
 		handle := &agentHandle{
-			config: &shared.AgentConfig{ID: agentID},
+			config: &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: agentID}},
 			cancel: func() {}, // Has cancel function
 		}
 		registry.agentResults[agentID] = &shared.AgentResult{

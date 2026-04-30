@@ -222,7 +222,7 @@ func (r *agentRegistry) isAgentIdle(handle *agentHandle) bool {
 	// If there's an active cancel function, check the result status
 	if handle.cancel != nil {
 		// This is a background agent with cancel - check if still running
-		result, exists := r.agentResults[handle.config.ID]
+		result, exists := r.agentResults[handle.config.SessionContext.AgentID]
 		if exists && result.Status == shared.AgentStatusRunning {
 			return false // Still running
 		}
@@ -230,7 +230,7 @@ func (r *agentRegistry) isAgentIdle(handle *agentHandle) bool {
 	}
 
 	// No cancel function - check result status
-	result, exists := r.agentResults[handle.config.ID]
+	result, exists := r.agentResults[handle.config.SessionContext.AgentID]
 	if !exists {
 		return true // No result = never started = idle
 	}
@@ -293,9 +293,9 @@ func (r *agentRegistry) Register(agent shared.Agent, config *shared.AgentConfig,
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	if _, exists := r.agents[config.ID]; exists {
-		return errs.Conflictf("agent %s already registered", config.ID).
-			WithContext("agent_id", config.ID)
+	if _, exists := r.agents[config.SessionContext.AgentID]; exists {
+		return errs.Conflictf("agent %s already registered", config.SessionContext.AgentID).
+			WithContext("agent_id", config.SessionContext.AgentID)
 	}
 
 	// Check total agent limit
@@ -335,7 +335,7 @@ func (r *agentRegistry) Register(agent shared.Agent, config *shared.AgentConfig,
 		lastUsed:   time.Now(),
 	}
 
-	r.agents[config.ID] = handle
+	r.agents[config.SessionContext.AgentID] = handle
 
 	return nil
 }
@@ -444,8 +444,8 @@ func (r *agentRegistry) Cleanup(agentID uuid.UUID) error {
 	findDescendants = func(id uuid.UUID) {
 		for _, handle := range r.agents {
 			if handle.config.ParentID != nil && *handle.config.ParentID == id {
-				toCleanup = append(toCleanup, handle.config.ID)
-				findDescendants(handle.config.ID)
+				toCleanup = append(toCleanup, handle.config.SessionContext.AgentID)
+				findDescendants(handle.config.SessionContext.AgentID)
 			}
 		}
 	}

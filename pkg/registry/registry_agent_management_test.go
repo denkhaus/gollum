@@ -28,15 +28,15 @@ func TestAgentRegistry_GetAgent(t *testing.T) {
 	mockParent := shared.NewMockAgent(ctrl)
 	mockParent.EXPECT().GetID().Return(parentID).AnyTimes()
 	mockParent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   parentID,
-		Role: "Parent",
+		SessionContext: shared.SessionContext{AgentID: parentID},
+		Role:           "Parent",
 	}).AnyTimes()
 
 	mockChild := shared.NewMockAgent(ctrl)
 	mockChild.EXPECT().GetID().Return(childID).AnyTimes()
 	mockChild.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   childID,
-		Role: "Child",
+		SessionContext: shared.SessionContext{AgentID: childID},
+		Role:           "Child",
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
@@ -44,17 +44,17 @@ func TestAgentRegistry_GetAgent(t *testing.T) {
 
 	// Register parent
 	parentConfig := &shared.AgentConfig{
-		ID:   parentID,
-		Role: "Parent",
+		SessionContext: shared.SessionContext{AgentID: parentID},
+		Role:           "Parent",
 	}
 	err = registry.Register(mockParent, parentConfig)
 	require.NoError(t, err)
 
 	// Register child
 	childConfig := &shared.AgentConfig{
-		ID:       childID,
-		ParentID: &parentID,
-		Role:     "Child",
+		SessionContext: shared.SessionContext{AgentID: childID},
+		ParentID:       &parentID,
+		Role:           "Child",
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
@@ -102,15 +102,15 @@ func TestAgentRegistry_GetChildren(t *testing.T) {
 	mockParent := shared.NewMockAgent(ctrl)
 	mockParent.EXPECT().GetID().Return(parentID).AnyTimes()
 	mockParent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   parentID,
-		Role: "Parent",
+		SessionContext: shared.SessionContext{AgentID: parentID},
+		Role:           "Parent",
 	}).AnyTimes()
 
 	mockChild1 := shared.NewMockAgent(ctrl)
 	mockChild1.EXPECT().GetID().Return(childID1).AnyTimes()
 	mockChild1.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   childID1,
-		Role: "Child1",
+		SessionContext: shared.SessionContext{AgentID: childID1},
+		Role:           "Child1",
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
@@ -119,8 +119,8 @@ func TestAgentRegistry_GetChildren(t *testing.T) {
 	mockChild2 := shared.NewMockAgent(ctrl)
 	mockChild2.EXPECT().GetID().Return(childID2).AnyTimes()
 	mockChild2.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   childID2,
-		Role: "Child2",
+		SessionContext: shared.SessionContext{AgentID: childID2},
+		Role:           "Child2",
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
@@ -129,28 +129,28 @@ func TestAgentRegistry_GetChildren(t *testing.T) {
 	mockUnrelated := shared.NewMockAgent(ctrl)
 	mockUnrelated.EXPECT().GetID().Return(unrelatedID).AnyTimes()
 	mockUnrelated.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   unrelatedID,
-		Role: "Unrelated",
+		SessionContext: shared.SessionContext{AgentID: unrelatedID},
+		Role:           "Unrelated",
 	}).AnyTimes()
 
 	// Register agents
-	parentConfig := &shared.AgentConfig{ID: parentID, Role: "Parent"}
+	parentConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: parentID}, Role: "Parent"}
 	err = registry.Register(mockParent, parentConfig)
 	require.NoError(t, err)
 
-	child1Config := &shared.AgentConfig{ID: childID1, ParentID: &parentID, Role: "Child1", LLMClientConfig: &shared.LLMClientConfig{
+	child1Config := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: childID1}, ParentID: &parentID, Role: "Child1", LLMClientConfig: &shared.LLMClientConfig{
 		Model: "anthropic/claude-3-5-sonnet-20241022",
 	}}
 	err = registry.Register(mockChild1, child1Config)
 	require.NoError(t, err)
 
-	child2Config := &shared.AgentConfig{ID: childID2, ParentID: &parentID, Role: "Child2", LLMClientConfig: &shared.LLMClientConfig{
+	child2Config := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: childID2}, ParentID: &parentID, Role: "Child2", LLMClientConfig: &shared.LLMClientConfig{
 		Model: "anthropic/claude-3-5-sonnet-20241022",
 	}}
 	err = registry.Register(mockChild2, child2Config)
 	require.NoError(t, err)
 
-	unrelatedConfig := &shared.AgentConfig{ID: unrelatedID, Role: "Unrelated"}
+	unrelatedConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: unrelatedID}, Role: "Unrelated"}
 	err = registry.Register(mockUnrelated, unrelatedConfig)
 	require.NoError(t, err)
 
@@ -196,26 +196,26 @@ func TestAgentRegistry_GetParent(t *testing.T) {
 	mockParent := shared.NewMockAgent(ctrl)
 	mockParent.EXPECT().GetID().Return(parentID).AnyTimes()
 	mockParent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   parentID,
-		Role: "Parent",
+		SessionContext: shared.SessionContext{AgentID: parentID},
+		Role:           "Parent",
 	}).AnyTimes()
 
 	mockChild := shared.NewMockAgent(ctrl)
 	mockChild.EXPECT().GetID().Return(childID).AnyTimes()
 	mockChild.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   childID,
-		Role: "Child",
+		SessionContext: shared.SessionContext{AgentID: childID},
+		Role:           "Child",
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
 	}).AnyTimes()
 
 	// Register agents
-	parentConfig := &shared.AgentConfig{ID: parentID, Role: "Parent"}
+	parentConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: parentID}, Role: "Parent"}
 	err = registry.Register(mockParent, parentConfig)
 	require.NoError(t, err)
 
-	childConfig := &shared.AgentConfig{ID: childID, ParentID: &parentID, Role: "Child", LLMClientConfig: &shared.LLMClientConfig{
+	childConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: childID}, ParentID: &parentID, Role: "Child", LLMClientConfig: &shared.LLMClientConfig{
 		Model: "anthropic/claude-3-5-sonnet-20241022",
 	}}
 	err = registry.Register(mockChild, childConfig)
@@ -259,15 +259,15 @@ func TestAgentRegistry_ListAll(t *testing.T) {
 	mockParent := shared.NewMockAgent(ctrl)
 	mockParent.EXPECT().GetID().Return(parentID).AnyTimes()
 	mockParent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   parentID,
-		Role: "Parent",
+		SessionContext: shared.SessionContext{AgentID: parentID},
+		Role:           "Parent",
 	}).AnyTimes()
 
 	mockChild1 := shared.NewMockAgent(ctrl)
 	mockChild1.EXPECT().GetID().Return(childID1).AnyTimes()
 	mockChild1.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   childID1,
-		Role: "Child1",
+		SessionContext: shared.SessionContext{AgentID: childID1},
+		Role:           "Child1",
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
@@ -276,8 +276,8 @@ func TestAgentRegistry_ListAll(t *testing.T) {
 	mockChild2 := shared.NewMockAgent(ctrl)
 	mockChild2.EXPECT().GetID().Return(childID2).AnyTimes()
 	mockChild2.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   childID2,
-		Role: "Child2",
+		SessionContext: shared.SessionContext{AgentID: childID2},
+		Role:           "Child2",
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
@@ -288,7 +288,7 @@ func TestAgentRegistry_ListAll(t *testing.T) {
 	assert.Empty(t, allAgents)
 
 	// Register parent
-	parentConfig := &shared.AgentConfig{ID: parentID, Role: "Parent"}
+	parentConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: parentID}, Role: "Parent"}
 	err = registry.Register(mockParent, parentConfig)
 	require.NoError(t, err)
 
@@ -296,13 +296,13 @@ func TestAgentRegistry_ListAll(t *testing.T) {
 	require.Len(t, allAgents, 1)
 
 	// Register children
-	child1Config := &shared.AgentConfig{ID: childID1, ParentID: &parentID, Role: "Child1", LLMClientConfig: &shared.LLMClientConfig{
+	child1Config := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: childID1}, ParentID: &parentID, Role: "Child1", LLMClientConfig: &shared.LLMClientConfig{
 		Model: "anthropic/claude-3-5-sonnet-20241022",
 	}}
 	err = registry.Register(mockChild1, child1Config)
 	require.NoError(t, err)
 
-	child2Config := &shared.AgentConfig{ID: childID2, ParentID: &parentID, Role: "Child2", LLMClientConfig: &shared.LLMClientConfig{
+	child2Config := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: childID2}, ParentID: &parentID, Role: "Child2", LLMClientConfig: &shared.LLMClientConfig{
 		Model: "anthropic/claude-3-5-sonnet-20241022",
 	}}
 	err = registry.Register(mockChild2, child2Config)
@@ -337,26 +337,26 @@ func TestAgentRegistry_Unregister_LeafAgent(t *testing.T) {
 	mockParent := shared.NewMockAgent(ctrl)
 	mockParent.EXPECT().GetID().Return(parentID).AnyTimes()
 	mockParent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   parentID,
-		Role: "Parent",
+		SessionContext: shared.SessionContext{AgentID: parentID},
+		Role:           "Parent",
 	}).AnyTimes()
 
 	mockChild := shared.NewMockAgent(ctrl)
 	mockChild.EXPECT().GetID().Return(childID).AnyTimes()
 	mockChild.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   childID,
-		Role: "Child",
+		SessionContext: shared.SessionContext{AgentID: childID},
+		Role:           "Child",
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
 	}).AnyTimes()
 
 	// Register agents
-	parentConfig := &shared.AgentConfig{ID: parentID, Role: "Parent"}
+	parentConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: parentID}, Role: "Parent"}
 	err = registry.Register(mockParent, parentConfig)
 	require.NoError(t, err)
 
-	childConfig := &shared.AgentConfig{ID: childID, ParentID: &parentID, Role: "Child", LLMClientConfig: &shared.LLMClientConfig{
+	childConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: childID}, ParentID: &parentID, Role: "Child", LLMClientConfig: &shared.LLMClientConfig{
 		Model: "anthropic/claude-3-5-sonnet-20241022",
 	}}
 	err = registry.Register(mockChild, childConfig)
@@ -396,15 +396,15 @@ func TestAgentRegistry_Unregister_WithChildren(t *testing.T) {
 	mockParent := shared.NewMockAgent(ctrl)
 	mockParent.EXPECT().GetID().Return(parentID).AnyTimes()
 	mockParent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   parentID,
-		Role: "Parent",
+		SessionContext: shared.SessionContext{AgentID: parentID},
+		Role:           "Parent",
 	}).AnyTimes()
 
 	mockChild := shared.NewMockAgent(ctrl)
 	mockChild.EXPECT().GetID().Return(childID).AnyTimes()
 	mockChild.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   childID,
-		Role: "Child",
+		SessionContext: shared.SessionContext{AgentID: childID},
+		Role:           "Child",
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
@@ -413,25 +413,25 @@ func TestAgentRegistry_Unregister_WithChildren(t *testing.T) {
 	mockGrandchild := shared.NewMockAgent(ctrl)
 	mockGrandchild.EXPECT().GetID().Return(grandchildID).AnyTimes()
 	mockGrandchild.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   grandchildID,
-		Role: "Grandchild",
+		SessionContext: shared.SessionContext{AgentID: grandchildID},
+		Role:           "Grandchild",
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
 	}).AnyTimes()
 
 	// Register agents
-	parentConfig := &shared.AgentConfig{ID: parentID, Role: "Parent"}
+	parentConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: parentID}, Role: "Parent"}
 	err = registry.Register(mockParent, parentConfig)
 	require.NoError(t, err)
 
-	childConfig := &shared.AgentConfig{ID: childID, ParentID: &parentID, Role: "Child", LLMClientConfig: &shared.LLMClientConfig{
+	childConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: childID}, ParentID: &parentID, Role: "Child", LLMClientConfig: &shared.LLMClientConfig{
 		Model: "anthropic/claude-3-5-sonnet-20241022",
 	}}
 	err = registry.Register(mockChild, childConfig)
 	require.NoError(t, err)
 
-	grandchildConfig := &shared.AgentConfig{ID: grandchildID, ParentID: &childID, Role: "Grandchild", LLMClientConfig: &shared.LLMClientConfig{
+	grandchildConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: grandchildID}, ParentID: &childID, Role: "Grandchild", LLMClientConfig: &shared.LLMClientConfig{
 		Model: "anthropic/claude-3-5-sonnet-20241022",
 	}}
 	err = registry.Register(mockGrandchild, grandchildConfig)
@@ -475,12 +475,12 @@ func TestAgentRegistry_Unregister_NonExistentAgent(t *testing.T) {
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   agentID,
-		Role: "Agent",
+		SessionContext: shared.SessionContext{AgentID: agentID},
+		Role:           "Agent",
 	}).AnyTimes()
 
 	// Register agent
-	agentConfig := &shared.AgentConfig{ID: agentID, Role: "Agent"}
+	agentConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: agentID}, Role: "Agent"}
 	err = registry.Register(mockAgent, agentConfig)
 	require.NoError(t, err)
 
@@ -512,15 +512,15 @@ func TestAgentRegistry_Cleanup(t *testing.T) {
 	mockParent := shared.NewMockAgent(ctrl)
 	mockParent.EXPECT().GetID().Return(parentID).AnyTimes()
 	mockParent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   parentID,
-		Role: "Parent",
+		SessionContext: shared.SessionContext{AgentID: parentID},
+		Role:           "Parent",
 	}).AnyTimes()
 
 	mockChild1 := shared.NewMockAgent(ctrl)
 	mockChild1.EXPECT().GetID().Return(childID1).AnyTimes()
 	mockChild1.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   childID1,
-		Role: "Child1",
+		SessionContext: shared.SessionContext{AgentID: childID1},
+		Role:           "Child1",
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
@@ -529,8 +529,8 @@ func TestAgentRegistry_Cleanup(t *testing.T) {
 	mockChild2 := shared.NewMockAgent(ctrl)
 	mockChild2.EXPECT().GetID().Return(childID2).AnyTimes()
 	mockChild2.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   childID2,
-		Role: "Child2",
+		SessionContext: shared.SessionContext{AgentID: childID2},
+		Role:           "Child2",
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
@@ -539,31 +539,31 @@ func TestAgentRegistry_Cleanup(t *testing.T) {
 	mockGrandchild := shared.NewMockAgent(ctrl)
 	mockGrandchild.EXPECT().GetID().Return(grandchildID).AnyTimes()
 	mockGrandchild.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   grandchildID,
-		Role: "Grandchild",
+		SessionContext: shared.SessionContext{AgentID: grandchildID},
+		Role:           "Grandchild",
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
 	}).AnyTimes()
 
 	// Register agents
-	parentConfig := &shared.AgentConfig{ID: parentID, Role: "Parent"}
+	parentConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: parentID}, Role: "Parent"}
 	err = registry.Register(mockParent, parentConfig)
 	require.NoError(t, err)
 
-	child1Config := &shared.AgentConfig{ID: childID1, ParentID: &parentID, Role: "Child1", LLMClientConfig: &shared.LLMClientConfig{
+	child1Config := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: childID1}, ParentID: &parentID, Role: "Child1", LLMClientConfig: &shared.LLMClientConfig{
 		Model: "anthropic/claude-3-5-sonnet-20241022",
 	}}
 	err = registry.Register(mockChild1, child1Config)
 	require.NoError(t, err)
 
-	child2Config := &shared.AgentConfig{ID: childID2, ParentID: &parentID, Role: "Child2", LLMClientConfig: &shared.LLMClientConfig{
+	child2Config := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: childID2}, ParentID: &parentID, Role: "Child2", LLMClientConfig: &shared.LLMClientConfig{
 		Model: "anthropic/claude-3-5-sonnet-20241022",
 	}}
 	err = registry.Register(mockChild2, child2Config)
 	require.NoError(t, err)
 
-	grandchildConfig := &shared.AgentConfig{ID: grandchildID, ParentID: &childID1, Role: "Grandchild", LLMClientConfig: &shared.LLMClientConfig{
+	grandchildConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: grandchildID}, ParentID: &childID1, Role: "Grandchild", LLMClientConfig: &shared.LLMClientConfig{
 		Model: "anthropic/claude-3-5-sonnet-20241022",
 	}}
 	err = registry.Register(mockGrandchild, grandchildConfig)
@@ -645,16 +645,16 @@ func TestAgentRegistry_GetSupervisorAgent(t *testing.T) {
 		mockSupervisor := shared.NewMockAgent(ctrl)
 		mockSupervisor.EXPECT().GetID().Return(supervisorID).AnyTimes()
 		mockSupervisor.EXPECT().GetConfig().Return(&shared.AgentConfig{
-			ID:           supervisorID,
-			IsSupervisor: true,
-			Role:         "Supervisor Agent",
+			SessionContext: shared.SessionContext{AgentID: supervisorID},
+			IsSupervisor:   true,
+			Role:           "Supervisor Agent",
 		}).AnyTimes()
 
 		// Register supervisor
 		supervisorConfig := &shared.AgentConfig{
-			ID:           supervisorID,
-			IsSupervisor: true,
-			Role:         "Supervisor Agent",
+			SessionContext: shared.SessionContext{AgentID: supervisorID},
+			IsSupervisor:   true,
+			Role:           "Supervisor Agent",
 		}
 		err = registry.Register(mockSupervisor, supervisorConfig)
 		require.NoError(t, err)
@@ -690,18 +690,18 @@ func TestAgentRegistry_GetSupervisorAgent(t *testing.T) {
 		mockSupervisor := shared.NewMockAgent(ctrl)
 		mockSupervisor.EXPECT().GetID().Return(supervisorID).AnyTimes()
 		mockSupervisor.EXPECT().GetConfig().Return(&shared.AgentConfig{
-			ID:           supervisorID,
-			IsSupervisor: true,
-			Role:         "Supervisor Agent",
+			SessionContext: shared.SessionContext{AgentID: supervisorID},
+			IsSupervisor:   true,
+			Role:           "Supervisor Agent",
 		}).AnyTimes()
 
 		// Create mock regular agent
 		mockRegular := shared.NewMockAgent(ctrl)
 		mockRegular.EXPECT().GetID().Return(regularID).AnyTimes()
 		mockRegular.EXPECT().GetConfig().Return(&shared.AgentConfig{
-			ID:           regularID,
-			IsSupervisor: false,
-			Role:         "Regular Agent",
+			SessionContext: shared.SessionContext{AgentID: regularID},
+			IsSupervisor:   false,
+			Role:           "Regular Agent",
 			LLMClientConfig: &shared.LLMClientConfig{
 				Model: "anthropic/claude-3-5-sonnet-20241022",
 			},
@@ -709,17 +709,17 @@ func TestAgentRegistry_GetSupervisorAgent(t *testing.T) {
 
 		// Register both agents
 		supervisorConfig := &shared.AgentConfig{
-			ID:           supervisorID,
-			IsSupervisor: true,
-			Role:         "Supervisor Agent",
+			SessionContext: shared.SessionContext{AgentID: supervisorID},
+			IsSupervisor:   true,
+			Role:           "Supervisor Agent",
 		}
 		err = testRegistry.Register(mockSupervisor, supervisorConfig)
 		require.NoError(t, err)
 
 		regularConfig := &shared.AgentConfig{
-			ID:           regularID,
-			IsSupervisor: false,
-			Role:         "Regular Agent",
+			SessionContext: shared.SessionContext{AgentID: regularID},
+			IsSupervisor:   false,
+			Role:           "Regular Agent",
 			LLMClientConfig: &shared.LLMClientConfig{
 				Model: "anthropic/claude-3-5-sonnet-20241022",
 			},
@@ -746,9 +746,9 @@ func TestAgentRegistry_GetSupervisorAgent(t *testing.T) {
 		mockRegular := shared.NewMockAgent(ctrl)
 		mockRegular.EXPECT().GetID().Return(regularID).AnyTimes()
 		mockRegular.EXPECT().GetConfig().Return(&shared.AgentConfig{
-			ID:           regularID,
-			IsSupervisor: false,
-			Role:         "Regular Agent",
+			SessionContext: shared.SessionContext{AgentID: regularID},
+			IsSupervisor:   false,
+			Role:           "Regular Agent",
 			LLMClientConfig: &shared.LLMClientConfig{
 				Model: "anthropic/claude-3-5-sonnet-20241022",
 			},
@@ -756,9 +756,9 @@ func TestAgentRegistry_GetSupervisorAgent(t *testing.T) {
 
 		// Register regular agent
 		regularConfig := &shared.AgentConfig{
-			ID:           regularID,
-			IsSupervisor: false,
-			Role:         "Regular Agent",
+			SessionContext: shared.SessionContext{AgentID: regularID},
+			IsSupervisor:   false,
+			Role:           "Regular Agent",
 			LLMClientConfig: &shared.LLMClientConfig{
 				Model: "anthropic/claude-3-5-sonnet-20241022",
 			},

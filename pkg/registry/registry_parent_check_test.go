@@ -36,66 +36,66 @@ func TestAgentRegistry_IsDirectParent(t *testing.T) {
 	mockGrandparent := shared.NewMockAgent(ctrl)
 	mockGrandparent.EXPECT().GetID().Return(grandparentID).AnyTimes()
 	mockGrandparent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   grandparentID,
-		Role: "Grandparent",
+		SessionContext: shared.SessionContext{AgentID: grandparentID},
+		Role:           "Grandparent",
 	}).AnyTimes()
 
 	mockParent := shared.NewMockAgent(ctrl)
 	mockParent.EXPECT().GetID().Return(parentID).AnyTimes()
 	mockParent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   parentID,
-		Role: "Parent",
+		SessionContext: shared.SessionContext{AgentID: parentID},
+		Role:           "Parent",
 	}).AnyTimes()
 
 	mockChild := shared.NewMockAgent(ctrl)
 	mockChild.EXPECT().GetID().Return(childID).AnyTimes()
 	mockChild.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   childID,
-		Role: "Child",
+		SessionContext: shared.SessionContext{AgentID: childID},
+		Role:           "Child",
 	}).AnyTimes()
 
 	mockUncle := shared.NewMockAgent(ctrl)
 	mockUncle.EXPECT().GetID().Return(uncleID).AnyTimes()
 	mockUncle.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   uncleID,
-		Role: "Uncle",
+		SessionContext: shared.SessionContext{AgentID: uncleID},
+		Role:           "Uncle",
 	}).AnyTimes()
 
 	mockUnrelated := shared.NewMockAgent(ctrl)
 	mockUnrelated.EXPECT().GetID().Return(unrelatedID).AnyTimes()
 	mockUnrelated.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   unrelatedID,
-		Role: "Unrelated",
+		SessionContext: shared.SessionContext{AgentID: unrelatedID},
+		Role:           "Unrelated",
 	}).AnyTimes()
 
 	// Register grandparent (no parent)
-	grandparentConfig := &shared.AgentConfig{ID: grandparentID, Role: "Grandparent"}
+	grandparentConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: grandparentID}, Role: "Grandparent"}
 	err = registry.Register(mockGrandparent, grandparentConfig)
 	require.NoError(t, err)
 
 	// Register parent (child of grandparent)
-	parentConfig := &shared.AgentConfig{ID: parentID, ParentID: &grandparentID, Role: "Parent", LLMClientConfig: &shared.LLMClientConfig{
+	parentConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: parentID}, ParentID: &grandparentID, Role: "Parent", LLMClientConfig: &shared.LLMClientConfig{
 		Model: "anthropic/claude-3-5-sonnet-20241022",
 	}}
 	err = registry.Register(mockParent, parentConfig)
 	require.NoError(t, err)
 
 	// Register child (child of parent)
-	childConfig := &shared.AgentConfig{ID: childID, ParentID: &parentID, Role: "Child", LLMClientConfig: &shared.LLMClientConfig{
+	childConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: childID}, ParentID: &parentID, Role: "Child", LLMClientConfig: &shared.LLMClientConfig{
 		Model: "anthropic/claude-3-5-sonnet-20241022",
 	}}
 	err = registry.Register(mockChild, childConfig)
 	require.NoError(t, err)
 
 	// Register uncle (sibling of parent, also child of grandparent)
-	uncleConfig := &shared.AgentConfig{ID: uncleID, ParentID: &grandparentID, Role: "Uncle", LLMClientConfig: &shared.LLMClientConfig{
+	uncleConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: uncleID}, ParentID: &grandparentID, Role: "Uncle", LLMClientConfig: &shared.LLMClientConfig{
 		Model: "anthropic/claude-3-5-sonnet-20241022",
 	}}
 	err = registry.Register(mockUncle, uncleConfig)
 	require.NoError(t, err)
 
 	// Register unrelated agent (no parent)
-	unrelatedConfig := &shared.AgentConfig{ID: unrelatedID, Role: "Unrelated"}
+	unrelatedConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: unrelatedID}, Role: "Unrelated"}
 	err = registry.Register(mockUnrelated, unrelatedConfig)
 	require.NoError(t, err)
 
@@ -165,11 +165,11 @@ func TestAgentRegistry_IsDirectParent_SameAgent(t *testing.T) {
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:   agentID,
-		Role: "Agent",
+		SessionContext: shared.SessionContext{AgentID: agentID},
+		Role:           "Agent",
 	}).AnyTimes()
 
-	agentConfig := &shared.AgentConfig{ID: agentID, Role: "Agent"}
+	agentConfig := &shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: agentID}, Role: "Agent"}
 	err = registry.Register(mockAgent, agentConfig)
 	require.NoError(t, err)
 

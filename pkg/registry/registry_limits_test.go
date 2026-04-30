@@ -31,19 +31,19 @@ func TestAgentRegistry_Register_TotalAgentLimit(t *testing.T) {
 
 	// Create configs
 	config1 := &shared.AgentConfig{
-		ID:           uuid.New(),
-		SystemPrompt: "Agent 1",
-		Role:         "Role 1",
+		SessionContext: shared.SessionContext{AgentID: uuid.New()},
+		SystemPrompt:   "Agent 1",
+		Role:           "Role 1",
 	}
 	config2 := &shared.AgentConfig{
-		ID:           uuid.New(),
-		SystemPrompt: "Agent 2",
-		Role:         "Role 2",
+		SessionContext: shared.SessionContext{AgentID: uuid.New()},
+		SystemPrompt:   "Agent 2",
+		Role:           "Role 2",
 	}
 	config3 := &shared.AgentConfig{
-		ID:           uuid.New(),
-		SystemPrompt: "Agent 3",
-		Role:         "Role 3",
+		SessionContext: shared.SessionContext{AgentID: uuid.New()},
+		SystemPrompt:   "Agent 3",
+		Role:           "Role 3",
 	}
 
 	// Register first two agents - should succeed
@@ -76,9 +76,9 @@ func TestAgentRegistry_Register_SubAgentLimit(t *testing.T) {
 	parentAgent := shared.NewMockAgent(ctrl)
 	parentID := uuid.New()
 	parentConfig := &shared.AgentConfig{
-		ID:           parentID,
-		SystemPrompt: "Parent Agent",
-		Role:         "Parent",
+		SessionContext: shared.SessionContext{AgentID: parentID},
+		SystemPrompt:   "Parent Agent",
+		Role:           "Parent",
 	}
 
 	// Register parent - should succeed
@@ -91,22 +91,22 @@ func TestAgentRegistry_Register_SubAgentLimit(t *testing.T) {
 	subAgent3 := shared.NewMockAgent(ctrl) // This one should exceed the limit
 
 	subConfig1 := &shared.AgentConfig{
-		ID:           uuid.New(),
-		ParentID:     &parentID,
-		SystemPrompt: "Sub Agent 1",
-		Role:         "Sub Role 1",
+		SessionContext: shared.SessionContext{AgentID: uuid.New()},
+		ParentID:       &parentID,
+		SystemPrompt:   "Sub Agent 1",
+		Role:           "Sub Role 1",
 	}
 	subConfig2 := &shared.AgentConfig{
-		ID:           uuid.New(),
-		ParentID:     &parentID,
-		SystemPrompt: "Sub Agent 2",
-		Role:         "Sub Role 2",
+		SessionContext: shared.SessionContext{AgentID: uuid.New()},
+		ParentID:       &parentID,
+		SystemPrompt:   "Sub Agent 2",
+		Role:           "Sub Role 2",
 	}
 	subConfig3 := &shared.AgentConfig{
-		ID:           uuid.New(),
-		ParentID:     &parentID,
-		SystemPrompt: "Sub Agent 3",
-		Role:         "Sub Role 3",
+		SessionContext: shared.SessionContext{AgentID: uuid.New()},
+		ParentID:       &parentID,
+		SystemPrompt:   "Sub Agent 3",
+		Role:           "Sub Role 3",
 	}
 
 	// Register first two subagents - should succeed
@@ -139,18 +139,18 @@ func TestAgentRegistry_GetSubAgentCount(t *testing.T) {
 	parentAgent := shared.NewMockAgent(ctrl)
 	parentID := uuid.New()
 	parentConfig := &shared.AgentConfig{
-		ID:           parentID,
-		SystemPrompt: "Parent Agent",
-		Role:         "Parent",
+		SessionContext: shared.SessionContext{AgentID: parentID},
+		SystemPrompt:   "Parent Agent",
+		Role:           "Parent",
 	}
 
 	// Create another parent agent
 	otherParentAgent := shared.NewMockAgent(ctrl)
 	otherParentID := uuid.New()
 	otherParentConfig := &shared.AgentConfig{
-		ID:           otherParentID,
-		SystemPrompt: "Other Parent Agent",
-		Role:         "Other Parent",
+		SessionContext: shared.SessionContext{AgentID: otherParentID},
+		SystemPrompt:   "Other Parent Agent",
+		Role:           "Other Parent",
 	}
 
 	// Register parents
@@ -168,10 +168,10 @@ func TestAgentRegistry_GetSubAgentCount(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		subAgent := shared.NewMockAgent(ctrl)
 		subConfig := &shared.AgentConfig{
-			ID:           uuid.New(),
-			ParentID:     &parentID,
-			SystemPrompt: "Sub Agent",
-			Role:         "Sub Role",
+			SessionContext: shared.SessionContext{AgentID: uuid.New()},
+			ParentID:       &parentID,
+			SystemPrompt:   "Sub Agent",
+			Role:           "Sub Role",
 		}
 		err = registry.Register(subAgent, subConfig)
 		assert.NoError(t, err)
@@ -184,10 +184,10 @@ func TestAgentRegistry_GetSubAgentCount(t *testing.T) {
 	// Add a subagent to the other parent
 	otherSubAgent := shared.NewMockAgent(ctrl)
 	otherSubConfig := &shared.AgentConfig{
-		ID:           uuid.New(),
-		ParentID:     &otherParentID,
-		SystemPrompt: "Other Sub Agent",
-		Role:         "Other Sub Role",
+		SessionContext: shared.SessionContext{AgentID: uuid.New()},
+		ParentID:       &otherParentID,
+		SystemPrompt:   "Other Sub Agent",
+		Role:           "Other Sub Role",
 	}
 	err = registry.Register(otherSubAgent, otherSubConfig)
 	assert.NoError(t, err)
@@ -217,9 +217,9 @@ func TestAgentRegistry_GetTotalAgentCount(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		agent := shared.NewMockAgent(ctrl)
 		agentConfig := &shared.AgentConfig{
-			ID:           uuid.New(),
-			SystemPrompt: "Agent",
-			Role:         "Role",
+			SessionContext: shared.SessionContext{AgentID: uuid.New()},
+			SystemPrompt:   "Agent",
+			Role:           "Role",
 		}
 		err = registry.Register(agent, agentConfig)
 		assert.NoError(t, err)

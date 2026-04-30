@@ -308,26 +308,26 @@ func TestAgentResultThreadSafety(t *testing.T) {
 
 		// Setup mock expectations for GetID and GetConfig
 		parentAgent.EXPECT().GetID().Return(parentID).AnyTimes()
-		parentAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{ID: parentID}).AnyTimes()
+		parentAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: parentID}}).AnyTimes()
 		childAgent.EXPECT().GetID().Return(childID).AnyTimes()
-		childAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{ID: childID, ParentID: &parentID}).AnyTimes()
+		childAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: childID}, ParentID: &parentID}).AnyTimes()
 		grandchildAgent.EXPECT().GetID().Return(grandchildID).AnyTimes()
-		grandchildAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{ID: grandchildID, ParentID: &childID}).AnyTimes()
+		grandchildAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{SessionContext: shared.SessionContext{AgentID: grandchildID}, ParentID: &childID}).AnyTimes()
 
 		// Register agents
 		require.NoError(t, r.Register(parentAgent, &shared.AgentConfig{
-			ID:   parentID,
-			Role: "parent",
+			SessionContext: shared.SessionContext{AgentID: parentID},
+			Role:           "parent",
 		}))
 		require.NoError(t, r.Register(childAgent, &shared.AgentConfig{
-			ID:       childID,
-			ParentID: &parentID,
-			Role:     "child",
+			SessionContext: shared.SessionContext{AgentID: childID},
+			ParentID:       &parentID,
+			Role:           "child",
 		}))
 		require.NoError(t, r.Register(grandchildAgent, &shared.AgentConfig{
-			ID:       grandchildID,
-			ParentID: &childID,
-			Role:     "grandchild",
+			SessionContext: shared.SessionContext{AgentID: grandchildID},
+			ParentID:       &childID,
+			Role:           "grandchild",
 		}))
 
 		// Store agent results for all agents
@@ -391,14 +391,14 @@ func TestAgentResultThreadSafety(t *testing.T) {
 		mockAgent := shared.NewMockAgent(ctrl)
 		mockAgent.EXPECT().GetID().Return(agentID).AnyTimes()
 		mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-			ID:   agentID,
-			Role: "test",
+			SessionContext: shared.SessionContext{AgentID: agentID},
+			Role:           "test",
 		}).AnyTimes()
 
 		// Register agent with cancel function
 		require.NoError(t, r.Register(mockAgent, &shared.AgentConfig{
-			ID:   agentID,
-			Role: "test",
+			SessionContext: shared.SessionContext{AgentID: agentID},
+			Role:           "test",
 		}, cancelFunc))
 
 		// Store agent result
