@@ -73,7 +73,9 @@
       "mcp__claude-context__index_codebase",
       "mcp__claude-context__search_code",
       "Bash(/usr/bin/tmux new-session *)",
-      "Bash(timeout 15 ./gollum)"
+      "Bash(timeout 15 ./gollum)",
+      "Bash(mcp__plugin_context-mode_context-mode__ctx_batch_execute *)",
+      "Bash(just generate_ent *)"
     ],
     "deny": [],
     "ask": []
