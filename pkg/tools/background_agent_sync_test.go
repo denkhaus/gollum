@@ -87,7 +87,7 @@ func TestBackgroundAgent_SyncExecution(t *testing.T) {
 	// Expect factory call - capture the config to get the agent ID
 	mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Tester", "Test task").Return("You are a helpful assistant", nil)
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, config *shared.AgentConfig) (shared.Agent, error) {
-		spawnedAgentID = config.ID
+		spawnedAgentID = config.SessionContext.AgentID
 		return mockAgent, nil
 	})
 
@@ -205,7 +205,7 @@ func TestBackgroundAgent_SyncExecutionError(t *testing.T) {
 	// Expect factory call - capture the config to get the agent ID
 	mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Failing Agent", "Failing task").Return("You are a helpful assistant", nil)
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, config *shared.AgentConfig) (shared.Agent, error) {
-		spawnedAgentID = config.ID
+		spawnedAgentID = config.SessionContext.AgentID
 		return mockAgent, nil
 	})
 

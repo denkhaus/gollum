@@ -110,11 +110,9 @@ func TestListAgentsTool_Run_SuccessWithSubagentsOnly(t *testing.T) {
 	child2 := shared.NewMockAgent(ctrl)
 
 	child1Config := &shared.AgentConfig{
-		ID:   childID1,
 		Role: "Data Analyst",
 	}
 	child2Config := &shared.AgentConfig{
-		ID:   childID2,
 		Role: "Code Reviewer",
 	}
 
@@ -173,7 +171,6 @@ func TestListAgentsTool_Run_SuccessWithParentOnly(t *testing.T) {
 	parent := shared.NewMockAgent(ctrl)
 
 	parentConfig := &shared.AgentConfig{
-		ID:   parentID,
 		Role: "Main Coordinator",
 	}
 
@@ -227,7 +224,6 @@ func TestListAgentsTool_Run_SuccessWithParentAndSubagents(t *testing.T) {
 	// Create mock parent agent
 	parent := shared.NewMockAgent(ctrl)
 	parentConfig := &shared.AgentConfig{
-		ID:   parentID,
 		Role: "Main Coordinator",
 	}
 	parent.EXPECT().GetConfig().Return(parentConfig)
@@ -237,11 +233,9 @@ func TestListAgentsTool_Run_SuccessWithParentAndSubagents(t *testing.T) {
 	child2 := shared.NewMockAgent(ctrl)
 
 	child1Config := &shared.AgentConfig{
-		ID:   childID1,
 		Role: "Data Analyst",
 	}
 	child2Config := &shared.AgentConfig{
-		ID:   childID2,
 		Role: "Code Reviewer",
 	}
 
@@ -358,11 +352,9 @@ func TestListAgentsTool_Run_RecursiveFlag(t *testing.T) {
 	grandchild := shared.NewMockAgent(ctrl)
 
 	child1Config := &shared.AgentConfig{
-		ID:   childID1,
 		Role: "Child Agent",
 	}
 	grandchildConfig := &shared.AgentConfig{
-		ID:   grandchildID,
 		Role: "Grandchild Agent",
 	}
 
@@ -415,8 +407,6 @@ func TestListAgentsTool_Run_TreeFlag(t *testing.T) {
 	injector := setupTestInjector()
 	logService := do.MustInvoke[logger.LoggerService](injector)
 	senderID := uuid.New()
-	childID1 := uuid.New()
-	childID2 := uuid.New()
 
 	registry := registry.NewMockAgentRegistry(ctrl)
 	mockHookManager := hooks.NewMockHookManager(ctrl)
@@ -431,12 +421,10 @@ func TestListAgentsTool_Run_TreeFlag(t *testing.T) {
 	child2 := shared.NewMockAgent(ctrl)
 
 	child1Config := &shared.AgentConfig{
-		ID:          childID1,
 		Role:        "Child Agent 1",
 		Description: "First child",
 	}
 	child2Config := &shared.AgentConfig{
-		ID:   childID2,
 		Role: "Child Agent 2",
 	}
 
@@ -493,11 +481,9 @@ func TestListAgentsTool_Run_TreeFlagWithRecursive(t *testing.T) {
 	grandchild := shared.NewMockAgent(ctrl)
 
 	childConfig := &shared.AgentConfig{
-		ID:   childID,
 		Role: "Child Agent",
 	}
 	grandchildConfig := &shared.AgentConfig{
-		ID:   grandchildID,
 		Role: "Grandchild Agent",
 	}
 

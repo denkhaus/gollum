@@ -100,7 +100,7 @@ func TestBackgroundAgent_ConcurrentExecution(t *testing.T) {
 		// Expect factory call - capture the config to get the agent ID
 		mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Concurrent Agent", "Concurrent task").Return("You are a helpful assistant", nil)
 		mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, config *shared.AgentConfig) (shared.Agent, error) {
-			spawnedID = config.ID
+			spawnedID = config.SessionContext.AgentID
 			spawnedAgentIDs[spawnedIndex] = spawnedID
 			return mockAgent, nil
 		})
@@ -193,7 +193,6 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 		AgentID: rootID,
 	}).AnyTimes()
 	rootAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID: rootID,
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
@@ -232,7 +231,12 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 
 	// Register root agent directly (no parent)
 	rootConfig := &shared.AgentConfig{
-		ID: rootID,
+		SessionContext: shared.SessionContext{
+			SessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+			ChannelID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440002"),
+			AgentID:   rootID,
+			Cwd:       "/tmp",
+		},
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
@@ -256,7 +260,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	// Step 1: Root spawns child
 	mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Child", "Child task").Return("You are a helpful assistant", nil)
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, config *shared.AgentConfig) (shared.Agent, error) {
-		childID = config.ID
+		childID = config.SessionContext.AgentID
 		return childAgent, nil
 	})
 
@@ -292,7 +296,7 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 
 	mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Grandchild", "Grandchild task").Return("You are a helpful assistant", nil)
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, config *shared.AgentConfig) (shared.Agent, error) {
-		grandchildID = config.ID
+		grandchildID = config.SessionContext.AgentID
 		return grandchildAgent, nil
 	})
 
