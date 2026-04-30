@@ -145,14 +145,14 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 	if hasParent {
 		parentConfig := parentAgent.GetConfig()
 		parentInfo := map[string]any{
-			"id":          parentConfig.ID.String(),
+			"id":          parentConfig.SessionContext.AgentID.String(),
 			"role":        parentConfig.Role,
 			"description": parentConfig.Description,
 			"type":        "ParentAgent",
 		}
 		agentList = append(agentList, parentInfo)
 		t.logService.DebugWithContext("Found parent agent", t.agent.ToSessionContext(),
-			zap.String("parent_id", parentConfig.ID.String()),
+			zap.String("parent_id", parentConfig.SessionContext.AgentID.String()),
 			zap.String("role", parentConfig.Role),
 			zap.String("description", parentConfig.Description))
 	}
@@ -166,7 +166,7 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 
 		for _, desc := range descendants {
 			agentInfo := map[string]any{
-				"id":          desc.config.ID.String(),
+				"id":          desc.config.SessionContext.AgentID.String(),
 				"role":        desc.config.Role,
 				"description": desc.config.Description,
 				"type":        "SubAgent",
@@ -174,7 +174,7 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 			}
 			agentList = append(agentList, agentInfo)
 			t.logService.DebugWithContext("Found descendant", t.agent.ToSessionContext(),
-				zap.String("descendant_id", desc.config.ID.String()),
+				zap.String("descendant_id", desc.config.SessionContext.AgentID.String()),
 				zap.Int("depth", desc.depth),
 				zap.String("role", desc.config.Role))
 		}
@@ -186,14 +186,14 @@ func (t *listAgentsToolImpl) runListAgents(_ context.Context, params ToolRequest
 		for _, child := range children {
 			config := child.GetConfig()
 			agentInfo := map[string]any{
-				"id":          config.ID.String(),
+				"id":          config.SessionContext.AgentID.String(),
 				"role":        config.Role,
 				"description": config.Description,
 				"type":        "SubAgent",
 			}
 			agentList = append(agentList, agentInfo)
 			t.logService.DebugWithContext("Found subagent", t.agent.ToSessionContext(),
-				zap.String("subagent_id", config.ID.String()),
+				zap.String("subagent_id", config.SessionContext.AgentID.String()),
 				zap.String("role", config.Role),
 				zap.String("description", config.Description))
 		}
@@ -247,12 +247,12 @@ func (t *listAgentsToolImpl) getAllDescendants(agentID uuid.UUID, depth int) []d
 			agent:     child,
 			config:    config,
 			depth:     depth + 1,
-			displayID: config.ID.String(),
+			displayID: config.SessionContext.AgentID.String(),
 		}
 		result = append(result, info)
 
 		// Recursively get descendants of this child
-		childDescendants := t.getAllDescendants(config.ID, depth+1)
+		childDescendants := t.getAllDescendants(config.SessionContext.AgentID, depth+1)
 		result = append(result, childDescendants...)
 	}
 
@@ -269,7 +269,7 @@ func (t *listAgentsToolImpl) buildTreeOutput(recursive bool, hasParent bool, par
 	// Add parent if exists (above YOU)
 	if hasParent && parentAgent != nil {
 		parentConfig := parentAgent.GetConfig()
-		builder += fmt.Sprintf("│  └─ Parent: %s (%s)\n", parentConfig.Role, parentConfig.ID.String()[:8])
+		builder += fmt.Sprintf("│  └─ Parent: %s (%s)\n", parentConfig.Role, parentConfig.SessionContext.AgentID.String()[:8])
 	}
 
 	if recursive {
@@ -296,7 +296,7 @@ func (t *listAgentsToolImpl) buildTreeOutput(recursive bool, hasParent bool, par
 				connector = "└─ "
 			}
 
-			builder += fmt.Sprintf("%s%s%s (%s)\n", prefix, connector, config.Role, config.ID.String()[:8])
+			builder += fmt.Sprintf("%s%s%s (%s)\n", prefix, connector, config.Role, config.SessionContext.AgentID.String()[:8])
 			if config.Description != "" {
 				builder += fmt.Sprintf("%s   └─ %s\n", prefix, config.Description)
 			}

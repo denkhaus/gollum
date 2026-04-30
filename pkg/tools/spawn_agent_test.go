@@ -173,7 +173,6 @@ func TestSpawnAgentToolSynchronousExecution(t *testing.T) {
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID: taskID,
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
@@ -256,7 +255,6 @@ func TestSpawnAgentToolAsynchronousExecution(t *testing.T) {
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID: taskID,
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
@@ -337,7 +335,6 @@ func TestSpawnAgentToolExecutionError(t *testing.T) {
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID: taskID,
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",
 		},
@@ -408,7 +405,6 @@ func TestSpawnAgentToolInheritsLLMProvider(t *testing.T) {
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID: taskID,
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "openai/gpt-4o-mini",
 		}, // Should inherit from parent
@@ -597,7 +593,6 @@ func TestSpawnAgentTool_AllowedTools_Builtin(t *testing.T) {
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:              taskID,
 		LLMClientConfig: &shared.LLMClientConfig{Model: "anthropic/claude-3-5-sonnet-20241022"},
 		Role:            "Tester",
 	}).AnyTimes()
@@ -669,7 +664,6 @@ func TestSpawnAgentTool_AllowedTools_MCP(t *testing.T) {
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:              taskID,
 		LLMClientConfig: &shared.LLMClientConfig{Model: "anthropic/claude-3-5-sonnet-20241022"},
 		Role:            "Tester",
 	}).AnyTimes()
@@ -741,7 +735,6 @@ func TestSpawnAgentTool_AllowedTools_Mixed(t *testing.T) {
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:              taskID,
 		LLMClientConfig: &shared.LLMClientConfig{Model: "anthropic/claude-3-5-sonnet-20241022"},
 		Role:            "Tester",
 	}).AnyTimes()
@@ -813,7 +806,6 @@ func TestSpawnAgentTool_AllowedTools_Empty(t *testing.T) {
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:              taskID,
 		LLMClientConfig: &shared.LLMClientConfig{Model: "anthropic/claude-3-5-sonnet-20241022"},
 		Role:            "Tester",
 	}).AnyTimes()
@@ -885,7 +877,6 @@ func TestSpawnAgentTool_AllowedTools_NonStringValue(t *testing.T) {
 	mockAgent := shared.NewMockAgent(ctrl)
 	mockAgent.EXPECT().GetID().Return(taskID).AnyTimes()
 	mockAgent.EXPECT().GetConfig().Return(&shared.AgentConfig{
-		ID:              taskID,
 		LLMClientConfig: &shared.LLMClientConfig{Model: "anthropic/claude-3-5-sonnet-20241022"},
 		Role:            "Tester",
 	}).AnyTimes()

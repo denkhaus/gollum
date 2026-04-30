@@ -20,7 +20,6 @@ import (
 // NewMockAgentConfig creates a test agent config
 func NewMockAgentConfig(id uuid.UUID, parentID *uuid.UUID) *shared.AgentConfig {
 	return &shared.AgentConfig{
-		ID:       id,
 		ParentID: parentID,
 	}
 }

@@ -92,7 +92,7 @@ func TestBackgroundAgent_AsyncExecution(t *testing.T) {
 	// Expect factory call - capture the config to get the agent ID
 	mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Async Tester", "Async test task").Return("You are a helpful assistant", nil)
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, config *shared.AgentConfig) (shared.Agent, error) {
-		spawnedAgentID = config.ID
+		spawnedAgentID = config.SessionContext.AgentID
 		return mockAgent, nil
 	})
 
@@ -215,7 +215,7 @@ func TestBackgroundAgent_AsyncExecutionTimeout(t *testing.T) {
 	// Expect factory call - capture the config to get the agent ID
 	mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Slow Agent", "Slow task").Return("You are a helpful assistant", nil)
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, config *shared.AgentConfig) (shared.Agent, error) {
-		spawnedAgentID = config.ID
+		spawnedAgentID = config.SessionContext.AgentID
 		return mockAgent, nil
 	})
 
@@ -342,7 +342,7 @@ func TestBackgroundAgent_AsyncExecutionError(t *testing.T) {
 	// Expect factory call - capture the config to get the agent ID
 	mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Failing Async Agent", "Failing async task").Return("You are a helpful assistant", nil)
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, config *shared.AgentConfig) (shared.Agent, error) {
-		spawnedAgentID = config.ID
+		spawnedAgentID = config.SessionContext.AgentID
 		return mockAgent, nil
 	})
 
@@ -453,7 +453,7 @@ func TestBackgroundAgent_NonBlockingStatusChecks(t *testing.T) {
 	// Expect factory call - capture the config to get the agent ID
 	mockPromptMgr.EXPECT().GetSubagentTaskPrompt("Polled Agent", "Polled task").Return("You are a helpful assistant", nil)
 	mockFactory.EXPECT().CreateAgent(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, config *shared.AgentConfig) (shared.Agent, error) {
-		spawnedAgentID = config.ID
+		spawnedAgentID = config.SessionContext.AgentID
 		return mockAgent, nil
 
 	})

@@ -229,7 +229,6 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 	parentConfig := t.agent.GetConfig()
 	subagentConfig := &shared.AgentConfig{
 		AllowCompaction: false, // Don't allow compaction in Sub-agents
-		ID:              taskID,
 		ParentID:        &parentID,
 		SessionContext: shared.SessionContext{
 			SessionID: parentConfig.SessionContext.SessionID,

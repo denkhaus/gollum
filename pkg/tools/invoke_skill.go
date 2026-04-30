@@ -238,7 +238,9 @@ func (t *invokeSkillToolImpl) runInvokeSkill(ctx context.Context, args ToolReque
 	taskID := uuid.New()
 	subagentConfig := &shared.AgentConfig{
 		AllowCompaction: false,
-		ID:              taskID,
+		SessionContext: shared.SessionContext{
+			AgentID: taskID,
+		},
 		ParentID:        ptrTo(t.agent.GetID()),
 		SystemPrompt:    skillPrompt,
 		Role:            fmt.Sprintf("Skill: %s", skill.Name),
