@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/session/repository"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 )
@@ -20,9 +20,9 @@ import (
 // SessionManager manages active sessions
 type SessionManager interface {
 	// CreateSession creates a new session with the given context.
-	CreateSession(ctx *shared.SessionContext) (*shared.Session, error)
+	CreateSession(ctx context.Context, sessionCtx *shared.SessionContext) (*shared.Session, error)
 	// GetOrCreateSession retrieves an existing session or creates a new one.
-	GetOrCreateSession(ctx *shared.SessionContext) (*shared.Session, error)
+	GetOrCreateSession(ctx context.Context, sessionCtx *shared.SessionContext) (*shared.Session, error)
 	// GetSession retrieves a session by its ID.
 	GetSession(sessionID uuid.UUID) (*shared.Session, bool)
 	// CloseSession closes a session and cancels its context.
@@ -65,33 +65,31 @@ func NewSessionManager(injector do.Injector) (SessionManager, error) {
 }
 
 // CreateSession creates a new session with the given context.
-func (p *sessionManagerImpl) CreateSession(ctx *shared.SessionContext) (*shared.Session, error) {
-	sessionCtx, cancel := context.WithCancel(context.Background())
+func (p *sessionManagerImpl) CreateSession(ctx context.Context, sctx *shared.SessionContext) (*shared.Session, error) {
+	sessionCtx, cancel := context.WithCancel(ctx)
 	session := &shared.Session{
-		ID:         ctx.SessionID,
-		ChannelID:  ctx.ChannelID,
-		Context:    sessionCtx,
-		CancelFunc: cancel,
-		CreatedAt:  time.Now(),
-		Cwd:        ctx.Cwd,
+		SessionContext: *sctx,
+		Context:        sessionCtx,
+		CancelFunc:     cancel,
+		CreatedAt:      time.Now(),
 	}
 
 	// Persist to repository
-	if err := p.repo.Create(context.Background(), session); err != nil {
+	if err := p.repo.Create(sessionCtx, session); err != nil {
 		cancel() // Clean up context on failure
 		return nil, fmt.Errorf("failed to persist session: %w", err)
 	}
 
-	p.sessions.Store(ctx.SessionID.String(), session)
+	p.sessions.Store(sctx.SessionID.String(), session)
 	return session, nil
 }
 
 // GetOrCreateSession retrieves an existing session or creates a new one.
-func (p *sessionManagerImpl) GetOrCreateSession(ctx *shared.SessionContext) (*shared.Session, error) {
-	if session, ok := p.GetSession(ctx.SessionID); ok {
+func (p *sessionManagerImpl) GetOrCreateSession(ctx context.Context, sctx *shared.SessionContext) (*shared.Session, error) {
+	if session, ok := p.GetSession(sctx.SessionID); ok {
 		return session, nil
 	}
-	return p.CreateSession(ctx)
+	return p.CreateSession(ctx, sctx)
 }
 
 // GetSession retrieves a session by its ID.
@@ -143,6 +141,7 @@ func (p *sessionManagerImpl) GetSessionsByChannel(channelID uuid.UUID) []*shared
 }
 
 // LoadSession loads a session from persistence.
+// Creates a new context for the loaded session since contexts cannot be persisted.
 func (p *sessionManagerImpl) LoadSession(ctx context.Context, sessionID uuid.UUID) (*shared.Session, error) {
 	// Check if already in memory
 	if val, ok := p.sessions.Load(sessionID.String()); ok {
@@ -150,15 +149,20 @@ func (p *sessionManagerImpl) LoadSession(ctx context.Context, sessionID uuid.UUI
 	}
 
 	// Load from repository
-	session, err := p.repo.Get(ctx, sessionID)
+	loadedSession, err := p.repo.Get(ctx, sessionID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Add to in-memory cache
-	p.sessions.Store(sessionID.String(), session)
+	// Create new context for the loaded session (contexts cannot be persisted)
+	sessionCtx, cancel := context.WithCancel(context.Background())
+	loadedSession.Context = sessionCtx
+	loadedSession.CancelFunc = cancel
 
-	return session, nil
+	// Add to in-memory cache
+	p.sessions.Store(sessionID.String(), loadedSession)
+
+	return loadedSession, nil
 }
 
 // ListSessions lists all sessions.
@@ -197,7 +201,7 @@ func (p *sessionManagerImpl) ForkSession(ctx context.Context, sessionID uuid.UUI
 	}
 
 	// Add to in-memory cache
-	p.sessions.Store(newSession.ID.String(), newSession)
+	p.sessions.Store(newSession.SessionID.String(), newSession)
 
 	return newSession, nil
 }
