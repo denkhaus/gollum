@@ -208,10 +208,12 @@ func TestManager_Execute_ParseCommandNameAndArgs(t *testing.T) {
 	// Set up mock expectations for GetSession
 	testSessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440004")
 	testSession := &shared.Session{
-		ID:        testSessionID,
-		ChannelID: uuid.New(),
-		Context:   context.Background(),
-	}
+			SessionContext: shared.SessionContext{
+				SessionID: testSessionID,
+				ChannelID: uuid.New(),
+			},
+			Context:   context.Background(),
+		}
 	mockSM.EXPECT().GetSession(testSessionID).Return(testSession, true).AnyTimes()
 
 	do.ProvideValue[session.SessionManager](injector, mockSM)
@@ -269,10 +271,12 @@ func TestManager_Execute_CallsHandler(t *testing.T) {
 	// Set up mock expectations for GetSession
 	testSessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440005")
 	testSession := &shared.Session{
-		ID:        testSessionID,
-		ChannelID: uuid.New(),
-		Context:   context.Background(),
-	}
+			SessionContext: shared.SessionContext{
+				SessionID: testSessionID,
+				ChannelID: uuid.New(),
+			},
+			Context:   context.Background(),
+		}
 	mockSM.EXPECT().GetSession(testSessionID).Return(testSession, true).AnyTimes()
 
 	do.ProvideValue[session.SessionManager](injector, mockSM)
@@ -467,10 +471,12 @@ func TestManager_Concurrency(t *testing.T) {
 	// Set up mock expectations for GetSession
 	testSessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440006")
 	testSession := &shared.Session{
-		ID:        testSessionID,
-		ChannelID: uuid.New(),
-		Context:   context.Background(),
-	}
+			SessionContext: shared.SessionContext{
+				SessionID: testSessionID,
+				ChannelID: uuid.New(),
+			},
+			Context:   context.Background(),
+		}
 	mockSM.EXPECT().GetSession(testSessionID).Return(testSession, true).AnyTimes()
 
 	do.ProvideValue[session.SessionManager](injector, mockSM)

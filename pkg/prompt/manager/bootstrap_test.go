@@ -10,6 +10,7 @@ import (
 	"github.com/denkhaus/gollum/pkg/config"
 	"github.com/denkhaus/gollum/pkg/logger"
 	"github.com/denkhaus/gollum/pkg/prompt"
+	"github.com/denkhaus/gollum/pkg/startup"
 	"github.com/denkhaus/gollum/pkg/prompt/manager"
 	promptstore "github.com/denkhaus/gollum/pkg/prompt/store"
 	"github.com/samber/do/v2"
@@ -56,6 +57,9 @@ func TestNewPromptManagerProvider_MemoryStore(t *testing.T) {
 	// Register logger service
 	do.Provide(injector, logger.NewService)
 
+	// Register StartupContextService provider
+	do.Provide(injector, startup.NewStartupContextService)
+
 	// Register PromptStore provider
 	do.Provide(injector, promptstore.NewPromptStore)
 
@@ -98,6 +102,9 @@ func TestNewPromptManagerProvider_FileStore(t *testing.T) {
 
 	// Register logger service
 	do.Provide(injector, logger.NewService)
+
+	// Register StartupContextService provider
+	do.Provide(injector, startup.NewStartupContextService)
 
 	// Register PromptStore provider
 	do.Provide(injector, promptstore.NewPromptStore)
@@ -149,6 +156,9 @@ func TestNewPromptManagerProvider_DefaultToMemory(t *testing.T) {
 	// Register logger service
 	do.Provide(injector, logger.NewService)
 
+	// Register StartupContextService provider
+	do.Provide(injector, startup.NewStartupContextService)
+
 	// Register PromptStore provider
 	do.Provide(injector, promptstore.NewPromptStore)
 
@@ -182,6 +192,9 @@ func TestNewPromptManagerProvider_CachedFileStore(t *testing.T) {
 
 	// Register logger service
 	do.Provide(injector, logger.NewService)
+
+	// Register StartupContextService provider
+	do.Provide(injector, startup.NewStartupContextService)
 
 	// Register PromptStore provider
 	do.Provide(injector, promptstore.NewPromptStore)
@@ -224,6 +237,9 @@ func TestNewPromptManagerProvider_UnknownStoreType(t *testing.T) {
 	// Register logger service
 	do.Provide(injector, logger.NewService)
 
+	// Register StartupContextService provider
+	do.Provide(injector, startup.NewStartupContextService)
+
 	// Register PromptStore provider
 	do.Provide(injector, promptstore.NewPromptStore)
 
@@ -255,6 +271,9 @@ func TestNewPromptManagerProvider_PromptManagerInterface(t *testing.T) {
 
 	// Register logger service
 	do.Provide(injector, logger.NewService)
+
+	// Register StartupContextService provider
+	do.Provide(injector, startup.NewStartupContextService)
 
 	// Register PromptStore provider
 	do.Provide(injector, promptstore.NewPromptStore)

@@ -47,7 +47,7 @@ func TestLangfuseHook_TraceContextOperations(t *testing.T) {
 		tc := hook.createTraceContext(sessionID)
 
 		assert.NotNil(t, tc, "createTraceContext should return non-nil TraceContext")
-		assert.Equal(t, sessionID, tc.SessionID, "SessionID should match")
+		assert.Equal(t, sessionID.String(), tc.SessionID, "SessionID should match")
 		assert.NotEmpty(t, tc.TraceID, "TraceID should be generated")
 		assert.NotNil(t, tc.Spans, "Spans map should be initialized")
 		assert.False(t, tc.CreatedAt.IsZero(), "CreatedAt should be set")
@@ -58,7 +58,7 @@ func TestLangfuseHook_TraceContextOperations(t *testing.T) {
 		tc := hook.getTraceContext(sessionID)
 
 		assert.NotNil(t, tc, "getTraceContext should return created TraceContext")
-		assert.Equal(t, sessionID, tc.SessionID)
+		assert.Equal(t, sessionID.String(), tc.SessionID)
 	})
 
 	t.Run("removeTraceContext deletes context", func(t *testing.T) {

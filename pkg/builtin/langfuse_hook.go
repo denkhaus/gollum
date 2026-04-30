@@ -341,10 +341,16 @@ func (h *LangfuseHook) beforeSessionStartHook(ctx context.Context, hookCtx *hook
 	// Create root span for this session
 	rootSpan := trace.StartSpan("session")
 
+	// Use SDK trace ID, or generate fallback if empty (e.g., test credentials)
+	traceID := trace.SessionID
+	if traceID == "" {
+		traceID = uuid.New().String()
+	}
+
 	// Create trace context with actual SDK objects
 	h.traceCtxsMu.Lock()
 	tc := &TraceContext{
-		TraceID:   trace.ID, // Use actual trace ID from SDK
+		TraceID:   traceID,
 		RootSpan:  rootSpan, // Store actual SDK span
 		Spans:     make(map[string]interface{}),
 		SessionID: hookCtx.SessionID.String(),

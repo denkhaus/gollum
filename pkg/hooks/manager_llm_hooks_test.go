@@ -222,7 +222,7 @@ func TestWithLLMHooks(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, receivedCtx)
-		assert.Equal(t, sessionID.String(), receivedCtx.SessionID)
+		assert.Equal(t, sessionID, receivedCtx.SessionID)
 		assert.Equal(t, agentID, receivedCtx.AgentID)
 		assert.Equal(t, prompt, receivedCtx.Payload.Input)
 		assert.Equal(t, model, receivedCtx.Payload.Model)

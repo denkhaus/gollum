@@ -96,7 +96,7 @@ func TestFullTraceLifecycle(t *testing.T) {
 		require.NotNil(t, tc, "TraceContext should exist for session")
 		assert.Equal(t, traceID, tc.TraceID, "TraceContext.TraceID should match propagated trace ID")
 		assert.NotNil(t, tc.RootSpan, "TraceContext.RootSpan should be created")
-		assert.Equal(t, sessionID, tc.SessionID, "TraceContext.SessionID should match")
+		assert.Equal(t, sessionID.String(), tc.SessionID, "TraceContext.SessionID should match")
 	})
 
 	// Step 2: beforeLLMRequestHook + afterLLMResponseHook - verify LLM span created
@@ -376,7 +376,7 @@ func TestAgentSpanHierarchy(t *testing.T) {
 		agentASpan, ok := tc.Spans[agentASpawnSpanID].(*AgentSpanContext)
 		require.True(t, ok, "Agent A spawn span should be AgentSpanContext")
 		assert.Equal(t, "spawn", agentASpan.EventType, "Agent A event type should be spawn")
-		assert.Equal(t, sessionID, agentASpan.ParentAgentID, "Agent A parent should be session")
+		assert.Equal(t, sessionID.String(), agentASpan.ParentAgentID, "Agent A parent should be session")
 		assert.Equal(t, agentAID.String(), agentASpan.NewAgentID, "Agent A new agent ID should match")
 
 		// Verify Agent B spawn span
