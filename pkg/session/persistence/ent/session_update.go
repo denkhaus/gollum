@@ -14,7 +14,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/message"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/predicate"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/session"
-	"github.com/denkhaus/gollum/pkg/session/persistence/ent/supervisorconfig"
 	"github.com/google/uuid"
 )
 
@@ -142,25 +141,6 @@ func (_u *SessionUpdate) AddMessages(v ...*Message) *SessionUpdate {
 	return _u.AddMessageIDs(ids...)
 }
 
-// SetSupervisorID sets the "supervisor" edge to the SupervisorConfig entity by ID.
-func (_u *SessionUpdate) SetSupervisorID(id uuid.UUID) *SessionUpdate {
-	_u.mutation.SetSupervisorID(id)
-	return _u
-}
-
-// SetNillableSupervisorID sets the "supervisor" edge to the SupervisorConfig entity by ID if the given value is not nil.
-func (_u *SessionUpdate) SetNillableSupervisorID(id *uuid.UUID) *SessionUpdate {
-	if id != nil {
-		_u = _u.SetSupervisorID(*id)
-	}
-	return _u
-}
-
-// SetSupervisor sets the "supervisor" edge to the SupervisorConfig entity.
-func (_u *SessionUpdate) SetSupervisor(v *SupervisorConfig) *SessionUpdate {
-	return _u.SetSupervisorID(v.ID)
-}
-
 // Mutation returns the SessionMutation object of the builder.
 func (_u *SessionUpdate) Mutation() *SessionMutation {
 	return _u.mutation
@@ -185,12 +165,6 @@ func (_u *SessionUpdate) RemoveMessages(v ...*Message) *SessionUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveMessageIDs(ids...)
-}
-
-// ClearSupervisor clears the "supervisor" edge to the SupervisorConfig entity.
-func (_u *SessionUpdate) ClearSupervisor() *SessionUpdate {
-	_u.mutation.ClearSupervisor()
-	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -313,35 +287,6 @@ func (_u *SessionUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.SupervisorCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   session.SupervisorTable,
-			Columns: []string{session.SupervisorColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(supervisorconfig.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.SupervisorIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   session.SupervisorTable,
-			Columns: []string{session.SupervisorColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(supervisorconfig.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -480,25 +425,6 @@ func (_u *SessionUpdateOne) AddMessages(v ...*Message) *SessionUpdateOne {
 	return _u.AddMessageIDs(ids...)
 }
 
-// SetSupervisorID sets the "supervisor" edge to the SupervisorConfig entity by ID.
-func (_u *SessionUpdateOne) SetSupervisorID(id uuid.UUID) *SessionUpdateOne {
-	_u.mutation.SetSupervisorID(id)
-	return _u
-}
-
-// SetNillableSupervisorID sets the "supervisor" edge to the SupervisorConfig entity by ID if the given value is not nil.
-func (_u *SessionUpdateOne) SetNillableSupervisorID(id *uuid.UUID) *SessionUpdateOne {
-	if id != nil {
-		_u = _u.SetSupervisorID(*id)
-	}
-	return _u
-}
-
-// SetSupervisor sets the "supervisor" edge to the SupervisorConfig entity.
-func (_u *SessionUpdateOne) SetSupervisor(v *SupervisorConfig) *SessionUpdateOne {
-	return _u.SetSupervisorID(v.ID)
-}
-
 // Mutation returns the SessionMutation object of the builder.
 func (_u *SessionUpdateOne) Mutation() *SessionMutation {
 	return _u.mutation
@@ -523,12 +449,6 @@ func (_u *SessionUpdateOne) RemoveMessages(v ...*Message) *SessionUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveMessageIDs(ids...)
-}
-
-// ClearSupervisor clears the "supervisor" edge to the SupervisorConfig entity.
-func (_u *SessionUpdateOne) ClearSupervisor() *SessionUpdateOne {
-	_u.mutation.ClearSupervisor()
-	return _u
 }
 
 // Where appends a list predicates to the SessionUpdate builder.
@@ -681,35 +601,6 @@ func (_u *SessionUpdateOne) sqlSave(ctx context.Context) (_node *Session, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.SupervisorCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   session.SupervisorTable,
-			Columns: []string{session.SupervisorColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(supervisorconfig.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.SupervisorIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   session.SupervisorTable,
-			Columns: []string{session.SupervisorColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(supervisorconfig.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

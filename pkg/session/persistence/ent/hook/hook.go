@@ -33,18 +33,6 @@ func (f SessionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SessionMutation", m)
 }
 
-// The SupervisorConfigFunc type is an adapter to allow the use of ordinary
-// function as SupervisorConfig mutator.
-type SupervisorConfigFunc func(context.Context, *ent.SupervisorConfigMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f SupervisorConfigFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.SupervisorConfigMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SupervisorConfigMutation", m)
-}
-
 // Condition is a hook condition function.
 type Condition func(context.Context, ent.Mutation) bool
 

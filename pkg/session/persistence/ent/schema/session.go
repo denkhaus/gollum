@@ -46,8 +46,6 @@ func (Session) Fields() []ent.Field {
 func (Session) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("messages", Message.Type),
-		edge.To("supervisor", SupervisorConfig.Type).
-			Unique(),
 	}
 }
 

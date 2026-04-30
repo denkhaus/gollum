@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/message"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/session"
-	"github.com/denkhaus/gollum/pkg/session/persistence/ent/supervisorconfig"
 	"github.com/google/uuid"
 )
 
@@ -138,25 +137,6 @@ func (_c *SessionCreate) AddMessages(v ...*Message) *SessionCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddMessageIDs(ids...)
-}
-
-// SetSupervisorID sets the "supervisor" edge to the SupervisorConfig entity by ID.
-func (_c *SessionCreate) SetSupervisorID(id uuid.UUID) *SessionCreate {
-	_c.mutation.SetSupervisorID(id)
-	return _c
-}
-
-// SetNillableSupervisorID sets the "supervisor" edge to the SupervisorConfig entity by ID if the given value is not nil.
-func (_c *SessionCreate) SetNillableSupervisorID(id *uuid.UUID) *SessionCreate {
-	if id != nil {
-		_c = _c.SetSupervisorID(*id)
-	}
-	return _c
-}
-
-// SetSupervisor sets the "supervisor" edge to the SupervisorConfig entity.
-func (_c *SessionCreate) SetSupervisor(v *SupervisorConfig) *SessionCreate {
-	return _c.SetSupervisorID(v.ID)
 }
 
 // Mutation returns the SessionMutation object of the builder.
@@ -320,22 +300,6 @@ func (_c *SessionCreate) createSpec() (*Session, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.SupervisorIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   session.SupervisorTable,
-			Columns: []string{session.SupervisorColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(supervisorconfig.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

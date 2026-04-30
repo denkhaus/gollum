@@ -34,8 +34,6 @@ const (
 	FieldState = "state"
 	// EdgeMessages holds the string denoting the messages edge name in mutations.
 	EdgeMessages = "messages"
-	// EdgeSupervisor holds the string denoting the supervisor edge name in mutations.
-	EdgeSupervisor = "supervisor"
 	// Table holds the table name of the session in the database.
 	Table = "sessions"
 	// MessagesTable is the table that holds the messages relation/edge.
@@ -45,13 +43,6 @@ const (
 	MessagesInverseTable = "messages"
 	// MessagesColumn is the table column denoting the messages relation/edge.
 	MessagesColumn = "session_id"
-	// SupervisorTable is the table that holds the supervisor relation/edge.
-	SupervisorTable = "supervisor_configs"
-	// SupervisorInverseTable is the table name for the SupervisorConfig entity.
-	// It exists in this package in order to avoid circular dependency with the "supervisorconfig" package.
-	SupervisorInverseTable = "supervisor_configs"
-	// SupervisorColumn is the table column denoting the supervisor relation/edge.
-	SupervisorColumn = "session_id"
 )
 
 // Columns holds all SQL columns for session fields.
@@ -178,24 +169,10 @@ func ByMessages(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newMessagesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-
-// BySupervisorField orders the results by supervisor field.
-func BySupervisorField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newSupervisorStep(), sql.OrderByField(field, opts...))
-	}
-}
 func newMessagesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(MessagesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, MessagesTable, MessagesColumn),
-	)
-}
-func newSupervisorStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(SupervisorInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, SupervisorTable, SupervisorColumn),
 	)
 }

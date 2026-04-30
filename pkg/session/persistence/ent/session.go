@@ -10,7 +10,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/session"
-	"github.com/denkhaus/gollum/pkg/session/persistence/ent/supervisorconfig"
 	"github.com/google/uuid"
 )
 
@@ -45,11 +44,9 @@ type Session struct {
 type SessionEdges struct {
 	// Messages holds the value of the messages edge.
 	Messages []*Message `json:"messages,omitempty"`
-	// Supervisor holds the value of the supervisor edge.
-	Supervisor *SupervisorConfig `json:"supervisor,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [1]bool
 }
 
 // MessagesOrErr returns the Messages value or an error if the edge
@@ -59,17 +56,6 @@ func (e SessionEdges) MessagesOrErr() ([]*Message, error) {
 		return e.Messages, nil
 	}
 	return nil, &NotLoadedError{edge: "messages"}
-}
-
-// SupervisorOrErr returns the Supervisor value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e SessionEdges) SupervisorOrErr() (*SupervisorConfig, error) {
-	if e.Supervisor != nil {
-		return e.Supervisor, nil
-	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: supervisorconfig.Label}
-	}
-	return nil, &NotLoadedError{edge: "supervisor"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -169,11 +155,6 @@ func (_m *Session) Value(name string) (ent.Value, error) {
 // QueryMessages queries the "messages" edge of the Session entity.
 func (_m *Session) QueryMessages() *MessageQuery {
 	return NewSessionClient(_m.config).QueryMessages(_m)
-}
-
-// QuerySupervisor queries the "supervisor" edge of the Session entity.
-func (_m *Session) QuerySupervisor() *SupervisorConfigQuery {
-	return NewSessionClient(_m.config).QuerySupervisor(_m)
 }
 
 // Update returns a builder for updating this Session.

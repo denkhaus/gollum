@@ -14,7 +14,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/message"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/predicate"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/session"
-	"github.com/denkhaus/gollum/pkg/session/persistence/ent/supervisorconfig"
 	"github.com/google/uuid"
 )
 
@@ -27,9 +26,8 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeMessage          = "Message"
-	TypeSession          = "Session"
-	TypeSupervisorConfig = "SupervisorConfig"
+	TypeMessage = "Message"
+	TypeSession = "Session"
 )
 
 // MessageMutation represents an operation that mutates the Message nodes in the graph.
@@ -659,26 +657,24 @@ func (m *MessageMutation) ResetEdge(name string) error {
 // SessionMutation represents an operation that mutates the Session nodes in the graph.
 type SessionMutation struct {
 	config
-	op                Op
-	typ               string
-	id                *uuid.UUID
-	session_id        *uuid.UUID
-	channel_id        *uuid.UUID
-	agent_id          *uuid.UUID
-	cwd               *string
-	created_at        *time.Time
-	updated_at        *time.Time
-	closed_at         *time.Time
-	state             *session.State
-	clearedFields     map[string]struct{}
-	messages          map[uuid.UUID]struct{}
-	removedmessages   map[uuid.UUID]struct{}
-	clearedmessages   bool
-	supervisor        *uuid.UUID
-	clearedsupervisor bool
-	done              bool
-	oldValue          func(context.Context) (*Session, error)
-	predicates        []predicate.Session
+	op              Op
+	typ             string
+	id              *uuid.UUID
+	session_id      *uuid.UUID
+	channel_id      *uuid.UUID
+	agent_id        *uuid.UUID
+	cwd             *string
+	created_at      *time.Time
+	updated_at      *time.Time
+	closed_at       *time.Time
+	state           *session.State
+	clearedFields   map[string]struct{}
+	messages        map[uuid.UUID]struct{}
+	removedmessages map[uuid.UUID]struct{}
+	clearedmessages bool
+	done            bool
+	oldValue        func(context.Context) (*Session, error)
+	predicates      []predicate.Session
 }
 
 var _ ent.Mutation = (*SessionMutation)(nil)
@@ -1140,45 +1136,6 @@ func (m *SessionMutation) ResetMessages() {
 	m.removedmessages = nil
 }
 
-// SetSupervisorID sets the "supervisor" edge to the SupervisorConfig entity by id.
-func (m *SessionMutation) SetSupervisorID(id uuid.UUID) {
-	m.supervisor = &id
-}
-
-// ClearSupervisor clears the "supervisor" edge to the SupervisorConfig entity.
-func (m *SessionMutation) ClearSupervisor() {
-	m.clearedsupervisor = true
-}
-
-// SupervisorCleared reports if the "supervisor" edge to the SupervisorConfig entity was cleared.
-func (m *SessionMutation) SupervisorCleared() bool {
-	return m.clearedsupervisor
-}
-
-// SupervisorID returns the "supervisor" edge ID in the mutation.
-func (m *SessionMutation) SupervisorID() (id uuid.UUID, exists bool) {
-	if m.supervisor != nil {
-		return *m.supervisor, true
-	}
-	return
-}
-
-// SupervisorIDs returns the "supervisor" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// SupervisorID instead. It exists only for internal usage by the builders.
-func (m *SessionMutation) SupervisorIDs() (ids []uuid.UUID) {
-	if id := m.supervisor; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetSupervisor resets all changes to the "supervisor" edge.
-func (m *SessionMutation) ResetSupervisor() {
-	m.supervisor = nil
-	m.clearedsupervisor = false
-}
-
 // Where appends a list predicates to the SessionMutation builder.
 func (m *SessionMutation) Where(ps ...predicate.Session) {
 	m.predicates = append(m.predicates, ps...)
@@ -1440,12 +1397,9 @@ func (m *SessionMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SessionMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 1)
 	if m.messages != nil {
 		edges = append(edges, session.EdgeMessages)
-	}
-	if m.supervisor != nil {
-		edges = append(edges, session.EdgeSupervisor)
 	}
 	return edges
 }
@@ -1460,17 +1414,13 @@ func (m *SessionMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case session.EdgeSupervisor:
-		if id := m.supervisor; id != nil {
-			return []ent.Value{*id}
-		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *SessionMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 1)
 	if m.removedmessages != nil {
 		edges = append(edges, session.EdgeMessages)
 	}
@@ -1493,12 +1443,9 @@ func (m *SessionMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SessionMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 1)
 	if m.clearedmessages {
 		edges = append(edges, session.EdgeMessages)
-	}
-	if m.clearedsupervisor {
-		edges = append(edges, session.EdgeSupervisor)
 	}
 	return edges
 }
@@ -1509,8 +1456,6 @@ func (m *SessionMutation) EdgeCleared(name string) bool {
 	switch name {
 	case session.EdgeMessages:
 		return m.clearedmessages
-	case session.EdgeSupervisor:
-		return m.clearedsupervisor
 	}
 	return false
 }
@@ -1519,9 +1464,6 @@ func (m *SessionMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *SessionMutation) ClearEdge(name string) error {
 	switch name {
-	case session.EdgeSupervisor:
-		m.ClearSupervisor()
-		return nil
 	}
 	return fmt.Errorf("unknown Session unique edge %s", name)
 }
@@ -1533,775 +1475,6 @@ func (m *SessionMutation) ResetEdge(name string) error {
 	case session.EdgeMessages:
 		m.ResetMessages()
 		return nil
-	case session.EdgeSupervisor:
-		m.ResetSupervisor()
-		return nil
 	}
 	return fmt.Errorf("unknown Session edge %s", name)
-}
-
-// SupervisorConfigMutation represents an operation that mutates the SupervisorConfig nodes in the graph.
-type SupervisorConfigMutation struct {
-	config
-	op             Op
-	typ            string
-	id             *uuid.UUID
-	model          *string
-	temperature    *float32
-	addtemperature *float32
-	max_tokens     *int
-	addmax_tokens  *int
-	system_prompt  *string
-	config_json    *map[string]interface{}
-	clearedFields  map[string]struct{}
-	session        *uuid.UUID
-	clearedsession bool
-	done           bool
-	oldValue       func(context.Context) (*SupervisorConfig, error)
-	predicates     []predicate.SupervisorConfig
-}
-
-var _ ent.Mutation = (*SupervisorConfigMutation)(nil)
-
-// supervisorconfigOption allows management of the mutation configuration using functional options.
-type supervisorconfigOption func(*SupervisorConfigMutation)
-
-// newSupervisorConfigMutation creates new mutation for the SupervisorConfig entity.
-func newSupervisorConfigMutation(c config, op Op, opts ...supervisorconfigOption) *SupervisorConfigMutation {
-	m := &SupervisorConfigMutation{
-		config:        c,
-		op:            op,
-		typ:           TypeSupervisorConfig,
-		clearedFields: make(map[string]struct{}),
-	}
-	for _, opt := range opts {
-		opt(m)
-	}
-	return m
-}
-
-// withSupervisorConfigID sets the ID field of the mutation.
-func withSupervisorConfigID(id uuid.UUID) supervisorconfigOption {
-	return func(m *SupervisorConfigMutation) {
-		var (
-			err   error
-			once  sync.Once
-			value *SupervisorConfig
-		)
-		m.oldValue = func(ctx context.Context) (*SupervisorConfig, error) {
-			once.Do(func() {
-				if m.done {
-					err = errors.New("querying old values post mutation is not allowed")
-				} else {
-					value, err = m.Client().SupervisorConfig.Get(ctx, id)
-				}
-			})
-			return value, err
-		}
-		m.id = &id
-	}
-}
-
-// withSupervisorConfig sets the old SupervisorConfig of the mutation.
-func withSupervisorConfig(node *SupervisorConfig) supervisorconfigOption {
-	return func(m *SupervisorConfigMutation) {
-		m.oldValue = func(context.Context) (*SupervisorConfig, error) {
-			return node, nil
-		}
-		m.id = &node.ID
-	}
-}
-
-// Client returns a new `ent.Client` from the mutation. If the mutation was
-// executed in a transaction (ent.Tx), a transactional client is returned.
-func (m SupervisorConfigMutation) Client() *Client {
-	client := &Client{config: m.config}
-	client.init()
-	return client
-}
-
-// Tx returns an `ent.Tx` for mutations that were executed in transactions;
-// it returns an error otherwise.
-func (m SupervisorConfigMutation) Tx() (*Tx, error) {
-	if _, ok := m.driver.(*txDriver); !ok {
-		return nil, errors.New("ent: mutation is not running in a transaction")
-	}
-	tx := &Tx{config: m.config}
-	tx.init()
-	return tx, nil
-}
-
-// SetID sets the value of the id field. Note that this
-// operation is only accepted on creation of SupervisorConfig entities.
-func (m *SupervisorConfigMutation) SetID(id uuid.UUID) {
-	m.id = &id
-}
-
-// ID returns the ID value in the mutation. Note that the ID is only available
-// if it was provided to the builder or after it was returned from the database.
-func (m *SupervisorConfigMutation) ID() (id uuid.UUID, exists bool) {
-	if m.id == nil {
-		return
-	}
-	return *m.id, true
-}
-
-// IDs queries the database and returns the entity ids that match the mutation's predicate.
-// That means, if the mutation is applied within a transaction with an isolation level such
-// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
-// or updated by the mutation.
-func (m *SupervisorConfigMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
-	switch {
-	case m.op.Is(OpUpdateOne | OpDeleteOne):
-		id, exists := m.ID()
-		if exists {
-			return []uuid.UUID{id}, nil
-		}
-		fallthrough
-	case m.op.Is(OpUpdate | OpDelete):
-		return m.Client().SupervisorConfig.Query().Where(m.predicates...).IDs(ctx)
-	default:
-		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
-	}
-}
-
-// SetSessionID sets the "session_id" field.
-func (m *SupervisorConfigMutation) SetSessionID(u uuid.UUID) {
-	m.session = &u
-}
-
-// SessionID returns the value of the "session_id" field in the mutation.
-func (m *SupervisorConfigMutation) SessionID() (r uuid.UUID, exists bool) {
-	v := m.session
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSessionID returns the old "session_id" field's value of the SupervisorConfig entity.
-// If the SupervisorConfig object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SupervisorConfigMutation) OldSessionID(ctx context.Context) (v uuid.UUID, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSessionID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSessionID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSessionID: %w", err)
-	}
-	return oldValue.SessionID, nil
-}
-
-// ResetSessionID resets all changes to the "session_id" field.
-func (m *SupervisorConfigMutation) ResetSessionID() {
-	m.session = nil
-}
-
-// SetModel sets the "model" field.
-func (m *SupervisorConfigMutation) SetModel(s string) {
-	m.model = &s
-}
-
-// Model returns the value of the "model" field in the mutation.
-func (m *SupervisorConfigMutation) Model() (r string, exists bool) {
-	v := m.model
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldModel returns the old "model" field's value of the SupervisorConfig entity.
-// If the SupervisorConfig object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SupervisorConfigMutation) OldModel(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldModel is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldModel requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldModel: %w", err)
-	}
-	return oldValue.Model, nil
-}
-
-// ResetModel resets all changes to the "model" field.
-func (m *SupervisorConfigMutation) ResetModel() {
-	m.model = nil
-}
-
-// SetTemperature sets the "temperature" field.
-func (m *SupervisorConfigMutation) SetTemperature(f float32) {
-	m.temperature = &f
-	m.addtemperature = nil
-}
-
-// Temperature returns the value of the "temperature" field in the mutation.
-func (m *SupervisorConfigMutation) Temperature() (r float32, exists bool) {
-	v := m.temperature
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTemperature returns the old "temperature" field's value of the SupervisorConfig entity.
-// If the SupervisorConfig object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SupervisorConfigMutation) OldTemperature(ctx context.Context) (v float32, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTemperature is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTemperature requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTemperature: %w", err)
-	}
-	return oldValue.Temperature, nil
-}
-
-// AddTemperature adds f to the "temperature" field.
-func (m *SupervisorConfigMutation) AddTemperature(f float32) {
-	if m.addtemperature != nil {
-		*m.addtemperature += f
-	} else {
-		m.addtemperature = &f
-	}
-}
-
-// AddedTemperature returns the value that was added to the "temperature" field in this mutation.
-func (m *SupervisorConfigMutation) AddedTemperature() (r float32, exists bool) {
-	v := m.addtemperature
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ResetTemperature resets all changes to the "temperature" field.
-func (m *SupervisorConfigMutation) ResetTemperature() {
-	m.temperature = nil
-	m.addtemperature = nil
-}
-
-// SetMaxTokens sets the "max_tokens" field.
-func (m *SupervisorConfigMutation) SetMaxTokens(i int) {
-	m.max_tokens = &i
-	m.addmax_tokens = nil
-}
-
-// MaxTokens returns the value of the "max_tokens" field in the mutation.
-func (m *SupervisorConfigMutation) MaxTokens() (r int, exists bool) {
-	v := m.max_tokens
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldMaxTokens returns the old "max_tokens" field's value of the SupervisorConfig entity.
-// If the SupervisorConfig object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SupervisorConfigMutation) OldMaxTokens(ctx context.Context) (v int, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldMaxTokens is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldMaxTokens requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldMaxTokens: %w", err)
-	}
-	return oldValue.MaxTokens, nil
-}
-
-// AddMaxTokens adds i to the "max_tokens" field.
-func (m *SupervisorConfigMutation) AddMaxTokens(i int) {
-	if m.addmax_tokens != nil {
-		*m.addmax_tokens += i
-	} else {
-		m.addmax_tokens = &i
-	}
-}
-
-// AddedMaxTokens returns the value that was added to the "max_tokens" field in this mutation.
-func (m *SupervisorConfigMutation) AddedMaxTokens() (r int, exists bool) {
-	v := m.addmax_tokens
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ResetMaxTokens resets all changes to the "max_tokens" field.
-func (m *SupervisorConfigMutation) ResetMaxTokens() {
-	m.max_tokens = nil
-	m.addmax_tokens = nil
-}
-
-// SetSystemPrompt sets the "system_prompt" field.
-func (m *SupervisorConfigMutation) SetSystemPrompt(s string) {
-	m.system_prompt = &s
-}
-
-// SystemPrompt returns the value of the "system_prompt" field in the mutation.
-func (m *SupervisorConfigMutation) SystemPrompt() (r string, exists bool) {
-	v := m.system_prompt
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSystemPrompt returns the old "system_prompt" field's value of the SupervisorConfig entity.
-// If the SupervisorConfig object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SupervisorConfigMutation) OldSystemPrompt(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSystemPrompt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSystemPrompt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSystemPrompt: %w", err)
-	}
-	return oldValue.SystemPrompt, nil
-}
-
-// ClearSystemPrompt clears the value of the "system_prompt" field.
-func (m *SupervisorConfigMutation) ClearSystemPrompt() {
-	m.system_prompt = nil
-	m.clearedFields[supervisorconfig.FieldSystemPrompt] = struct{}{}
-}
-
-// SystemPromptCleared returns if the "system_prompt" field was cleared in this mutation.
-func (m *SupervisorConfigMutation) SystemPromptCleared() bool {
-	_, ok := m.clearedFields[supervisorconfig.FieldSystemPrompt]
-	return ok
-}
-
-// ResetSystemPrompt resets all changes to the "system_prompt" field.
-func (m *SupervisorConfigMutation) ResetSystemPrompt() {
-	m.system_prompt = nil
-	delete(m.clearedFields, supervisorconfig.FieldSystemPrompt)
-}
-
-// SetConfigJSON sets the "config_json" field.
-func (m *SupervisorConfigMutation) SetConfigJSON(value map[string]interface{}) {
-	m.config_json = &value
-}
-
-// ConfigJSON returns the value of the "config_json" field in the mutation.
-func (m *SupervisorConfigMutation) ConfigJSON() (r map[string]interface{}, exists bool) {
-	v := m.config_json
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldConfigJSON returns the old "config_json" field's value of the SupervisorConfig entity.
-// If the SupervisorConfig object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SupervisorConfigMutation) OldConfigJSON(ctx context.Context) (v map[string]interface{}, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldConfigJSON is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldConfigJSON requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldConfigJSON: %w", err)
-	}
-	return oldValue.ConfigJSON, nil
-}
-
-// ClearConfigJSON clears the value of the "config_json" field.
-func (m *SupervisorConfigMutation) ClearConfigJSON() {
-	m.config_json = nil
-	m.clearedFields[supervisorconfig.FieldConfigJSON] = struct{}{}
-}
-
-// ConfigJSONCleared returns if the "config_json" field was cleared in this mutation.
-func (m *SupervisorConfigMutation) ConfigJSONCleared() bool {
-	_, ok := m.clearedFields[supervisorconfig.FieldConfigJSON]
-	return ok
-}
-
-// ResetConfigJSON resets all changes to the "config_json" field.
-func (m *SupervisorConfigMutation) ResetConfigJSON() {
-	m.config_json = nil
-	delete(m.clearedFields, supervisorconfig.FieldConfigJSON)
-}
-
-// ClearSession clears the "session" edge to the Session entity.
-func (m *SupervisorConfigMutation) ClearSession() {
-	m.clearedsession = true
-	m.clearedFields[supervisorconfig.FieldSessionID] = struct{}{}
-}
-
-// SessionCleared reports if the "session" edge to the Session entity was cleared.
-func (m *SupervisorConfigMutation) SessionCleared() bool {
-	return m.clearedsession
-}
-
-// SessionIDs returns the "session" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// SessionID instead. It exists only for internal usage by the builders.
-func (m *SupervisorConfigMutation) SessionIDs() (ids []uuid.UUID) {
-	if id := m.session; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetSession resets all changes to the "session" edge.
-func (m *SupervisorConfigMutation) ResetSession() {
-	m.session = nil
-	m.clearedsession = false
-}
-
-// Where appends a list predicates to the SupervisorConfigMutation builder.
-func (m *SupervisorConfigMutation) Where(ps ...predicate.SupervisorConfig) {
-	m.predicates = append(m.predicates, ps...)
-}
-
-// WhereP appends storage-level predicates to the SupervisorConfigMutation builder. Using this method,
-// users can use type-assertion to append predicates that do not depend on any generated package.
-func (m *SupervisorConfigMutation) WhereP(ps ...func(*sql.Selector)) {
-	p := make([]predicate.SupervisorConfig, len(ps))
-	for i := range ps {
-		p[i] = ps[i]
-	}
-	m.Where(p...)
-}
-
-// Op returns the operation name.
-func (m *SupervisorConfigMutation) Op() Op {
-	return m.op
-}
-
-// SetOp allows setting the mutation operation.
-func (m *SupervisorConfigMutation) SetOp(op Op) {
-	m.op = op
-}
-
-// Type returns the node type of this mutation (SupervisorConfig).
-func (m *SupervisorConfigMutation) Type() string {
-	return m.typ
-}
-
-// Fields returns all fields that were changed during this mutation. Note that in
-// order to get all numeric fields that were incremented/decremented, call
-// AddedFields().
-func (m *SupervisorConfigMutation) Fields() []string {
-	fields := make([]string, 0, 6)
-	if m.session != nil {
-		fields = append(fields, supervisorconfig.FieldSessionID)
-	}
-	if m.model != nil {
-		fields = append(fields, supervisorconfig.FieldModel)
-	}
-	if m.temperature != nil {
-		fields = append(fields, supervisorconfig.FieldTemperature)
-	}
-	if m.max_tokens != nil {
-		fields = append(fields, supervisorconfig.FieldMaxTokens)
-	}
-	if m.system_prompt != nil {
-		fields = append(fields, supervisorconfig.FieldSystemPrompt)
-	}
-	if m.config_json != nil {
-		fields = append(fields, supervisorconfig.FieldConfigJSON)
-	}
-	return fields
-}
-
-// Field returns the value of a field with the given name. The second boolean
-// return value indicates that this field was not set, or was not defined in the
-// schema.
-func (m *SupervisorConfigMutation) Field(name string) (ent.Value, bool) {
-	switch name {
-	case supervisorconfig.FieldSessionID:
-		return m.SessionID()
-	case supervisorconfig.FieldModel:
-		return m.Model()
-	case supervisorconfig.FieldTemperature:
-		return m.Temperature()
-	case supervisorconfig.FieldMaxTokens:
-		return m.MaxTokens()
-	case supervisorconfig.FieldSystemPrompt:
-		return m.SystemPrompt()
-	case supervisorconfig.FieldConfigJSON:
-		return m.ConfigJSON()
-	}
-	return nil, false
-}
-
-// OldField returns the old value of the field from the database. An error is
-// returned if the mutation operation is not UpdateOne, or the query to the
-// database failed.
-func (m *SupervisorConfigMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
-	switch name {
-	case supervisorconfig.FieldSessionID:
-		return m.OldSessionID(ctx)
-	case supervisorconfig.FieldModel:
-		return m.OldModel(ctx)
-	case supervisorconfig.FieldTemperature:
-		return m.OldTemperature(ctx)
-	case supervisorconfig.FieldMaxTokens:
-		return m.OldMaxTokens(ctx)
-	case supervisorconfig.FieldSystemPrompt:
-		return m.OldSystemPrompt(ctx)
-	case supervisorconfig.FieldConfigJSON:
-		return m.OldConfigJSON(ctx)
-	}
-	return nil, fmt.Errorf("unknown SupervisorConfig field %s", name)
-}
-
-// SetField sets the value of a field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *SupervisorConfigMutation) SetField(name string, value ent.Value) error {
-	switch name {
-	case supervisorconfig.FieldSessionID:
-		v, ok := value.(uuid.UUID)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSessionID(v)
-		return nil
-	case supervisorconfig.FieldModel:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetModel(v)
-		return nil
-	case supervisorconfig.FieldTemperature:
-		v, ok := value.(float32)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTemperature(v)
-		return nil
-	case supervisorconfig.FieldMaxTokens:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetMaxTokens(v)
-		return nil
-	case supervisorconfig.FieldSystemPrompt:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSystemPrompt(v)
-		return nil
-	case supervisorconfig.FieldConfigJSON:
-		v, ok := value.(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetConfigJSON(v)
-		return nil
-	}
-	return fmt.Errorf("unknown SupervisorConfig field %s", name)
-}
-
-// AddedFields returns all numeric fields that were incremented/decremented during
-// this mutation.
-func (m *SupervisorConfigMutation) AddedFields() []string {
-	var fields []string
-	if m.addtemperature != nil {
-		fields = append(fields, supervisorconfig.FieldTemperature)
-	}
-	if m.addmax_tokens != nil {
-		fields = append(fields, supervisorconfig.FieldMaxTokens)
-	}
-	return fields
-}
-
-// AddedField returns the numeric value that was incremented/decremented on a field
-// with the given name. The second boolean return value indicates that this field
-// was not set, or was not defined in the schema.
-func (m *SupervisorConfigMutation) AddedField(name string) (ent.Value, bool) {
-	switch name {
-	case supervisorconfig.FieldTemperature:
-		return m.AddedTemperature()
-	case supervisorconfig.FieldMaxTokens:
-		return m.AddedMaxTokens()
-	}
-	return nil, false
-}
-
-// AddField adds the value to the field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *SupervisorConfigMutation) AddField(name string, value ent.Value) error {
-	switch name {
-	case supervisorconfig.FieldTemperature:
-		v, ok := value.(float32)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddTemperature(v)
-		return nil
-	case supervisorconfig.FieldMaxTokens:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddMaxTokens(v)
-		return nil
-	}
-	return fmt.Errorf("unknown SupervisorConfig numeric field %s", name)
-}
-
-// ClearedFields returns all nullable fields that were cleared during this
-// mutation.
-func (m *SupervisorConfigMutation) ClearedFields() []string {
-	var fields []string
-	if m.FieldCleared(supervisorconfig.FieldSystemPrompt) {
-		fields = append(fields, supervisorconfig.FieldSystemPrompt)
-	}
-	if m.FieldCleared(supervisorconfig.FieldConfigJSON) {
-		fields = append(fields, supervisorconfig.FieldConfigJSON)
-	}
-	return fields
-}
-
-// FieldCleared returns a boolean indicating if a field with the given name was
-// cleared in this mutation.
-func (m *SupervisorConfigMutation) FieldCleared(name string) bool {
-	_, ok := m.clearedFields[name]
-	return ok
-}
-
-// ClearField clears the value of the field with the given name. It returns an
-// error if the field is not defined in the schema.
-func (m *SupervisorConfigMutation) ClearField(name string) error {
-	switch name {
-	case supervisorconfig.FieldSystemPrompt:
-		m.ClearSystemPrompt()
-		return nil
-	case supervisorconfig.FieldConfigJSON:
-		m.ClearConfigJSON()
-		return nil
-	}
-	return fmt.Errorf("unknown SupervisorConfig nullable field %s", name)
-}
-
-// ResetField resets all changes in the mutation for the field with the given name.
-// It returns an error if the field is not defined in the schema.
-func (m *SupervisorConfigMutation) ResetField(name string) error {
-	switch name {
-	case supervisorconfig.FieldSessionID:
-		m.ResetSessionID()
-		return nil
-	case supervisorconfig.FieldModel:
-		m.ResetModel()
-		return nil
-	case supervisorconfig.FieldTemperature:
-		m.ResetTemperature()
-		return nil
-	case supervisorconfig.FieldMaxTokens:
-		m.ResetMaxTokens()
-		return nil
-	case supervisorconfig.FieldSystemPrompt:
-		m.ResetSystemPrompt()
-		return nil
-	case supervisorconfig.FieldConfigJSON:
-		m.ResetConfigJSON()
-		return nil
-	}
-	return fmt.Errorf("unknown SupervisorConfig field %s", name)
-}
-
-// AddedEdges returns all edge names that were set/added in this mutation.
-func (m *SupervisorConfigMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
-	if m.session != nil {
-		edges = append(edges, supervisorconfig.EdgeSession)
-	}
-	return edges
-}
-
-// AddedIDs returns all IDs (to other nodes) that were added for the given edge
-// name in this mutation.
-func (m *SupervisorConfigMutation) AddedIDs(name string) []ent.Value {
-	switch name {
-	case supervisorconfig.EdgeSession:
-		if id := m.session; id != nil {
-			return []ent.Value{*id}
-		}
-	}
-	return nil
-}
-
-// RemovedEdges returns all edge names that were removed in this mutation.
-func (m *SupervisorConfigMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
-	return edges
-}
-
-// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
-// the given name in this mutation.
-func (m *SupervisorConfigMutation) RemovedIDs(name string) []ent.Value {
-	return nil
-}
-
-// ClearedEdges returns all edge names that were cleared in this mutation.
-func (m *SupervisorConfigMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
-	if m.clearedsession {
-		edges = append(edges, supervisorconfig.EdgeSession)
-	}
-	return edges
-}
-
-// EdgeCleared returns a boolean which indicates if the edge with the given name
-// was cleared in this mutation.
-func (m *SupervisorConfigMutation) EdgeCleared(name string) bool {
-	switch name {
-	case supervisorconfig.EdgeSession:
-		return m.clearedsession
-	}
-	return false
-}
-
-// ClearEdge clears the value of the edge with the given name. It returns an error
-// if that edge is not defined in the schema.
-func (m *SupervisorConfigMutation) ClearEdge(name string) error {
-	switch name {
-	case supervisorconfig.EdgeSession:
-		m.ClearSession()
-		return nil
-	}
-	return fmt.Errorf("unknown SupervisorConfig unique edge %s", name)
-}
-
-// ResetEdge resets all changes to the edge with the given name in this mutation.
-// It returns an error if the edge is not defined in the schema.
-func (m *SupervisorConfigMutation) ResetEdge(name string) error {
-	switch name {
-	case supervisorconfig.EdgeSession:
-		m.ResetSession()
-		return nil
-	}
-	return fmt.Errorf("unknown SupervisorConfig edge %s", name)
 }

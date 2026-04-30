@@ -8,7 +8,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/message"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/schema"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/session"
-	"github.com/denkhaus/gollum/pkg/session/persistence/ent/supervisorconfig"
 	"github.com/google/uuid"
 )
 
@@ -46,22 +45,4 @@ func init() {
 	sessionDescID := sessionFields[0].Descriptor()
 	// session.DefaultID holds the default value on creation for the id field.
 	session.DefaultID = sessionDescID.Default.(func() uuid.UUID)
-	supervisorconfigFields := schema.SupervisorConfig{}.Fields()
-	_ = supervisorconfigFields
-	// supervisorconfigDescModel is the schema descriptor for model field.
-	supervisorconfigDescModel := supervisorconfigFields[2].Descriptor()
-	// supervisorconfig.DefaultModel holds the default value on creation for the model field.
-	supervisorconfig.DefaultModel = supervisorconfigDescModel.Default.(string)
-	// supervisorconfigDescTemperature is the schema descriptor for temperature field.
-	supervisorconfigDescTemperature := supervisorconfigFields[3].Descriptor()
-	// supervisorconfig.DefaultTemperature holds the default value on creation for the temperature field.
-	supervisorconfig.DefaultTemperature = supervisorconfigDescTemperature.Default.(float32)
-	// supervisorconfigDescMaxTokens is the schema descriptor for max_tokens field.
-	supervisorconfigDescMaxTokens := supervisorconfigFields[4].Descriptor()
-	// supervisorconfig.DefaultMaxTokens holds the default value on creation for the max_tokens field.
-	supervisorconfig.DefaultMaxTokens = supervisorconfigDescMaxTokens.Default.(int)
-	// supervisorconfigDescID is the schema descriptor for id field.
-	supervisorconfigDescID := supervisorconfigFields[0].Descriptor()
-	// supervisorconfig.DefaultID holds the default value on creation for the id field.
-	supervisorconfig.DefaultID = supervisorconfigDescID.Default.(func() uuid.UUID)
 }

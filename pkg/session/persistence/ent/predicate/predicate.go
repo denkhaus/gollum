@@ -11,6 +11,3 @@ type Message func(*sql.Selector)
 
 // Session is the predicate function for session builders.
 type Session func(*sql.Selector)
-
-// SupervisorConfig is the predicate function for supervisorconfig builders.
-type SupervisorConfig func(*sql.Selector)

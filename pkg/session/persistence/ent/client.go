@@ -18,7 +18,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/message"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/session"
-	"github.com/denkhaus/gollum/pkg/session/persistence/ent/supervisorconfig"
 )
 
 // Client is the client that holds all ent builders.
@@ -30,8 +29,6 @@ type Client struct {
 	Message *MessageClient
 	// Session is the client for interacting with the Session builders.
 	Session *SessionClient
-	// SupervisorConfig is the client for interacting with the SupervisorConfig builders.
-	SupervisorConfig *SupervisorConfigClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -45,7 +42,6 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Message = NewMessageClient(c.config)
 	c.Session = NewSessionClient(c.config)
-	c.SupervisorConfig = NewSupervisorConfigClient(c.config)
 }
 
 type (
@@ -136,11 +132,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:              ctx,
-		config:           cfg,
-		Message:          NewMessageClient(cfg),
-		Session:          NewSessionClient(cfg),
-		SupervisorConfig: NewSupervisorConfigClient(cfg),
+		ctx:     ctx,
+		config:  cfg,
+		Message: NewMessageClient(cfg),
+		Session: NewSessionClient(cfg),
 	}, nil
 }
 
@@ -158,11 +153,10 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:              ctx,
-		config:           cfg,
-		Message:          NewMessageClient(cfg),
-		Session:          NewSessionClient(cfg),
-		SupervisorConfig: NewSupervisorConfigClient(cfg),
+		ctx:     ctx,
+		config:  cfg,
+		Message: NewMessageClient(cfg),
+		Session: NewSessionClient(cfg),
 	}, nil
 }
 
@@ -193,7 +187,6 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	c.Message.Use(hooks...)
 	c.Session.Use(hooks...)
-	c.SupervisorConfig.Use(hooks...)
 }
 
 // Intercept adds the query interceptors to all the entity clients.
@@ -201,7 +194,6 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	c.Message.Intercept(interceptors...)
 	c.Session.Intercept(interceptors...)
-	c.SupervisorConfig.Intercept(interceptors...)
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -211,8 +203,6 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Message.mutate(ctx, m)
 	case *SessionMutation:
 		return c.Session.mutate(ctx, m)
-	case *SupervisorConfigMutation:
-		return c.SupervisorConfig.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -491,22 +481,6 @@ func (c *SessionClient) QueryMessages(_m *Session) *MessageQuery {
 	return query
 }
 
-// QuerySupervisor queries the supervisor edge of a Session.
-func (c *SessionClient) QuerySupervisor(_m *Session) *SupervisorConfigQuery {
-	query := (&SupervisorConfigClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(session.Table, session.FieldID, id),
-			sqlgraph.To(supervisorconfig.Table, supervisorconfig.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, session.SupervisorTable, session.SupervisorColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // Hooks returns the client hooks.
 func (c *SessionClient) Hooks() []Hook {
 	return c.hooks.Session
@@ -532,161 +506,12 @@ func (c *SessionClient) mutate(ctx context.Context, m *SessionMutation) (Value, 
 	}
 }
 
-// SupervisorConfigClient is a client for the SupervisorConfig schema.
-type SupervisorConfigClient struct {
-	config
-}
-
-// NewSupervisorConfigClient returns a client for the SupervisorConfig from the given config.
-func NewSupervisorConfigClient(c config) *SupervisorConfigClient {
-	return &SupervisorConfigClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `supervisorconfig.Hooks(f(g(h())))`.
-func (c *SupervisorConfigClient) Use(hooks ...Hook) {
-	c.hooks.SupervisorConfig = append(c.hooks.SupervisorConfig, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `supervisorconfig.Intercept(f(g(h())))`.
-func (c *SupervisorConfigClient) Intercept(interceptors ...Interceptor) {
-	c.inters.SupervisorConfig = append(c.inters.SupervisorConfig, interceptors...)
-}
-
-// Create returns a builder for creating a SupervisorConfig entity.
-func (c *SupervisorConfigClient) Create() *SupervisorConfigCreate {
-	mutation := newSupervisorConfigMutation(c.config, OpCreate)
-	return &SupervisorConfigCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of SupervisorConfig entities.
-func (c *SupervisorConfigClient) CreateBulk(builders ...*SupervisorConfigCreate) *SupervisorConfigCreateBulk {
-	return &SupervisorConfigCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *SupervisorConfigClient) MapCreateBulk(slice any, setFunc func(*SupervisorConfigCreate, int)) *SupervisorConfigCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &SupervisorConfigCreateBulk{err: fmt.Errorf("calling to SupervisorConfigClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*SupervisorConfigCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &SupervisorConfigCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for SupervisorConfig.
-func (c *SupervisorConfigClient) Update() *SupervisorConfigUpdate {
-	mutation := newSupervisorConfigMutation(c.config, OpUpdate)
-	return &SupervisorConfigUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *SupervisorConfigClient) UpdateOne(_m *SupervisorConfig) *SupervisorConfigUpdateOne {
-	mutation := newSupervisorConfigMutation(c.config, OpUpdateOne, withSupervisorConfig(_m))
-	return &SupervisorConfigUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *SupervisorConfigClient) UpdateOneID(id uuid.UUID) *SupervisorConfigUpdateOne {
-	mutation := newSupervisorConfigMutation(c.config, OpUpdateOne, withSupervisorConfigID(id))
-	return &SupervisorConfigUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for SupervisorConfig.
-func (c *SupervisorConfigClient) Delete() *SupervisorConfigDelete {
-	mutation := newSupervisorConfigMutation(c.config, OpDelete)
-	return &SupervisorConfigDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *SupervisorConfigClient) DeleteOne(_m *SupervisorConfig) *SupervisorConfigDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *SupervisorConfigClient) DeleteOneID(id uuid.UUID) *SupervisorConfigDeleteOne {
-	builder := c.Delete().Where(supervisorconfig.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &SupervisorConfigDeleteOne{builder}
-}
-
-// Query returns a query builder for SupervisorConfig.
-func (c *SupervisorConfigClient) Query() *SupervisorConfigQuery {
-	return &SupervisorConfigQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeSupervisorConfig},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a SupervisorConfig entity by its id.
-func (c *SupervisorConfigClient) Get(ctx context.Context, id uuid.UUID) (*SupervisorConfig, error) {
-	return c.Query().Where(supervisorconfig.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *SupervisorConfigClient) GetX(ctx context.Context, id uuid.UUID) *SupervisorConfig {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QuerySession queries the session edge of a SupervisorConfig.
-func (c *SupervisorConfigClient) QuerySession(_m *SupervisorConfig) *SessionQuery {
-	query := (&SessionClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(supervisorconfig.Table, supervisorconfig.FieldID, id),
-			sqlgraph.To(session.Table, session.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, supervisorconfig.SessionTable, supervisorconfig.SessionColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *SupervisorConfigClient) Hooks() []Hook {
-	return c.hooks.SupervisorConfig
-}
-
-// Interceptors returns the client interceptors.
-func (c *SupervisorConfigClient) Interceptors() []Interceptor {
-	return c.inters.SupervisorConfig
-}
-
-func (c *SupervisorConfigClient) mutate(ctx context.Context, m *SupervisorConfigMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&SupervisorConfigCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&SupervisorConfigUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&SupervisorConfigUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&SupervisorConfigDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown SupervisorConfig mutation op: %q", m.Op())
-	}
-}
-
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Message, Session, SupervisorConfig []ent.Hook
+		Message, Session []ent.Hook
 	}
 	inters struct {
-		Message, Session, SupervisorConfig []ent.Interceptor
+		Message, Session []ent.Interceptor
 	}
 )

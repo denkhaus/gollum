@@ -15,19 +15,17 @@ import (
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/message"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/predicate"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/session"
-	"github.com/denkhaus/gollum/pkg/session/persistence/ent/supervisorconfig"
 	"github.com/google/uuid"
 )
 
 // SessionQuery is the builder for querying Session entities.
 type SessionQuery struct {
 	config
-	ctx            *QueryContext
-	order          []session.OrderOption
-	inters         []Interceptor
-	predicates     []predicate.Session
-	withMessages   *MessageQuery
-	withSupervisor *SupervisorConfigQuery
+	ctx          *QueryContext
+	order        []session.OrderOption
+	inters       []Interceptor
+	predicates   []predicate.Session
+	withMessages *MessageQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -79,28 +77,6 @@ func (_q *SessionQuery) QueryMessages() *MessageQuery {
 			sqlgraph.From(session.Table, session.FieldID, selector),
 			sqlgraph.To(message.Table, message.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, session.MessagesTable, session.MessagesColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QuerySupervisor chains the current query on the "supervisor" edge.
-func (_q *SessionQuery) QuerySupervisor() *SupervisorConfigQuery {
-	query := (&SupervisorConfigClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(session.Table, session.FieldID, selector),
-			sqlgraph.To(supervisorconfig.Table, supervisorconfig.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, session.SupervisorTable, session.SupervisorColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -295,13 +271,12 @@ func (_q *SessionQuery) Clone() *SessionQuery {
 		return nil
 	}
 	return &SessionQuery{
-		config:         _q.config,
-		ctx:            _q.ctx.Clone(),
-		order:          append([]session.OrderOption{}, _q.order...),
-		inters:         append([]Interceptor{}, _q.inters...),
-		predicates:     append([]predicate.Session{}, _q.predicates...),
-		withMessages:   _q.withMessages.Clone(),
-		withSupervisor: _q.withSupervisor.Clone(),
+		config:       _q.config,
+		ctx:          _q.ctx.Clone(),
+		order:        append([]session.OrderOption{}, _q.order...),
+		inters:       append([]Interceptor{}, _q.inters...),
+		predicates:   append([]predicate.Session{}, _q.predicates...),
+		withMessages: _q.withMessages.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -316,17 +291,6 @@ func (_q *SessionQuery) WithMessages(opts ...func(*MessageQuery)) *SessionQuery 
 		opt(query)
 	}
 	_q.withMessages = query
-	return _q
-}
-
-// WithSupervisor tells the query-builder to eager-load the nodes that are connected to
-// the "supervisor" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *SessionQuery) WithSupervisor(opts ...func(*SupervisorConfigQuery)) *SessionQuery {
-	query := (&SupervisorConfigClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withSupervisor = query
 	return _q
 }
 
@@ -408,9 +372,8 @@ func (_q *SessionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Sess
 	var (
 		nodes       = []*Session{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [1]bool{
 			_q.withMessages != nil,
-			_q.withSupervisor != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -438,12 +401,6 @@ func (_q *SessionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Sess
 			return nil, err
 		}
 	}
-	if query := _q.withSupervisor; query != nil {
-		if err := _q.loadSupervisor(ctx, query, nodes, nil,
-			func(n *Session, e *SupervisorConfig) { n.Edges.Supervisor = e }); err != nil {
-			return nil, err
-		}
-	}
 	return nodes, nil
 }
 
@@ -462,33 +419,6 @@ func (_q *SessionQuery) loadMessages(ctx context.Context, query *MessageQuery, n
 	}
 	query.Where(predicate.Message(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(session.MessagesColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.SessionID
-		node, ok := nodeids[fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "session_id" returned %v for node %v`, fk, n.ID)
-		}
-		assign(node, n)
-	}
-	return nil
-}
-func (_q *SessionQuery) loadSupervisor(ctx context.Context, query *SupervisorConfigQuery, nodes []*Session, init func(*Session), assign func(*Session, *SupervisorConfig)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[uuid.UUID]*Session)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(supervisorconfig.FieldSessionID)
-	}
-	query.Where(predicate.SupervisorConfig(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(session.SupervisorColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

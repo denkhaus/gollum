@@ -73,39 +73,13 @@ var (
 			},
 		},
 	}
-	// SupervisorConfigsColumns holds the columns for the "supervisor_configs" table.
-	SupervisorConfigsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeUUID, Unique: true},
-		{Name: "model", Type: field.TypeString, Default: ""},
-		{Name: "temperature", Type: field.TypeFloat32, Default: 0.7},
-		{Name: "max_tokens", Type: field.TypeInt, Default: 4096},
-		{Name: "system_prompt", Type: field.TypeString, Nullable: true, Size: 2147483647},
-		{Name: "config_json", Type: field.TypeJSON, Nullable: true},
-		{Name: "session_id", Type: field.TypeUUID, Unique: true},
-	}
-	// SupervisorConfigsTable holds the schema information for the "supervisor_configs" table.
-	SupervisorConfigsTable = &schema.Table{
-		Name:       "supervisor_configs",
-		Columns:    SupervisorConfigsColumns,
-		PrimaryKey: []*schema.Column{SupervisorConfigsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "supervisor_configs_sessions_supervisor",
-				Columns:    []*schema.Column{SupervisorConfigsColumns[6]},
-				RefColumns: []*schema.Column{SessionsColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-		},
-	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		MessagesTable,
 		SessionsTable,
-		SupervisorConfigsTable,
 	}
 )
 
 func init() {
 	MessagesTable.ForeignKeys[0].RefTable = SessionsTable
-	SupervisorConfigsTable.ForeignKeys[0].RefTable = SessionsTable
 }

@@ -449,29 +449,6 @@ func HasMessagesWith(preds ...predicate.Message) predicate.Session {
 	})
 }
 
-// HasSupervisor applies the HasEdge predicate on the "supervisor" edge.
-func HasSupervisor() predicate.Session {
-	return predicate.Session(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, SupervisorTable, SupervisorColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasSupervisorWith applies the HasEdge predicate on the "supervisor" edge with a given conditions (other predicates).
-func HasSupervisorWith(preds ...predicate.SupervisorConfig) predicate.Session {
-	return predicate.Session(func(s *sql.Selector) {
-		step := newSupervisorStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Session) predicate.Session {
 	return predicate.Session(sql.AndPredicates(predicates...))

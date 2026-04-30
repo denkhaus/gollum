@@ -16,8 +16,6 @@ type Tx struct {
 	Message *MessageClient
 	// Session is the client for interacting with the Session builders.
 	Session *SessionClient
-	// SupervisorConfig is the client for interacting with the SupervisorConfig builders.
-	SupervisorConfig *SupervisorConfigClient
 
 	// lazily loaded.
 	client     *Client
@@ -151,7 +149,6 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.Message = NewMessageClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)
-	tx.SupervisorConfig = NewSupervisorConfigClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

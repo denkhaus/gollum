@@ -14,7 +14,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/message"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/session"
-	"github.com/denkhaus/gollum/pkg/session/persistence/ent/supervisorconfig"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -75,9 +74,8 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			message.Table:          message.ValidColumn,
-			session.Table:          session.ValidColumn,
-			supervisorconfig.Table: supervisorconfig.ValidColumn,
+			message.Table: message.ValidColumn,
+			session.Table: session.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)
