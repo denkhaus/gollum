@@ -32,7 +32,12 @@ func TestInputHandler_HandleInput_SlashCommand(t *testing.T) {
 	handler := NewInputHandler(cmdMgr, sm, af, log)
 
 	sessionCtx := shared.NewSessionContext(sessionID, uuid.Nil, uuid.Nil, "")
-	result, err := handler.HandleInput(ctx, sessionCtx, "/help")
+	session := &shared.Session{
+		SessionContext: *sessionCtx,
+		Context:        ctx,
+		CancelFunc:     func() {},
+	}
+	result, err := handler.HandleInput(session, "/help")
 
 	require.NoError(t, err)
 	assert.True(t, result.Handled)
@@ -52,15 +57,6 @@ func TestInputHandler_HandleInput_NonCommand(t *testing.T) {
 	cmdMgr.EXPECT().Execute(ctx, sessionID, "hello").Return(false, "", nil)
 
 	sm := session.NewMockSessionManager(ctrl)
-	mockCtx, mockCancel := context.WithCancel(ctx)
-	mockSession := &shared.Session{
-		ID:         sessionID,
-		ChannelID:  channelID,
-		Context:    mockCtx,
-		CancelFunc: mockCancel,
-	}
-	sm.EXPECT().GetOrCreateSession(gomock.Any()).Return(mockSession, nil)
-
 	af := shared.NewMockAgentFactory(ctrl)
 	mockSupervisor := shared.NewMockAgent(ctrl)
 	mockConfig := &shared.AgentConfig{}
@@ -74,7 +70,12 @@ func TestInputHandler_HandleInput_NonCommand(t *testing.T) {
 	handler := NewInputHandler(cmdMgr, sm, af, log)
 
 	sessionCtx := shared.NewSessionContext(sessionID, uuid.Nil, channelID, "")
-	result, err := handler.HandleInput(ctx, sessionCtx, "hello")
+	session := &shared.Session{
+		SessionContext: *sessionCtx,
+		Context:        ctx,
+		CancelFunc:     func() {},
+	}
+	result, err := handler.HandleInput(session, "hello")
 
 	require.NoError(t, err)
 	assert.True(t, result.Handled)
@@ -90,10 +91,11 @@ func TestInputHandler_CancelInput(t *testing.T) {
 
 	sm := session.NewMockSessionManager(ctrl)
 	ctx, cancel := context.WithCancel(context.Background())
+	sessionCtx := shared.NewSessionContext(sessionID, uuid.Nil, uuid.Nil, "")
 	mockSession := &shared.Session{
-		ID:         sessionID,
-		Context:    ctx,
-		CancelFunc: cancel,
+		SessionContext: *sessionCtx,
+		Context:        ctx,
+		CancelFunc:     cancel,
 	}
 	sm.EXPECT().GetSession(sessionID).Return(mockSession, true)
 

@@ -2,7 +2,6 @@
 package channel
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -18,8 +17,8 @@ import (
 type InputHandler interface {
 	// HandleInput processes user input and returns the result.
 	// It first checks if the input is a slash command, and if so, executes it.
-	// Otherwise, it creates/gets a session and supervisor, then executes the input.
-	HandleInput(ctx context.Context, sessionCtx *shared.SessionContext, input string) (*InputResult, error)
+	// Otherwise, it creates/gets a supervisor agent and executes the input.
+	HandleInput(session *shared.Session, input string) (*InputResult, error)
 
 	// CancelInput cancels an in-flight input for the given session.
 	CancelInput(sessionID uuid.UUID) error
@@ -44,9 +43,9 @@ func NewInputHandler(cm command.Manager, sm session.SessionManager, af shared.Ag
 }
 
 // HandleInput processes user input and returns the result.
-func (h *inputHandlerImpl) HandleInput(ctx context.Context, sessionCtx *shared.SessionContext, input string) (*InputResult, error) {
+func (h *inputHandlerImpl) HandleInput(session *shared.Session, input string) (*InputResult, error) {
 	// First check if it's a slash command
-	handled, response, err := h.commandManager.Execute(ctx, sessionCtx.SessionID, input)
+	handled, response, err := h.commandManager.Execute(session.Context, session.SessionID, input)
 	if handled {
 		return &InputResult{
 			Handled:   true,
@@ -56,20 +55,14 @@ func (h *inputHandlerImpl) HandleInput(ctx context.Context, sessionCtx *shared.S
 		}, nil
 	}
 
-	// Get or create session for this interaction
-	sess, err := h.sessionManager.GetOrCreateSession(sessionCtx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get/create session: %w", err)
-	}
-
 	// Get or create supervisor for this session (lazy, thread-safe)
-	supervisor, err := sess.GetOrCreateSupervisor(h.agentFactory)
+	supervisor, err := session.GetOrCreateSupervisor(h.agentFactory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get/create supervisor: %w", err)
 	}
 
 	// Execute supervisor agent with session context
-	resp, err := supervisor.Execute(sess.Context, gollem.Text(input))
+	resp, err := supervisor.Execute(session.Context, gollem.Text(input))
 	if err != nil {
 		return &InputResult{
 			Handled: true,

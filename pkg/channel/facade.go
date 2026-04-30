@@ -2,7 +2,6 @@
 package channel
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -191,8 +190,8 @@ func (p *channelFacadeImpl) DisplayMessage(msg shared.Message) {
 // SubmitInput handles user input from any channel
 // sessionCtx contains routing information (SessionID, ChannelID, Cwd) for this interaction
 // Delegates to InputHandler for business logic (command execution, session/supervisor management)
-func (p *channelFacadeImpl) SubmitInput(ctx context.Context, sessionCtx *shared.SessionContext, input string) (*InputResult, error) {
-	return p.inputHandler.HandleInput(ctx, sessionCtx, input)
+func (p *channelFacadeImpl) SubmitInput(session *shared.Session, input string) (*InputResult, error) {
+	return p.inputHandler.HandleInput(session, input)
 }
 
 // CancelInput cancels an in-flight input for the given session

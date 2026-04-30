@@ -103,9 +103,8 @@ type ChannelFacade interface {
 	// SubmitInput handles user input from any channel.
 	// Delegates to InputHandler for business logic including:
 	// - Slash command detection and execution
-	// - Session creation/retrieval
 	// - Supervisor agent creation and execution
-	SubmitInput(ctx context.Context, sessionCtx *shared.SessionContext, input string) (*InputResult, error)
+	SubmitInput(session *shared.Session, input string) (*InputResult, error)
 
 	// CancelInput cancels an in-flight input for the given session.
 	// Delegates to InputHandler for session cancellation logic.

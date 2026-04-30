@@ -2,8 +2,8 @@
 package channel
 
 import (
-	"context"
 	"testing"
+	"context"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -20,7 +20,6 @@ func TestChannelFacade_Integration_SupervisorRouting(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	ctx := context.Background()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -52,7 +51,7 @@ func TestChannelFacade_Integration_SupervisorRouting(t *testing.T) {
 		}
 
 		// Submit non-command input - should fail without supervisor
-		result, err := facade.SubmitInput(ctx, sessionCtx, "test input")
+		result, err := facade.SubmitInput(&shared.Session{SessionContext: *sessionCtx, Context: context.Background(), CancelFunc: func() {}}, "test input")
 		assert.Error(t, err, "should error without supervisor")
 		// When there's an error, result might be empty/nil, so only check Handled if result is valid
 		if err != nil {
