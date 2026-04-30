@@ -115,19 +115,21 @@ func (a *gollumHistoryAdapter) Save(ctx context.Context, sessionID string, histo
 	if err != nil {
 		return fmt.Errorf("failed to check session existence: %w", err)
 	}
-	if !exists {
-		// Session doesn't exist - create it with minimal info
-		sess := &shared.Session{
-			ID:           sid,
-			ChannelID:    uuid.Nil, // Unknown at this point
-			SupervisorID: uuid.Nil,
-			CreatedAt:    time.Now(),
-			Cwd:          "",
+		if !exists {
+			// Session doesn't exist - create it with minimal info
+			sess := &shared.Session{
+				SessionContext: shared.SessionContext{
+					SessionID: sid,
+					ChannelID: uuid.Nil, // Unknown at this point
+					AgentID:   uuid.Nil,
+					Cwd:       "",
+				},
+				CreatedAt: time.Now(),
+			}
+			if err := a.repo.Create(ctx, sess); err != nil {
+				return fmt.Errorf("failed to create session: %w", err)
+			}
 		}
-		if err := a.repo.Create(ctx, sess); err != nil {
-			return fmt.Errorf("failed to create session: %w", err)
-		}
-	}
 
 	// Convert gollem.Messages to shared.Messages
 	sharedMessages := make([]shared.Message, 0, len(history.Messages))
@@ -184,7 +186,7 @@ func sharedMessageToGollem(msg shared.Message) (gollem.Message, error) {
 	}
 
 	// Store our internal IDs using constants
-	gMsg.Metadata[MetadataKeyMessageID] = msg.ID
+	gMsg.Metadata[MetadataKeyMessageID] = msg.SessionID
 	if msg.SessionID != uuid.Nil {
 		gMsg.Metadata[MetadataKeySessionID] = msg.SessionID
 	}

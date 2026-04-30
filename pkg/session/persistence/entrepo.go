@@ -11,7 +11,6 @@ import (
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/message"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/session"
-	"github.com/denkhaus/gollum/pkg/session/persistence/ent/supervisorconfig"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 )
@@ -65,33 +64,16 @@ func (r *EntRepository) Create(ctx context.Context, session *shared.Session) err
 	defer tx.Rollback()
 
 	// Create session
-	sessionEnt, err := tx.Session.
+	_, err = tx.Session.
 		Create().
-		SetSessionID(session.ID).
+		SetSessionID(session.SessionID).
 		SetChannelID(session.ChannelID).
-		SetAgentID(session.SupervisorID).
+		SetAgentID(session.AgentID).
 		SetCwd(session.Cwd).
 		SetState("active").
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to create session: %w", err)
-	}
-
-	// Create supervisor config if SupervisorID is set
-	if session.SupervisorID != uuid.Nil {
-		// Use single model field format - store model name in ConfigJSON
-		configJSON := map[string]interface{}{
-			"model": session.SupervisorID.String(),
-		}
-		_, err = tx.SupervisorConfig.
-			Create().
-			SetSession(sessionEnt). // Use session entity for FK relationship
-			SetModel(session.SupervisorID.String()).
-			SetConfigJSON(configJSON).
-			Save(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to create supervisor config: %w", err)
-		}
 	}
 
 	return tx.Commit()
@@ -103,7 +85,6 @@ func (r *EntRepository) Get(ctx context.Context, sessionID uuid.UUID) (*shared.S
 		Query().
 		Where(session.SessionID(sessionID)).
 		WithMessages().
-		WithSupervisor().
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", repository.ErrSessionNotFound, err)
@@ -165,7 +146,6 @@ func (r *EntRepository) Fork(ctx context.Context, sessionID uuid.UUID) (*shared.
 	source, err := tx.Session.
 		Query().
 		Where(session.SessionID(sessionID)).
-		WithSupervisor().
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", repository.ErrSessionNotFound, err)
@@ -185,21 +165,6 @@ func (r *EntRepository) Fork(ctx context.Context, sessionID uuid.UUID) (*shared.
 		return nil, fmt.Errorf("failed to create forked session: %w", err)
 	}
 
-	// Copy supervisor config if exists
-	if source.Edges.Supervisor != nil {
-		_, err = tx.SupervisorConfig.
-			Create().
-			SetSessionID(newID).
-			SetModel(source.Edges.Supervisor.Model).
-			SetTemperature(source.Edges.Supervisor.Temperature).
-			SetMaxTokens(source.Edges.Supervisor.MaxTokens).
-			SetSystemPrompt(source.Edges.Supervisor.SystemPrompt).
-			SetConfigJSON(source.Edges.Supervisor.ConfigJSON).
-			Save(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to copy supervisor config: %w", err)
-		}
-	}
 
 	if err := tx.Commit(); err != nil {
 		return nil, err
@@ -229,89 +194,19 @@ func (r *EntRepository) Exists(ctx context.Context, sessionID uuid.UUID) (bool, 
 }
 
 // Update updates an existing session.
-// When SupervisorID changes, it atomically deletes the old SupervisorConfig
-// and creates a new one to maintain foreign key integrity.
 func (r *EntRepository) Update(ctx context.Context, sess *shared.Session) error {
-	// Get current session to check if SupervisorID is changing
-	current, err := r.client.Session.
-		Query().
-		Where(session.SessionID(sess.ID)).
-		Only(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get current session: %w", err)
-	}
-
-	supervisorChanged := current.AgentID != sess.SupervisorID
-
-	// If SupervisorID is not changing, simple update is sufficient
-	if !supervisorChanged {
-		_, err = r.client.Session.
-			Update().
-			Where(session.SessionID(sess.ID)).
-			SetAgentID(sess.SupervisorID).
-			SetCwd(sess.Cwd).
-			Save(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to update session: %w", err)
-		}
-		return nil
-	}
-
-	// SupervisorID is changing - use transaction to handle SupervisorConfig
-	tx, err := r.client.Tx(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	// Get session entity for edge operations
-	sessionEnt, err := tx.Session.
-		Query().
-		Where(session.SessionID(sess.ID)).
-		Only(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get session: %w", err)
-	}
-
-	// Delete existing SupervisorConfig for this session using edge
-	_, err = tx.SupervisorConfig.
-		Delete().
-		Where(supervisorconfig.HasSessionWith(session.ID(sessionEnt.ID))).
-		Exec(ctx)
-	// Ignore error if config doesn't exist
-	_ = err
-
-	// Update session fields
-	_, err = tx.Session.
+	_, err := r.client.Session.
 		Update().
-		Where(session.SessionID(sess.ID)).
-		SetAgentID(sess.SupervisorID).
+		Where(session.SessionID(sess.SessionID)).
+		SetAgentID(sess.AgentID).
 		SetCwd(sess.Cwd).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to update session: %w", err)
 	}
-
-	// Create new SupervisorConfig if new SupervisorID is set
-	if sess.SupervisorID != uuid.Nil {
-		configJSON := map[string]interface{}{
-			"model": sess.SupervisorID.String(),
-		}
-		_, err = tx.SupervisorConfig.
-			Create().
-			SetSession(sessionEnt). // Use session entity for FK relationship
-			SetModel(sess.SupervisorID.String()).
-			SetConfigJSON(configJSON).
-			Save(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to create new supervisor config: %w", err)
-		}
-	}
-
-	return tx.Commit()
+	return nil
 }
 
-// Delete removes a session.
 
 // Delete removes a session.
 func (r *EntRepository) Delete(ctx context.Context, sessionID uuid.UUID) error {
@@ -360,7 +255,7 @@ func (r *EntRepository) AddMessage(ctx context.Context, sessionID uuid.UUID, msg
 		metadata = make(map[string]any)
 	}
 	metadata["agent_role"] = msg.AgentRole
-	metadata["message_id"] = msg.ID
+	metadata["message_id"] = msg.SessionID
 
 	// Convert shared.Message.Role (gollem.MessageRole) to message.Role
 	var msgRole message.Role
@@ -422,13 +317,15 @@ func (r *EntRepository) GetMessages(ctx context.Context, sessionID uuid.UUID, li
 // The caller is responsible for setting the Context if needed.
 func (r *EntRepository) entityToSession(sessionEnt *ent.Session) (*shared.Session, error) {
 	return &shared.Session{
-		ID:           sessionEnt.SessionID,
-		ChannelID:    sessionEnt.ChannelID,
-		SupervisorID: sessionEnt.AgentID,
-		Cwd:          sessionEnt.Cwd,
-		Context:      nil, // Caller must set context
-		CancelFunc:   nil, // Caller must set cancel func
-		CreatedAt:    sessionEnt.CreatedAt,
+		SessionContext: shared.SessionContext{
+			SessionID: sessionEnt.SessionID,
+			ChannelID: sessionEnt.ChannelID,
+			AgentID:   sessionEnt.AgentID,
+			Cwd:       sessionEnt.Cwd,
+		},
+		Context:    nil, // Caller must set context
+		CancelFunc: nil, // Caller must set cancel func
+		CreatedAt:  sessionEnt.CreatedAt,
 	}, nil
 }
 

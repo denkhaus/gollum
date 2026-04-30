@@ -25,16 +25,19 @@ func TestEntRepository_Create(t *testing.T) {
 	repo := NewEntRepositoryFromClient(client, nil)
 
 	session := &shared.Session{
-		ID:        uuid.New(),
-		ChannelID: uuid.New(),
-		Cwd:       "/test",
+		SessionContext: shared.SessionContext{
+			SessionID: uuid.New(),
+			ChannelID: uuid.New(),
+			AgentID:   uuid.New(),
+			Cwd:       "/test",
+		},
 	}
 
 	err := repo.Create(ctx, session)
 	assert.NoError(t, err)
 
 	// Verify session was created
-	exists, err := repo.Exists(ctx, session.ID)
+	exists, err := repo.Exists(ctx, session.SessionContext.SessionID)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 }
@@ -58,18 +61,21 @@ func TestEntRepository_Get_Success(t *testing.T) {
 	repo := NewEntRepositoryFromClient(client, nil)
 
 	session := &shared.Session{
-		ID:        uuid.New(),
-		ChannelID: uuid.New(),
-		Cwd:       "/test",
+		SessionContext: shared.SessionContext{
+			SessionID: uuid.New(),
+			ChannelID: uuid.New(),
+			AgentID:   uuid.New(),
+			Cwd:       "/test",
+		},
 	}
 	require.NoError(t, repo.Create(ctx, session))
 
 	// Get the session
-	retrieved, err := repo.Get(ctx, session.ID)
+	retrieved, err := repo.Get(ctx, session.SessionContext.SessionID)
 	assert.NoError(t, err)
-	assert.Equal(t, session.ID, retrieved.ID)
-	assert.Equal(t, session.ChannelID, retrieved.ChannelID)
-	assert.Equal(t, session.Cwd, retrieved.Cwd)
+	assert.Equal(t, session.SessionContext.SessionID, retrieved.SessionContext.SessionID)
+	assert.Equal(t, session.SessionContext.ChannelID, retrieved.SessionContext.ChannelID)
+	assert.Equal(t, session.SessionContext.Cwd, retrieved.SessionContext.Cwd)
 }
 
 func TestEntRepository_List(t *testing.T) {
@@ -81,15 +87,18 @@ func TestEntRepository_List(t *testing.T) {
 
 	channelID := uuid.New()
 
-	// Create multiple sessions
-	for i := 0; i < 3; i++ {
-		session := &shared.Session{
-			ID:        uuid.New(),
-			ChannelID: channelID,
-			Cwd:       "/test",
+		// Create multiple sessions
+		for i := 0; i < 3; i++ {
+			session := &shared.Session{
+				SessionContext: shared.SessionContext{
+					SessionID: uuid.New(),
+					ChannelID: channelID,
+					AgentID:   uuid.New(),
+					Cwd:       "/test",
+				},
+			}
+			require.NoError(t, repo.Create(ctx, session))
 		}
-		require.NoError(t, repo.Create(ctx, session))
-	}
 
 	// List all sessions
 	sessions, err := repo.List(ctx, nil)
@@ -114,25 +123,28 @@ func TestEntRepository_Fork(t *testing.T) {
 
 	// Create source session
 	source := &shared.Session{
-		ID:        uuid.New(),
-		ChannelID: uuid.New(),
-		Cwd:       "/test",
+		SessionContext: shared.SessionContext{
+					SessionID: uuid.New(),
+					ChannelID: uuid.New(),
+					AgentID:   uuid.New(),
+					Cwd:       "/test",
+				},
 	}
 	require.NoError(t, repo.Create(ctx, source))
 
 	// Fork session
-	forked, err := repo.Fork(ctx, source.ID)
+	forked, err := repo.Fork(ctx, source.SessionContext.SessionID)
 	assert.NoError(t, err)
-	assert.NotEqual(t, source.ID, forked.ID)
+	assert.NotEqual(t, source.SessionContext.SessionID, forked.SessionContext.SessionID)
 	assert.Equal(t, source.ChannelID, forked.ChannelID)
 	assert.Equal(t, source.Cwd, forked.Cwd)
 
 	// Verify both sessions exist
-	exists, err := repo.Exists(ctx, source.ID)
+	exists, err := repo.Exists(ctx, source.SessionContext.SessionID)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 
-	exists, err = repo.Exists(ctx, forked.ID)
+	exists, err = repo.Exists(ctx, forked.SessionContext.SessionID)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 }
@@ -145,18 +157,21 @@ func TestEntRepository_Close(t *testing.T) {
 	repo := NewEntRepositoryFromClient(client, nil)
 
 	session := &shared.Session{
-		ID:        uuid.New(),
-		ChannelID: uuid.New(),
-		Cwd:       "/test",
+		SessionContext: shared.SessionContext{
+					SessionID: uuid.New(),
+					ChannelID: uuid.New(),
+					AgentID:   uuid.New(),
+					Cwd:       "/test",
+				},
 	}
 	require.NoError(t, repo.Create(ctx, session))
 
 	// Close the session
-	err := repo.Close(ctx, session.ID)
+	err := repo.Close(ctx, session.SessionContext.SessionID)
 	assert.NoError(t, err)
 
 	// Verify session state
-	retrieved, err := repo.Get(ctx, session.ID)
+	retrieved, err := repo.Get(ctx, session.SessionContext.SessionID)
 	assert.NoError(t, err)
 	assert.NotNil(t, retrieved)
 }
@@ -169,24 +184,26 @@ func TestEntRepository_Update(t *testing.T) {
 	repo := NewEntRepositoryFromClient(client, nil)
 
 	session := &shared.Session{
-		ID:           uuid.New(),
-		ChannelID:    uuid.New(),
-		SupervisorID: uuid.New(),
-		Cwd:          "/test",
+		SessionContext: shared.SessionContext{
+			SessionID: uuid.New(),
+			ChannelID: uuid.New(),
+			AgentID:   uuid.New(),
+			Cwd:       "/test",
+		},
 	}
+
+	// Create the session first
 	require.NoError(t, repo.Create(ctx, session))
 
 	// Update session
-	session.SupervisorID = uuid.New()
-	session.Cwd = "/updated"
+	session.SessionContext.Cwd = "/updated"
 	err := repo.Update(ctx, session)
 	assert.NoError(t, err)
 
 	// Verify update
-	retrieved, err := repo.Get(ctx, session.ID)
+	retrieved, err := repo.Get(ctx, session.SessionContext.SessionID)
 	assert.NoError(t, err)
-	assert.Equal(t, session.SupervisorID, retrieved.SupervisorID)
-	assert.Equal(t, session.Cwd, retrieved.Cwd)
+	assert.Equal(t, session.SessionContext.Cwd, retrieved.SessionContext.Cwd)
 }
 
 func TestEntRepository_Delete(t *testing.T) {
@@ -197,18 +214,21 @@ func TestEntRepository_Delete(t *testing.T) {
 	repo := NewEntRepositoryFromClient(client, nil)
 
 	session := &shared.Session{
-		ID:        uuid.New(),
-		ChannelID: uuid.New(),
-		Cwd:       "/test",
+		SessionContext: shared.SessionContext{
+					SessionID: uuid.New(),
+					ChannelID: uuid.New(),
+					AgentID:   uuid.New(),
+					Cwd:       "/test",
+				},
 	}
 	require.NoError(t, repo.Create(ctx, session))
 
 	// Delete session
-	err := repo.Delete(ctx, session.ID)
+	err := repo.Delete(ctx, session.SessionContext.SessionID)
 	assert.NoError(t, err)
 
 	// Verify deletion
-	exists, err := repo.Exists(ctx, session.ID)
+	exists, err := repo.Exists(ctx, session.SessionContext.SessionID)
 	assert.NoError(t, err)
 	assert.False(t, exists)
 }
@@ -222,9 +242,12 @@ func TestEntRepository_Archive(t *testing.T) {
 
 	// Create old session
 	oldSession := &shared.Session{
-		ID:        uuid.New(),
-		ChannelID: uuid.New(),
-		Cwd:       "/test",
+		SessionContext: shared.SessionContext{
+					SessionID: uuid.New(),
+					ChannelID: uuid.New(),
+					AgentID:   uuid.New(),
+					Cwd:       "/test",
+				},
 	}
 	require.NoError(t, repo.Create(ctx, oldSession))
 
@@ -233,9 +256,12 @@ func TestEntRepository_Archive(t *testing.T) {
 
 	// Create recent session
 	recentSession := &shared.Session{
-		ID:        uuid.New(),
-		ChannelID: uuid.New(),
-		Cwd:       "/test",
+		SessionContext: shared.SessionContext{
+					SessionID: uuid.New(),
+					ChannelID: uuid.New(),
+					AgentID:   uuid.New(),
+					Cwd:       "/test",
+				},
 	}
 	require.NoError(t, repo.Create(ctx, recentSession))
 
@@ -253,15 +279,22 @@ func TestEntRepository_AddMessage(t *testing.T) {
 	repo := NewEntRepositoryFromClient(client, nil)
 
 	session := &shared.Session{
-		ID:        uuid.New(),
-		ChannelID: uuid.New(),
-		Cwd:       "/test",
+		SessionContext: shared.SessionContext{
+					SessionID: uuid.New(),
+					ChannelID: uuid.New(),
+					AgentID:   uuid.New(),
+					Cwd:       "/test",
+				},
 	}
 	require.NoError(t, repo.Create(ctx, session))
 
 	// Add message
 	msg := shared.Message{
-		ID:        uuid.New(),
+		SessionContext: shared.SessionContext{
+					SessionID: uuid.New(),
+					ChannelID: uuid.New(),
+					AgentID:   uuid.New(),
+				},
 		Role: gollem.RoleUser,
 		AgentRole: "user",
 		Content:   "Hello",
@@ -269,11 +302,11 @@ func TestEntRepository_AddMessage(t *testing.T) {
 		Metadata:  make(map[string]any),
 	}
 
-	err := repo.AddMessage(ctx, session.ID, msg)
+	err := repo.AddMessage(ctx, session.SessionContext.SessionID, msg)
 	assert.NoError(t, err)
 
 	// Verify message was added
-	messages, err := repo.GetMessages(ctx, session.ID, 10, 0)
+	messages, err := repo.GetMessages(ctx, session.SessionContext.SessionID, 10, 0)
 	assert.NoError(t, err)
 	assert.Len(t, messages, 1)
 	assert.Equal(t, msg.Content, messages[0].Content)
@@ -287,32 +320,39 @@ func TestEntRepository_GetMessages(t *testing.T) {
 	repo := NewEntRepositoryFromClient(client, nil)
 
 	session := &shared.Session{
-		ID:        uuid.New(),
-		ChannelID: uuid.New(),
-		Cwd:       "/test",
+		SessionContext: shared.SessionContext{
+					SessionID: uuid.New(),
+					ChannelID: uuid.New(),
+					AgentID:   uuid.New(),
+					Cwd:       "/test",
+				},
 	}
 	require.NoError(t, repo.Create(ctx, session))
 
 	// Add multiple messages
 	for i := 0; i < 5; i++ {
 		msg := shared.Message{
-			ID:        uuid.New(),
+			SessionContext: shared.SessionContext{
+					SessionID: uuid.New(),
+					ChannelID: uuid.New(),
+					AgentID:   uuid.New(),
+				},
 			Role: gollem.RoleUser,
 			AgentRole: "user",
 			Content:   fmt.Sprintf("Message %d", i),
 			Timestamp: time.Now(),
 			Metadata:  make(map[string]any),
 		}
-		require.NoError(t, repo.AddMessage(ctx, session.ID, msg))
+		require.NoError(t, repo.AddMessage(ctx, session.SessionContext.SessionID, msg))
 	}
 
 	// Get messages with limit
-	messages, err := repo.GetMessages(ctx, session.ID, 3, 0)
+	messages, err := repo.GetMessages(ctx, session.SessionContext.SessionID, 3, 0)
 	assert.NoError(t, err)
 	assert.Len(t, messages, 3)
 
 	// Get messages with offset
-	messages, err = repo.GetMessages(ctx, session.ID, 3, 2)
+	messages, err = repo.GetMessages(ctx, session.SessionContext.SessionID, 3, 2)
 	assert.NoError(t, err)
 	assert.Len(t, messages, 3)
 }
@@ -325,13 +365,16 @@ func TestEntRepository_Exists(t *testing.T) {
 	repo := NewEntRepositoryFromClient(client, nil)
 
 	session := &shared.Session{
-		ID:        uuid.New(),
-		ChannelID: uuid.New(),
-		Cwd:       "/test",
+		SessionContext: shared.SessionContext{
+					SessionID: uuid.New(),
+					ChannelID: uuid.New(),
+					AgentID:   uuid.New(),
+					Cwd:       "/test",
+				},
 	}
 
 	// Should not exist before creation
-	exists, err := repo.Exists(ctx, session.ID)
+	exists, err := repo.Exists(ctx, session.SessionContext.SessionID)
 	assert.NoError(t, err)
 	assert.False(t, exists)
 
@@ -339,14 +382,14 @@ func TestEntRepository_Exists(t *testing.T) {
 	require.NoError(t, repo.Create(ctx, session))
 
 	// Should exist after creation
-	exists, err = repo.Exists(ctx, session.ID)
+	exists, err = repo.Exists(ctx, session.SessionContext.SessionID)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 }
 
 func TestEntRepository_NewEntRepository(t *testing.T) {
 	// Test with SQLite driver
-	repo, err := NewEntRepository("sqlite3", "file:test.db?mode=memory&cache=shared", nil)
+	repo, err := NewEntRepository("sqlite3", "file:test.db?mode=memory&cache=shared&_fk=1", nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
 
