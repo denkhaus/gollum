@@ -5,23 +5,27 @@ import (
 	"context"
 	"sync"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // Session represents an active session with a supervisor agent.
 type Session struct {
-	ID           uuid.UUID
-	ChannelID    uuid.UUID
-	SupervisorID uuid.UUID
-	Context      context.Context
-	CancelFunc   context.CancelFunc
-	CreatedAt    time.Time
-	Cwd          string // Current working directory for this session
-
+	SessionContext
+	Context    context.Context
+	CancelFunc context.CancelFunc
+	CreatedAt  time.Time
 	// Session-owned supervisor (lazy initialized)
 	supervisor   Agent
 	supervisorMu sync.RWMutex
+}
+
+func (s *Session) NewTurn(ctx context.Context) context.Context {
+	// Cancel previous turn and create new context
+	if s.CancelFunc != nil {
+		s.CancelFunc()
+	}
+
+	s.Context, s.CancelFunc = context.WithCancel(ctx)
+	return s.Context
 }
 
 // GetOrCreateSupervisor lazily creates and returns the session's supervisor agent.
@@ -47,7 +51,7 @@ func (s *Session) GetOrCreateSupervisor(factory AgentFactory) (Agent, error) {
 	// Create supervisor for this session
 	supervisor, _, err := factory.CreateSupervisorAgent(
 		s.Context,
-		WithSessionID(s.ID),
+		WithSessionID(s.SessionID),
 		WithChannelID(s.ChannelID),
 	)
 	if err != nil {
@@ -55,7 +59,7 @@ func (s *Session) GetOrCreateSupervisor(factory AgentFactory) (Agent, error) {
 	}
 
 	s.supervisor = supervisor
-	s.SupervisorID = supervisor.GetID()
+	s.AgentID = supervisor.GetID()
 	return supervisor, nil
 }
 

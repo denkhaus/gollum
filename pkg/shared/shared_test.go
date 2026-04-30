@@ -31,7 +31,6 @@ func TestOutputModeValues(t *testing.T) {
 // TestAgentConfig_OutputModeDefault verifies default OutputMode is empty string
 func TestAgentConfig_OutputModeDefault(t *testing.T) {
 	config := &AgentConfig{
-		ID:           uuid.New(),
 		SystemPrompt: "test",
 		Role:         "TestAgent",
 		LLMClientConfig: &LLMClientConfig{
@@ -281,7 +280,7 @@ func TestToolResult_ConstantUsage(t *testing.T) {
 // TestAgentConfig_AllowedToolsField verifies AllowedTools field exists and works
 func TestAgentConfig_AllowedToolsField(t *testing.T) {
 	config := &AgentConfig{
-		ID:           uuid.New(),
+		
 		AllowedTools: []string{"bash", "current_time"},
 	}
 
@@ -293,8 +292,7 @@ func TestAgentConfig_AllowedToolsField(t *testing.T) {
 // TestAgentConfig_NoToolsOrToolSetsFields verifies old Tools/ToolSets fields are removed
 func TestAgentConfig_NoToolsOrToolSetsFields(t *testing.T) {
 	config := &AgentConfig{
-		ID: uuid.New(),
-	}
+			}
 
 	// AllowedTools should exist and be nil by default
 	assert.Nil(t, config.AllowedTools)

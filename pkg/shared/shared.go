@@ -249,7 +249,8 @@ var (
 
 // AgentConfig holds configuration for an agent, usable by both parent and sub-agents.
 type AgentConfig struct {
-	ID              uuid.UUID        `json:"id"`
+	SessionContext `json:"-"` // Embedded session context (not marshaled directly)
+
 	ParentID        *uuid.UUID       `json:"parent_id,omitempty"`
 	SystemPrompt    string           `json:"system_prompt"`
 	Role            string           `json:"role"`
@@ -260,7 +261,6 @@ type AgentConfig struct {
 	AllowCompaction bool             `json:"allow_compaction"`
 	History         *gollem.History  `json:"history,omitempty"` // Optional parent message history for context awareness
 	IsSupervisor    bool             `json:"is_supervisor"`     // Indicates this is the singleton supervisor agent
-	SessionContext  `json:"-"`       // Embedded session context (not marshaled directly)
 
 	// AllowedTools specifies which tools the agent can access.
 	// Built-in tools use ToolName constants (e.g., "bash", "current_time").

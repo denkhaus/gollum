@@ -3,9 +3,9 @@ package shared
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
-
 	"github.com/ironpark/go-acp"
 )
 
@@ -21,29 +21,22 @@ type ACPService interface {
 
 	// Dependency injection setters (called by connection factory)
 	SetClient(client acp.Client)
-	SetSessionStore(store acp.SessionStore[*ACPSession])
+	SetSessionStore(store acp.SessionStore[*Session])
 
 	// HTTP transport support
 	GetHandler() http.Handler
 }
 
-// ACPSession holds session state for ACP connections
-type ACPSession struct {
-	// Context for the current prompt/turn - can be cancelled
-	Context context.Context
-	// CancelFunc cancels the current turn
-	CancelFunc context.CancelFunc
-	// SessionID from ACP protocol (UUID)
-	SessionID uuid.UUID
-	// Cwd is the current working directory for this session
-	Cwd string
-}
-
-// NewAcpSession creates a new session with cancellable context and working directory
-func NewAcpSession(ctx context.Context, cancel context.CancelFunc, cwd string) *ACPSession {
-	return &ACPSession{
+// NewSession creates a new Session with the given context and working directory.
+// This is a convenience function for ACP session creation.
+func NewSession(ctx context.Context, cancel context.CancelFunc, cwd string) *Session {
+	return &Session{
+		SessionContext: SessionContext{
+			SessionID: uuid.New(),
+			Cwd:       cwd,
+		},
 		Context:    ctx,
 		CancelFunc: cancel,
-		Cwd:        cwd,
+		CreatedAt:  time.Now(),
 	}
 }
