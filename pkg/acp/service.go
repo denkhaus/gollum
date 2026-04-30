@@ -57,6 +57,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/google/uuid"
@@ -77,11 +78,11 @@ type acpServiceImpl struct {
 	logger         logger.LoggerService
 	config         config.ConfigService
 	client         acppkg.Client
-	store          acppkg.SessionStore[*shared.ACPSession] // ACP-internal store for protocol
-	sessionManager session.SessionManager                  // Gollum session manager for system integration
-	id             uuid.UUID                               // Channel ID
-	conn           Connection                              // ACP connection (created in Start)
-	injector       do.Injector                             // For connection creation
+	store          acppkg.SessionStore[*shared.Session] // ACP-internal store for protocol
+	sessionManager session.SessionManager               // Gollum session manager for system integration
+	id             uuid.UUID                            // Channel ID
+	conn           Connection                           // ACP connection (created in Start)
+	injector       do.Injector                          // For connection creation
 
 	// Transport-related fields
 	stdin         io.Reader     // For connection creation
@@ -165,7 +166,7 @@ func (s *acpServiceImpl) SetClient(client acppkg.Client) {
 }
 
 // SetSessionStore sets the session store (called by connection factory)
-func (s *acpServiceImpl) SetSessionStore(store acppkg.SessionStore[*shared.ACPSession]) {
+func (s *acpServiceImpl) SetSessionStore(store acppkg.SessionStore[*shared.Session]) {
 	s.store = store
 }
 
@@ -488,35 +489,35 @@ func (s *acpServiceImpl) SetSessionConfigOption(ctx context.Context, params *acp
 // Prompt implements acp.Agent.Prompt - core agent execution loop
 func (s *acpServiceImpl) Prompt(ctx context.Context, params *acppkg.PromptRequest) (resp *acppkg.PromptResponse, err error) {
 	// Declare session variable here so defer block can access it for nil checking
-	var session *shared.ACPSession
+	var session *shared.Session
 
 	// Add recover to catch panics and provide better error messages
 	defer func() {
 		if r := recover(); r != nil {
+			// Capture stack trace
+			stackTrace := debug.Stack()
+
 			if s.logger != nil {
 				s.logger.Error("ACP Prompt panic recovered",
 					zap.Any("panic", r),
 					zap.String("session_id", string(params.SessionID)),
+					zap.String("stacktrace", string(stackTrace)),
 				)
 			}
 
-			err = fmt.Errorf("panic in Prompt: %v", r)
+			err = fmt.Errorf("panic in Prompt: %v\n%s", r, string(stackTrace))
 			resp = &acppkg.PromptResponse{
 				StopReason: acppkg.StopReasonEndTurn,
 			}
 		}
 	}()
 
+	// Validate required dependencies
 	if s.store == nil {
 		return nil, fmt.Errorf("store not initialized")
 	}
-
 	if s.facade == nil {
 		return nil, fmt.Errorf("facade not initialized")
-	}
-
-	if s.client == nil {
-		return nil, fmt.Errorf("client not initialized (connection not established)")
 	}
 
 	session, ok := s.store.Get(params.SessionID)
@@ -524,22 +525,13 @@ func (s *acpServiceImpl) Prompt(ctx context.Context, params *acppkg.PromptReques
 		return nil, fmt.Errorf("session %s not found", params.SessionID)
 	}
 
-	if session == nil {
-		return nil, fmt.Errorf("session is nil for sessionID %s", params.SessionID)
-	}
-
-	// Cancel previous turn and create new context
-	if session.CancelFunc != nil {
-		session.CancelFunc()
-	}
-	sessionCtx, cancelFunc := context.WithCancel(context.Background())
-	session.Context = sessionCtx
-	session.CancelFunc = cancelFunc
+	sessionCtx := session.NewTurn(ctx)
 
 	// Extract prompt content from params
 	if len(params.Prompt) == 0 {
 		return nil, fmt.Errorf("prompt content is empty")
 	}
+
 	contentBlock := params.Prompt[0]
 	textContent, ok := contentBlock.AsText()
 	if !ok {
@@ -561,29 +553,11 @@ func (s *acpServiceImpl) Prompt(ctx context.Context, params *acppkg.PromptReques
 	}
 
 	s.logger.Info("ACP Prompt submitting to facade",
-		zap.String("session_id", string(params.SessionID)),
-		zap.String("channel_id", s.id.String()),
+		zap.String("session_context", session.String()),
 		zap.String("prompt_preview", promptContent[:min(100, len(promptContent))]+"..."),
 	)
 
-	// Additional nil checks before calling SubmitInput
-	if s.facade == nil {
-		s.logger.Error("facade is nil when trying to submit input")
-		return nil, fmt.Errorf("facade is nil")
-	}
-
-	s.logger.Debug("ACP Prompt calling facade.SubmitInput",
-		zap.String("session_id", session.SessionID.String()),
-		zap.String("channel_id", s.id.String()),
-		zap.String("cwd", session.Cwd),
-	)
-
-	result, err := s.facade.SubmitInput(sessionCtx, &shared.SessionContext{
-		SessionID: session.SessionID,
-		ChannelID: s.id,
-		AgentID:   uuid.Nil, // Will be set by session/supervisor
-		Cwd:       session.Cwd,
-	}, promptContent)
+	result, err := s.facade.SubmitInput(session, promptContent)
 	if err != nil {
 		if sessionCtx.Err() == context.Canceled {
 			return &acppkg.PromptResponse{
@@ -651,7 +625,7 @@ func (s *acpServiceImpl) ListSessions(ctx context.Context) ([]*shared.Session, e
 }
 
 // LoadSession loads an existing session (ACP: session/load).
-func (s *acpServiceImpl) LoadSession(ctx context.Context, sessionID acppkg.SessionID) (*shared.ACPSession, error) {
+func (s *acpServiceImpl) LoadSession(ctx context.Context, sessionID acppkg.SessionID) (*shared.Session, error) {
 	uuidSessionID, err := uuid.Parse(string(sessionID))
 	if err != nil {
 		return nil, fmt.Errorf("invalid session ID: %w", err)
@@ -662,12 +636,7 @@ func (s *acpServiceImpl) LoadSession(ctx context.Context, sessionID acppkg.Sessi
 		return nil, err
 	}
 
-	return &shared.ACPSession{
-		Context:    session.Context,
-		CancelFunc: session.CancelFunc,
-		SessionID:  session.ID,
-		Cwd:        session.Cwd,
-	}, nil
+	return session, nil
 }
 
 // ResumeSession resumes a closed session (ACP: session/resume).
@@ -702,7 +671,7 @@ func (s *acpServiceImpl) ForkSession(ctx context.Context, sessionID acppkg.Sessi
 		return "", err
 	}
 
-	return acppkg.SessionID(newSession.ID.String()), nil
+	return acppkg.SessionID(newSession.SessionID.String()), nil
 }
 
 // =============================================================================
@@ -770,7 +739,7 @@ func (s *acpServiceImpl) handleListSessions(ctx context.Context, params json.Raw
 	result := make([]any, len(sessions))
 	for i, sess := range sessions {
 		result[i] = sessionInfo{
-			ID:        sess.ID.String(),
+			ID:        sess.SessionID.String(),
 			ChannelID: sess.ChannelID.String(),
 			CreatedAt: sess.CreatedAt.Format(time.RFC3339),
 			Cwd:       sess.Cwd,
