@@ -13,6 +13,7 @@ import (
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
+	shared "github.com/denkhaus/gollum/pkg/shared"
 )
 
 // MockConfigService is a mock of ConfigService interface.
@@ -303,4 +304,19 @@ func (m *MockConfigService) IsDevMode() bool {
 func (mr *MockConfigServiceMockRecorder) IsDevMode() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsDevMode", reflect.TypeOf((*MockConfigService)(nil).IsDevMode))
+}
+
+// ClientConfig mocks base method.
+func (m *MockConfigService) ClientConfig(arg0 shared.AgentType) (*shared.LLMClientConfig, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClientConfig", arg0)
+	ret0, _ := ret[0].(*shared.LLMClientConfig)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ClientConfig indicates an expected call of ClientConfig.
+func (mr *MockConfigServiceMockRecorder) ClientConfig(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClientConfig", reflect.TypeOf((*MockConfigService)(nil).ClientConfig))
 }

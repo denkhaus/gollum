@@ -643,7 +643,7 @@ func (r *agentRegistry) GetSupervisorAgent() (shared.Agent, error) {
 	defer r.mutex.RUnlock()
 
 	for _, handle := range r.agents {
-		if handle.config != nil && handle.config.IsSupervisor {
+		if handle.config != nil && handle.config.Type == shared.AgentTypeSupervisor {
 			return handle.agent, nil
 		}
 	}

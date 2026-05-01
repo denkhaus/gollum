@@ -12,6 +12,10 @@
       "name": "claude-settings",
       "path": "/home/denkhaus/.claude/",
     },
+    {
+      "name": "gollem",
+      "path": "/home/denkhaus/dev/gomodules/gollem/",
+    },
   ],
   "settings": {},
 }

@@ -27,6 +27,7 @@ func TestSessionLogsTool_Run_TailMode(t *testing.T) {
 	agentID := uuid.New()
 	testAgent := shared.NewMockAgent(ctrl)
 	testAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	testAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{AgentID: agentID}).AnyTimes()
 	now := time.Now()
 
 	// Create test log entries
@@ -76,6 +77,7 @@ func TestSessionLogsTool_Run_HeadMode(t *testing.T) {
 	agentID := uuid.New()
 	testAgent := shared.NewMockAgent(ctrl)
 	testAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	testAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{AgentID: agentID}).AnyTimes()
 	now := time.Now()
 
 	entries := []logger.LogEntry{
@@ -114,6 +116,7 @@ func TestSessionLogsTool_Run_SinceMode(t *testing.T) {
 	agentID := uuid.New()
 	testAgent := shared.NewMockAgent(ctrl)
 	testAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	testAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{AgentID: agentID}).AnyTimes()
 	now := time.Now()
 
 	entries := []logger.LogEntry{
@@ -149,6 +152,7 @@ func TestSessionLogsTool_Run_AllMode(t *testing.T) {
 	agentID := uuid.New()
 	testAgent := shared.NewMockAgent(ctrl)
 	testAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	testAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{AgentID: agentID}).AnyTimes()
 	now := time.Now()
 
 	entries := []logger.LogEntry{
@@ -181,6 +185,7 @@ func TestSessionLogsTool_Run_FilterByLevel(t *testing.T) {
 	agentID := uuid.New()
 	testAgent := shared.NewMockAgent(ctrl)
 	testAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	testAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{AgentID: agentID}).AnyTimes()
 	now := time.Now()
 
 	entries := []logger.LogEntry{
@@ -282,6 +287,7 @@ func TestSessionLogsTool_Run_SinceModeWithoutSince(t *testing.T) {
 
 	testAgent := shared.NewMockAgent(ctrl)
 	testAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	testAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{AgentID: agentID}).AnyTimes()
 
 	entries := []logger.LogEntry{
 		{Timestamp: now, Level: "info", Message: "msg1", SessionContext: shared.SessionContext{AgentID: agentID}},
@@ -398,6 +404,7 @@ func TestSessionLogsTool_Run_CountLimit(t *testing.T) {
 	agentID := uuid.New()
 	testAgent := shared.NewMockAgent(ctrl)
 	testAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	testAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{AgentID: agentID}).AnyTimes()
 	now := time.Now()
 
 	// Create 10 entries
@@ -453,7 +460,6 @@ func TestSessionLogsTool_Spec(t *testing.T) {
 	requiredParams := spec.Parameters
 	assert.Contains(t, requiredParams, "mode")
 	assert.Contains(t, requiredParams, "count")
-	assert.Contains(t, requiredParams, "since")
 	assert.Contains(t, requiredParams, "level")
 	assert.Contains(t, requiredParams, "agent_id")
 }
@@ -466,7 +472,6 @@ func TestIsValidMode(t *testing.T) {
 	}{
 		{"head", true},
 		{"tail", true},
-		{"since", true},
 		{"all", true},
 		{"invalid", false},
 		{"", false},
@@ -492,6 +497,7 @@ func TestSessionLogsTool_CaseInsensitiveLevelFilter(t *testing.T) {
 	agentID := uuid.New()
 	testAgent := shared.NewMockAgent(ctrl)
 	testAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	testAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{AgentID: agentID}).AnyTimes()
 	now := time.Now()
 
 	entries := []logger.LogEntry{
@@ -529,6 +535,7 @@ func TestSessionLogsTool_Provider(t *testing.T) {
 	agentID := uuid.New()
 	testAgent := shared.NewMockAgent(ctrl)
 	testAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	testAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{AgentID: agentID}).AnyTimes()
 	testAgent.EXPECT().ToSessionContext().Return(*shared.NewSessionContext(uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), agentID, uuid.Nil, "")).AnyTimes()
 	tool := provider.CreateTool(testAgent)
 	toolImpl := tool.(*sessionLogsToolImpl)
@@ -570,6 +577,7 @@ func TestSessionLogsTool_WithFields(t *testing.T) {
 	agentID := uuid.New()
 	testAgent := shared.NewMockAgent(ctrl)
 	testAgent.EXPECT().GetID().Return(agentID).AnyTimes()
+	testAgent.EXPECT().ToSessionContext().Return(shared.SessionContext{AgentID: agentID}).AnyTimes()
 	now := time.Now()
 
 	entries := []logger.LogEntry{

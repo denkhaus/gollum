@@ -23,6 +23,12 @@ func WithSessionID(sessionID uuid.UUID) SupervisorAgentOption {
 	}
 }
 
+func WithStartupDirectory(startupDirectory string) SupervisorAgentOption {
+	return func(cfg *AgentConfig) {
+		cfg.SessionContext.StartupDirectory = startupDirectory
+	}
+}
+
 // WithChannelID sets the channel ID for the agent
 func WithChannelID(channelID uuid.UUID) SupervisorAgentOption {
 	return func(cfg *AgentConfig) {

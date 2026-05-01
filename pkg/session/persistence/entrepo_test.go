@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/m-mizutani/gollem"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func TestEntRepository_Create(t *testing.T) {
@@ -26,10 +26,10 @@ func TestEntRepository_Create(t *testing.T) {
 
 	session := &shared.Session{
 		SessionContext: shared.SessionContext{
-			SessionID: uuid.New(),
-			ChannelID: uuid.New(),
-			AgentID:   uuid.New(),
-			Cwd:       "/test",
+			SessionID:        uuid.New(),
+			ChannelID:        uuid.New(),
+			AgentID:          uuid.New(),
+			StartupDirectory: "/test",
 		},
 	}
 
@@ -62,10 +62,10 @@ func TestEntRepository_Get_Success(t *testing.T) {
 
 	session := &shared.Session{
 		SessionContext: shared.SessionContext{
-			SessionID: uuid.New(),
-			ChannelID: uuid.New(),
-			AgentID:   uuid.New(),
-			Cwd:       "/test",
+			SessionID:        uuid.New(),
+			ChannelID:        uuid.New(),
+			AgentID:          uuid.New(),
+			StartupDirectory: "/test",
 		},
 	}
 	require.NoError(t, repo.Create(ctx, session))
@@ -75,7 +75,7 @@ func TestEntRepository_Get_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, session.SessionContext.SessionID, retrieved.SessionContext.SessionID)
 	assert.Equal(t, session.SessionContext.ChannelID, retrieved.SessionContext.ChannelID)
-	assert.Equal(t, session.SessionContext.Cwd, retrieved.SessionContext.Cwd)
+	assert.Equal(t, session.SessionContext.StartupDirectory, retrieved.SessionContext.StartupDirectory)
 }
 
 func TestEntRepository_List(t *testing.T) {
@@ -87,18 +87,18 @@ func TestEntRepository_List(t *testing.T) {
 
 	channelID := uuid.New()
 
-		// Create multiple sessions
-		for i := 0; i < 3; i++ {
-			session := &shared.Session{
-				SessionContext: shared.SessionContext{
-					SessionID: uuid.New(),
-					ChannelID: channelID,
-					AgentID:   uuid.New(),
-					Cwd:       "/test",
-				},
-			}
-			require.NoError(t, repo.Create(ctx, session))
+	// Create multiple sessions
+	for i := 0; i < 3; i++ {
+		session := &shared.Session{
+			SessionContext: shared.SessionContext{
+				SessionID:        uuid.New(),
+				ChannelID:        channelID,
+				AgentID:          uuid.New(),
+				StartupDirectory: "/test",
+			},
 		}
+		require.NoError(t, repo.Create(ctx, session))
+	}
 
 	// List all sessions
 	sessions, err := repo.List(ctx, nil)
@@ -124,11 +124,11 @@ func TestEntRepository_Fork(t *testing.T) {
 	// Create source session
 	source := &shared.Session{
 		SessionContext: shared.SessionContext{
-					SessionID: uuid.New(),
-					ChannelID: uuid.New(),
-					AgentID:   uuid.New(),
-					Cwd:       "/test",
-				},
+			SessionID:        uuid.New(),
+			ChannelID:        uuid.New(),
+			AgentID:          uuid.New(),
+			StartupDirectory: "/test",
+		},
 	}
 	require.NoError(t, repo.Create(ctx, source))
 
@@ -137,7 +137,7 @@ func TestEntRepository_Fork(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEqual(t, source.SessionContext.SessionID, forked.SessionContext.SessionID)
 	assert.Equal(t, source.ChannelID, forked.ChannelID)
-	assert.Equal(t, source.Cwd, forked.Cwd)
+	assert.Equal(t, source.StartupDirectory, forked.StartupDirectory)
 
 	// Verify both sessions exist
 	exists, err := repo.Exists(ctx, source.SessionContext.SessionID)
@@ -158,11 +158,11 @@ func TestEntRepository_Close(t *testing.T) {
 
 	session := &shared.Session{
 		SessionContext: shared.SessionContext{
-					SessionID: uuid.New(),
-					ChannelID: uuid.New(),
-					AgentID:   uuid.New(),
-					Cwd:       "/test",
-				},
+			SessionID:        uuid.New(),
+			ChannelID:        uuid.New(),
+			AgentID:          uuid.New(),
+			StartupDirectory: "/test",
+		},
 	}
 	require.NoError(t, repo.Create(ctx, session))
 
@@ -185,10 +185,10 @@ func TestEntRepository_Update(t *testing.T) {
 
 	session := &shared.Session{
 		SessionContext: shared.SessionContext{
-			SessionID: uuid.New(),
-			ChannelID: uuid.New(),
-			AgentID:   uuid.New(),
-			Cwd:       "/test",
+			SessionID:        uuid.New(),
+			ChannelID:        uuid.New(),
+			AgentID:          uuid.New(),
+			StartupDirectory: "/test",
 		},
 	}
 
@@ -196,14 +196,14 @@ func TestEntRepository_Update(t *testing.T) {
 	require.NoError(t, repo.Create(ctx, session))
 
 	// Update session
-	session.SessionContext.Cwd = "/updated"
+	session.SessionContext.StartupDirectory = "/updated"
 	err := repo.Update(ctx, session)
 	assert.NoError(t, err)
 
 	// Verify update
 	retrieved, err := repo.Get(ctx, session.SessionContext.SessionID)
 	assert.NoError(t, err)
-	assert.Equal(t, session.SessionContext.Cwd, retrieved.SessionContext.Cwd)
+	assert.Equal(t, session.SessionContext.StartupDirectory, retrieved.SessionContext.StartupDirectory)
 }
 
 func TestEntRepository_Delete(t *testing.T) {
@@ -215,11 +215,11 @@ func TestEntRepository_Delete(t *testing.T) {
 
 	session := &shared.Session{
 		SessionContext: shared.SessionContext{
-					SessionID: uuid.New(),
-					ChannelID: uuid.New(),
-					AgentID:   uuid.New(),
-					Cwd:       "/test",
-				},
+			SessionID:        uuid.New(),
+			ChannelID:        uuid.New(),
+			AgentID:          uuid.New(),
+			StartupDirectory: "/test",
+		},
 	}
 	require.NoError(t, repo.Create(ctx, session))
 
@@ -243,11 +243,11 @@ func TestEntRepository_Archive(t *testing.T) {
 	// Create old session
 	oldSession := &shared.Session{
 		SessionContext: shared.SessionContext{
-					SessionID: uuid.New(),
-					ChannelID: uuid.New(),
-					AgentID:   uuid.New(),
-					Cwd:       "/test",
-				},
+			SessionID:        uuid.New(),
+			ChannelID:        uuid.New(),
+			AgentID:          uuid.New(),
+			StartupDirectory: "/test",
+		},
 	}
 	require.NoError(t, repo.Create(ctx, oldSession))
 
@@ -257,11 +257,11 @@ func TestEntRepository_Archive(t *testing.T) {
 	// Create recent session
 	recentSession := &shared.Session{
 		SessionContext: shared.SessionContext{
-					SessionID: uuid.New(),
-					ChannelID: uuid.New(),
-					AgentID:   uuid.New(),
-					Cwd:       "/test",
-				},
+			SessionID:        uuid.New(),
+			ChannelID:        uuid.New(),
+			AgentID:          uuid.New(),
+			StartupDirectory: "/test",
+		},
 	}
 	require.NoError(t, repo.Create(ctx, recentSession))
 
@@ -280,22 +280,22 @@ func TestEntRepository_AddMessage(t *testing.T) {
 
 	session := &shared.Session{
 		SessionContext: shared.SessionContext{
-					SessionID: uuid.New(),
-					ChannelID: uuid.New(),
-					AgentID:   uuid.New(),
-					Cwd:       "/test",
-				},
+			SessionID:        uuid.New(),
+			ChannelID:        uuid.New(),
+			AgentID:          uuid.New(),
+			StartupDirectory: "/test",
+		},
 	}
 	require.NoError(t, repo.Create(ctx, session))
 
 	// Add message
 	msg := shared.Message{
 		SessionContext: shared.SessionContext{
-					SessionID: uuid.New(),
-					ChannelID: uuid.New(),
-					AgentID:   uuid.New(),
-				},
-		Role: gollem.RoleUser,
+			SessionID: uuid.New(),
+			ChannelID: uuid.New(),
+			AgentID:   uuid.New(),
+		},
+		Role:      gollem.RoleUser,
 		AgentRole: "user",
 		Content:   "Hello",
 		Timestamp: time.Now(),
@@ -321,11 +321,11 @@ func TestEntRepository_GetMessages(t *testing.T) {
 
 	session := &shared.Session{
 		SessionContext: shared.SessionContext{
-					SessionID: uuid.New(),
-					ChannelID: uuid.New(),
-					AgentID:   uuid.New(),
-					Cwd:       "/test",
-				},
+			SessionID:        uuid.New(),
+			ChannelID:        uuid.New(),
+			AgentID:          uuid.New(),
+			StartupDirectory: "/test",
+		},
 	}
 	require.NoError(t, repo.Create(ctx, session))
 
@@ -333,11 +333,11 @@ func TestEntRepository_GetMessages(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		msg := shared.Message{
 			SessionContext: shared.SessionContext{
-					SessionID: uuid.New(),
-					ChannelID: uuid.New(),
-					AgentID:   uuid.New(),
-				},
-			Role: gollem.RoleUser,
+				SessionID: uuid.New(),
+				ChannelID: uuid.New(),
+				AgentID:   uuid.New(),
+			},
+			Role:      gollem.RoleUser,
 			AgentRole: "user",
 			Content:   fmt.Sprintf("Message %d", i),
 			Timestamp: time.Now(),
@@ -366,11 +366,11 @@ func TestEntRepository_Exists(t *testing.T) {
 
 	session := &shared.Session{
 		SessionContext: shared.SessionContext{
-					SessionID: uuid.New(),
-					ChannelID: uuid.New(),
-					AgentID:   uuid.New(),
-					Cwd:       "/test",
-				},
+			SessionID:        uuid.New(),
+			ChannelID:        uuid.New(),
+			AgentID:          uuid.New(),
+			StartupDirectory: "/test",
+		},
 	}
 
 	// Should not exist before creation

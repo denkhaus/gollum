@@ -18,5 +18,5 @@ func TestAcpSession_NewSession_HasRequiredFields(t *testing.T) {
 	assert.NotNil(t, session)
 	assert.NotNil(t, session.Context)
 	assert.NotNil(t, session.CancelFunc)
-	assert.Equal(t, "/test/cwd", session.Cwd)
+	assert.Equal(t, "/test/cwd", session.StartupDirectory)
 }

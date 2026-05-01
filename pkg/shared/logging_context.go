@@ -11,10 +11,10 @@ import (
 // It is used across logging, messaging, and agent lifecycle management.
 // All routing fields (SessionID, ChannelID, AgentID) must be valid for the context to be complete.
 type SessionContext struct {
-	SessionID uuid.UUID // Session identifier for routing
-	ChannelID uuid.UUID // Channel identifier for routing
-	AgentID   uuid.UUID // Agent identifier for the log source
-	Cwd       string    // Current working directory for this session
+	SessionID        uuid.UUID // Session identifier for routing
+	ChannelID        uuid.UUID // Channel identifier for routing
+	AgentID          uuid.UUID // Agent identifier for the log source
+	StartupDirectory string    // Current working directory for this session
 }
 
 // IsValid returns true if all required routing fields are populated with valid values.
@@ -28,7 +28,7 @@ func (c SessionContext) IsValid() bool {
 // String returns a formatted representation of the session context for logging.
 // Example: "session=abc-123 channel=def-456 agent=ghi-789 cwd=/home/user/project"
 func (c SessionContext) String() string {
-	cwd := c.Cwd
+	cwd := c.StartupDirectory
 	if cwd == "" {
 		cwd = "."
 	}
@@ -43,9 +43,9 @@ func (c SessionContext) String() string {
 // NewSessionContext creates a SessionContext with optional working directory.
 func NewSessionContext(sessionID uuid.UUID, agentID uuid.UUID, channelID uuid.UUID, cwd string) *SessionContext {
 	return &SessionContext{
-		SessionID: sessionID,
-		ChannelID: channelID,
-		AgentID:   agentID,
-		Cwd:       cwd,
+		SessionID:        sessionID,
+		ChannelID:        channelID,
+		AgentID:          agentID,
+		StartupDirectory: cwd,
 	}
 }

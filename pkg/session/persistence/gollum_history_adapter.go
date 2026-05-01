@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/session/repository"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 	"github.com/samber/do/v2"
@@ -17,13 +17,13 @@ import (
 
 // Metadata key constants for Gollem message metadata
 const (
-	MetadataKeyMessageID  = "message_id"
-	MetadataKeySessionID  = "session_id"
-	MetadataKeyChannelID  = "channel_id"
-	MetadataKeyAgentID    = "agent_id"
-	MetadataKeyAgentRole  = "agent_role"
-	MetadataKeyTimestamp  = "timestamp"
-	MetadataKeyLLMType    = "llm_type"
+	MetadataKeyMessageID = "message_id"
+	MetadataKeySessionID = "session_id"
+	MetadataKeyChannelID = "channel_id"
+	MetadataKeyAgentID   = "agent_id"
+	MetadataKeyAgentRole = "agent_role"
+	MetadataKeyTimestamp = "timestamp"
+	MetadataKeyLLMType   = "llm_type"
 )
 
 // gollumHistoryAdapter implements gollem.HistoryRepository using our SessionRepository.
@@ -115,21 +115,21 @@ func (a *gollumHistoryAdapter) Save(ctx context.Context, sessionID string, histo
 	if err != nil {
 		return fmt.Errorf("failed to check session existence: %w", err)
 	}
-		if !exists {
-			// Session doesn't exist - create it with minimal info
-			sess := &shared.Session{
-				SessionContext: shared.SessionContext{
-					SessionID: sid,
-					ChannelID: uuid.Nil, // Unknown at this point
-					AgentID:   uuid.Nil,
-					Cwd:       "",
-				},
-				CreatedAt: time.Now(),
-			}
-			if err := a.repo.Create(ctx, sess); err != nil {
-				return fmt.Errorf("failed to create session: %w", err)
-			}
+	if !exists {
+		// Session doesn't exist - create it with minimal info
+		sess := &shared.Session{
+			SessionContext: shared.SessionContext{
+				SessionID:        sid,
+				ChannelID:        uuid.Nil, // Unknown at this point
+				AgentID:          uuid.Nil,
+				StartupDirectory: "",
+			},
+			CreatedAt: time.Now(),
 		}
+		if err := a.repo.Create(ctx, sess); err != nil {
+			return fmt.Errorf("failed to create session: %w", err)
+		}
+	}
 
 	// Convert gollem.Messages to shared.Messages
 	sharedMessages := make([]shared.Message, 0, len(history.Messages))
@@ -269,13 +269,13 @@ func gollemMessageToShared(gMsg gollem.Message, sessionID uuid.UUID) (shared.Mes
 	// Copy remaining metadata (excluding our internal keys)
 	metadata := make(map[string]interface{})
 	internalKeys := map[string]bool{
-		MetadataKeyMessageID:  true,
-		MetadataKeySessionID:  true,
-		MetadataKeyChannelID:  true,
-		MetadataKeyAgentID:    true,
-		MetadataKeyAgentRole:  true,
-		MetadataKeyTimestamp:  true,
-		MetadataKeyLLMType:    true,
+		MetadataKeyMessageID: true,
+		MetadataKeySessionID: true,
+		MetadataKeyChannelID: true,
+		MetadataKeyAgentID:   true,
+		MetadataKeyAgentRole: true,
+		MetadataKeyTimestamp: true,
+		MetadataKeyLLMType:   true,
 	}
 	for k, v := range gMsg.Metadata {
 		if !internalKeys[k] {

@@ -170,7 +170,17 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 
 	// Set default strategy using strategy builder
 	if config.Strategy == nil {
-		config.Strategy = f.strategyBuilder.BuildForSubAgent(client, strategy.StrategyTypeDefault)
+		if config.Type == shared.AgentTypeSupervisor {
+			config.Strategy = f.strategyBuilder.BuildForSupervisor(
+				client,
+				strategy.StrategyTypeDefault,
+			)
+		} else if config.Type == shared.AgentTypeSubAgent {
+			config.Strategy = f.strategyBuilder.BuildForSubAgent(
+				client,
+				strategy.StrategyTypeDefault,
+			)
+		}
 	}
 
 	// Set default output mode
@@ -232,7 +242,12 @@ func (f *defaultAgentFactory) CreateAgent(ctx context.Context, config *shared.Ag
 	return defAgent, nil
 }
 
-func (f *defaultAgentFactory) resolveTools(ctx context.Context, agent *DefaultAgent, allowedTools []string) ([]gollem.Tool, error) {
+func (f *defaultAgentFactory) resolveTools(
+	_ context.Context,
+	agent *DefaultAgent,
+	allowedTools []string,
+) ([]gollem.Tool, error) {
+
 	if allowedTools == nil {
 		return nil, nil
 	}
@@ -300,16 +315,19 @@ func (p *defaultAgentFactory) CreateSupervisorAgent(
 		allowedTools = append(allowedTools, toolName.String())
 	}
 
+	clientConfig, err := p.configService.ClientConfig(shared.AgentTypeSupervisor)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid llm client config: %w", err)
+	}
+
 	// Create agent config
 	agentConfig := &shared.AgentConfig{
-		IsSupervisor:    true,
+		Type:            shared.AgentTypeSupervisor,
 		AllowCompaction: true,
 		SystemPrompt:    systemPrompt,
 		AllowedTools:    allowedTools,
 		Role:            "Supervisor Agent",
-		LLMClientConfig: &shared.LLMClientConfig{
-			Model: "anthropic/glm-4.7",
-		},
+		LLMClientConfig: clientConfig,
 	}
 
 	// Apply options

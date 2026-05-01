@@ -3,6 +3,7 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/shared"
@@ -286,6 +287,8 @@ type StrategyConfig struct {
 // It wraps StrategyConfig with a SUBAGENT prefix for environment variables.
 type SubAgentConfig struct {
 	Strategy StrategyConfig `envconfig:"STRATEGY"`
+	// Model is the Model to use for the specific agent type
+	DefaultModel string `envconfig:"DEFAULT_MODEL" default:"anthropic/opus-4.6"`
 }
 
 // MaxIterations returns the maximum iterations for subagent strategy.
@@ -302,6 +305,8 @@ func (c *SubAgentConfig) MaxRepeatedActions() int {
 // It wraps StrategyConfig with a SUPERVISOR prefix for environment variables.
 type SupervisorConfig struct {
 	Strategy StrategyConfig `envconfig:"STRATEGY"`
+	// Model is the Model to use for the specific agent type
+	DefaultModel string `envconfig:"DEFAULT_MODEL" default:"anthropic/opus-4.6"`
 }
 
 // MaxIterations returns the maximum iterations for supervisor strategy.
@@ -337,6 +342,7 @@ type ConfigService interface {
 	GetSubAgentConfig() *SubAgentConfig
 	GetSupervisorConfig() *SupervisorConfig
 	GetDatabaseConfig() DatabaseConfig
+	ClientConfig(agentType shared.AgentType) (*shared.LLMClientConfig, error)
 }
 
 // serviceImpl implements the ConfigService interface
@@ -384,6 +390,50 @@ func NewService(_ do.Injector) (ConfigService, error) {
 	}
 
 	return &s, nil
+}
+
+func (c *serviceImpl) ClientConfig(agentType shared.AgentType) (*shared.LLMClientConfig, error) {
+	// Get model for agent type
+	var model string
+	switch agentType {
+	case shared.AgentTypeSupervisor:
+		model = c.Supervisor.DefaultModel
+	case shared.AgentTypeSubAgent:
+		model = c.SubAgent.DefaultModel
+	default:
+		return nil, fmt.Errorf("unknown agent type: %s", agentType)
+	}
+
+	// Validate model is configured
+	if model == "" {
+		return nil, fmt.Errorf("no default model configured for %s", agentType)
+	}
+
+	cnf := &shared.LLMClientConfig{Model: model}
+
+	// Parse and validate provider
+	provider, err := cnf.Provider()
+	if err != nil {
+		return nil, fmt.Errorf("invalid model format for %s: %s: %w", agentType, model, err)
+	}
+
+	// Set provider-specific parameters
+	switch provider {
+	case shared.LLMProviderAnthropic:
+		cnf.MaxTokens = &c.Anthropic.MaxTokens
+		cnf.Temperature = &c.Anthropic.Temperature
+		cnf.TopP = &c.Anthropic.TopP
+	case shared.LLMProviderOpenAI:
+		cnf.MaxTokens = &c.OpenAI.MaxTokens
+		cnf.Temperature = &c.OpenAI.Temperature
+		cnf.TopP = &c.OpenAI.TopP
+	case shared.LLMProviderGemini:
+		cnf.MaxTokens = &c.Gemini.MaxTokens
+		cnf.Temperature = &c.Gemini.Temperature
+		cnf.TopP = &c.Gemini.TopP
+	}
+
+	return cnf, nil
 }
 
 // Implement Service interface methods
@@ -458,4 +508,3 @@ func (s *serviceImpl) GetSubAgentConfig() *SubAgentConfig {
 func (s *serviceImpl) GetSupervisorConfig() *SupervisorConfig {
 	return &s.Supervisor
 }
-

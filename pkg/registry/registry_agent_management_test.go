@@ -646,14 +646,14 @@ func TestAgentRegistry_GetSupervisorAgent(t *testing.T) {
 		mockSupervisor.EXPECT().GetID().Return(supervisorID).AnyTimes()
 		mockSupervisor.EXPECT().GetConfig().Return(&shared.AgentConfig{
 			SessionContext: shared.SessionContext{AgentID: supervisorID},
-			IsSupervisor:   true,
+			Type: shared.AgentTypeSupervisor,
 			Role:           "Supervisor Agent",
 		}).AnyTimes()
 
 		// Register supervisor
 		supervisorConfig := &shared.AgentConfig{
 			SessionContext: shared.SessionContext{AgentID: supervisorID},
-			IsSupervisor:   true,
+			Type: shared.AgentTypeSupervisor,
 			Role:           "Supervisor Agent",
 		}
 		err = registry.Register(mockSupervisor, supervisorConfig)
@@ -691,7 +691,7 @@ func TestAgentRegistry_GetSupervisorAgent(t *testing.T) {
 		mockSupervisor.EXPECT().GetID().Return(supervisorID).AnyTimes()
 		mockSupervisor.EXPECT().GetConfig().Return(&shared.AgentConfig{
 			SessionContext: shared.SessionContext{AgentID: supervisorID},
-			IsSupervisor:   true,
+			Type: shared.AgentTypeSupervisor,
 			Role:           "Supervisor Agent",
 		}).AnyTimes()
 
@@ -700,7 +700,7 @@ func TestAgentRegistry_GetSupervisorAgent(t *testing.T) {
 		mockRegular.EXPECT().GetID().Return(regularID).AnyTimes()
 		mockRegular.EXPECT().GetConfig().Return(&shared.AgentConfig{
 			SessionContext: shared.SessionContext{AgentID: regularID},
-			IsSupervisor:   false,
+			Type: shared.AgentTypeSubAgent,
 			Role:           "Regular Agent",
 			LLMClientConfig: &shared.LLMClientConfig{
 				Model: "anthropic/claude-3-5-sonnet-20241022",
@@ -710,7 +710,7 @@ func TestAgentRegistry_GetSupervisorAgent(t *testing.T) {
 		// Register both agents
 		supervisorConfig := &shared.AgentConfig{
 			SessionContext: shared.SessionContext{AgentID: supervisorID},
-			IsSupervisor:   true,
+			Type: shared.AgentTypeSupervisor,
 			Role:           "Supervisor Agent",
 		}
 		err = testRegistry.Register(mockSupervisor, supervisorConfig)
@@ -718,7 +718,7 @@ func TestAgentRegistry_GetSupervisorAgent(t *testing.T) {
 
 		regularConfig := &shared.AgentConfig{
 			SessionContext: shared.SessionContext{AgentID: regularID},
-			IsSupervisor:   false,
+			Type: shared.AgentTypeSubAgent,
 			Role:           "Regular Agent",
 			LLMClientConfig: &shared.LLMClientConfig{
 				Model: "anthropic/claude-3-5-sonnet-20241022",
@@ -747,7 +747,7 @@ func TestAgentRegistry_GetSupervisorAgent(t *testing.T) {
 		mockRegular.EXPECT().GetID().Return(regularID).AnyTimes()
 		mockRegular.EXPECT().GetConfig().Return(&shared.AgentConfig{
 			SessionContext: shared.SessionContext{AgentID: regularID},
-			IsSupervisor:   false,
+			Type: shared.AgentTypeSubAgent,
 			Role:           "Regular Agent",
 			LLMClientConfig: &shared.LLMClientConfig{
 				Model: "anthropic/claude-3-5-sonnet-20241022",
@@ -757,7 +757,7 @@ func TestAgentRegistry_GetSupervisorAgent(t *testing.T) {
 		// Register regular agent
 		regularConfig := &shared.AgentConfig{
 			SessionContext: shared.SessionContext{AgentID: regularID},
-			IsSupervisor:   false,
+			Type: shared.AgentTypeSubAgent,
 			Role:           "Regular Agent",
 			LLMClientConfig: &shared.LLMClientConfig{
 				Model: "anthropic/claude-3-5-sonnet-20241022",

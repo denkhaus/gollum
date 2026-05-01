@@ -48,15 +48,18 @@ func (m *mockConfigService) GetPromptOptimizerConfig() *config.PromptOptimizerCo
 func (m *mockConfigService) GetLangfuseConfig() *config.LangfuseConfig {
 	return &config.LangfuseConfig{}
 }
-func (m *mockConfigService) GetEventsConfig() *config.EventsConfig { return &config.EventsConfig{} }
-func (m *mockConfigService) GetMCPConfig() *config.MCPConfig       { return &config.MCPConfig{} }
-func (m *mockConfigService) GetACPConfig() *config.ACPConfig       { return &config.ACPConfig{} }
+func (m *mockConfigService) GetEventsConfig() *config.EventsConfig    { return &config.EventsConfig{} }
+func (m *mockConfigService) GetMCPConfig() *config.MCPConfig          { return &config.MCPConfig{} }
+func (m *mockConfigService) GetACPConfig() *config.ACPConfig          { return &config.ACPConfig{} }
 func (m *mockConfigService) GetDatabaseConfig() config.DatabaseConfig { return config.DatabaseConfig{} }
 func (m *mockConfigService) GetSubAgentConfig() *config.SubAgentConfig {
 	return &config.SubAgentConfig{}
 }
 func (m *mockConfigService) GetSupervisorConfig() *config.SupervisorConfig {
 	return &config.SupervisorConfig{}
+}
+func (m *mockConfigService) ClientConfig(agentType shared.AgentType) (*shared.LLMClientConfig, error) {
+	return nil, nil
 }
 
 // mockLoggerService is a minimal implementation of LoggerService for testing.

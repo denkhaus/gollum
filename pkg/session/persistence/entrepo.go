@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/denkhaus/gollum/pkg/logger"
-	"github.com/denkhaus/gollum/pkg/session/repository"
-	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/message"
 	"github.com/denkhaus/gollum/pkg/session/persistence/ent/session"
+	"github.com/denkhaus/gollum/pkg/session/repository"
+	"github.com/denkhaus/gollum/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/m-mizutani/gollem"
 )
@@ -69,7 +69,7 @@ func (r *EntRepository) Create(ctx context.Context, session *shared.Session) err
 		SetSessionID(session.SessionID).
 		SetChannelID(session.ChannelID).
 		SetAgentID(session.AgentID).
-		SetCwd(session.Cwd).
+		SetCwd(session.StartupDirectory).
 		SetState("active").
 		Save(ctx)
 	if err != nil {
@@ -165,7 +165,6 @@ func (r *EntRepository) Fork(ctx context.Context, sessionID uuid.UUID) (*shared.
 		return nil, fmt.Errorf("failed to create forked session: %w", err)
 	}
 
-
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -199,14 +198,13 @@ func (r *EntRepository) Update(ctx context.Context, sess *shared.Session) error 
 		Update().
 		Where(session.SessionID(sess.SessionID)).
 		SetAgentID(sess.AgentID).
-		SetCwd(sess.Cwd).
+		SetCwd(sess.StartupDirectory).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to update session: %w", err)
 	}
 	return nil
 }
-
 
 // Delete removes a session.
 func (r *EntRepository) Delete(ctx context.Context, sessionID uuid.UUID) error {
@@ -318,10 +316,10 @@ func (r *EntRepository) GetMessages(ctx context.Context, sessionID uuid.UUID, li
 func (r *EntRepository) entityToSession(sessionEnt *ent.Session) (*shared.Session, error) {
 	return &shared.Session{
 		SessionContext: shared.SessionContext{
-			SessionID: sessionEnt.SessionID,
-			ChannelID: sessionEnt.ChannelID,
-			AgentID:   sessionEnt.AgentID,
-			Cwd:       sessionEnt.Cwd,
+			SessionID:        sessionEnt.SessionID,
+			ChannelID:        sessionEnt.ChannelID,
+			AgentID:          sessionEnt.AgentID,
+			StartupDirectory: sessionEnt.Cwd,
 		},
 		Context:    nil, // Caller must set context
 		CancelFunc: nil, // Caller must set cancel func

@@ -48,8 +48,8 @@ func TestACPService_ListSessions(t *testing.T) {
 
 		ctx := context.Background()
 		expectedSessions := []*shared.Session{
-			{SessionContext: shared.SessionContext{SessionID: uuid.New(), ChannelID: uuid.New(), Cwd: "/tmp"}},
-			{SessionContext: shared.SessionContext{SessionID: uuid.New(), ChannelID: uuid.New(), Cwd: "/home"}},
+			{SessionContext: shared.SessionContext{SessionID: uuid.New(), ChannelID: uuid.New(), StartupDirectory: "/tmp"}},
+			{SessionContext: shared.SessionContext{SessionID: uuid.New(), ChannelID: uuid.New(), StartupDirectory: "/home"}},
 		}
 
 		mockSessionMgr.EXPECT().ListSessions(ctx).Return(expectedSessions, nil)
@@ -120,7 +120,7 @@ func TestACPService_LoadSession(t *testing.T) {
 		result, err := svc.LoadSession(ctx, acpSessionID)
 		require.NoError(t, err)
 		assert.Equal(t, expectedSession.SessionContext.SessionID, result.SessionID)
-		assert.Equal(t, expectedSession.SessionContext.Cwd, result.SessionContext.Cwd)
+		assert.Equal(t, expectedSession.SessionContext.StartupDirectory, result.SessionContext.StartupDirectory)
 		assert.Equal(t, expectedSession.Context, result.Context)
 		assert.NotNil(t, result.CancelFunc)
 	})
@@ -307,14 +307,14 @@ func TestACPService_ForkSession(t *testing.T) {
 		newSessionID := uuid.New()
 		acpSessionID := acppkg.SessionID(originalSessionID.String())
 
-			expectedSession := &shared.Session{
-				SessionContext: shared.SessionContext{
-					SessionID: newSessionID,
-					ChannelID: uuid.New(),
-					Cwd:       "/tmp",
-				},
-			}
-			mockSessionMgr.EXPECT().ForkSession(ctx, originalSessionID).Return(expectedSession, nil)
+		expectedSession := &shared.Session{
+			SessionContext: shared.SessionContext{
+				SessionID:        newSessionID,
+				ChannelID:        uuid.New(),
+				StartupDirectory: "/tmp",
+			},
+		}
+		mockSessionMgr.EXPECT().ForkSession(ctx, originalSessionID).Return(expectedSession, nil)
 
 		resultID, err := svc.ForkSession(ctx, acpSessionID)
 		require.NoError(t, err)
@@ -392,8 +392,8 @@ func TestACPService_ExtMethod(t *testing.T) {
 		sessionID1 := uuid.New()
 		sessionID2 := uuid.New()
 		expectedSessions := []*shared.Session{
-			{SessionContext: shared.SessionContext{SessionID: sessionID1, ChannelID: uuid.New(), Cwd: "/tmp"}},
-			{SessionContext: shared.SessionContext{SessionID: sessionID2, ChannelID: uuid.New(), Cwd: "/home"}},
+			{SessionContext: shared.SessionContext{SessionID: sessionID1, ChannelID: uuid.New(), StartupDirectory: "/tmp"}},
+			{SessionContext: shared.SessionContext{SessionID: sessionID2, ChannelID: uuid.New(), StartupDirectory: "/home"}},
 		}
 
 		mockSessionMgr.EXPECT().ListSessions(gomock.Any()).Return(expectedSessions, nil)
@@ -438,7 +438,7 @@ func TestACPService_ExtMethod(t *testing.T) {
 		t.Parallel()
 
 		sessionID := uuid.New()
-		expectedSession := &shared.Session{SessionContext: shared.SessionContext{SessionID: sessionID, ChannelID: uuid.New(), Cwd: "/tmp"}}
+		expectedSession := &shared.Session{SessionContext: shared.SessionContext{SessionID: sessionID, ChannelID: uuid.New(), StartupDirectory: "/tmp"}}
 
 		mockSessionMgr.EXPECT().LoadSession(gomock.Any(), sessionID).Return(expectedSession, nil)
 
@@ -513,9 +513,9 @@ func TestACPService_ExtMethod(t *testing.T) {
 		newSessionID := uuid.New()
 		expectedSession := &shared.Session{
 			SessionContext: shared.SessionContext{
-				SessionID: newSessionID,
-				ChannelID: uuid.New(),
-				Cwd:       "/tmp",
+				SessionID:        newSessionID,
+				ChannelID:        uuid.New(),
+				StartupDirectory: "/tmp",
 			},
 		}
 

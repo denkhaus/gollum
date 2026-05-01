@@ -73,10 +73,15 @@ func TestWriteFileTool_Run_Success(t *testing.T) {
 	mockHookManager := hooks.NewMockHookManager(ctrl)
 	setupMockHookManagerPassThrough(mockHookManager)
 
+	agentID := uuid.New()
+	agent := shared.NewMockAgent(ctrl)
+	agent.EXPECT().GetID().Return(agentID).AnyTimes()
+	agent.EXPECT().ToSessionContext().Return(shared.SessionContext{AgentID: agentID}).AnyTimes()
+
 	mockDiffProvider := diff.NewMockProvider(ctrl)
 	mockDiffProvider.EXPECT().GenerateDiffForNewFile(gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 	mockDiffProvider.EXPECT().GenerateDiff(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
-	tool := &writeFileToolImpl{logService: logService, fsm: fsm, hookManager: mockHookManager, diffProvider: mockDiffProvider}
+	tool := &writeFileToolImpl{logService: logService, fsm: fsm, agent: agent, hookManager: mockHookManager, diffProvider: mockDiffProvider}
 	tool.diffProvider = mockDiffProvider
 
 	// Create a temporary directory

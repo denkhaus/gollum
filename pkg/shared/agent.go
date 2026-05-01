@@ -9,6 +9,15 @@ import (
 	"github.com/m-mizutani/gollem"
 )
 
+//go:generate go run golang.org/x/tools/cmd/stringer -type=AgentType
+type AgentType int
+
+const (
+	AgentTypeUnknown AgentType = iota
+	AgentTypeSupervisor
+	AgentTypeSubAgent
+)
+
 // Agent interface to avoid import cycles
 // This interface contains only the methods that registry needs to know about
 type Agent interface {

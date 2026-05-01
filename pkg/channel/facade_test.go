@@ -634,7 +634,7 @@ func TestChannelFacade_SubmitInput_CommandError(t *testing.T) {
 	}
 	result, err := service.SubmitInput(session, "/test args")
 
-	require.NoError(t, err)
+	require.Error(t, err)
 	assert.True(t, result.Handled)
 	assert.True(t, result.IsCommand)
 	assert.Error(t, result.Error)
@@ -978,7 +978,7 @@ func TestChannelFacade_SubmitInput_ExecuteError(t *testing.T) {
 	}
 	result, err := service.SubmitInput(session, "/test args")
 
-	require.NoError(t, err) // No error returned, error is in result
+	require.Error(t, err) // Error is returned
 	assert.True(t, result.Handled)
 	assert.Error(t, result.Error)
 	assert.Contains(t, result.Error.Error(), "supervisor execution failed")

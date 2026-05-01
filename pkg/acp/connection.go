@@ -84,10 +84,10 @@ func (s *acpServiceImpl) newSessionFactory(
 
 	// Register session in Gollum's SessionManager for system integration
 	session, err := s.sessionManager.CreateSession(ctx, &shared.SessionContext{
-		SessionID: sessionID,
-		ChannelID: s.id,
-		AgentID:   uuid.Nil, // Will be set when supervisor is created
-		Cwd:       cwd,
+		SessionID:        sessionID,
+		ChannelID:        s.id,
+		AgentID:          uuid.Nil, // Will be set when supervisor is created
+		StartupDirectory: cwd,
 	})
 	if err != nil {
 		cancel()

@@ -232,10 +232,10 @@ func TestBackgroundAgent_MultiLevelHierarchy(t *testing.T) {
 	// Register root agent directly (no parent)
 	rootConfig := &shared.AgentConfig{
 		SessionContext: shared.SessionContext{
-			SessionID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
-			ChannelID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440002"),
-			AgentID:   rootID,
-			Cwd:       "/tmp",
+			SessionID:        uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+			ChannelID:        uuid.MustParse("550e8400-e29b-41d4-a716-446655440002"),
+			AgentID:          rootID,
+			StartupDirectory: "/tmp",
 		},
 		LLMClientConfig: &shared.LLMClientConfig{
 			Model: "anthropic/claude-3-5-sonnet-20241022",

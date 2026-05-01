@@ -113,7 +113,7 @@ func (c *TUIChannel) OnLog(entry shared.LogEntry) {
 
 	// Convert log entry to a system message
 	msg := shared.Message{
-		Role: gollem.RoleSystem,
+		Role:      gollem.RoleSystem,
 		Content:   formatLogEntry(entry),
 		Timestamp: entry.Timestamp,
 		AgentRole: c.agentRole,
@@ -142,7 +142,7 @@ func (c *TUIChannel) OnAgentLifecycle(event channel.AgentLifecycleEvent) {
 
 	// Convert lifecycle event to a system message
 	msg := shared.Message{
-		Role: gollem.RoleSystem,
+		Role:      gollem.RoleSystem,
 		Content:   formatLifecycleEvent(event),
 		Timestamp: time.Now(),
 		AgentRole: event.Role,
@@ -253,12 +253,12 @@ func (a *agentExecutorAdapter) Execute(ctx context.Context, input string) (*goll
 	// Use Nil UUID for session ID for TUI (single session mode)
 	session := &shared.Session{
 		SessionContext: shared.SessionContext{
-			SessionID: uuid.Nil,
-			ChannelID: a.channelID,
-			AgentID:   uuid.Nil,
-			Cwd:       "",
+			SessionID:        uuid.Nil,
+			ChannelID:        a.channelID,
+			AgentID:          uuid.Nil,
+			StartupDirectory: "",
 		},
-		CreatedAt:  time.Now(),
+		CreatedAt: time.Now(),
 	}
 	result, err := a.facade.SubmitInput(session, input)
 	if err != nil {

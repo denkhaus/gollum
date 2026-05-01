@@ -53,6 +53,7 @@ func (s *Session) GetOrCreateSupervisor(factory AgentFactory) (Agent, error) {
 		s.Context,
 		WithSessionID(s.SessionID),
 		WithChannelID(s.ChannelID),
+		WithStartupDirectory(s.StartupDirectory),
 	)
 	if err != nil {
 		return nil, err

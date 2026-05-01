@@ -37,8 +37,8 @@ func TestPrompt_VariableDeclaration(t *testing.T) {
 	ctx := context.Background()
 	session = &shared.Session{
 		SessionContext: shared.SessionContext{
-			SessionID: uuid.Nil,
-			Cwd:       "/tmp",
+			SessionID:        uuid.Nil,
+			StartupDirectory: "/tmp",
 		},
 		Context:    ctx,
 		CancelFunc: func() {},

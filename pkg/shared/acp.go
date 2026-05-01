@@ -32,8 +32,8 @@ type ACPService interface {
 func NewSession(ctx context.Context, cancel context.CancelFunc, cwd string) *Session {
 	return &Session{
 		SessionContext: SessionContext{
-			SessionID: uuid.New(),
-			Cwd:       cwd,
+			SessionID:        uuid.New(),
+			StartupDirectory: cwd,
 		},
 		Context:    ctx,
 		CancelFunc: cancel,

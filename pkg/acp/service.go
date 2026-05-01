@@ -548,7 +548,7 @@ func (s *acpServiceImpl) Prompt(ctx context.Context, params *acppkg.PromptReques
 	}
 
 	// Check if Cwd is empty
-	if session.Cwd == "" {
+	if session.StartupDirectory == "" {
 		return nil, fmt.Errorf("session.Cwd is empty")
 	}
 
@@ -742,7 +742,7 @@ func (s *acpServiceImpl) handleListSessions(ctx context.Context, params json.Raw
 			ID:        sess.SessionID.String(),
 			ChannelID: sess.ChannelID.String(),
 			CreatedAt: sess.CreatedAt.Format(time.RFC3339),
-			Cwd:       sess.Cwd,
+			Cwd:       sess.StartupDirectory,
 		}
 	}
 
@@ -770,7 +770,7 @@ func (s *acpServiceImpl) handleLoadSession(ctx context.Context, params json.RawM
 	return map[string]any{
 		"session": map[string]any{
 			"id":     acpSession.SessionID.String(),
-			"cwd":    acpSession.Cwd,
+			"cwd":    acpSession.StartupDirectory,
 			"loaded": true,
 		},
 	}, nil

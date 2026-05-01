@@ -208,8 +208,6 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 		return t.executionHelper.ErrorResponse(fmt.Sprintf("failed to get subagent prompt: %v", err)), nil
 	}
 
-	// Get LLM client config from parent agent
-	llmClientConfig := t.agent.GetConfig().LLMClientConfig
 	t.logService.DebugWithContext("Inheriting LLM config from parent", t.agent.ToSessionContext(),
 		zap.String("parent_agent_id", t.agent.GetID().String()))
 
@@ -224,21 +222,28 @@ func (t *spawnAgentToolImpl) runSpawnAgent(ctx context.Context, args ToolRequest
 	}
 
 	// Create subagent configuration
-	taskID := uuid.New()
+	agentID := uuid.New()
 	parentID := t.agent.GetID()
 	parentConfig := t.agent.GetConfig()
+
+	clientConfig, err := t.configService.ClientConfig(shared.AgentTypeSubAgent)
+	if err != nil {
+		return nil, fmt.Errorf("invalid llm client config: %w", err)
+	}
+
 	subagentConfig := &shared.AgentConfig{
+		Type:            shared.AgentTypeSubAgent,
 		AllowCompaction: false, // Don't allow compaction in Sub-agents
 		ParentID:        &parentID,
 		SessionContext: shared.SessionContext{
 			SessionID: parentConfig.SessionContext.SessionID,
 			ChannelID: parentConfig.SessionContext.ChannelID,
-			AgentID:   taskID,
+			AgentID:   agentID,
 		},
 		SystemPrompt:    systemPrompt,
 		Role:            role,
 		Description:     description,
-		LLMClientConfig: llmClientConfig,
+		LLMClientConfig: clientConfig,
 		OutputMode:      shared.OutputModeSummary, // Sub-agents use summary mode
 		History:         history,                  // Include parent message history for context awareness
 		AllowedTools:    allowedTools,             // Explicitly allowed tools

@@ -52,7 +52,7 @@ func (h *inputHandlerImpl) HandleInput(session *shared.Session, input string) (*
 			IsCommand: true,
 			Response:  response,
 			Error:     err,
-		}, nil
+		}, err
 	}
 
 	// Get or create supervisor for this session (lazy, thread-safe)
@@ -67,7 +67,7 @@ func (h *inputHandlerImpl) HandleInput(session *shared.Session, input string) (*
 		return &InputResult{
 			Handled: true,
 			Error:   err,
-		}, nil
+		}, err
 	}
 
 	// Extract response

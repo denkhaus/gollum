@@ -9,86 +9,8 @@ import (
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
-
-// testConfigService is a mock implementation of config.ConfigService for testing
-type testConfigService struct{}
-
-func (m *testConfigService) GetLogLevel() string {
-	return "info"
-}
-
-func (m *testConfigService) IsDevMode() bool {
-	return false
-}
-
-func (m *testConfigService) GetAnthropicConfig() *config.AnthropicConfig {
-	return &config.AnthropicConfig{}
-}
-
-func (m *testConfigService) GetGeminiConfig() *config.GeminiConfig {
-	return &config.GeminiConfig{}
-}
-
-func (m *testConfigService) GetOpenAIConfig() *config.OpenAIConfig {
-	return &config.OpenAIConfig{}
-}
-
-func (m *testConfigService) GetAgentLimits() *config.AgentLimitsConfig {
-	return &config.AgentLimitsConfig{}
-}
-
-func (m *testConfigService) GetFilesConfig() *config.FilesConfig {
-	return &config.FilesConfig{}
-}
-
-func (m *testConfigService) GetLoggingConfig() *config.LoggingConfig {
-	return &config.LoggingConfig{}
-}
-
-func (m *testConfigService) GetBashConfig() *config.BashConfig {
-	return &config.BashConfig{}
-}
-
-func (m *testConfigService) GetHooksConfig() *config.HooksConfig {
-	return &config.HooksConfig{}
-}
-
-func (m *testConfigService) GetPromptStoreConfig() *config.PromptStoreConfig {
-	return &config.PromptStoreConfig{}
-}
-
-func (m *testConfigService) GetPromptOptimizerConfig() *config.PromptOptimizerConfig {
-	return &config.PromptOptimizerConfig{}
-}
-
-func (m *testConfigService) GetLangfuseConfig() *config.LangfuseConfig {
-	return &config.LangfuseConfig{}
-}
-
-func (m *testConfigService) GetEventsConfig() *config.EventsConfig {
-	return &config.EventsConfig{}
-}
-
-func (m *testConfigService) GetMCPConfig() *config.MCPConfig {
-	return &config.MCPConfig{}
-}
-
-func (m *testConfigService) GetACPConfig() *config.ACPConfig {
-	return &config.ACPConfig{}
-}
-
-func (m *testConfigService) GetDatabaseConfig() config.DatabaseConfig {
-	return config.DatabaseConfig{}
-}
-
-func (m *testConfigService) GetSubAgentConfig() *config.SubAgentConfig {
-	return &config.SubAgentConfig{}
-}
-
-func (m *testConfigService) GetSupervisorConfig() *config.SupervisorConfig {
-	return &config.SupervisorConfig{}
-}
 
 func TestFlowRegistryService_GetFlow_ReturnsRegisteredFlow(t *testing.T) {
 	svc := &flowRegistryServiceImpl{
@@ -222,9 +144,19 @@ func TestFlowRegistryService_LoadFromDirectory_LoadsAllSampleFlows(t *testing.T)
 
 func TestFlowRegistryService_NewFlowRegistryService_LoadsWorkspaceFlows(t *testing.T) {
 	// Create a new service - it should auto-load from .gollum/flows
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockConfig := config.NewMockConfigService(ctrl)
+	// Set up expectations for config methods that might be called during initialization
+	mockConfig.EXPECT().GetLogLevel().Return("info").AnyTimes()
+	mockConfig.EXPECT().IsDevMode().Return(false).AnyTimes()
+	mockConfig.EXPECT().GetFilesConfig().Return(&config.FilesConfig{}).AnyTimes()
+	mockConfig.EXPECT().GetLoggingConfig().Return(&config.LoggingConfig{}).AnyTimes()
+
 	injector := do.New()
 	// Provide mock config and logger services
-	do.ProvideValue[config.ConfigService](injector, &testConfigService{})
+	do.ProvideValue[config.ConfigService](injector, mockConfig)
 	do.Provide(injector, logger.NewService)
 	svc, err := NewFlowRegistryService(injector)
 	require.NoError(t, err)
